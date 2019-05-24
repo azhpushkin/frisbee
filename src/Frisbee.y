@@ -1,6 +1,7 @@
 {
 module Frisbee where
 import Tokens
+import Text.Pretty.Simple (pPrint)
 }
 
 
@@ -8,14 +9,13 @@ import Tokens
 %tokentype { Token }
 %error { parseError }
 %token
-  "class"				{ TClass _ }
+  "active"				{ TActive _ }
+  "passive"				{ TPassive _ }
   "new"					{ TNew _ }
-"String"				{ TString _ }
+  "String"				{ TString _ }
   "void"				{ TVoid _ }
-  "main"				{ TMain _ }
-  "public"				{ TPublic _ }
+  "def"				{ TDef _ }
   "return"                              { TReturn _ }
-  "extends"				{ TExtend _ }
   "int"				        { TInt _ }
   "boolean"				{ TBool _ }
   "if"				        { TIf _ }
@@ -44,19 +44,16 @@ import Tokens
 %%
 
 Program : 
-        MainClass ClassDeclList { Program $1 $2 }
-MainClass : 
-          "class" ident "{" "public" "void" "main" "(" "String" "[" "]" ident ")" "{" Statement "}" "}" { MClass $2 $11 $14 }
+        ObjectDeclList { Program $1 }
 
+ObjectDeclList :
+          ObjectDecl     { ObjectDeclList $1 OEmpty }
+          | ObjectDecl ObjectDeclList { ObjectDeclList $1 $2 }
+          |             { OEmpty }
 
-ClassDeclList :
-          ClassDecl     { ClassDeclList $1 CEmpty }
-          | ClassDecl ClassDeclList { ClassDeclList $1 $2 }
-          |             { CEmpty }
-
-ClassDecl : 
-          "class" ident "{" VarDeclList MethodDeclList "}"                     { ClassDecl $2 "void" $4 $5 }
-          | "class" ident "extends" ident "{" VarDeclList MethodDeclList "}"   { ClassDecl $2 $4 $6 $7 }
+ObjectDecl : 
+            "active" ident "{" VarDeclList MethodDeclList "}"    { ActiveDecl  $2 $4 $5 }
+          | "passive" ident "{" VarDeclList MethodDeclList "}"   { PassiveDecl $2 $4 $5 }
 
 
 MethodDeclList :
@@ -65,7 +62,7 @@ MethodDeclList :
      |                            { MEmpty }
 
 MethodDecl : 
-     "public" Type ident "(" FormalList ")" "{" VarDeclList StatementList "return" Exp ";" "}" { MethodDecl $2 $3 $5 $8 $9 $11 }
+     "def" Type ident "(" FormalList ")" "{" VarDeclList StatementList "return" Exp ";" "}" { MethodDecl $2 $3 $5 $8 $9 $11 }
 
 VarDeclList :
      Type ident ";" { VarDeclList $1 $2 VEmpty }
@@ -125,22 +122,18 @@ parseError tokenList =
   in error ("parse error at line " ++ show(getLineNum(pos)) ++ " and column " ++ show(getColumnNum(pos)))
 
 
-data Program 
-    = Program MainClass ClassDeclList
+data Program = Program ObjectDeclList
       deriving (Show, Eq)
 
 
-
-data MainClass
-    = MClass String String Statement
-      deriving (Show, Eq)
-
-data ClassDeclList
-    = ClassDeclList ClassDecl ClassDeclList
-    | CEmpty
+data ObjectDeclList
+    = ObjectDeclList ObjectDecl ObjectDeclList
+    | OEmpty
   deriving (Show, Eq)
 
-data ClassDecl = ClassDecl Ident Ident VarDeclList MethodDeclList
+data ObjectDecl
+    = ActiveDecl  Ident VarDeclList MethodDeclList
+    | PassiveDecl Ident VarDeclList MethodDeclList
   deriving (Show, Eq)
 
 
@@ -228,6 +221,5 @@ data ExpRest
 main = do 
   inStr <- getContents
   let parseTree = newl (alexScanTokens2 inStr)  
-  putStrLn ("parseTree: " ++ show(parseTree))
-  print "done"
+  pPrint parseTree
 }

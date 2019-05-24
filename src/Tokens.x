@@ -16,14 +16,13 @@ $graphic    = $printable # $white
 tokens :-
 
   $white+				;
-  "class"				{ \p s -> TClass p }
+  "active"				{ \p s -> TActive p }
+  "passive"				{ \p s -> TPassive p }
   "new"					{ \p s -> TNew p }
   "String"				{ \p s -> TString p }
   "void"				{ \p s -> TVoid p }
-  "main"				{ \p s -> TMain p }
   "return"                              { \p s -> TReturn p }
-  "public"				{ \p s -> TPublic p }
-  "extends"				{ \p s -> TExtend p }
+  "def"				{ \p s -> TDef p }
   "int"					{ \p s -> TInt p }
   "boolean"				{ \p s -> TBool p }
   "if"					{ \p s -> TIf p }
@@ -61,12 +60,11 @@ data Token =
 	TComma AlexPosn		       |
 	TLeftBrack AlexPosn	       |
 	TRightBrack AlexPosn	       |
-	TClass AlexPosn 	       |
-	TPublic AlexPosn	       |
+	TActive AlexPosn 	       |
+        TPassive AlexPosn 	       |
+	TDef AlexPosn	       |
 	TString AlexPosn	       |
 	TVoid AlexPosn		       |
-	TMain AlexPosn		       |
-	TExtend AlexPosn	       |
 	TInt AlexPosn		       |
 	TBool AlexPosn		       |
 	TIf AlexPosn		       |
@@ -100,12 +98,11 @@ tokenPosn (TRightBrace p) = p
 tokenPosn (TComma p) = p	       
 tokenPosn (TLeftBrack p) = p	       
 tokenPosn (TRightBrack p) = p	       
-tokenPosn (TClass p) = p 	       
-tokenPosn (TPublic p) = p	       
+tokenPosn (TActive p) = p 	       
+tokenPosn (TPassive p) = p 	       
+tokenPosn (TDef p) = p	       
 tokenPosn (TString p) = p	       
 tokenPosn (TVoid p) = p	       
-tokenPosn (TMain p) = p	       
-tokenPosn (TExtend p) = p	       
 tokenPosn (TInt p) = p		       
 tokenPosn (TBool p) = p	       
 tokenPosn (TIf p) = p		       

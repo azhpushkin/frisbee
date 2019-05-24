@@ -25,6 +25,7 @@ dependencies:
 - containers
 - hspec
 - array
+- pretty-simple
 
 library:
   source-dirs: src
