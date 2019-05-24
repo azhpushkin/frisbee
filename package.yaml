@@ -24,6 +24,7 @@ dependencies:
 - parsec
 - containers
 - hspec
+- array
 
 library:
   source-dirs: src

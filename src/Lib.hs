@@ -2,5 +2,7 @@ module Lib
     ( someFunc
     ) where
 
+import Frisbee
+
 someFunc :: IO ()
-someFunc = putStrLn "someFunc"
+someFunc = main
