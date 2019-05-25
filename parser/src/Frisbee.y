@@ -12,6 +12,8 @@ import Tokens
   "passive"				{ TPassive _ }
   "new"					{ TNew _ }
   "spawn"					{ TSpawn _ }
+  "import"              { TImport _ }
+  "from"              { TFrom _ }
   typeident		                        { TTypeIdent _ $$ }
   
   "Void"				{ TVoid _ }
@@ -57,7 +59,18 @@ import Tokens
 %%
 
 Program : 
-        ObjectDeclList { Program $1 }
+        ImportDeclList ObjectDeclList { Program $1 $2 }
+
+
+ImportDeclList :
+        "from" ident "import" ImportIdentList ";" ImportDeclList { ImportDeclList $2 $4 $6 }
+        |                                                  { ImportDeclListEmpty }
+
+
+ImportIdentList :
+        typeident "," ImportIdentList { ImportIdentList $1 $3 }
+        | typeident               { ImportIdentList $1 ImportIdentListEmpty }
+
 
 ObjectDeclList :
           ObjectDecl     { ObjectDeclList $1 OEmpty }
@@ -148,8 +161,14 @@ parseError tokenList =
 
 -- PYTHON START HERE
 
-data Program = Program ObjectDeclList  -- objects
+data Program = Program ImportDeclList ObjectDeclList  -- objects
       deriving (Show, Eq)
+
+
+data ImportDeclList
+    = ImportDeclList String ImportIdentList ImportDeclList
+    | ImportDeclListEmpty
+    deriving (Show, Eq)
 
 
 data ObjectDeclList
@@ -233,6 +252,11 @@ data Exp
 data ExpList
     = ExpList Exp ExpList  -- head, tail
     | ExpListEmpty    -- 
+    deriving (Show, Eq)
+
+data ImportIdentList
+    = ImportIdentList String ImportIdentList
+    | ImportIdentListEmpty
     deriving (Show, Eq)
 
 -- PYTHON END HERE

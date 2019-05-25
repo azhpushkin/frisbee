@@ -22,6 +22,8 @@ tokens :-
   "passive"				{ \p s -> TPassive p }
   "new"					{ \p s -> TNew p }
   "spawn"					{ \p s -> TSpawn p }
+  "import"					{ \p s -> TImport p }
+  "from"					{ \p s -> TFrom p }
   
   "return"                              { \p s -> TReturn p }
   "def"				{ \p s -> TDef p }
@@ -94,6 +96,8 @@ data Token =
 	TWhile AlexPosn		       |
 	TNew AlexPosn		       |
         TSpawn AlexPosn		       |
+        TImport AlexPosn		       |
+        TFrom AlexPosn		       |
 	TOp AlexPosn String              |
 	TComOp AlexPosn String           |
         TMaybe AlexPosn                  |
@@ -135,7 +139,9 @@ tokenPosn (TFalse p) = p
 tokenPosn (TThis p) = p	       
 tokenPosn (TWhile p) = p	       
 tokenPosn (TNew p) = p		       
-tokenPosn (TSpawn p) = p		       
+tokenPosn (TSpawn p) = p		
+tokenPosn (TImport p) = p
+tokenPosn (TFrom p) = p		       
 tokenPosn (TOp p c) = p            
 tokenPosn (TComOp p c) = p         
 tokenPosn (TMaybe p) = p                
