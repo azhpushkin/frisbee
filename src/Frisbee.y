@@ -12,12 +12,21 @@ import Text.Pretty.Simple (pPrint)
   "active"				{ TActive _ }
   "passive"				{ TPassive _ }
   "new"					{ TNew _ }
-  "String"				{ TString _ }
+  typeident		                        { TTypeIdent _ $$ }
+  
   "void"				{ TVoid _ }
   "def"				{ TDef _ }
   "return"                              { TReturn _ }
-  "int"				        { TInt _ }
-  "boolean"				{ TBool _ }
+  
+  "val"				{ TVal _ }
+  "String"				{ TString _ }
+  "Int"				        { TInt _ }
+  "Bool"				{ TBool _ }
+  "?"         { TMaybe _ }
+  "["					{ TLeftBrack _ }
+  "]"					{ TRightBrack _ }
+
+
   "if"				        { TIf _ }
   "else"				{ TElse _ }
   "true"				{ TTrue _ }
@@ -30,17 +39,16 @@ import Text.Pretty.Simple (pPrint)
   "{"	 	 	   		{ TLeftBrace _ }
   "}"					{ TRightBrace _ }
   ","					{ TComma _ }
-  "["					{ TLeftBrack _ }
-  "]"					{ TRightBrack _ }
+  
   op                                    { TOp _ $$}
   comop                                 { TComOp _ $$ }
   "("                                   { TLeftParen _ }
   ")"                                   { TRightParen _ }
   ";"                                   { TSemiColon _ }
   "."                                   { TPeriod _ }
+  
   "!"                                   { TNot _ }
   "="                                   { TEquals _ }
-  "System.out.println"                  { TPrint _ }
 %%
 
 Program : 
@@ -52,8 +60,8 @@ ObjectDeclList :
           |             { OEmpty }
 
 ObjectDecl : 
-            "active" ident "{" VarDeclList MethodDeclList "}"    { ActiveDecl  $2 $4 $5 }
-          | "passive" ident "{" VarDeclList MethodDeclList "}"   { PassiveDecl $2 $4 $5 }
+            "active" typeident "{" VarDeclList MethodDeclList "}"    { ActiveDecl  $2 $4 $5 }
+          | "passive" typeident "{" VarDeclList MethodDeclList "}"   { PassiveDecl $2 $4 $5 }
 
 
 MethodDeclList :
@@ -62,7 +70,7 @@ MethodDeclList :
      |                            { MEmpty }
 
 MethodDecl : 
-     "def" Type ident "(" FormalList ")" "{" VarDeclList StatementList "return" Exp ";" "}" { MethodDecl $2 $3 $5 $8 $9 $11 }
+       "def" Type ident "(" FormalList ")" "{" VarDeclList StatementList "}" { MethodDecl $2 $3 $5 $8 $9 }
 
 VarDeclList :
      Type ident ";" { VarDeclList $1 $2 VEmpty }
@@ -74,16 +82,21 @@ FormalList :
      | Type ident FormalList { FormalList $1 $2 $3 }
 
 Type :
-     "int" "[" "]"    { TypeIntArray }
-     | "boolean"      { TypeBoolean }
-     | "int"          { TypeInt }
-     | ident          { TypeIdent $1 }
+     "val"       { TypeAnonymous }
+     | Type "?"    { TypeMaybe $1 }
+     | "[" Type "]"    { TypeArray $2 }
+     | "Int"    { TypeInt }
+     | "String"    { TypeString }
+     | "Bool"    { TypeBool }
+     | typeident    { TypeIdent $1 }
+    
 
 Statement :
     "{" StatementList "}"                            { SList $2 }
-    | "if" "(" Exp ")" Statement "else" Statement  { SIfElse $3 $5 $7 }
+    | "if" "(" Exp ")" Statement "else" Statement  { SIfElse $3 $5 (Just $7) }
+    | "if" "(" Exp ")" Statement                  { SIfElse $3 $5 Nothing }
     | "while" "(" Exp ")" Statement                { SWhile $3 $5 }
-    | "System.out.println" "(" Exp ")" ";"         { SPrint $3 }
+    | "return" Exp ";"                              { SReturn $2 }
     | ident "=" Exp ";"                              { SEqual $1 $3 }
     | ident "[" Exp "]" "=" Exp ";"                  { SArrayEqual $1 $3 $6 }
 
@@ -102,7 +115,7 @@ Exp :
     | "false"                         { ExpBool False}
     | ident                           { ExpIdent $1}
     | "this"                          { ExpThis }
-    | "new" "int" "[" Exp "]"         { ExpNewInt $4 }  
+    | "new" "Int" "[" Exp "]"         { ExpNewInt $4 }  
     | "new" ident "(" ")"             { ExpNewIdent $2}
     | "!" Exp                         { ExpNot $2}
     | "(" Exp ")"                     { ExpExp $2}
@@ -118,7 +131,7 @@ ExpRest :
 {
 parseError :: [Token] -> a
 parseError tokenList =
-  let pos = tokenPosn(head(tokenList)) 
+  let pos = tokenPosn $ head tokenList
   in error ("parse error at line " ++ show(getLineNum(pos)) ++ " and column " ++ show(getColumnNum(pos)))
 
 
@@ -142,7 +155,7 @@ data MethodDeclList
     | MEmpty
     deriving (Show, Eq)
 data MethodDecl
-    = MethodDecl Type Ident FormalList VarDeclList StatementList Exp
+    = MethodDecl Type Ident FormalList VarDeclList StatementList
     deriving (Show, Eq)
 
 data VarDeclList =
@@ -156,18 +169,21 @@ data FormalList =
   deriving (Show, Eq)
 
 data Type =
-    TypeIntArray
-    | TypeBoolean
+      TypeAnonymous
+    | TypeMaybe Type
+    | TypeArray Type
     | TypeInt
+    | TypeBool
+    | TypeString
     | TypeIdent Ident
     deriving (Show, Eq)
 
 data Statement
     = Statement String
     | SList StatementList
-    | SIfElse Exp Statement Statement
+    | SIfElse Exp Statement (Maybe Statement)
     | SWhile Exp Statement
-    | SPrint Exp
+    | SReturn Exp
     | SEqual Ident Exp
     | SArrayEqual Ident Exp Exp
     | StatementError

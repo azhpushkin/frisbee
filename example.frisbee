@@ -1,0 +1,22 @@
+active Fac {
+	def Int computeFac(Int num) {
+      	     Int num_aux;
+	     if ( num < 1)
+      	     	num_aux = 1;
+	     else 
+       	     	num_aux = num * this.computeFac(num - 1);
+	     return num_aux;
+      }
+}
+
+active Client {
+	Socket conn;
+
+	def Int run(Int num) {
+
+      	if ( num < 1) num = 1;
+	      return 1;
+	      
+	     
+      }
+}

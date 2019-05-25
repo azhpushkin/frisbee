@@ -7,6 +7,8 @@ module Tokens where
 
 $digit = 0-9			-- digits
 $alpha = [a-zA-Z]		-- alphabetic characters
+$loweralpha = [a-z]
+$upperalpha = [A-Z]
 $graphic    = $printable # $white
 
 @string     = \" ($graphic # \")* \"
@@ -19,12 +21,18 @@ tokens :-
   "active"				{ \p s -> TActive p }
   "passive"				{ \p s -> TPassive p }
   "new"					{ \p s -> TNew p }
-  "String"				{ \p s -> TString p }
+  
   "void"				{ \p s -> TVoid p }
   "return"                              { \p s -> TReturn p }
   "def"				{ \p s -> TDef p }
-  "int"					{ \p s -> TInt p }
-  "boolean"				{ \p s -> TBool p }
+  
+  "val"                                 { \p s -> TVal p }
+  "String"				{ \p s -> TString p }
+  "Int"					{ \p s -> TInt p }
+  "Bool"				{ \p s -> TBool p }
+  $upperalpha[$alpha $digit]*		{ \p s -> TTypeIdent p s }
+  "?"					{ \p s -> TMaybe p }
+  
   "if"					{ \p s -> TIf p }
   "else"				{ \p s -> TElse p }
   "true"				{ \p s -> TTrue p }
@@ -35,6 +43,7 @@ tokens :-
   $digit+				{ \p s -> TIntLiteral p (read s) }
   "."                                   { \p s -> TPeriod p }
   "&&"					{ \p s -> TOp p (head s) }
+  
   "!"					{ \p s -> TNot p }
   [\+\-\*\/]                            { \p s -> TOp p (head s) }
   "<"                                   { \p s -> TComOp p (head s) }
@@ -42,14 +51,13 @@ tokens :-
   ";" 					{ \p s -> TSemiColon p }
   "("					{ \p s -> TLeftParen p }
   ")"					{ \p s -> TRightParen p }
-  $alpha[$alpha $digit \_ \']*		{ \p s -> TIdent p s }
+  $loweralpha[$alpha $digit \_ \']*		{ \p s -> TIdent p s }
   @string 	       	  		{ \p s -> TStringLiteral p (init (tail s)) -- remove the leading and trailing double quotes }
   "{"	 	 	   		{ \p s -> TLeftBrace p }
   "}"					{ \p s -> TRightBrace p }
   ","					{ \p s -> TComma p }
   "["					{ \p s -> TLeftBrack p }
   "]"					{ \p s -> TRightBrack p }
-  "System.out.println"                  { \p s -> TPrint p }
 {
 -- Each action has type ::AlexPosn -> String -> Token
 
@@ -64,6 +72,7 @@ data Token =
         TPassive AlexPosn 	       |
 	TDef AlexPosn	       |
 	TString AlexPosn	       |
+        TVal AlexPosn	       |
 	TVoid AlexPosn		       |
 	TInt AlexPosn		       |
 	TBool AlexPosn		       |
@@ -77,6 +86,7 @@ data Token =
 	TNew AlexPosn		       |
 	TOp AlexPosn Char              |
 	TComOp AlexPosn Char           |
+        TMaybe AlexPosn                  |
         TNot AlexPosn                  |
 	TEquals AlexPosn               |
 	TPeriod AlexPosn               |
@@ -84,7 +94,7 @@ data Token =
 	TLeftParen AlexPosn 	       |
 	TRightParen AlexPosn 	       |
 	TIdent AlexPosn String	       |
-        TPrint AlexPosn                |
+        TTypeIdent AlexPosn String	       |
 	TIntLiteral AlexPosn Int       |
 	TStringLiteral AlexPosn String |
         TReturn AlexPosn                    
@@ -102,6 +112,7 @@ tokenPosn (TActive p) = p
 tokenPosn (TPassive p) = p 	       
 tokenPosn (TDef p) = p	       
 tokenPosn (TString p) = p	       
+tokenPosn (TVal p) = p	       
 tokenPosn (TVoid p) = p	       
 tokenPosn (TInt p) = p		       
 tokenPosn (TBool p) = p	       
@@ -115,6 +126,7 @@ tokenPosn (TWhile p) = p
 tokenPosn (TNew p) = p		       
 tokenPosn (TOp p c) = p            
 tokenPosn (TComOp p c) = p         
+tokenPosn (TMaybe p) = p                
 tokenPosn (TNot p) = p                
 tokenPosn (TEquals p) = p             
 tokenPosn (TPeriod p) = p             
@@ -122,11 +134,10 @@ tokenPosn (TSemiColon p) = p
 tokenPosn (TLeftParen p) = p 	       
 tokenPosn (TRightParen p) = p 	       
 tokenPosn (TIdent p id) = p      
-tokenPosn (TPrint p) = p              
+tokenPosn (TTypeIdent p id) = p      
 tokenPosn (TIntLiteral p i) = p
 tokenPosn (TStringLiteral p str) = p
 tokenPosn (TReturn p) = p                    
-
 
 
 getLineNum :: AlexPosn -> Int
