@@ -38,7 +38,7 @@ active Client {
         }
 
 		else if (operation == "exit") {
-            this.conn ! close();
+            this.conn ! close(213, 123);
         }
         
     }

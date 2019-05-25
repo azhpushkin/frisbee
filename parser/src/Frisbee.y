@@ -100,8 +100,8 @@ Type :
 
 Statement :
     "{" StatementList "}"                            { SList $2 }
-    | "if" "(" Exp ")" Statement "else" Statement  { SIfElse $3 $5 (Just $7) }
-    | "if" "(" Exp ")" Statement                  { SIfElse $3 $5 Nothing }
+    | "if" "(" Exp ")" Statement "else" Statement  { SIfElse $3 $5 $7 }
+    | "if" "(" Exp ")" Statement                  { SIfElse $3 $5 (SList Empty) }
     | "while" "(" Exp ")" Statement                { SWhile $3 $5 }
     | "return" Exp ";"                              { SReturn $2 }
     | ident "=" Exp ";"                              { SEqual $1 $3 }
@@ -133,12 +133,10 @@ Exp :
     | "(" Exp ")"                     { ExpExp $2}
 
 ExpList :
-        Exp            { ExpListExp $1 }
-        | Exp ExpRest  { ExpList $1 $2 }
-        |              { ExpListEmpty }
+        Exp "," ExpList  { ExpList $1 $3 }  
+        | Exp               { ExpList $1 ExpListEmpty }
+        |                 { ExpListEmpty }
 
-ExpRest : 
-     "," Exp      { ExpRest $2 }
 
 {
 parseError :: [Token] -> a
@@ -194,7 +192,7 @@ data Type =
 data Statement
     = Statement String
     | SList StatementList
-    | SIfElse Exp Statement (Maybe Statement)
+    | SIfElse Exp Statement Statement
     | SWhile Exp Statement
     | SReturn Exp
     | SEqual Ident Exp
@@ -231,16 +229,12 @@ data Exp
     | ExpError
     deriving (Show, Eq)
 
-
 type Ident = String
 type Integer_Literal = Int
 data ExpList
-    = ExpList Exp ExpRest
-    | ExpListEmpty
-    | ExpListExp Exp
+    = ExpList Exp ExpList
+    | ExpListEmpty    
     deriving (Show, Eq)
-data ExpRest
-    = ExpRest Exp
-    deriving (Show, Eq)
+
 
 }
