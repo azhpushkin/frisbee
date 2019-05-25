@@ -145,92 +145,97 @@ parseError tokenList =
   in error ("parse error at line " ++ show(getLineNum(pos)) ++ " and column " ++ show(getColumnNum(pos)))
 
 
-data Program = Program ObjectDeclList
+
+-- PYTHON START HERE
+
+data Program = Program ObjectDeclList  -- objects
       deriving (Show, Eq)
 
 
 data ObjectDeclList
-    = ObjectDeclList ObjectDecl ObjectDeclList
-    | OEmpty
+    = ObjectDeclList ObjectDecl ObjectDeclList  -- head, tail
+    | OEmpty -- 
   deriving (Show, Eq)
 
 data ObjectDecl
-    = ActiveDecl  Ident VarDeclList MethodDeclList
-    | PassiveDecl Ident VarDeclList MethodDeclList
+    = ActiveDecl  String VarDeclList MethodDeclList  -- name, vars, methods
+    | PassiveDecl String VarDeclList MethodDeclList  -- name, vars, methods
   deriving (Show, Eq)
 
 
 data MethodDeclList
-    = MethodDeclList MethodDecl MethodDeclList
-    | MEmpty
+    = MethodDeclList MethodDecl MethodDeclList  -- head, tail
+    | MEmpty  -- 
     deriving (Show, Eq)
+
+
 data MethodDecl
-    = MethodDecl Type Ident FormalList VarDeclList StatementList
+    = MethodDecl Type String FormalList VarDeclList StatementList  -- type, name, args, vars, statements
     deriving (Show, Eq)
 
 data VarDeclList =
-    VarDeclList Type Ident VarDeclList
-    | VEmpty
+    VarDeclList Type String VarDeclList  -- typename, name, tail
+    | VEmpty  --
     deriving (Show, Eq)
 
 data FormalList = 
-    FormalList Type Ident FormalList
-    | FEmpty
+    FormalList Type String FormalList  -- typename, name, tail
+    | FEmpty  --
   deriving (Show, Eq)
 
 data Type =
-      TypeAnonymous
-    | TypeMaybe Type
-    | TypeArray Type
-    | TypeInt
-    | TypeVoid
-    | TypeBool
-    | TypeString
-    | TypeIdent Ident
+      TypeAnonymous  -- 
+    | TypeMaybe Type  -- type
+    | TypeArray Type  -- type
+    | TypeInt  --
+    | TypeVoid  --
+    | TypeBool  --
+    | TypeString  --
+    | TypeIdent String  -- name
     deriving (Show, Eq)
 
 data Statement
-    = SList StatementList
-    | SIfElse Exp Statement Statement
-    | SWhile Exp Statement
-    | SReturn Exp
-    | SEqual Ident Exp
-    | SEqualField Exp Ident Exp
-    | SArrayEqual Ident Exp Exp
-    | SSendMessage Exp Ident ExpList
-    | SWaitMessage Ident Exp Ident ExpList
-    | SExp Exp
+    = SList StatementList  -- statements
+    | SIfElse Exp Statement Statement  -- condition, if_body, else_body
+    | SWhile Exp Statement  -- condition, body
+    | SReturn Exp  -- expr
+    | SEqual String Exp  -- name, expr
+    | SEqualField Exp String Exp  -- object, field, expr
+    | SArrayEqual String Exp Exp  -- name, index, expr
+    | SSendMessage Exp String ExpList  -- object, method, args
+    | SWaitMessage String Exp String ExpList  -- result_name, object, method, args
+    | SExp Exp  -- expr
     deriving (Show, Eq)
 
 data StatementList
-    = StatementList StatementList Statement 
-    | Empty
+    = StatementList StatementList Statement -- head, tail
+    | Empty -- 
     deriving (Show, Eq)
 
 
 data Exp
-    = ExpOp Exp String Exp
-    | ExpComOp Exp String Exp
-    | ExpArrayGet Exp Exp -- "Exp [ Exp ]"
-    | ExpFCall Exp Ident ExpList -- Exp . Ident ( ExpList )
-    | ExpFieldAccess Exp Ident
-    | ExpInt Int
-    | ExpString String
-    | ExpBool Bool -- True or False
-    | ExpIdent Ident
-    | ExpNewPassive Ident ExpList -- new Ident ()
-    | ExpSpawnActive Ident ExpList -- new Ident ()
-    | ExpExp Exp -- Exp ( Exp )
-    | ExpThis
-    | ExpNot Exp
+    = ExpOp Exp String Exp  -- left, operator, right
+    | ExpComOp Exp String Exp  -- left, operator, right
+    | ExpArrayGet Exp Exp -- array, index
+    | ExpFCall Exp String ExpList  -- object, method, args
+    | ExpFieldAccess Exp String  -- object, field
+    | ExpInt Int  -- value
+    | ExpString String  -- value
+    | ExpBool Bool -- value
+    | ExpIdent String -- name
+    | ExpNewPassive String ExpList  -- typename, args 
+    | ExpSpawnActive String ExpList  -- typename, args
+    | ExpExp Exp -- expr
+    | ExpThis  -- 
+    | ExpNot Exp  -- operand
     deriving (Show, Eq)
-
-type Ident = String
 
 data ExpList
-    = ExpList Exp ExpList
-    | ExpListEmpty    
+    = ExpList Exp ExpList  -- head, tail
+    | ExpListEmpty    -- 
     deriving (Show, Eq)
+
+-- PYTHON END HERE
 
 
 }

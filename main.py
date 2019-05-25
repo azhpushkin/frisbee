@@ -1,6 +1,8 @@
 import subprocess
 from pyparsing import OneOrMore, nestedExpr
 
+from ast_auto import *
+
 
 
 FILE = 'example.frisbee'
@@ -18,6 +20,6 @@ with subprocess.Popen('./frisbee-exe',
         exit()
 
 parser = OneOrMore(nestedExpr()).parseString
-tree = parser("(" + out.decode('ascii') + ")").asList()
-import pprint
-pprint.pprint(tree)
+tree = parser("(" + out.decode('ascii') + ")").asList()[0]  # top object
+
+ast_tree = parse_ast_to_classes(tree)
