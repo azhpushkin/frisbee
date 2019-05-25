@@ -1,11 +1,10 @@
 {
 module Frisbee where
 import Tokens
-import Text.Pretty.Simple (pPrint)
 }
 
 
-%name newl
+%name frisbee
 %tokentype { Token }
 %error { parseError }
 %token
@@ -232,13 +231,6 @@ data Exp
     | ExpError
     deriving (Show, Eq)
 
-data Op
-     = And
-     | LessThan
-     | Plus
-     | Minus
-     | Times
-     deriving (Show, Eq)
 
 type Ident = String
 type Integer_Literal = Int
@@ -251,10 +243,4 @@ data ExpRest
     = ExpRest Exp
     deriving (Show, Eq)
 
-
-
-main = do 
-  inStr <- getContents
-  let parseTree = newl (alexScanTokens2 inStr)  
-  pPrint parseTree
 }

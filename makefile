@@ -1,7 +1,10 @@
 all:
-	stack build --fast
-	cat example.frisbee | stack exec frisbee-exe
+	python main.py
 
-alex:
-	rm -f src/Tokens.hs
-	alex src/Tokens.x -o src/Tokens.hs
+get-exe:
+	cp parser/.stack-work/dist/x86_64-linux-tinfo6/Cabal-2.4.0.1/build/frisbee-exe/frisbee-exe ./
+
+
+force:
+	cd parser && stack build --ghc-options -O2 --force-dirty
+
