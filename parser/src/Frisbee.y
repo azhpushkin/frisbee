@@ -29,6 +29,7 @@ import Tokens
   "]"					{ TRightBrack _ }
 
 
+  "io"				        { TIo _ }
   "if"				        { TIf _ }
   "else"				{ TElse _ }
   "true"				{ TTrue _ }
@@ -140,6 +141,7 @@ Exp :
     | "false"                         { ExpBool False}
     | ident                           { ExpIdent $1}
     | "this"                          { ExpThis }
+    | "io"                          { ExpIO }
     | "new" typeident "(" ExpList")"             { ExpNewPassive $2 $4}
     | "spawn" typeident "(" ExpList ")"             { ExpSpawnActive $2 $4}
     | "not" Exp                         { ExpNot $2}
@@ -246,6 +248,7 @@ data Exp
     | ExpSpawnActive String ExpList  -- typename, args
     | ExpExp Exp -- expr
     | ExpThis  -- 
+    | ExpIO  -- 
     | ExpNot Exp  -- operand
     deriving (Show, Eq)
 

@@ -4,6 +4,16 @@ class ValidateArgs:
     def __init__(self, **kwargs):
         for field in self._fields:
             setattr(self, field, kwargs[field])
+    
+    def short_str(self):
+        return self.__class__.__name__
+    
+    def __str__(self):
+        args = ', '.join(
+            '{}={}'.format(field, getattr(self, field).short_str())
+            for  field in self._fields
+        )
+        return '<{} [{}]>'.format(self.__class__.__name__, args)
 
 
 file = open('./parser/src/Frisbee.y').read()
@@ -45,7 +55,7 @@ for definition in re.findall(dataclass_regex, haskell_dataclasses):
         
         variation_name, fields = words[0], words[1:]
         
-        camelcase_to_snakecase
+        
         variation_class = type(
             variation_name,
             (base_class, ),
@@ -82,7 +92,7 @@ def parse_ast_to_classes(value):
     
     
 
-    
+print(12312312)
     
 
 

@@ -36,6 +36,7 @@ tokens :-
   $upperalpha[$alpha $digit]*		{ \p s -> TTypeIdent p s }
   "?"					{ \p s -> TMaybe p }
   
+  "io"                                   { \p s -> TIo p }
   "if"					{ \p s -> TIf p }
   "else"				{ \p s -> TElse p }
   "true"				{ \p s -> TTrue p }
@@ -88,6 +89,7 @@ data Token =
 	TVoid AlexPosn		       |
 	TInt AlexPosn		       |
 	TBool AlexPosn		       |
+        TIo AlexPosn		       |
 	TIf AlexPosn		       |
 	TElse AlexPosn		       |
 	TTrue AlexPosn		       |
@@ -132,6 +134,7 @@ tokenPosn (TVal p) = p
 tokenPosn (TVoid p) = p	       
 tokenPosn (TInt p) = p		       
 tokenPosn (TBool p) = p	       
+tokenPosn (TIo p) = p		       
 tokenPosn (TIf p) = p		       
 tokenPosn (TElse p) = p	       
 tokenPosn (TTrue p) = p	       

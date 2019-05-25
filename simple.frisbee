@@ -1,5 +1,4 @@
-from socket import Socket;
-
+from common import io;
 
 active Client {
 	Socket conn;
