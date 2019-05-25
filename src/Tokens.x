@@ -38,16 +38,25 @@ tokens :-
   "true"				{ \p s -> TTrue p }
   "false"				{ \p s -> TFalse p }
   "this"				{ \p s -> TThis p }
-  "length"				{ \p s -> TLength p }
   "while"				{ \p s -> TWhile p }
   $digit+				{ \p s -> TIntLiteral p (read s) }
   "."                                   { \p s -> TPeriod p }
-  "&&"					{ \p s -> TOp p (head s) }
+
+  "and"					{ \p s -> TOp p "and" }
+  "not"					{ \p s -> TNot p }
+  "or"					{ \p s -> TOp p "or" }
   
-  "!"					{ \p s -> TNot p }
-  [\+\-\*\/]                            { \p s -> TOp p (head s) }
-  "<"                                   { \p s -> TComOp p (head s) }
+  [\+\-\*\/]                            { \p s -> TOp p [head s] }
+
+  "<"                                   { \p s -> TComOp p "<" }
+  ">"                                   { \p s -> TComOp p ">" }
+  "=="                                   { \p s -> TComOp p "==" }
+  "!="                                   { \p s -> TComOp p "!=" }
+
   "="					{ \p s -> TEquals p }
+  "<="					{ \p s -> TWaitMessage p }
+  "!"					{ \p s -> TSendMessage p }
+
   ";" 					{ \p s -> TSemiColon p }
   "("					{ \p s -> TLeftParen p }
   ")"					{ \p s -> TRightParen p }
@@ -81,14 +90,15 @@ data Token =
 	TTrue AlexPosn		       |
 	TFalse AlexPosn		       |
 	TThis AlexPosn		       |
-	TLength AlexPosn	       |
 	TWhile AlexPosn		       |
 	TNew AlexPosn		       |
-	TOp AlexPosn Char              |
-	TComOp AlexPosn Char           |
+	TOp AlexPosn String              |
+	TComOp AlexPosn String           |
         TMaybe AlexPosn                  |
         TNot AlexPosn                  |
 	TEquals AlexPosn               |
+        TWaitMessage AlexPosn               |
+        TSendMessage AlexPosn               |
 	TPeriod AlexPosn               |
 	TSemiColon AlexPosn            |
 	TLeftParen AlexPosn 	       |
@@ -121,7 +131,6 @@ tokenPosn (TElse p) = p
 tokenPosn (TTrue p) = p	       
 tokenPosn (TFalse p) = p	       
 tokenPosn (TThis p) = p	       
-tokenPosn (TLength p) = p	       
 tokenPosn (TWhile p) = p	       
 tokenPosn (TNew p) = p		       
 tokenPosn (TOp p c) = p            
@@ -129,6 +138,8 @@ tokenPosn (TComOp p c) = p
 tokenPosn (TMaybe p) = p                
 tokenPosn (TNot p) = p                
 tokenPosn (TEquals p) = p             
+tokenPosn (TWaitMessage p) = p             
+tokenPosn (TSendMessage p) = p             
 tokenPosn (TPeriod p) = p             
 tokenPosn (TSemiColon p) = p          
 tokenPosn (TLeftParen p) = p 	       

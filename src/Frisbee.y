@@ -32,7 +32,6 @@ import Text.Pretty.Simple (pPrint)
   "true"				{ TTrue _ }
   "false"				{ TFalse _ }
   "this"				{ TThis _ }
-  "length"				{ TLength _ }
   "while"				{ TWhile _ }
   integer_literal			{ TIntLiteral _ $$ }
   ident		                        { TIdent _ $$ }
@@ -47,8 +46,13 @@ import Text.Pretty.Simple (pPrint)
   ";"                                   { TSemiColon _ }
   "."                                   { TPeriod _ }
   
-  "!"                                   { TNot _ }
+  "not"                                   { TNot _ }
   "="                                   { TEquals _ }
+  "<="                                   { TWaitMessage _ }
+  "!"                                   { TSendMessage _ }
+
+%nonassoc op
+%nonassoc comop
 %%
 
 Program : 
@@ -79,7 +83,7 @@ VarDeclList :
 
 FormalList :
      Type ident       { FormalList $1 $2 FEmpty }
-     | Type ident FormalList { FormalList $1 $2 $3 }
+     | Type ident "," FormalList { FormalList $1 $2 $4 }
 
 Type :
      "val"       { TypeAnonymous }
@@ -98,6 +102,9 @@ Statement :
     | "while" "(" Exp ")" Statement                { SWhile $3 $5 }
     | "return" Exp ";"                              { SReturn $2 }
     | ident "=" Exp ";"                              { SEqual $1 $3 }
+    | Exp "." ident   "=" Exp ";"                              { SEqualField $1 $3 $5 }
+    | Exp "!" ident "(" ExpList ")" ";"   { SSendMessage $1 $3 $5}
+    | ident "<=" Exp "!" ident "(" ExpList ")" ";"   { SWaitMessage $1 $3 $5 $7 }
     | ident "[" Exp "]" "=" Exp ";"                  { SArrayEqual $1 $3 $6 }
 
 StatementList :
@@ -107,9 +114,9 @@ StatementList :
 Exp : 
     Exp op Exp                        { ExpOp $1 $2 $3}
     | Exp comop Exp                   { ExpComOp $1 $2 $3}
-    | Exp "[" Exp "]"                 { ExpArray $1 $3}
-    | Exp "." "length"                { ExpLength $1}
+    | Exp "[" Exp "]"                 { ExpArrayGet $1 $3}
     | Exp "." ident "(" ExpList ")"   { ExpFCall $1 $3 $5}
+    | Exp "." ident                   { ExpFieldAccess $1 $3}
     | integer_literal                 { ExpInt $1}
     | "true"                          { ExpBool True}
     | "false"                         { ExpBool False}
@@ -117,7 +124,7 @@ Exp :
     | "this"                          { ExpThis }
     | "new" "Int" "[" Exp "]"         { ExpNewInt $4 }  
     | "new" ident "(" ")"             { ExpNewIdent $2}
-    | "!" Exp                         { ExpNot $2}
+    | "not" Exp                         { ExpNot $2}
     | "(" Exp ")"                     { ExpExp $2}
 
 ExpList :
@@ -185,8 +192,11 @@ data Statement
     | SWhile Exp Statement
     | SReturn Exp
     | SEqual Ident Exp
+    | SEqualField Exp Ident Exp
     | SArrayEqual Ident Exp Exp
     | StatementError
+    | SSendMessage Exp Ident ExpList
+    | SWaitMessage Ident Exp Ident ExpList
     deriving (Show, Eq)
 
 data StatementList
@@ -197,10 +207,11 @@ data StatementList
 
 data Exp
     = Exp String
-    | ExpOp Exp Char Exp
-    | ExpComOp Exp Char Exp
-    | ExpArray Exp Exp -- "Exp [ Exp ]"
+    | ExpOp Exp String Exp
+    | ExpComOp Exp String Exp
+    | ExpArrayGet Exp Exp -- "Exp [ Exp ]"
     | ExpFCall Exp Ident ExpList -- Exp . Ident ( ExpList )
+    | ExpFieldAccess Exp Ident
     | ExpInt Int
     | ExpNewInt Exp
     | ExpBool Bool -- True or False
@@ -209,7 +220,6 @@ data Exp
     | ExpExp Exp -- Exp ( Exp )
     | ExpThis
     | ExpNot Exp
-    | ExpLength Exp
     | ExpError
     deriving (Show, Eq)
 
