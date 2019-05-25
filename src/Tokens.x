@@ -9,7 +9,7 @@ $digit = 0-9			-- digits
 $alpha = [a-zA-Z]		-- alphabetic characters
 $loweralpha = [a-z]
 $upperalpha = [A-Z]
-$graphic    = $printable # $white
+$graphic    = [$printable $white]
 
 @string     = \" ($graphic # \")* \"
 
@@ -21,11 +21,12 @@ tokens :-
   "active"				{ \p s -> TActive p }
   "passive"				{ \p s -> TPassive p }
   "new"					{ \p s -> TNew p }
+  "spawn"					{ \p s -> TSpawn p }
   
-  "void"				{ \p s -> TVoid p }
   "return"                              { \p s -> TReturn p }
   "def"				{ \p s -> TDef p }
   
+  "Void"				{ \p s -> TVoid p }
   "val"                                 { \p s -> TVal p }
   "String"				{ \p s -> TString p }
   "Int"					{ \p s -> TInt p }
@@ -92,6 +93,7 @@ data Token =
 	TThis AlexPosn		       |
 	TWhile AlexPosn		       |
 	TNew AlexPosn		       |
+        TSpawn AlexPosn		       |
 	TOp AlexPosn String              |
 	TComOp AlexPosn String           |
         TMaybe AlexPosn                  |
@@ -133,6 +135,7 @@ tokenPosn (TFalse p) = p
 tokenPosn (TThis p) = p	       
 tokenPosn (TWhile p) = p	       
 tokenPosn (TNew p) = p		       
+tokenPosn (TSpawn p) = p		       
 tokenPosn (TOp p c) = p            
 tokenPosn (TComOp p c) = p         
 tokenPosn (TMaybe p) = p                

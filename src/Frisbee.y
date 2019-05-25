@@ -12,9 +12,10 @@ import Text.Pretty.Simple (pPrint)
   "active"				{ TActive _ }
   "passive"				{ TPassive _ }
   "new"					{ TNew _ }
+  "spawn"					{ TSpawn _ }
   typeident		                        { TTypeIdent _ $$ }
   
-  "void"				{ TVoid _ }
+  "Void"				{ TVoid _ }
   "def"				{ TDef _ }
   "return"                              { TReturn _ }
   
@@ -34,6 +35,7 @@ import Text.Pretty.Simple (pPrint)
   "this"				{ TThis _ }
   "while"				{ TWhile _ }
   integer_literal			{ TIntLiteral _ $$ }
+  string_literal			{ TStringLiteral _ $$ }
   ident		                        { TIdent _ $$ }
   "{"	 	 	   		{ TLeftBrace _ }
   "}"					{ TRightBrace _ }
@@ -84,11 +86,13 @@ VarDeclList :
 FormalList :
      Type ident       { FormalList $1 $2 FEmpty }
      | Type ident "," FormalList { FormalList $1 $2 $4 }
+     |                  { FEmpty }
 
 Type :
      "val"       { TypeAnonymous }
      | Type "?"    { TypeMaybe $1 }
      | "[" Type "]"    { TypeArray $2 }
+     | "Void"       { TypeVoid }
      | "Int"    { TypeInt }
      | "String"    { TypeString }
      | "Bool"    { TypeBool }
@@ -106,6 +110,7 @@ Statement :
     | Exp "!" ident "(" ExpList ")" ";"   { SSendMessage $1 $3 $5}
     | ident "<=" Exp "!" ident "(" ExpList ")" ";"   { SWaitMessage $1 $3 $5 $7 }
     | ident "[" Exp "]" "=" Exp ";"                  { SArrayEqual $1 $3 $6 }
+    | Exp   ";"                    { SExp $1}
 
 StatementList :
     Statement               { StatementList Empty $1 }
@@ -118,12 +123,13 @@ Exp :
     | Exp "." ident "(" ExpList ")"   { ExpFCall $1 $3 $5}
     | Exp "." ident                   { ExpFieldAccess $1 $3}
     | integer_literal                 { ExpInt $1}
+    | string_literal                 { ExpString $1}
     | "true"                          { ExpBool True}
     | "false"                         { ExpBool False}
     | ident                           { ExpIdent $1}
     | "this"                          { ExpThis }
-    | "new" "Int" "[" Exp "]"         { ExpNewInt $4 }  
-    | "new" ident "(" ")"             { ExpNewIdent $2}
+    | "new" typeident "(" ExpList")"             { ExpNewPassive $2 $4}
+    | "spawn" typeident "(" ExpList ")"             { ExpSpawnActive $2 $4}
     | "not" Exp                         { ExpNot $2}
     | "(" Exp ")"                     { ExpExp $2}
 
@@ -180,6 +186,7 @@ data Type =
     | TypeMaybe Type
     | TypeArray Type
     | TypeInt
+    | TypeVoid
     | TypeBool
     | TypeString
     | TypeIdent Ident
@@ -197,6 +204,7 @@ data Statement
     | StatementError
     | SSendMessage Exp Ident ExpList
     | SWaitMessage Ident Exp Ident ExpList
+    | SExp Exp
     deriving (Show, Eq)
 
 data StatementList
@@ -213,10 +221,11 @@ data Exp
     | ExpFCall Exp Ident ExpList -- Exp . Ident ( ExpList )
     | ExpFieldAccess Exp Ident
     | ExpInt Int
-    | ExpNewInt Exp
+    | ExpString String
     | ExpBool Bool -- True or False
     | ExpIdent Ident
-    | ExpNewIdent Ident -- new Ident ()
+    | ExpNewPassive Ident ExpList -- new Ident ()
+    | ExpSpawnActive Ident ExpList -- new Ident ()
     | ExpExp Exp -- Exp ( Exp )
     | ExpThis
     | ExpNot Exp

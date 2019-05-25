@@ -1,28 +1,45 @@
-active Fac {
-	def Int computeFac(Int num) {
-      	     Int num_aux;
-	     if ( num < 1)
-      	     	num_aux = 1;
-	     else 
-       	     	num_aux = num * this.computeFac(num - 1);
-	     return num_aux;
-      }
-}
-
 active Client {
 	Socket conn;
 
 	def Int run(Int num, Int num2) {
 		val conn; 
+		val new_client;
 
 		while (true) {
             conn <= this.socket ! accept(this);
 
-            #io.print("New client connected");
-            #val new_client = spawn Client(conn);
+            io.print("New client connected");
+			new_client = spawn Client();
             new_client ! run();
         }
 	      
 	     
       }
+}
+
+
+active Client {
+	val conn;
+	val values;
+    
+    def Int run() {
+        val data;
+		val data_splitted;
+		val operation;
+		
+		data <= this.conn ! receive();
+		data_splitted = string.split(data, ";");
+		operation = data_splitted[0];
+
+		if (operation == "get") {
+            this.conn ! send("Get");
+        } else if (operation == "put") {
+            this.conn ! send("Put");
+        }
+
+		else if (operation == "exit") {
+            this.conn ! close();
+        }
+        
+    }
 }
