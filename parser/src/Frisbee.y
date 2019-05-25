@@ -190,15 +190,13 @@ data Type =
     deriving (Show, Eq)
 
 data Statement
-    = Statement String
-    | SList StatementList
+    = SList StatementList
     | SIfElse Exp Statement Statement
     | SWhile Exp Statement
     | SReturn Exp
     | SEqual Ident Exp
     | SEqualField Exp Ident Exp
     | SArrayEqual Ident Exp Exp
-    | StatementError
     | SSendMessage Exp Ident ExpList
     | SWaitMessage Ident Exp Ident ExpList
     | SExp Exp
@@ -211,8 +209,7 @@ data StatementList
 
 
 data Exp
-    = Exp String
-    | ExpOp Exp String Exp
+    = ExpOp Exp String Exp
     | ExpComOp Exp String Exp
     | ExpArrayGet Exp Exp -- "Exp [ Exp ]"
     | ExpFCall Exp Ident ExpList -- Exp . Ident ( ExpList )
@@ -226,11 +223,10 @@ data Exp
     | ExpExp Exp -- Exp ( Exp )
     | ExpThis
     | ExpNot Exp
-    | ExpError
     deriving (Show, Eq)
 
 type Ident = String
-type Integer_Literal = Int
+
 data ExpList
     = ExpList Exp ExpList
     | ExpListEmpty    
