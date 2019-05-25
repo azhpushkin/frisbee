@@ -2,6 +2,9 @@
 from dataclasses import dataclass
 
 
+
+ ####### Definition of BaseProgram ####### 
+
 @dataclass
 class BaseProgram: pass
 
@@ -9,6 +12,9 @@ class BaseProgram: pass
 class Program(BaseProgram):
     imports: BaseImportDeclList
     objects: BaseObjectDeclList
+
+
+ ####### Definition of BaseImportDeclList ####### 
 
 @dataclass
 class BaseImportDeclList: pass
@@ -22,6 +28,9 @@ class ImportDeclList(BaseImportDeclList):
 @dataclass
 class ImportDeclListEmpty(BaseImportDeclList): pass
 
+
+ ####### Definition of BaseObjectDeclList ####### 
+
 @dataclass
 class BaseObjectDeclList: pass
 
@@ -32,6 +41,9 @@ class ObjectDeclList(BaseObjectDeclList):
 
 @dataclass
 class OEmpty(BaseObjectDeclList): pass
+
+
+ ####### Definition of BaseObjectDecl ####### 
 
 @dataclass
 class BaseObjectDecl: pass
@@ -48,6 +60,9 @@ class PassiveDecl(BaseObjectDecl):
     vars: BaseVarDeclList
     methods: BaseMethodDeclList
 
+
+ ####### Definition of BaseMethodDeclList ####### 
+
 @dataclass
 class BaseMethodDeclList: pass
 
@@ -59,6 +74,9 @@ class MethodDeclList(BaseMethodDeclList):
 @dataclass
 class MEmpty(BaseMethodDeclList): pass
 
+
+ ####### Definition of BaseMethodDecl ####### 
+
 @dataclass
 class BaseMethodDecl: pass
 
@@ -69,6 +87,9 @@ class MethodDecl(BaseMethodDecl):
     args: BaseFormalList
     vars: BaseVarDeclList
     statements: BaseStatementList
+
+
+ ####### Definition of BaseVarDeclList ####### 
 
 @dataclass
 class BaseVarDeclList: pass
@@ -82,6 +103,9 @@ class VarDeclList(BaseVarDeclList):
 @dataclass
 class VEmpty(BaseVarDeclList): pass
 
+
+ ####### Definition of BaseFormalList ####### 
+
 @dataclass
 class BaseFormalList: pass
 
@@ -93,6 +117,9 @@ class FormalList(BaseFormalList):
 
 @dataclass
 class FEmpty(BaseFormalList): pass
+
+
+ ####### Definition of BaseType ####### 
 
 @dataclass
 class BaseType: pass
@@ -123,6 +150,9 @@ class TypeString(BaseType): pass
 @dataclass
 class TypeIdent(BaseType):
     name: str
+
+
+ ####### Definition of BaseStatement ####### 
 
 @dataclass
 class BaseStatement: pass
@@ -180,6 +210,9 @@ class SWaitMessage(BaseStatement):
 class SExp(BaseStatement):
     expr: BaseExp
 
+
+ ####### Definition of BaseStatementList ####### 
+
 @dataclass
 class BaseStatementList: pass
 
@@ -190,6 +223,9 @@ class StatementList(BaseStatementList):
 
 @dataclass
 class Empty(BaseStatementList): pass
+
+
+ ####### Definition of BaseExp ####### 
 
 @dataclass
 class BaseExp: pass
@@ -262,6 +298,9 @@ class ExpIO(BaseExp): pass
 class ExpNot(BaseExp):
     operand: BaseExp
 
+
+ ####### Definition of BaseExpList ####### 
+
 @dataclass
 class BaseExpList: pass
 
@@ -272,6 +311,9 @@ class ExpList(BaseExpList):
 
 @dataclass
 class ExpListEmpty(BaseExpList): pass
+
+
+ ####### Definition of BaseImportIdentList ####### 
 
 @dataclass
 class BaseImportIdentList: pass

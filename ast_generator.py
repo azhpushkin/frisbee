@@ -42,13 +42,14 @@ def generate_ast_classes():
     )
 
 
-    file = open('ast.py', 'w')
+    file = open('_ast_def.py', 'w')
     file.write(starting_template)
 
     for definition in re.findall(dataclass_regex, haskell_dataclasses):
         base_class_name, variations = definition.split('=')
         base_class_name = 'Base' + base_class_name.strip()
 
+        file.write('\n\n ####### Definition of {} ####### \n'.format(base_class_name))
         file.write(create_class_template(base_class_name))
         
         for variation in variations.split('|'):
