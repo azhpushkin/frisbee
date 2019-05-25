@@ -1,7 +1,7 @@
 import subprocess
 from pyparsing import OneOrMore, nestedExpr
 
-from ast_auto import *
+from ast_parser import parse_ast_to_classes
 
 
 

@@ -163,13 +163,13 @@ parseError tokenList =
 
 -- PYTHON START HERE
 
-data Program = Program ImportDeclList ObjectDeclList  -- objects
+data Program = Program ImportDeclList ObjectDeclList  -- imports, objects
       deriving (Show, Eq)
 
 
 data ImportDeclList
-    = ImportDeclList String ImportIdentList ImportDeclList
-    | ImportDeclListEmpty
+    = ImportDeclList String ImportIdentList ImportDeclList  -- module, typenames, tail
+    | ImportDeclListEmpty  -- 
     deriving (Show, Eq)
 
 
@@ -257,9 +257,9 @@ data ExpList
     | ExpListEmpty    -- 
     deriving (Show, Eq)
 
-data ImportIdentList
-    = ImportIdentList String ImportIdentList
-    | ImportIdentListEmpty
+data ImportIdentList 
+    = ImportIdentList String ImportIdentList  -- typename, tail 
+    | ImportIdentListEmpty   -- 
     deriving (Show, Eq)
 
 -- PYTHON END HERE
