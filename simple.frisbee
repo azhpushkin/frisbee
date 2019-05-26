@@ -38,6 +38,6 @@ active Main {
         res <= test ! sayhello(x);
 
         io ! print("OLD VALUE IS" + x.get());
-        io ! print("new IS" + res.get());
+        io ! print("new IS " + res.get());
     }
 }

@@ -330,7 +330,7 @@ class SSendMessage(BaseStatement):
 
     def run(self, ctx):
         object = self.object.evaluate(ctx)
-        object.send_message(self.method, self.args.get_exprs(ctx))
+        object.send_message(self.method, self.args.get_exprs(ctx), return_to=None)
 
 
 @dataclass
@@ -342,8 +342,9 @@ class SWaitMessage(BaseStatement):
 
     def run(self, ctx):
         object = self.object.evaluate(ctx)
-        res = object.send_message(self.method, self.args.get_exprs(ctx))
-        ctx['env'][self.result_name] = res
+        object.send_message(self.method, self.args.get_exprs(ctx), return_to=ctx['this'].queue)
+        res = object.return_queue.get()
+        ctx['env'][self.result_name] = eval(res)
 
 
 @dataclass
@@ -613,19 +614,28 @@ class ExpIO(BaseExp):
     def evaluate(self, ctx):
         return self
 
-    def send_message(self, name, args):
+    def send_message(self, name, args, return_to=None):
         if name == 'print':
             print("IO ACTOR CALLED: ", args)
         else:
             raise ValueError("No method {} of actor io".format(name))
 
+        if return_to:
+            return_to.put(ExpVoid())
+
 
 # Custom values
-def actor_loop(actor_obj: ExpActiveObject, queue):
+def actor_loop(actor_obj: str, queue, return_queue):
+    actor_obj.queue = queue
+
     while True:
         new_message = queue.get()
-        message_name, args = new_message.split(':::')
-        actor_obj.send_message(message_name, eval(args))
+
+        message_name, args, return_flag = new_message.split(':::')
+        result = actor_obj.send_message(message_name, eval(args))
+        if return_flag == 'true':
+            return_queue.put(str(result))
+
 
 
 @dataclass
@@ -635,10 +645,10 @@ class ExpActiveObject(BaseExp):
     known_types: typing.Dict[str, BaseObjectDecl]
 
     def start(self):
-        actor_queue = Queue()
-        proc = Process(target=actor_loop, args=(self, actor_queue))
+        actor_queue, return_queue = Queue(), Queue(maxsize=1)
+        proc = Process(target=actor_loop, args=(self, actor_queue, return_queue))
         proc.start()
-        return ActiveProxy(queue=actor_queue)
+        return ActiveProxy(queue=actor_queue, return_queue=return_queue)
 
     def evaluate(self, ctx) -> BaseExp:
         return self
@@ -649,7 +659,7 @@ class ExpActiveObject(BaseExp):
     def set_field(self, name, value):
         self.env['name'] = value
 
-    def send_message(self, name, args):
+    def send_message(self, name, args, return_to=None):
         method: MethodDecl = self.declaration.get_methods()[name]
         return method.execute(this=self, args=args, known_types=self.known_types)
 
@@ -657,6 +667,8 @@ class ExpActiveObject(BaseExp):
 @dataclass
 class ActiveProxy:
     queue: Queue
+    return_queue: Queue
+
     def evaluate(self, ctx):
         return self
 
@@ -666,8 +678,9 @@ class ActiveProxy:
     def set_field(self, name, value):
         raise ValueError('Cannot set field of actor!')
 
-    def send_message(self, name, args):
-        self.queue.put(f'{name}:::{str(args)}')
+    def send_message(self, name, args, return_to=None):
+        flag = 'true' if return_to else 'false'
+        self.queue.put(f'{name}:::{str(args)}:::{flag}')
 
 
 
