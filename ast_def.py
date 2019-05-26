@@ -344,7 +344,7 @@ class SWaitMessage(BaseStatement):
         object = self.object.evaluate(ctx)
         object.send_message(self.method, self.args.get_exprs(ctx), return_to=ctx['this'].queue)
         res = object.return_queue.get()
-        ctx['env'][self.result_name] = eval(res)
+        ctx['env'][self.result_name] = res
 
 
 @dataclass
@@ -631,10 +631,10 @@ def actor_loop(actor_obj: str, queue, return_queue):
     while True:
         new_message = queue.get()
 
-        message_name, args, return_flag = new_message.split(':::')
-        result = actor_obj.send_message(message_name, eval(args))
+        message_name, args, return_flag = new_message
+        result = actor_obj.send_message(message_name, args)
         if return_flag == 'true':
-            return_queue.put(str(result))
+            return_queue.put(result)
 
 
 
@@ -680,7 +680,7 @@ class ActiveProxy:
 
     def send_message(self, name, args, return_to=None):
         flag = 'true' if return_to else 'false'
-        self.queue.put(f'{name}:::{str(args)}:::{flag}')
+        self.queue.put((name, args, flag))
 
 
 
