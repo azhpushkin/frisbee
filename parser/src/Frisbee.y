@@ -229,7 +229,7 @@ data Statement
     deriving (Show, Eq)
 
 data StatementList
-    = StatementList StatementList Statement -- head, tail
+    = StatementList StatementList Statement -- tail, head
     | Empty -- 
     deriving (Show, Eq)
 
