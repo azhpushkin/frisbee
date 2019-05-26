@@ -13,8 +13,8 @@ def run_program(tree: ast_def.Program):
     }
 
     main = types['Main']
-    main_spawned = main.create(args=[])
-    main_spawned.run_method('run', [])
+    main_spawned = main.spawn(args=[], known_types=types)
+    main_spawned.send_message('run', [])
 
 
 

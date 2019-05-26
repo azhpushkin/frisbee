@@ -1,5 +1,23 @@
+active Example {
+    String name;
+
+    def Int sayhello(String to) {
+        io ! print("Hello to " + to + " from " + this.name);
+        
+    }
+
+    def Int setname(String what) {
+        this.name = what;
+
+    }
+}
+
 active Main {
     def Void run() {
-        io ! print("Hello world!");
+        Example test;
+
+        test = spawn Example("SomeName");
+        test ! setname("Right");
+        test ! sayhello("me");
     }
 }

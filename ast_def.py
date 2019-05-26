@@ -67,9 +67,6 @@ class BaseObjectDecl:
     vars: BaseVarDeclList
     methods: BaseMethodDeclList
 
-    def create(self, args: typing.List[BaseExp]):
-        pass
-
     def get_methods(self):
         methods = self.methods.get_methods()
         return {m.name: m for m in methods}
@@ -77,17 +74,17 @@ class BaseObjectDecl:
 
 @dataclass
 class ActiveDecl(BaseObjectDecl):
-    def create(self, args: typing.List[BaseExp]) -> ExpActiveObject:
+    def spawn(self, args: typing.List[BaseExp], known_types) -> ExpActiveObject:
         field_names = self.vars.get_fields().keys()
         fields = dict(zip(field_names, args))
 
-        new_active = ExpActiveObject(env=fields, declaration=self)
+        new_active = ExpActiveObject(env=fields, declaration=self, known_types=known_types)
         return new_active
 
 
 @dataclass
 class PassiveDecl(BaseObjectDecl):
-    def create(self, args: typing.List[BaseExp]) -> ExpPassiveObject:
+    def create(self, args: typing.List[BaseExp], known_types) -> ExpPassiveObject:
         field_names = self.vars.get_fields().keys()
         fields = dict(zip(field_names, args))
 
@@ -132,6 +129,15 @@ class MethodDecl(BaseMethodDecl):
     vars: BaseVarDeclList
     statements: BaseStatementList
 
+    def execute(self, this: ExpActiveObject, args: typing.List[BaseExp], known_types):
+
+        field_names = [x[1] for x in self.args.get_fields()]
+        initial_env = {
+            name: value
+            for name, value in zip(field_names, args)
+        }
+        self.statements.run(ctx={'this': this, 'env': initial_env, 'types': known_types})
+
 
 ####### Definition of BaseVarDeclList #######
 
@@ -149,7 +155,7 @@ class VarDeclList(BaseVarDeclList):
 
     def get_fields(self):
         tail_fields = self.tail.get_fields()
-        tail_fields[self.name] = self.typename.get_name()
+        tail_fields[self.name] = self.typename
         return tail_fields
 
 
@@ -162,7 +168,9 @@ class VEmpty(BaseVarDeclList):
 ####### Definition of BaseFormalList #######
 
 @dataclass
-class BaseFormalList: pass
+class BaseFormalList:
+    def get_fields(self):
+        return NotImplemented
 
 
 @dataclass
@@ -171,15 +179,20 @@ class FormalList(BaseFormalList):
     name: str
     tail: BaseFormalList
 
+    def get_fields(self):
+        return [(self.typename, self.name), ] + self.tail.get_fields()
+
 
 @dataclass
-class FEmpty(BaseFormalList): pass
-
+class FEmpty(BaseFormalList):
+    def get_fields(self):
+        return []
 
 ####### Definition of BaseType #######
 
 @dataclass
-class BaseType: pass
+class BaseType:
+    pass
 
 
 @dataclass
@@ -283,8 +296,8 @@ class SEqualField(BaseStatement):
     expr: BaseExp
 
     def run(self, ctx):
-        # наверно тут стоит получить имя, а потом что-то менять в ctx
-        raise NotImplementedError('DO THIS')
+        object = self.object.evaluate(ctx)
+        object.set_field(self.field, self.expr.evaluate(ctx))
 
 
 @dataclass
@@ -299,6 +312,10 @@ class SSendMessage(BaseStatement):
     object: BaseExp
     method: str
     args: BaseExpList
+
+    def run(self, ctx):
+        object = self.object.evaluate(ctx)
+        object.send_message(self.method, self.args.get_exprs(ctx))
 
 
 @dataclass
@@ -328,7 +345,7 @@ class StatementList(BaseStatementList):
     tail: BaseStatementList
 
     def run(self, ctx):
-        ctx = self.head.run(ctx)
+        self.head.run(ctx)
         return self.tail.run(ctx)
 
 
@@ -354,7 +371,7 @@ class ExpOp(BaseExp):
 
     def evaluate(self, ctx):
         left_expr = self.left.evaluate(ctx)
-        right_expr = self.left.evaluate(ctx)
+        right_expr = self.right.evaluate(ctx)
 
         if self.operator == '+':
             return left_expr.add(right_expr)
@@ -380,7 +397,7 @@ class ExpComOp(BaseExp):
 
     def evaluate(self, ctx):
         left_expr = self.left.evaluate(ctx)
-        right_expr = self.left.evaluate(ctx)
+        right_expr = self.right.evaluate(ctx)
 
         if self.operator == '<':
             return left_expr.less(right_expr)
@@ -425,7 +442,7 @@ class ExpFieldAccess(BaseExp):
 
     def evaluate(self, ctx):
         object_exp = self.object.evaluate(ctx)
-        return self.object_exp.get_field(self.field)
+        return object_exp.get_field(self.field)
 
 
 
@@ -532,7 +549,7 @@ class ExpSpawnActive(BaseExp):
     def evaluate(self, ctx):
         args_expr = self.args.get_exprs(ctx)
         declaration = ctx['types'][self.typename]
-        return declaration.create(args_expr)
+        return declaration.spawn(args_expr, known_types=ctx['types'])
 
 
 @dataclass
@@ -546,7 +563,7 @@ class ExpExp(BaseExp):
 @dataclass
 class ExpThis(BaseExp):
     def evaluate(self, ctx):
-        return self.ctx['this']
+        return ctx['this']
 
 
 @dataclass
@@ -563,7 +580,13 @@ class ExpNot(BaseExp):
 @dataclass
 class ExpIO(BaseExp):
     def evaluate(self, ctx):
-        return NotImplemented
+        return self
+
+    def send_message(self, name, args):
+        if name == 'print':
+            print("IO ACTOR CALLED: ", args)
+        else:
+            raise ValueError("No method {} of actor io".format(name))
 
 
 # Custom values
@@ -572,13 +595,20 @@ class ExpIO(BaseExp):
 class ExpActiveObject(BaseExp):
     env: typing.Dict[str, BaseExp]
     declaration: ActiveDecl
+    known_types: typing.List[BaseObjectDecl]
 
     def evaluate(self, ctx) -> BaseExp:
         return self
 
-    def run_method(self, name, args):
+    def get_field(self, name):
+        return self.env['name']
+
+    def set_field(self, name, value):
+        self.env['name'] = value
+
+    def send_message(self, name, args):
         method: MethodDecl = self.declaration.get_methods()[name]
-        method.execute()
+        method.execute(this=self, args=args, known_types=self.known_types)
 
 
 
@@ -587,12 +617,20 @@ class ExpActiveObject(BaseExp):
 class ExpPassiveObject(BaseExp):
     env: typing.Dict[str, BaseExp]
     declaration: PassiveDecl
+    known_types: typing.List[BaseObjectDecl]
 
     def evaluate(self, ctx) -> BaseExp:
         return self
 
+    def get_field(self, name):
+        return self.env['name']
+
+    def set_field(self, name, value):
+        self.env['name'] = value
+
     def run_method(self, name, args):
-        pass
+        method: MethodDecl = self.declaration.get_methods()[name]
+        method.execute(this=self, args=args, known_types=self.known_types)
 
 
 @dataclass

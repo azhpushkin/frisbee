@@ -1,6 +1,6 @@
 all:
 	stack build --fast
-	cat ../example.frisbee | stack exec frisbee-exe
+	cat ../simple.frisbee | stack exec frisbee-exe
 
 alex:
 	rm -f src/Tokens.hs

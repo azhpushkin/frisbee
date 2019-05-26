@@ -2,14 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="9933e0ed-7536-4b89-bffd-534f854387f8" name="Default Changelist" comment="git">
-      <change afterPath="$PROJECT_DIR$/active_object.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/passive_object.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ast_def.py" beforeDir="false" afterPath="$PROJECT_DIR$/ast_def.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ast_parser.py" beforeDir="false" afterPath="$PROJECT_DIR$/ast_parser.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/evaluation.py" beforeDir="false" afterPath="$PROJECT_DIR$/evaluation.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/makefile" beforeDir="false" afterPath="$PROJECT_DIR$/makefile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/makefile" beforeDir="false" afterPath="$PROJECT_DIR$/parser/makefile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/Frisbee.y" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/Frisbee.y" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/simple.frisbee" beforeDir="false" afterPath="$PROJECT_DIR$/simple.frisbee" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -18,13 +14,16 @@
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
+  <component name="FavoritesManager">
+    <favorites_list name="frisbee" />
+  </component>
   <component name="FileEditorManager">
     <leaf>
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/evaluation.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="304">
-              <caret line="16" column="23" lean-forward="true" selection-start-line="16" selection-start-column="23" selection-end-line="16" selection-end-column="23" />
+            <state relative-caret-position="209">
+              <caret line="11" column="36" selection-start-line="11" selection-start-column="36" selection-end-line="11" selection-end-column="36" />
             </state>
           </provider>
         </entry>
@@ -42,7 +41,7 @@
         <entry file="file://$PROJECT_DIR$/passive_object.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="95">
-              <caret line="5" lean-forward="true" selection-start-line="5" selection-end-line="5" />
+              <caret line="5" selection-start-line="5" selection-end-line="5" />
             </state>
           </provider>
         </entry>
@@ -50,8 +49,17 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/simple.frisbee">
           <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="152">
+              <caret line="8" column="25" selection-start-line="8" selection-start-column="25" selection-end-line="8" selection-end-column="25" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/parser/makefile">
+          <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="38">
-              <caret line="2" column="32" selection-start-line="2" selection-start-column="32" selection-end-line="2" selection-end-column="32" />
+              <caret line="2" column="17" selection-start-line="2" selection-start-column="17" selection-end-line="2" selection-end-column="17" />
             </state>
           </provider>
         </entry>
@@ -60,7 +68,7 @@
         <entry file="file://$PROJECT_DIR$/example.frisbee">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="228">
-              <caret line="12" lean-forward="true" selection-end-line="47" selection-end-column="1" />
+              <caret line="12" selection-end-line="47" selection-end-column="1" />
             </state>
           </provider>
         </entry>
@@ -94,22 +102,11 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/ast_def.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-306">
-              <caret line="580" column="23" selection-start-line="580" selection-start-column="23" selection-end-line="580" selection-end-column="23" />
+            <state relative-caret-position="797">
+              <caret line="628" column="39" selection-start-line="628" selection-start-column="39" selection-end-line="628" selection-end-column="39" />
               <folding>
                 <element signature="e#0#34#0" expanded="true" />
-                <element signature="e#3823#3938#0" />
-                <element signature="e#4095#4133#0" />
               </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/ast_generator.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="76">
-              <caret line="4" column="34" selection-start-line="4" selection-start-column="34" selection-end-line="4" selection-end-column="34" />
             </state>
           </provider>
         </entry>
@@ -118,20 +115,36 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>statemet</find>
-      <find>formallist</find>
-      <find>env</find>
-      <find>print</find>
-      <find>spawnm</find>
+      <find>types':</find>
+      <find>.execute</find>
+      <find>new_active</find>
+      <find>.spawn</find>
+      <find>spawnac</find>
+      <find>tail_</find>
+      <find>['env']</find>
       <find>'env</find>
-      <find>ExpPassiveObject</find>
-      <find>.create</find>
-      <find>activedecl</find>
-      <find>.run_method</find>
-      <find>run_method</find>
-      <find>prit</find>
-      <find>def create</find>
-      <find>MethodDecl</find>
+      <find>'env'</find>
+      <find>None</find>
+      <find>'env':</find>
+      <find>.run</find>
+      <find>ctx =</find>
+      <find>ExpIdent</find>
+      <find>ExpIo</find>
+      <find>ExpString</find>
+      <find>ExpIdet</find>
+      <find>send_messa</find>
+      <find>ExpOp</find>
+      <find>self.</find>
+      <find>self.left</find>
+      <find>expThis</find>
+      <find>fieldacce</find>
+      <find>this</find>
+      <find>get_field</find>
+      <find>get_field(</find>
+      <find>expthis</find>
+      <find>activeo</find>
+      <find>DO THIS</find>
+      <find>def get_field(</find>
     </findStrings>
     <replaceStrings>
       <replace>ctx</replace>
@@ -147,9 +160,10 @@
         <option value="$PROJECT_DIR$/active_objects.py" />
         <option value="$PROJECT_DIR$/makefile" />
         <option value="$PROJECT_DIR$/ast_parser.py" />
-        <option value="$PROJECT_DIR$/simple.frisbee" />
         <option value="$PROJECT_DIR$/main.py" />
+        <option value="$PROJECT_DIR$/parser/makefile" />
         <option value="$PROJECT_DIR$/evaluation.py" />
+        <option value="$PROJECT_DIR$/simple.frisbee" />
         <option value="$PROJECT_DIR$/ast_def.py" />
       </list>
     </option>
@@ -170,6 +184,11 @@
             <path>
               <item name="frisbee" type="b2602c69:ProjectViewProjectNode" />
               <item name="frisbee" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="frisbee" type="b2602c69:ProjectViewProjectNode" />
+              <item name="frisbee" type="462c0819:PsiDirectoryNode" />
+              <item name="parser" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
@@ -215,19 +234,19 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1558826908954</updated>
-      <workItem from="1558826910838" duration="11731000" />
+      <workItem from="1558826910838" duration="14308000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="11731000" />
+    <option name="totallyTimeSpent" value="14308000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="0" width="1920" height="1035" extended-state="6" />
     <editor active="true" />
     <layout>
-      <window_info id="Favorites" side_tool="true" />
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.2497332" />
+      <window_info id="Favorites" sideWeight="0.5005525" side_tool="true" weight="0.2497332" />
+      <window_info active="true" content_ui="combo" id="Project" order="0" sideWeight="0.49944752" visible="true" weight="0.2497332" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info anchor="bottom" id="Docker" />
       <window_info anchor="bottom" id="Database Changes" />
@@ -270,21 +289,14 @@
     <entry file="file://$PROJECT_DIR$/passive_object.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="95">
-          <caret line="5" lean-forward="true" selection-start-line="5" selection-end-line="5" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/makefile">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="76">
-          <caret line="4" column="33" selection-start-line="4" selection-start-column="33" selection-end-line="4" selection-end-column="33" />
+          <caret line="5" selection-start-line="5" selection-end-line="5" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/example.frisbee">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="228">
-          <caret line="12" lean-forward="true" selection-end-line="47" selection-end-column="1" />
+          <caret line="12" selection-end-line="47" selection-end-column="1" />
         </state>
       </provider>
     </entry>
@@ -292,13 +304,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="361">
           <caret line="19" column="7" selection-start-line="19" selection-start-column="7" selection-end-line="19" selection-end-column="7" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/simple.frisbee">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="38">
-          <caret line="2" column="32" selection-start-line="2" selection-start-column="32" selection-end-line="2" selection-end-column="32" />
         </state>
       </provider>
     </entry>
@@ -315,21 +320,40 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/parser/makefile">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="38">
+          <caret line="2" column="17" selection-start-line="2" selection-start-column="17" selection-end-line="2" selection-end-column="17" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/makefile">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="76">
+          <caret line="4" column="33" selection-start-line="4" selection-start-column="33" selection-end-line="4" selection-end-column="33" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/simple.frisbee">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="152">
+          <caret line="8" column="25" selection-start-line="8" selection-start-column="25" selection-end-line="8" selection-end-column="25" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/evaluation.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="304">
-          <caret line="16" column="23" lean-forward="true" selection-start-line="16" selection-start-column="23" selection-end-line="16" selection-end-column="23" />
+        <state relative-caret-position="209">
+          <caret line="11" column="36" selection-start-line="11" selection-start-column="36" selection-end-line="11" selection-end-column="36" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/ast_def.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-306">
-          <caret line="580" column="23" selection-start-line="580" selection-start-column="23" selection-end-line="580" selection-end-column="23" />
+        <state relative-caret-position="797">
+          <caret line="628" column="39" selection-start-line="628" selection-start-column="39" selection-end-line="628" selection-end-column="39" />
           <folding>
             <element signature="e#0#34#0" expanded="true" />
-            <element signature="e#3823#3938#0" />
-            <element signature="e#4095#4133#0" />
           </folding>
         </state>
       </provider>

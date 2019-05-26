@@ -55,7 +55,7 @@ import Tokens
   "<="                                   { TWaitMessage _ }
   "!"                                   { TSendMessage _ }
 
-%nonassoc op
+%left op
 %nonassoc comop
 %%
 
