@@ -136,7 +136,9 @@ class MethodDecl(BaseMethodDecl):
             name: value
             for name, value in zip(field_names, args)
         }
-        self.statements.run(ctx={'this': this, 'env': initial_env, 'types': known_types})
+        ctx = {'this': this, 'env': initial_env, 'types': known_types, 'return': None}
+        self.statements.run(ctx=ctx)
+        return ctx['return']
 
 
 ####### Definition of BaseVarDeclList #######
@@ -277,7 +279,7 @@ class SReturn(BaseStatement):
     expr: BaseExp
 
     def run(self, ctx):
-        raise NotImplementedError("Implement this!")
+        ctx['return'] = self.expr.evaluate(ctx)
 
 
 @dataclass
@@ -324,6 +326,11 @@ class SWaitMessage(BaseStatement):
     object: BaseExp
     method: str
     args: BaseExpList
+
+    def run(self, ctx):
+        object = self.object.evaluate(ctx)
+        res = object.send_message(self.method, self.args.get_exprs(ctx))
+        ctx['env'][self.result_name] = res
 
 
 @dataclass
@@ -431,7 +438,7 @@ class ExpFCall(BaseExp):
     def evaluate(self, ctx):
         object_exp = self.object.evaluate(ctx)
         args: typing.List[BaseExp] = self.args.get_exprs(ctx)
-        return self.object_exp.run_method(self.method, args)
+        return object_exp.run_method(self.method, args)
 
 
 
@@ -608,9 +615,7 @@ class ExpActiveObject(BaseExp):
 
     def send_message(self, name, args):
         method: MethodDecl = self.declaration.get_methods()[name]
-        method.execute(this=self, args=args, known_types=self.known_types)
-
-
+        return method.execute(this=self, args=args, known_types=self.known_types)
 
 
 @dataclass
@@ -630,7 +635,7 @@ class ExpPassiveObject(BaseExp):
 
     def run_method(self, name, args):
         method: MethodDecl = self.declaration.get_methods()[name]
-        method.execute(this=self, args=args, known_types=self.known_types)
+        return method.execute(this=self, args=args, known_types=self.known_types)
 
 
 @dataclass

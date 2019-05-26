@@ -1,9 +1,9 @@
 active Example {
     String name;
 
-    def Int sayhello(String to) {
+    def String sayhello(String to) {
         io ! print("Hello to " + to + " from " + this.name);
-        
+        return "Done!";
     }
 
     def Int setname(String what) {
@@ -15,9 +15,11 @@ active Example {
 active Main {
     def Void run() {
         Example test;
+        String res;
 
         test = spawn Example("SomeName");
         test ! setname("Right");
-        test ! sayhello("me");
+        res <= test ! sayhello("me");
+        io ! print(res);
     }
 }
