@@ -35,10 +35,11 @@ def get_file_types(tree: ast_def.Program):
 
 def run_program(tree: ast_def.Program):
     types = get_file_types(tree)
-
     main = types['Main']
+
     main_spawned = main.spawn(args=[])
     main_spawned.send_message('run', [])
+
 
 
 

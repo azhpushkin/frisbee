@@ -32,6 +32,8 @@ active Main {
         x = new SomeClass("Stored!");
 
         test = spawn Example("SomeName");
+        test ! sayhello(x);
+
         test ! setname("Right");
         res <= test ! sayhello(x);
 

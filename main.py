@@ -9,4 +9,6 @@ else:
 
 tree = load_file(FILE)
 
-run_program(tree)
+if __name__ == '__main__':
+    run_program(tree)
+

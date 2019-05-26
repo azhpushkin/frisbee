@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import typing
 from dataclasses import dataclass, field
+from multiprocessing  import Process, Queue
 
 
 ####### Definition of BaseProgram #######
@@ -84,7 +85,7 @@ class ActiveDecl(BaseObjectDecl):
         fields = dict(zip(field_names, args))
 
         new_active = ExpActiveObject(env=fields, declaration=self, known_types=self._known_types)
-        return new_active
+        return new_active.start()
 
 
 @dataclass
@@ -134,7 +135,12 @@ class MethodDecl(BaseMethodDecl):
     vars: BaseVarDeclList
     statements: BaseStatementList
 
-    def execute(self, this: ExpActiveObject, args: typing.List[BaseExp], known_types):
+    def execute(
+            self,
+            this: typing.Union[ExpActiveObject, ExpPassiveObject],
+            args: typing.List[BaseExp],
+            known_types,
+    ):
 
         field_names = [x[1] for x in self.args.get_fields()]
         initial_env = {
@@ -615,12 +621,24 @@ class ExpIO(BaseExp):
 
 
 # Custom values
+def actor_loop(actor_obj: ExpActiveObject, queue):
+    while True:
+        new_message = queue.get()
+        message_name, args = new_message.split(':::')
+        actor_obj.send_message(message_name, eval(args))
+
 
 @dataclass
 class ExpActiveObject(BaseExp):
     env: typing.Dict[str, BaseExp]
     declaration: ActiveDecl
     known_types: typing.Dict[str, BaseObjectDecl]
+
+    def start(self):
+        actor_queue = Queue()
+        proc = Process(target=actor_loop, args=(self, actor_queue))
+        proc.start()
+        return ActiveProxy(queue=actor_queue)
 
     def evaluate(self, ctx) -> BaseExp:
         return self
@@ -634,6 +652,24 @@ class ExpActiveObject(BaseExp):
     def send_message(self, name, args):
         method: MethodDecl = self.declaration.get_methods()[name]
         return method.execute(this=self, args=args, known_types=self.known_types)
+
+
+@dataclass
+class ActiveProxy:
+    queue: Queue
+    def evaluate(self, ctx):
+        return self
+
+    def get_field(self, name):
+        raise ValueError('Cannot get field of actor!')
+
+    def set_field(self, name, value):
+        raise ValueError('Cannot set field of actor!')
+
+    def send_message(self, name, args):
+        self.queue.put(f'{name}:::{str(args)}')
+
+
 
 
 @dataclass
