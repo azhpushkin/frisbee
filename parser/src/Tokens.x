@@ -12,6 +12,7 @@ $upperalpha = [A-Z]
 $graphic    = [$printable $white]
 
 @string     = \" ($graphic # \")* \"
+@comment     = \# ($graphic # \")* \#
 
 
 
@@ -67,6 +68,7 @@ tokens :-
   ")"					{ \p s -> TRightParen p }
   $loweralpha[$alpha $digit \_ \']*		{ \p s -> TIdent p s }
   @string 	       	  		{ \p s -> TStringLiteral p (init (tail s)) -- remove the leading and trailing double quotes }
+  @comment                               { \p s -> TComment p s }
   "{"	 	 	   		{ \p s -> TLeftBrace p }
   "}"					{ \p s -> TRightBrace p }
   ","					{ \p s -> TComma p }
@@ -86,6 +88,7 @@ data Token =
         TPassive AlexPosn 	       |
 	TDef AlexPosn	       |
 	TString AlexPosn	       |
+        TComment AlexPosn	String       |
         TVal AlexPosn	       |
 	TVoid AlexPosn		       |
         TVoidValue AlexPosn		       |
@@ -132,6 +135,7 @@ tokenPosn (TActive p) = p
 tokenPosn (TPassive p) = p 	       
 tokenPosn (TDef p) = p	       
 tokenPosn (TString p) = p	       
+tokenPosn (TComment p _) = p	       
 tokenPosn (TVal p) = p	       
 tokenPosn (TVoid p) = p	       
 tokenPosn (TVoidValue p) = p	       
@@ -173,13 +177,17 @@ getColumnNum :: AlexPosn -> Int
 getColumnNum (AlexPn offset lineNum colNum) = colNum
 
 alexScanTokens :: String -> [Token]
-alexScanTokens2 str = go (alexStartPos,'\n',[], str)
+alexScanTokens2 str = filter notcomment $ go (alexStartPos,'\n',[], str)
   where go (pos,x, [], str) =
           case alexScan (pos, x, [], str) 0 of
                 AlexEOF -> []
                 AlexError _ -> error ("lexical error @ line " ++ show (getLineNum(pos)) ++ " and column " ++ show (getColumnNum(pos)))
                 AlexSkip  inp' len     -> go inp'
                 AlexToken inp' len act -> act pos (take len str) : go inp'
+        notcomment tok =
+                case tok of
+                        TComment _ _ -> False
+                        _ -> True
 
 
 }
