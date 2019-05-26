@@ -1,48 +1,11 @@
-from socket import Socket;
+passive SomeClass {
+  val store;
 
+  def Int set(Int newvalue) {
+     this.store = newvalue;
+  }
 
-active Client {
-	Socket conn;
-
-	def Int run(Int num, Int num2) {
-		val conn; 
-		val new_client;
-
-		while (true) {
-            conn <= this.socket ! accept(this);
-
-            io.print("New client connected");
-			new_client = spawn Client();
-            new_client ! run();
-        }
-	      
-	     
-      }
-}
-
-
-active Client {
-	val conn;
-	val values;
-    
-    def Int run() {
-        val data;
-		val data_splitted;
-		val operation;
-		
-		data <= this.conn ! receive();
-		data_splitted = string.split(data, ";");
-		operation = data_splitted[0];
-
-		if (operation == "get") {
-            this.conn ! send("Get");
-        } else if (operation == "put") {
-            this.conn ! send("Put");
-        }
-
-		else if (operation == "exit") {
-            this.conn ! close(213, true);
-        }
-        
-    }
+  def Int get() {
+     return this.store;
+  }
 }

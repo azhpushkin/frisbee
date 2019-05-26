@@ -1,8 +1,7 @@
 from __future__ import annotations
-import typing
 
-from dataclasses import dataclass
-from multiprocessing import Process, Queue
+import typing
+from dataclasses import dataclass, field
 
 
 ####### Definition of BaseProgram #######
@@ -21,7 +20,8 @@ class Program(BaseProgram):
 
 @dataclass
 class BaseImportDeclList:
-    pass
+    def get_imports(self) -> typing.Dict[str, typing.List[str]]:
+        return
 
 
 @dataclass
@@ -30,10 +30,14 @@ class ImportDeclList(BaseImportDeclList):
     typenames: BaseImportIdentList
     tail: BaseImportDeclList
 
+    def get_imports(self):
+        return {self.module: self.typenames.get_names(), **self.tail.get_imports()}
+
 
 @dataclass
 class ImportDeclListEmpty(BaseImportDeclList):
-    pass
+    def get_imports(self):
+        return {}
 
 
 ####### Definition of BaseObjectDeclList #######
@@ -66,6 +70,7 @@ class BaseObjectDecl:
     name: str
     vars: BaseVarDeclList
     methods: BaseMethodDeclList
+    _known_types: typing.Dict[str, BaseObjectDecl] = field(default_factory=dict)
 
     def get_methods(self):
         methods = self.methods.get_methods()
@@ -74,11 +79,11 @@ class BaseObjectDecl:
 
 @dataclass
 class ActiveDecl(BaseObjectDecl):
-    def spawn(self, args: typing.List[BaseExp], known_types) -> ExpActiveObject:
+    def spawn(self, args: typing.List[BaseExp]) -> ExpActiveObject:
         field_names = self.vars.get_fields().keys()
         fields = dict(zip(field_names, args))
 
-        new_active = ExpActiveObject(env=fields, declaration=self, known_types=known_types)
+        new_active = ExpActiveObject(env=fields, declaration=self, known_types=self._known_types)
         return new_active
 
 
@@ -88,7 +93,7 @@ class PassiveDecl(BaseObjectDecl):
         field_names = self.vars.get_fields().keys()
         fields = dict(zip(field_names, args))
 
-        new_passive = ExpPassiveObject(env=fields, declaration=self)
+        new_passive = ExpPassiveObject(env=fields, declaration=self, known_types=known_types)
         return new_passive
 
 
@@ -136,6 +141,8 @@ class MethodDecl(BaseMethodDecl):
             name: value
             for name, value in zip(field_names, args)
         }
+        import random
+        x = '#' * random.randint(4, 10)
         ctx = {'this': this, 'env': initial_env, 'types': known_types}
         self.statements.run(ctx=ctx)
         return ctx.get('return', ExpVoid())
@@ -337,6 +344,9 @@ class SWaitMessage(BaseStatement):
 class SExp(BaseStatement):
     expr: BaseExp
 
+    def run(self, ctx):
+        self.expr.evaluate(ctx)
+
 
 ####### Definition of BaseStatementList #######
 
@@ -436,6 +446,7 @@ class ExpFCall(BaseExp):
     args: BaseExpList
 
     def evaluate(self, ctx):
+
         object_exp = self.object.evaluate(ctx)
         args: typing.List[BaseExp] = self.args.get_exprs(ctx)
         return object_exp.run_method(self.method, args)
@@ -550,7 +561,8 @@ class ExpNewPassive(BaseExp):
     def evaluate(self, ctx):
         args_expr = self.args.get_exprs(ctx)
         declaration = ctx['types'][self.typename]
-        return declaration.create(args_expr)
+
+        return declaration.create(args_expr, ctx['types'])
 
 
 @dataclass
@@ -561,7 +573,8 @@ class ExpSpawnActive(BaseExp):
     def evaluate(self, ctx):
         args_expr = self.args.get_exprs(ctx)
         declaration = ctx['types'][self.typename]
-        return declaration.spawn(args_expr, known_types=ctx['types'])
+
+        return declaration.spawn(args_expr)
 
 
 @dataclass
@@ -607,7 +620,7 @@ class ExpIO(BaseExp):
 class ExpActiveObject(BaseExp):
     env: typing.Dict[str, BaseExp]
     declaration: ActiveDecl
-    known_types: typing.List[BaseObjectDecl]
+    known_types: typing.Dict[str, BaseObjectDecl]
 
     def evaluate(self, ctx) -> BaseExp:
         return self
@@ -627,16 +640,16 @@ class ExpActiveObject(BaseExp):
 class ExpPassiveObject(BaseExp):
     env: typing.Dict[str, BaseExp]
     declaration: PassiveDecl
-    known_types: typing.List[BaseObjectDecl]
+    known_types: typing.Dict[str, BaseObjectDecl]
 
     def evaluate(self, ctx) -> BaseExp:
         return self
 
     def get_field(self, name):
-        return self.env['name']
+        return self.env[name]
 
     def set_field(self, name, value):
-        self.env['name'] = value
+        self.env[name] = value
 
     def run_method(self, name, args):
         method: MethodDecl = self.declaration.get_methods()[name]

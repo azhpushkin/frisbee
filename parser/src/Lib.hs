@@ -12,7 +12,7 @@ parseText = frisbee . alexScanTokens2
 printTree :: IO ()
 printTree = do
     inStr <- getContents
-    pPrintNoColor $ alexScanTokens2 inStr
-    -- pPrintNoColor $ parseText inStr
+    -- pPrintNoColor $ alexScanTokens2 inStr
+    pPrintNoColor $ parseText inStr
 
 

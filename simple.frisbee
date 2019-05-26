@@ -1,9 +1,12 @@
+from example import SomeClass;
+
 active Example {
     String name;
 
-    def String sayhello(String to) {
-        io ! print("Hello to " + to + " from " + this.name);
-        return "Done!";
+    def String sayhello(SomeClass to) {
+        io ! print("Hello to " + to.get() + " from " + this.name);
+        to.set("NEW");
+        return to;
     }
 
     def Int setname(String what) {
@@ -24,10 +27,15 @@ active Main {
     def Void run() {
         Example test;
         String res;
+        SomeClass x;
+
+        x = new SomeClass("Stored!");
 
         test = spawn Example("SomeName");
         test ! setname("Right");
-        res <= test ! sayhello("me");
-        io ! print(res);
+        res <= test ! sayhello(x);
+
+        io ! print("OLD VALUE IS" + x.get());
+        io ! print("new IS" + res.get());
     }
 }
