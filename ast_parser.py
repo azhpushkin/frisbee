@@ -13,7 +13,7 @@ def parse_ast_to_classes(value):
         elif value == 'False':
             return False
         elif hasattr(ast_def, value):
-            return getattr(ast_def, value)
+            return getattr(ast_def, value)()
         else:
             raise ValueError(f'Unknown value {value}')
 

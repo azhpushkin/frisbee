@@ -1,6 +1,8 @@
 from __future__ import annotations
+import typing
 
 from dataclasses import dataclass
+from multiprocessing import Process, Queue
 
 
 ####### Definition of BaseProgram #######
@@ -18,7 +20,8 @@ class Program(BaseProgram):
 ####### Definition of BaseImportDeclList #######
 
 @dataclass
-class BaseImportDeclList: pass
+class BaseImportDeclList:
+    pass
 
 
 @dataclass
@@ -29,13 +32,16 @@ class ImportDeclList(BaseImportDeclList):
 
 
 @dataclass
-class ImportDeclListEmpty(BaseImportDeclList): pass
+class ImportDeclListEmpty(BaseImportDeclList):
+    pass
 
 
 ####### Definition of BaseObjectDeclList #######
 
 @dataclass
-class BaseObjectDeclList: pass
+class BaseObjectDeclList:
+    def get_declarations(self) -> typing.List[BaseObjectDecl]:
+        return NotImplemented
 
 
 @dataclass
@@ -43,35 +49,58 @@ class ObjectDeclList(BaseObjectDeclList):
     head: BaseObjectDecl
     tail: BaseObjectDeclList
 
+    def get_declarations(self):
+        return [self.head, ] + self.tail.get_declarations()
+
 
 @dataclass
-class OEmpty(BaseObjectDeclList): pass
+class OEmpty(BaseObjectDeclList):
+    def get_declarations(self):
+        return []
 
 
 ####### Definition of BaseObjectDecl #######
 
 @dataclass
-class BaseObjectDecl: pass
+class BaseObjectDecl:
+    name: str
+    vars: BaseVarDeclList
+    methods: BaseMethodDeclList
+
+    def create(self, args: typing.List[BaseExp]):
+        pass
+
+    def get_methods(self):
+        methods = self.methods.get_methods()
+        return {m.name: m for m in methods}
 
 
 @dataclass
 class ActiveDecl(BaseObjectDecl):
-    name: str
-    vars: BaseVarDeclList
-    methods: BaseMethodDeclList
+    def create(self, args: typing.List[BaseExp]) -> ExpActiveObject:
+        field_names = self.vars.get_fields().keys()
+        fields = dict(zip(field_names, args))
+
+        new_active = ExpActiveObject(env=fields, declaration=self)
+        return new_active
 
 
 @dataclass
 class PassiveDecl(BaseObjectDecl):
-    name: str
-    vars: BaseVarDeclList
-    methods: BaseMethodDeclList
+    def create(self, args: typing.List[BaseExp]) -> ExpPassiveObject:
+        field_names = self.vars.get_fields().keys()
+        fields = dict(zip(field_names, args))
+
+        new_passive = ExpPassiveObject(env=fields, declaration=self)
+        return new_passive
 
 
 ####### Definition of BaseMethodDeclList #######
 
 @dataclass
-class BaseMethodDeclList: pass
+class BaseMethodDeclList:
+    def get_methods(self):
+        return NotImplemented
 
 
 @dataclass
@@ -79,9 +108,14 @@ class MethodDeclList(BaseMethodDeclList):
     head: BaseMethodDecl
     tail: BaseMethodDeclList
 
+    def get_methods(self):
+        return [self.head, ] + self.tail.get_methods()
+
 
 @dataclass
-class MEmpty(BaseMethodDeclList): pass
+class MEmpty(BaseMethodDeclList):
+    def get_methods(self):
+        return []
 
 
 ####### Definition of BaseMethodDecl #######
@@ -102,7 +136,9 @@ class MethodDecl(BaseMethodDecl):
 ####### Definition of BaseVarDeclList #######
 
 @dataclass
-class BaseVarDeclList: pass
+class BaseVarDeclList:
+    def get_fields(self) -> dict:
+        return NotImplemented
 
 
 @dataclass
@@ -111,9 +147,16 @@ class VarDeclList(BaseVarDeclList):
     name: str
     tail: BaseVarDeclList
 
+    def get_fields(self):
+        tail_fields = self.tail.get_fields()
+        tail_fields[self.name] = self.typename.get_name()
+        return tail_fields
+
 
 @dataclass
-class VEmpty(BaseVarDeclList): pass
+class VEmpty(BaseVarDeclList):
+    def get_fields(self) -> dict:
+        return {}
 
 
 ####### Definition of BaseFormalList #######
@@ -356,6 +399,11 @@ class ExpArrayGet(BaseExp):
     array: BaseExp
     index: BaseExp
 
+    def evaluate(self, ctx):
+        array_exp: ExpArray = self.array.evaluate(ctx)
+        index = self.index.evaluate(ctx)
+        return array_exp.array[index]
+
 
 @dataclass
 class ExpFCall(BaseExp):
@@ -363,16 +411,30 @@ class ExpFCall(BaseExp):
     method: str
     args: BaseExpList
 
+    def evaluate(self, ctx):
+        object_exp = self.object.evaluate(ctx)
+        args: typing.List[BaseExp] = self.args.get_exprs(ctx)
+        return self.object_exp.run_method(self.method, args)
+
+
 
 @dataclass
 class ExpFieldAccess(BaseExp):
     object: BaseExp
     field: str
 
+    def evaluate(self, ctx):
+        object_exp = self.object.evaluate(ctx)
+        return self.object_exp.get_field(self.field)
+
+
 
 @dataclass
 class ExpInt(BaseExp):
     value: int
+
+    def evaluate(self, ctx) -> BaseExp:
+        return self
 
     def add(self, other: ExpInt):
         assert isinstance(other, ExpInt), 'Not int added!'
@@ -411,6 +473,9 @@ class ExpInt(BaseExp):
 class ExpString(BaseExp):
     value: str
 
+    def evaluate(self, ctx) -> BaseExp:
+        return self
+
     def add(self, other: ExpString):
         assert isinstance(other, ExpString), 'Not str added!'
         return ExpString(value=self.value + other.value)
@@ -428,6 +493,9 @@ class ExpString(BaseExp):
 class ExpBool(BaseExp):
     value: bool
 
+    def evaluate(self, ctx) -> BaseExp:
+        return self
+
     def equal(self, other: ExpInt):
         assert isinstance(other, ExpInt), 'Not int equal!'
         return ExpBool(value=self.value == other.value)
@@ -441,11 +509,19 @@ class ExpBool(BaseExp):
 class ExpIdent(BaseExp):
     name: str
 
+    def evaluate(self, ctx) -> BaseExp:
+        return ctx['env'][self.name]
+
 
 @dataclass
 class ExpNewPassive(BaseExp):
     typename: str
     args: BaseExpList
+
+    def evaluate(self, ctx):
+        args_expr = self.args.get_exprs(ctx)
+        declaration = ctx['types'][self.typename]
+        return declaration.create(args_expr)
 
 
 @dataclass
@@ -453,29 +529,86 @@ class ExpSpawnActive(BaseExp):
     typename: str
     args: BaseExpList
 
+    def evaluate(self, ctx):
+        args_expr = self.args.get_exprs(ctx)
+        declaration = ctx['types'][self.typename]
+        return declaration.create(args_expr)
+
 
 @dataclass
 class ExpExp(BaseExp):
     expr: BaseExp
 
+    def evaluate(self, ctx) -> BaseExp:
+        return self.expr.evaluate(ctx)
+
 
 @dataclass
-class ExpThis(BaseExp): pass
-
-
-@dataclass
-class ExpIO(BaseExp): pass
+class ExpThis(BaseExp):
+    def evaluate(self, ctx):
+        return self.ctx['this']
 
 
 @dataclass
 class ExpNot(BaseExp):
     operand: BaseExp
 
+    def evaluate(self, ctx) -> BaseExp:
+        operand: ExpBool = self.operand.evaluate(ctx)
+
+        assert isinstance(operand, ExpBool), f'Not bool applied to null but {operand}'
+        return ExpBool(value=not operand.value)
+
+
+@dataclass
+class ExpIO(BaseExp):
+    def evaluate(self, ctx):
+        return NotImplemented
+
+
+# Custom values
+
+@dataclass
+class ExpActiveObject(BaseExp):
+    env: typing.Dict[str, BaseExp]
+    declaration: ActiveDecl
+
+    def evaluate(self, ctx) -> BaseExp:
+        return self
+
+    def run_method(self, name, args):
+        method: MethodDecl = self.declaration.get_methods()[name]
+        method.execute()
+
+
+
+
+@dataclass
+class ExpPassiveObject(BaseExp):
+    env: typing.Dict[str, BaseExp]
+    declaration: PassiveDecl
+
+    def evaluate(self, ctx) -> BaseExp:
+        return self
+
+    def run_method(self, name, args):
+        pass
+
+
+@dataclass
+class ExpArray(BaseExp):
+    array: typing.List[typing.Any]
+
+    def evaluate(self, cxt) -> BaseExp:
+        return self
+
 
 ####### Definition of BaseExpList #######
 
 @dataclass
-class BaseExpList: pass
+class BaseExpList:
+    def get_exprs(self, ctx) -> typing.List[BaseExp]:
+        return NotImplemented
 
 
 @dataclass
@@ -483,15 +616,23 @@ class ExpList(BaseExpList):
     head: BaseExp
     tail: BaseExpList
 
+    def get_exprs(self, ctx):
+        head_expr = self.head.evaluate(ctx)
+        return [head_expr, ] + self.tail.get_exprs(ctx)
+
 
 @dataclass
-class ExpListEmpty(BaseExpList): pass
+class ExpListEmpty(BaseExpList):
+    def get_exprs(self, ctx):
+        return []
 
 
 ####### Definition of BaseImportIdentList #######
 
 @dataclass
-class BaseImportIdentList: pass
+class BaseImportIdentList:
+    def get_names(self):
+        return NotImplemented
 
 
 @dataclass
@@ -499,6 +640,11 @@ class ImportIdentList(BaseImportIdentList):
     typename: str
     tail: BaseImportIdentList
 
+    def get_names(self):
+        return [self.typename, ] + self.tail.get_names()
+
 
 @dataclass
-class ImportIdentListEmpty(BaseImportIdentList): pass
+class ImportIdentListEmpty(BaseImportIdentList):
+    def get_names(self):
+        return []
