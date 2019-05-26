@@ -7,7 +7,15 @@ active Example {
     }
 
     def Int setname(String what) {
+        Int n;
+
+        n = 1;
         this.name = what;
+
+        while (n < 5) {
+           io ! print(n);
+           n = n + 1;
+        }
 
     }
 }

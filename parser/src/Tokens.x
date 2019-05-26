@@ -39,6 +39,7 @@ tokens :-
   "io"                                   { \p s -> TIo p }
   "if"					{ \p s -> TIf p }
   "else"				{ \p s -> TElse p }
+  "void"				{ \p s -> TVoidValue p }
   "true"				{ \p s -> TTrue p }
   "false"				{ \p s -> TFalse p }
   "this"				{ \p s -> TThis p }
@@ -87,6 +88,7 @@ data Token =
 	TString AlexPosn	       |
         TVal AlexPosn	       |
 	TVoid AlexPosn		       |
+        TVoidValue AlexPosn		       |
 	TInt AlexPosn		       |
 	TBool AlexPosn		       |
         TIo AlexPosn		       |
@@ -132,6 +134,7 @@ tokenPosn (TDef p) = p
 tokenPosn (TString p) = p	       
 tokenPosn (TVal p) = p	       
 tokenPosn (TVoid p) = p	       
+tokenPosn (TVoidValue p) = p	       
 tokenPosn (TInt p) = p		       
 tokenPosn (TBool p) = p	       
 tokenPosn (TIo p) = p		       

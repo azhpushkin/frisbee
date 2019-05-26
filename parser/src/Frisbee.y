@@ -32,6 +32,7 @@ import Tokens
   "io"				        { TIo _ }
   "if"				        { TIf _ }
   "else"				{ TElse _ }
+  "void"				{ TVoidValue _ }
   "true"				{ TTrue _ }
   "false"				{ TFalse _ }
   "this"				{ TThis _ }
@@ -137,6 +138,7 @@ Exp :
     | Exp "." ident                   { ExpFieldAccess $1 $3}
     | integer_literal                 { ExpInt $1}
     | string_literal                 { ExpString $1}
+    | "void"                          { ExpVoid }
     | "true"                          { ExpBool True}
     | "false"                         { ExpBool False}
     | ident                           { ExpIdent $1}
@@ -243,6 +245,7 @@ data Exp
     | ExpInt Int  -- value
     | ExpString String  -- value
     | ExpBool Bool -- value
+    | ExpVoid -- value
     | ExpIdent String -- name
     | ExpNewPassive String ExpList  -- typename, args 
     | ExpSpawnActive String ExpList  -- typename, args

@@ -136,9 +136,9 @@ class MethodDecl(BaseMethodDecl):
             name: value
             for name, value in zip(field_names, args)
         }
-        ctx = {'this': this, 'env': initial_env, 'types': known_types, 'return': None}
+        ctx = {'this': this, 'env': initial_env, 'types': known_types}
         self.statements.run(ctx=ctx)
-        return ctx['return']
+        return ctx.get('return', ExpVoid())
 
 
 ####### Definition of BaseVarDeclList #######
@@ -512,6 +512,11 @@ class ExpString(BaseExp):
         assert isinstance(other, ExpString), 'Not str not_equal!'
         return ExpBool(value=self.value != other.value)
 
+
+@dataclass
+class ExpVoid(BaseExp):
+    def evaluate(self, ctx):
+        return self
 
 @dataclass
 class ExpBool(BaseExp):
