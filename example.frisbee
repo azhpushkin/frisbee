@@ -1,11 +1,56 @@
-passive SomeClass {
-  val store;
+from example import SomeClass;
 
-  def Int set(Int newvalue) {
-     this.store = newvalue;
-  }
+active Example {
+    String name;
 
-  def Int get() {
-     return this.store;
-  }
+    def String sayhello(SomeClass to) {
+        io ! print("Hello to " + to.get() + " from " + this.name);
+        to.set("NEW");
+        return to;
+    }
+    def String sayhelloWith(val actor, String text) {
+        actor ! print(text);
+    }
+
+    def Int setname(String what) {
+        Int n;
+
+        n = 1;
+        this.name = what;
+
+        while (n < 5) {
+           io ! print(n);
+           n = n + 1;
+        }
+
+    }
+}
+
+active Text {
+    def Void print(String text) {
+        io ! print("Printing from text: " + text);
+    }
+}
+
+active Main {
+    def Void run() {
+        Example test;
+        String res;
+        SomeClass x;
+        val a;
+
+        x = new SomeClass("Stored!");
+
+        test = spawn Example("SomeName");
+        test ! sayhello(x);
+
+        test ! setname("Right");
+        res <= test ! sayhello(x);
+
+        io ! print("OLD VALUE IS" + x.get());
+        io ! print("new IS " + res.get());
+
+        a = spawn Text();
+        test ! sayhelloWith(a, "ASD");
+    }
 }
