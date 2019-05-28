@@ -1,0 +1,11 @@
+passive SomeClass {
+  val store;
+
+  def Int set(Int newvalue) {
+     this.store = newvalue;
+  }
+
+  def Int get() {
+     return this.store;
+  }
+}

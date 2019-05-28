@@ -1,2 +1,4 @@
 pyparsing
 ipython
+pyzmq
+zmq
