@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import zmq
+import uuid
 import typing
 from dataclasses import dataclass, field
-from multiprocessing  import Process, Queue
+from multiprocessing  import Process, Event, Value
 
 
 ####### Definition of BaseProgram #######
@@ -625,16 +627,27 @@ class ExpIO(BaseExp):
 
 
 # Custom values
-def actor_loop(actor_obj: str, queue, return_queue):
-    actor_obj.queue = queue
+def actor_loop(actor_obj: str, event: Event, port_value: Value):
+    context = zmq.Context()
+    socket = context.socket(zmq.SUB)
+    selected_port = socket.bind_to_random_port('tcp://127.0.0.1')
+    import time; time.sleep(0.5)
+
+    socket.setsockopt_unicode(zmq.SUBSCRIBE, '')
+
+    port_value.value = selected_port
+    event.set()
+    print(222)
 
     while True:
-        new_message = queue.get()
+        print(1)
+        topic, data = socket.recv_multipart()
+        data = eval(data)
 
-        message_name, args, return_flag = new_message
-        result = actor_obj.send_message(message_name, args)
-        if return_flag == 'true':
-            return_queue.put(result)
+        message_name, args = data
+        result = actor_obj.send_message(data['name'], data['args'])
+        # if return_flag == 'true':
+        #     return_queue.put(result)
 
 
 
@@ -644,11 +657,17 @@ class ExpActiveObject(BaseExp):
     declaration: ActiveDecl
     known_types: typing.Dict[str, BaseObjectDecl]
 
+    actor_uuid: str = field(default_factory=lambda: str(uuid.uuid4()))
+
     def start(self):
-        actor_queue, return_queue = Queue(), Queue(maxsize=1)
-        proc = Process(target=actor_loop, args=(self, actor_queue, return_queue))
+        spawned_event = Event()
+        port_value = Value('d')
+
+        proc = Process(target=actor_loop, args=(self, spawned_event, port_value))
         proc.start()
-        return ActiveProxy(queue=actor_queue, return_queue=return_queue)
+        spawned_event.wait()
+
+        return ActiveProxy(actor_uuid=self.actor_uuid, port_value=port_value.value)
 
     def evaluate(self, ctx) -> BaseExp:
         return self
@@ -666,8 +685,15 @@ class ExpActiveObject(BaseExp):
 
 @dataclass
 class ActiveProxy:
-    queue: Queue
-    return_queue: Queue
+    actor_uuid: int
+    port_value: int
+
+    def __post_init__(self):
+        context = zmq.Context()
+        socket = context.socket(zmq.PUB)
+        socket.connect('tcp://127.0.0.1:{}'.format(self.port_value))
+        import time; time.sleep(0.1)
+        self._socket = socket
 
     def evaluate(self, ctx):
         return self
@@ -680,7 +706,11 @@ class ActiveProxy:
 
     def send_message(self, name, args, return_to=None):
         flag = 'true' if return_to else 'false'
-        self.queue.put((name, args, flag))
+        print(123)
+        self._socket.send_multipart([
+            self.actor_uuid.encode('ascii'),
+            str({'name': name, 'args': args}).encode('ascii')
+        ])
 
 
 

@@ -9,6 +9,11 @@ active Example {
         return to;
     }
 
+    def String sayhelloWith(val actor) {
+
+        actor ! print("hello!");
+    }
+
     def Int setname(String what) {
         Int n;
 
@@ -23,6 +28,12 @@ active Example {
     }
 }
 
+active Printer {
+   def Void print(String name) {
+     io ! print("##### by printer #####" + name);
+   }
+}
+
 active Main {
     def Void run() {
         Example test;
@@ -35,9 +46,9 @@ active Main {
         test ! sayhello(x);
 
         test ! setname("Right");
-        res <= test ! sayhello(x);
+        test ! sayhelloWith(spawn Printer());
 
         io ! print("OLD VALUE IS" + x.get());
-        io ! print("new IS " + res.get());
+
     }
 }
