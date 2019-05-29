@@ -1,21 +1,18 @@
 from __future__ import annotations
 
-import zmq
 import time
 import uuid
 import typing
 from dataclasses import dataclass, field
-from multiprocessing  import Process, Event, Value
+from multiprocessing import Process, Event, Value
+
+from environ_connect import ActorConnector
 
 
-####### Definition of BaseProgram #######
-
-@dataclass
-class BaseProgram: pass
-
+####### Definition of Program #######
 
 @dataclass
-class Program(BaseProgram):
+class Program:
     imports: BaseImportDeclList
     objects: BaseObjectDeclList
 
@@ -25,7 +22,7 @@ class Program(BaseProgram):
 @dataclass
 class BaseImportDeclList:
     def get_imports(self) -> typing.Dict[str, typing.List[str]]:
-        return
+        return NotImplemented
 
 
 @dataclass
@@ -140,7 +137,7 @@ class MethodDecl(BaseMethodDecl):
 
     def execute(
             self,
-            actor: ExpActiveObject,
+            env_conn: ActorConnector,
             this: typing.Union[ExpActiveObject, ExpPassiveObject],
             args: typing.List[BaseExp],
             known_types,
@@ -153,7 +150,7 @@ class MethodDecl(BaseMethodDecl):
         }
         import random
         x = '#' * random.randint(4, 10)
-        ctx = {'actor': actor, 'this': this, 'env': initial_env, 'types': known_types}
+        ctx = {'env_conn': env_conn, 'this': this, 'env': initial_env, 'types': known_types}
         self.statements.run(ctx=ctx)
         return ctx.get('return', ExpVoid())
 
@@ -348,9 +345,9 @@ class SWaitMessage(BaseStatement):
         object: ActiveProxy = self.object.evaluate(ctx)
         object.send_message(self.method, self.args.get_exprs(ctx), return_to=ctx['this'])
 
-        socket = ctx['actor']._return_socket
-        topic, result = socket.recv_multipart()
-        ctx['env'][self.result_name] = eval(result.decode('ascii'))
+        env_conn: ActorConnector = ctx['env_conn']
+
+        ctx['env'][self.result_name] = eval(env_conn.receive_return_value())
 
 
 @dataclass
@@ -462,7 +459,7 @@ class ExpFCall(BaseExp):
 
         object_exp = self.object.evaluate(ctx)
         args: typing.List[BaseExp] = self.args.get_exprs(ctx)
-        return object_exp.run_method(actor=ctx['actor'], name=self.method, args=args)
+        return object_exp.run_method(env_conn=ctx['env_conn'], name=self.method, args=args)
 
 
 
@@ -633,37 +630,19 @@ class ExpIO(BaseExp):
 # Custom values
 def actor_loop(actor_obj: ExpActiveObject, event: Event, port_value: Value):
 
-    context = zmq.Context()
-    messages_socket = context.socket(zmq.SUB)
-    messages_socket.connect('tcp://127.0.0.1:5556')
-    messages_socket.subscribe(f'messages:{actor_obj.actor_uuid}')
-    # messages_socket.subscribe('')
-
-    return_socket = context.socket(zmq.SUB)
-    return_socket.connect('tcp://127.0.0.1:5556')
-    return_socket.subscribe(f'return:{actor_obj.actor_uuid}')
-
-    write_socket = context.socket(zmq.PUB)
-    write_socket.connect('tcp://127.0.0.1:5557')
-
-    actor_obj._return_socket = return_socket
-    actor_obj._write_socket = write_socket
-
-    time.sleep(0.5)
+    env_conn = ActorConnector(actor_obj.actor_uuid)
+    actor_obj._env_conn = env_conn
 
     event.set()
 
     while True:
-        topic, data = messages_socket.recv_multipart()
-        data = eval(data.decode('ascii'))
+        data = eval(env_conn.receive_message())
+        message_name, args, return_address = data['name'], data['args'], data['return']
 
-        result = actor_obj.send_message(data['name'], data['args'])
+        result = actor_obj.send_message(message_name, args)
 
-        if data['return']:
-            write_socket.send_multipart([
-                'return:{}'.format(data['return']).encode('ascii'),
-                str(result).encode('ascii')
-            ])
+        if return_address:
+            env_conn.return_result(return_address, result)
 
 
 @dataclass
@@ -695,7 +674,7 @@ class ExpActiveObject(BaseExp):
 
     def send_message(self, name, args, return_to=None):
         method: MethodDecl = self.declaration.get_methods()[name]
-        return method.execute(actor=self, this=self, args=args, known_types=self.known_types)
+        return method.execute(env_conn=self._env_conn, this=self, args=args, known_types=self.known_types)
 
 
 @dataclass
@@ -703,6 +682,7 @@ class ActiveProxy:
     actor_uuid: str
 
     def __post_init__(self):
+        import zmq
         context = zmq.Context()
         write_socket = context.socket(zmq.PUB)
         write_socket.connect('tcp://127.0.0.1:5557')
@@ -743,9 +723,9 @@ class ExpPassiveObject(BaseExp):
     def set_field(self, name, value):
         self.env[name] = value
 
-    def run_method(self, actor, name, args):
+    def run_method(self, env_conn, name, args):
         method: MethodDecl = self.declaration.get_methods()[name]
-        return method.execute(actor=actor, this=self, args=args, known_types=self.known_types)
+        return method.execute(env_conn=env_conn, this=self, args=args, known_types=self.known_types)
 
 
 @dataclass

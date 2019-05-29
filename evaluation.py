@@ -1,4 +1,5 @@
 import ast_def
+from environ_connect import ActorConnector
 
 from ast_parser import load_and_parse_file
 
@@ -37,8 +38,10 @@ def run_program(tree: ast_def.Program):
     types = get_file_types(tree)
     main = types['Main']
 
-    main_spawned = main.spawn(args=[])
-    main_spawned.send_message('run', [])
+    main_proxy: ast_def.ActiveProxy = main.spawn(args=[])
+    # main_connector = ActorConnector(main_proxy.actor_uuid)
+    # main_connector.send_message('run', [])
+    main_proxy.send_message('run', [])
 
 
 
