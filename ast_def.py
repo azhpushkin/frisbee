@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import zmq
+import time
 import uuid
 import typing
 from dataclasses import dataclass, field
@@ -343,10 +344,12 @@ class SWaitMessage(BaseStatement):
     args: BaseExpList
 
     def run(self, ctx):
-        object = self.object.evaluate(ctx)
-        object.send_message(self.method, self.args.get_exprs(ctx), return_to=ctx['this'].queue)
-        res = object.return_queue.get()
-        ctx['env'][self.result_name] = res
+        object: ActiveProxy = self.object.evaluate(ctx)
+        object.send_message(self.method, self.args.get_exprs(ctx), return_to=ctx['this'])
+
+        socket = ctx['this']._return_socket
+        topic, result = socket.recv_multipart()
+        ctx['env'][self.result_name] = eval(result.decode('ascii'))
 
 
 @dataclass
@@ -627,28 +630,38 @@ class ExpIO(BaseExp):
 
 
 # Custom values
-def actor_loop(actor_obj: str, event: Event, port_value: Value):
+def actor_loop(actor_obj: ExpActiveObject, event: Event, port_value: Value):
+
     context = zmq.Context()
-    socket = context.socket(zmq.SUB)
-    selected_port = socket.bind_to_random_port('tcp://127.0.0.1')
-    import time; time.sleep(0.5)
+    messages_socket = context.socket(zmq.SUB)
+    messages_socket.connect('tcp://127.0.0.1:5556')
+    messages_socket.subscribe(f'messages:{actor_obj.actor_uuid}')
+    # messages_socket.subscribe('')
 
-    socket.setsockopt_unicode(zmq.SUBSCRIBE, '')
+    return_socket = context.socket(zmq.SUB)
+    return_socket.connect('tcp://127.0.0.1:5556')
+    return_socket.subscribe(f'return:{actor_obj.actor_uuid}')
 
-    port_value.value = selected_port
+    actor_obj._return_socket = return_socket
+
+    write_socket = context.socket(zmq.PUB)
+    write_socket.connect('tcp://127.0.0.1:5557')
+
+    time.sleep(0.5)
+
     event.set()
-    print(222)
 
     while True:
-        print(1)
-        topic, data = socket.recv_multipart()
-        data = eval(data)
+        topic, data = messages_socket.recv_multipart()
+        data = eval(data.decode('ascii'))
 
-        message_name, args = data
         result = actor_obj.send_message(data['name'], data['args'])
-        # if return_flag == 'true':
-        #     return_queue.put(result)
 
+        if data['return']:
+            write_socket.send_multipart([
+                'return:{}'.format(data['return']).encode('ascii'),
+                str(result).encode('ascii')
+            ])
 
 
 @dataclass
@@ -667,7 +680,7 @@ class ExpActiveObject(BaseExp):
         proc.start()
         spawned_event.wait()
 
-        return ActiveProxy(actor_uuid=self.actor_uuid, port_value=port_value.value)
+        return ActiveProxy(actor_uuid=self.actor_uuid)
 
     def evaluate(self, ctx) -> BaseExp:
         return self
@@ -685,15 +698,14 @@ class ExpActiveObject(BaseExp):
 
 @dataclass
 class ActiveProxy:
-    actor_uuid: int
-    port_value: int
+    actor_uuid: str
 
     def __post_init__(self):
         context = zmq.Context()
-        socket = context.socket(zmq.PUB)
-        socket.connect('tcp://127.0.0.1:{}'.format(self.port_value))
-        import time; time.sleep(0.1)
-        self._socket = socket
+        write_socket = context.socket(zmq.PUB)
+        write_socket.connect('tcp://127.0.0.1:5557')
+        self._write_socket = write_socket
+        time.sleep(0.5)
 
     def evaluate(self, ctx):
         return self
@@ -704,12 +716,11 @@ class ActiveProxy:
     def set_field(self, name, value):
         raise ValueError('Cannot set field of actor!')
 
-    def send_message(self, name, args, return_to=None):
-        flag = 'true' if return_to else 'false'
-        print(123)
-        self._socket.send_multipart([
+    def send_message(self, name, args, return_to: typing.Optional[ExpActiveObject] = None):
+        return_uuid = return_to.actor_uuid if return_to else None
+        self._write_socket.send_multipart([
             self.actor_uuid.encode('ascii'),
-            str({'name': name, 'args': args}).encode('ascii')
+            str({'name': name, 'args': args, 'return': return_uuid}).encode('ascii')
         ])
 
 

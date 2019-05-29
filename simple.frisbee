@@ -43,12 +43,13 @@ active Main {
         x = new SomeClass("Stored!");
 
         test = spawn Example("SomeName");
-        test ! sayhello(x);
+        res <= test ! sayhello(x);
 
         test ! setname("Right");
         test ! sayhelloWith(spawn Printer());
 
-        io ! print("OLD VALUE IS" + x.get());
+        io ! print("OLD VALUE IS " + x.get());
+        io ! print("NEW VALUE IS " + res.get());
 
     }
 }
