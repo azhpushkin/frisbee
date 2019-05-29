@@ -1,13 +1,10 @@
 from __future__ import annotations
 
-import time
-import uuid
 import typing
 from dataclasses import dataclass, field
-from multiprocessing import Process, Event, Value
+from multiprocessing import Process, Event, Array
 
 from environ_connect import ActorConnector
-
 
 local_connector: ActorConnector = None
 
@@ -630,9 +627,12 @@ class ExpIO(BaseExp):
 
 
 # Custom values
-def actor_loop(actor_obj: ExpActiveObject, event: Event, port_value: Value):
+def actor_loop(actor_obj: ExpActiveObject, event: Event, assigned_id: Array):
     global local_connector
-    local_connector = ActorConnector(actor_obj.actor_uuid)
+    local_connector = ActorConnector()
+
+    assigned_id.value = local_connector.actor_id.encode('ascii')
+    actor_obj.actor_id = local_connector.actor_id
 
     event.set()
 
@@ -652,17 +652,17 @@ class ExpActiveObject(BaseExp):
     declaration: ActiveDecl
     known_types: typing.Dict[str, BaseObjectDecl]
 
-    actor_uuid: str = field(default_factory=lambda: str(uuid.uuid4()))
+    actor_id: str = field(default_factory=lambda: None)
 
     def start(self):
         spawned_event = Event()
-        port_value = Value('d')
+        assigned_id = Array('c', 64)
 
-        proc = Process(target=actor_loop, args=(self, spawned_event, port_value))
+        proc = Process(target=actor_loop, args=(self, spawned_event, assigned_id))
         proc.start()
         spawned_event.wait()
 
-        return ActiveProxy(actor_uuid=self.actor_uuid)
+        return ActiveProxy(actor_id=assigned_id.value.decode('ascii'))
 
     def evaluate(self, ctx) -> BaseExp:
         return self
@@ -680,7 +680,7 @@ class ExpActiveObject(BaseExp):
 
 @dataclass
 class ActiveProxy:
-    actor_uuid: str
+    actor_id: str
 
     def evaluate(self, ctx):
         return self
@@ -692,10 +692,7 @@ class ActiveProxy:
         raise ValueError('Cannot set field of actor!')
 
     def send_message(self, name, args, return_to: typing.Optional[ExpActiveObject] = None):
-        local_connector.send_message(self.actor_uuid, name, args, return_to)
-
-
-
+        local_connector.send_message(self.actor_id, name, args, return_to)
 
 
 @dataclass

@@ -39,4 +39,4 @@ def run_program(tree: ast_def.Program):
     main = types['Main']
 
     main_proxy: ast_def.ActiveProxy = main.spawn(args=[])
-    send_initial_message(main_proxy.actor_uuid, 'run', [])
+    send_initial_message(main_proxy.actor_id, 'run', [])
