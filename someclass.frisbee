@@ -8,4 +8,8 @@ passive SomeClass {
   def Int get() {
      return this.store;
   }
+
+  def Void print_with(val actor) {
+  	 actor ! print("From Someclass");
+  }
 }

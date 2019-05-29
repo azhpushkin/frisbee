@@ -140,6 +140,7 @@ class MethodDecl(BaseMethodDecl):
 
     def execute(
             self,
+            actor: ExpActiveObject,
             this: typing.Union[ExpActiveObject, ExpPassiveObject],
             args: typing.List[BaseExp],
             known_types,
@@ -152,7 +153,7 @@ class MethodDecl(BaseMethodDecl):
         }
         import random
         x = '#' * random.randint(4, 10)
-        ctx = {'this': this, 'env': initial_env, 'types': known_types}
+        ctx = {'actor': actor, 'this': this, 'env': initial_env, 'types': known_types}
         self.statements.run(ctx=ctx)
         return ctx.get('return', ExpVoid())
 
@@ -347,7 +348,7 @@ class SWaitMessage(BaseStatement):
         object: ActiveProxy = self.object.evaluate(ctx)
         object.send_message(self.method, self.args.get_exprs(ctx), return_to=ctx['this'])
 
-        socket = ctx['this']._return_socket
+        socket = ctx['actor']._return_socket
         topic, result = socket.recv_multipart()
         ctx['env'][self.result_name] = eval(result.decode('ascii'))
 
@@ -461,7 +462,7 @@ class ExpFCall(BaseExp):
 
         object_exp = self.object.evaluate(ctx)
         args: typing.List[BaseExp] = self.args.get_exprs(ctx)
-        return object_exp.run_method(self.method, args)
+        return object_exp.run_method(actor=ctx['actor'], name=self.method, args=args)
 
 
 
@@ -642,10 +643,11 @@ def actor_loop(actor_obj: ExpActiveObject, event: Event, port_value: Value):
     return_socket.connect('tcp://127.0.0.1:5556')
     return_socket.subscribe(f'return:{actor_obj.actor_uuid}')
 
-    actor_obj._return_socket = return_socket
-
     write_socket = context.socket(zmq.PUB)
     write_socket.connect('tcp://127.0.0.1:5557')
+
+    actor_obj._return_socket = return_socket
+    actor_obj._write_socket = write_socket
 
     time.sleep(0.5)
 
@@ -693,7 +695,7 @@ class ExpActiveObject(BaseExp):
 
     def send_message(self, name, args, return_to=None):
         method: MethodDecl = self.declaration.get_methods()[name]
-        return method.execute(this=self, args=args, known_types=self.known_types)
+        return method.execute(actor=self, this=self, args=args, known_types=self.known_types)
 
 
 @dataclass
@@ -741,9 +743,9 @@ class ExpPassiveObject(BaseExp):
     def set_field(self, name, value):
         self.env[name] = value
 
-    def run_method(self, name, args):
+    def run_method(self, actor, name, args):
         method: MethodDecl = self.declaration.get_methods()[name]
-        return method.execute(this=self, args=args, known_types=self.known_types)
+        return method.execute(actor=actor, this=self, args=args, known_types=self.known_types)
 
 
 @dataclass

@@ -9,11 +9,6 @@ active Example {
         return to;
     }
 
-    def String sayhelloWith(val actor) {
-
-        actor ! print("hello!");
-    }
-
     def Int setname(String what) {
         Int n;
 
@@ -46,10 +41,11 @@ active Main {
         res <= test ! sayhello(x);
 
         test ! setname("Right");
-        test ! sayhelloWith(spawn Printer());
 
         io ! print("OLD VALUE IS " + x.get());
         io ! print("NEW VALUE IS " + res.get());
+
+		x.print_with(spawn Printer());
 
     }
 }
