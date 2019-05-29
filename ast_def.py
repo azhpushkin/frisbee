@@ -634,7 +634,6 @@ def actor_loop(actor_obj: ExpActiveObject, event: Event, port_value: Value):
     global local_connector
     local_connector = ActorConnector(actor_obj.actor_uuid)
 
-
     event.set()
 
     while True:
@@ -683,14 +682,6 @@ class ExpActiveObject(BaseExp):
 class ActiveProxy:
     actor_uuid: str
 
-    def __post_init__(self):
-        import zmq
-        context = zmq.Context()
-        write_socket = context.socket(zmq.PUB)
-        write_socket.connect('tcp://127.0.0.1:5557')
-        self._write_socket = write_socket
-        time.sleep(0.5)
-
     def evaluate(self, ctx):
         return self
 
@@ -701,11 +692,8 @@ class ActiveProxy:
         raise ValueError('Cannot set field of actor!')
 
     def send_message(self, name, args, return_to: typing.Optional[ExpActiveObject] = None):
-        return_uuid = return_to.actor_uuid if return_to else None
-        self._write_socket.send_multipart([
-            self.actor_uuid.encode('ascii'),
-            str({'name': name, 'args': args, 'return': return_uuid}).encode('ascii')
-        ])
+        local_connector.send_message(self.actor_uuid, name, args, return_to)
+
 
 
 
