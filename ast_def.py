@@ -9,6 +9,9 @@ from multiprocessing import Process, Event, Value
 from environ_connect import ActorConnector
 
 
+local_connector: ActorConnector = None
+
+
 ####### Definition of Program #######
 
 @dataclass
@@ -137,7 +140,6 @@ class MethodDecl(BaseMethodDecl):
 
     def execute(
             self,
-            env_conn: ActorConnector,
             this: typing.Union[ExpActiveObject, ExpPassiveObject],
             args: typing.List[BaseExp],
             known_types,
@@ -150,7 +152,7 @@ class MethodDecl(BaseMethodDecl):
         }
         import random
         x = '#' * random.randint(4, 10)
-        ctx = {'env_conn': env_conn, 'this': this, 'env': initial_env, 'types': known_types}
+        ctx = {'this': this, 'env': initial_env, 'types': known_types}
         self.statements.run(ctx=ctx)
         return ctx.get('return', ExpVoid())
 
@@ -345,9 +347,9 @@ class SWaitMessage(BaseStatement):
         object: ActiveProxy = self.object.evaluate(ctx)
         object.send_message(self.method, self.args.get_exprs(ctx), return_to=ctx['this'])
 
-        env_conn: ActorConnector = ctx['env_conn']
+        global local_connector
 
-        ctx['env'][self.result_name] = eval(env_conn.receive_return_value())
+        ctx['env'][self.result_name] = eval(local_connector.receive_return_value())
 
 
 @dataclass
@@ -459,7 +461,7 @@ class ExpFCall(BaseExp):
 
         object_exp = self.object.evaluate(ctx)
         args: typing.List[BaseExp] = self.args.get_exprs(ctx)
-        return object_exp.run_method(env_conn=ctx['env_conn'], name=self.method, args=args)
+        return object_exp.run_method(name=self.method, args=args)
 
 
 
@@ -629,20 +631,20 @@ class ExpIO(BaseExp):
 
 # Custom values
 def actor_loop(actor_obj: ExpActiveObject, event: Event, port_value: Value):
+    global local_connector
+    local_connector = ActorConnector(actor_obj.actor_uuid)
 
-    env_conn = ActorConnector(actor_obj.actor_uuid)
-    actor_obj._env_conn = env_conn
 
     event.set()
 
     while True:
-        data = eval(env_conn.receive_message())
+        data = eval(local_connector.receive_message())
         message_name, args, return_address = data['name'], data['args'], data['return']
 
         result = actor_obj.send_message(message_name, args)
 
         if return_address:
-            env_conn.return_result(return_address, result)
+            local_connector.return_result(return_address, result)
 
 
 @dataclass
@@ -674,7 +676,7 @@ class ExpActiveObject(BaseExp):
 
     def send_message(self, name, args, return_to=None):
         method: MethodDecl = self.declaration.get_methods()[name]
-        return method.execute(env_conn=self._env_conn, this=self, args=args, known_types=self.known_types)
+        return method.execute(this=self, args=args, known_types=self.known_types)
 
 
 @dataclass
@@ -723,9 +725,9 @@ class ExpPassiveObject(BaseExp):
     def set_field(self, name, value):
         self.env[name] = value
 
-    def run_method(self, env_conn, name, args):
+    def run_method(self, name, args):
         method: MethodDecl = self.declaration.get_methods()[name]
-        return method.execute(env_conn=env_conn, this=self, args=args, known_types=self.known_types)
+        return method.execute(this=self, args=args, known_types=self.known_types)
 
 
 @dataclass
