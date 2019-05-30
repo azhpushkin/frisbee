@@ -72,6 +72,7 @@ class BaseObjectDecl:
     name: str
     vars: BaseVarDeclList
     methods: BaseMethodDeclList
+    module: str = field(default_factory=lambda: 'NOT_FOUND')
 
     def get_methods(self):
         methods = self.methods.get_methods()
@@ -84,7 +85,7 @@ class ActiveDecl(BaseObjectDecl):
         field_names = self.vars.get_fields().keys()
         fields = dict(zip(field_names, args))
 
-        new_active = ExpActiveObject(env=fields, declaration=self)
+        new_active = ExpActiveObject(env=fields, module=self.module, typename=self.name)
         return new_active.start()
 
 
@@ -94,7 +95,7 @@ class PassiveDecl(BaseObjectDecl):
         field_names = self.vars.get_fields().keys()
         fields = dict(zip(field_names, args))
 
-        new_passive = ExpPassiveObject(env=fields, declaration=self)
+        new_passive = ExpPassiveObject(env=fields, module=self.module, typename=self.name)
         return new_passive
 
 
@@ -652,9 +653,14 @@ def actor_loop(actor_obj: ExpActiveObject, event: Event, assigned_id: Array):
 @dataclass
 class ExpActiveObject(BaseExp):
     env: typing.Dict[str, BaseExp]
-    declaration: ActiveDecl
+    module: str
+    typename: str
 
     actor_id: str = field(default_factory=lambda: None)
+
+    @property
+    def declaration(self):
+        return types_mapping[self.module][self.typename]
 
     def start(self):
         spawned_event = Event()
@@ -700,7 +706,12 @@ class ActiveProxy:
 @dataclass
 class ExpPassiveObject(BaseExp):
     env: typing.Dict[str, BaseExp]
-    declaration: PassiveDecl
+    module: str
+    typename: str
+
+    @property
+    def declaration(self):
+        return types_mapping[self.module][self.typename]
 
     def evaluate(self, ctx) -> BaseExp:
         return self

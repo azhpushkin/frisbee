@@ -21,7 +21,6 @@ def find_new_and_spawn(dataclass_obj):
     return new_and_spawn
 
 
-
 def load_file(module_name, types_accumulator=None):
     print('Loading', module_name)
     tree = load_and_parse_file(module_name)
@@ -46,6 +45,7 @@ def load_file(module_name, types_accumulator=None):
 
     # Write declarations from this module to types map
     for declaration in tree.objects.get_declarations():
+        declaration.module = module_name
         types_accumulator[module_name][declaration.name] = declaration
         typenames_to_module_map[declaration.name] = module_name
 
