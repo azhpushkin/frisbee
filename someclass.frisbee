@@ -13,3 +13,10 @@ passive SomeClass {
   	 actor ! print("From Someclass");
   }
 }
+
+
+passive Aasd {
+   def Int asd() {
+     return (new SomeClass("asd"));
+   }
+}

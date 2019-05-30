@@ -6,7 +6,8 @@ from multiprocessing import Process, Event, Array
 
 from environ_connect import ActorConnector
 
-local_connector: ActorConnector = None
+local_connector: ActorConnector
+types_mapping: typing.Dict[str, typing.Dict[str, BaseObjectDecl]]
 
 
 ####### Definition of Program #######
@@ -71,7 +72,6 @@ class BaseObjectDecl:
     name: str
     vars: BaseVarDeclList
     methods: BaseMethodDeclList
-    _known_types: typing.Dict[str, BaseObjectDecl] = field(default_factory=dict)
 
     def get_methods(self):
         methods = self.methods.get_methods()
@@ -84,17 +84,17 @@ class ActiveDecl(BaseObjectDecl):
         field_names = self.vars.get_fields().keys()
         fields = dict(zip(field_names, args))
 
-        new_active = ExpActiveObject(env=fields, declaration=self, known_types=self._known_types)
+        new_active = ExpActiveObject(env=fields, declaration=self)
         return new_active.start()
 
 
 @dataclass
 class PassiveDecl(BaseObjectDecl):
-    def create(self, args: typing.List[BaseExp], known_types) -> ExpPassiveObject:
+    def create(self, args: typing.List[BaseExp]) -> ExpPassiveObject:
         field_names = self.vars.get_fields().keys()
         fields = dict(zip(field_names, args))
 
-        new_passive = ExpPassiveObject(env=fields, declaration=self, known_types=known_types)
+        new_passive = ExpPassiveObject(env=fields, declaration=self)
         return new_passive
 
 
@@ -139,7 +139,6 @@ class MethodDecl(BaseMethodDecl):
             self,
             this: typing.Union[ExpActiveObject, ExpPassiveObject],
             args: typing.List[BaseExp],
-            known_types,
     ):
 
         field_names = [x[1] for x in self.args.get_fields()]
@@ -149,7 +148,7 @@ class MethodDecl(BaseMethodDecl):
         }
         import random
         x = '#' * random.randint(4, 10)
-        ctx = {'this': this, 'env': initial_env, 'types': known_types}
+        ctx = {'this': this, 'env': initial_env}
         self.statements.run(ctx=ctx)
         return ctx.get('return', ExpVoid())
 
@@ -566,22 +565,26 @@ class ExpIdent(BaseExp):
 class ExpNewPassive(BaseExp):
     typename: str
     args: BaseExpList
+    module: str = field(default_factory=lambda: 'NOT_FOUND')
 
     def evaluate(self, ctx):
+        print('New', self.module, self.typename)
         args_expr = self.args.get_exprs(ctx)
-        declaration = ctx['types'][self.typename]
+        declaration = types_mapping[self.module][self.typename]
 
-        return declaration.create(args_expr, ctx['types'])
+        return declaration.create(args_expr)
 
 
 @dataclass
 class ExpSpawnActive(BaseExp):
     typename: str
     args: BaseExpList
+    module: str = field(default_factory=lambda: 'NOT_FOUND')
 
     def evaluate(self, ctx):
+        print('Spawn', self.module, self.typename)
         args_expr = self.args.get_exprs(ctx)
-        declaration = ctx['types'][self.typename]
+        declaration = types_mapping[self.module][self.typename]
 
         return declaration.spawn(args_expr)
 
@@ -650,7 +653,6 @@ def actor_loop(actor_obj: ExpActiveObject, event: Event, assigned_id: Array):
 class ExpActiveObject(BaseExp):
     env: typing.Dict[str, BaseExp]
     declaration: ActiveDecl
-    known_types: typing.Dict[str, BaseObjectDecl]
 
     actor_id: str = field(default_factory=lambda: None)
 
@@ -675,7 +677,7 @@ class ExpActiveObject(BaseExp):
 
     def send_message(self, name, args, return_to=None):
         method: MethodDecl = self.declaration.get_methods()[name]
-        return method.execute(this=self, args=args, known_types=self.known_types)
+        return method.execute(this=self, args=args)
 
 
 @dataclass
@@ -699,7 +701,6 @@ class ActiveProxy:
 class ExpPassiveObject(BaseExp):
     env: typing.Dict[str, BaseExp]
     declaration: PassiveDecl
-    known_types: typing.Dict[str, BaseObjectDecl]
 
     def evaluate(self, ctx) -> BaseExp:
         return self
@@ -712,7 +713,7 @@ class ExpPassiveObject(BaseExp):
 
     def run_method(self, name, args):
         method: MethodDecl = self.declaration.get_methods()[name]
-        return method.execute(this=self, args=args, known_types=self.known_types)
+        return method.execute(this=self, args=args)
 
 
 @dataclass

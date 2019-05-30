@@ -7,8 +7,10 @@ if len(sys.argv) < 2:
 else:
     FILE = sys.argv[1]
 
-tree = load_file(FILE)
+main_module, _ = FILE.split('.')
+
+module_types = load_file(main_module)
 
 if __name__ == '__main__':
-    run_program(tree)
+    run_program(module_types, main_module)
 
