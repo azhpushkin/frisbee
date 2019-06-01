@@ -8,41 +8,41 @@ import Tokens
 %tokentype { Token }
 %error { parseError }
 %token
-  "active"				{ TActive _ }
-  "passive"				{ TPassive _ }
-  "new"					{ TNew _ }
-  "spawn"					{ TSpawn _ }
+  "active"                { TActive _ }
+  "passive"                { TPassive _ }
+  "new"                    { TNew _ }
+  "spawn"                    { TSpawn _ }
   "import"              { TImport _ }
   "from"              { TFrom _ }
-  typeident		                        { TTypeIdent _ $$ }
+  typeident                                { TTypeIdent _ $$ }
   
-  "Void"				{ TVoid _ }
-  "def"				{ TDef _ }
+  "Void"                { TVoid _ }
+  "def"                { TDef _ }
   "return"                              { TReturn _ }
   
-  "val"				{ TVal _ }
-  "String"				{ TString _ }
-  "Int"				        { TInt _ }
-  "Bool"				{ TBool _ }
+  "val"                { TVal _ }
+  "String"                { TString _ }
+  "Int"                        { TInt _ }
+  "Bool"                { TBool _ }
   "?"         { TMaybe _ }
-  "["					{ TLeftBrack _ }
-  "]"					{ TRightBrack _ }
+  "["                    { TLeftBrack _ }
+  "]"                    { TRightBrack _ }
 
 
-  "io"				        { TIo _ }
-  "if"				        { TIf _ }
-  "else"				{ TElse _ }
-  "void"				{ TVoidValue _ }
-  "true"				{ TTrue _ }
-  "false"				{ TFalse _ }
-  "this"				{ TThis _ }
-  "while"				{ TWhile _ }
-  integer_literal			{ TIntLiteral _ $$ }
-  string_literal			{ TStringLiteral _ $$ }
-  ident		                        { TIdent _ $$ }
-  "{"	 	 	   		{ TLeftBrace _ }
-  "}"					{ TRightBrace _ }
-  ","					{ TComma _ }
+  "io"                        { TIo _ }
+  "if"                        { TIf _ }
+  "else"                { TElse _ }
+  "void"                { TVoidValue _ }
+  "true"                { TTrue _ }
+  "false"                { TFalse _ }
+  "this"                { TThis _ }
+  "while"                { TWhile _ }
+  integer_literal            { TIntLiteral _ $$ }
+  string_literal            { TStringLiteral _ $$ }
+  ident                                { TIdent _ $$ }
+  "{"                         { TLeftBrace _ }
+  "}"                    { TRightBrace _ }
+  ","                    { TComma _ }
   
   op                                    { TOp _ $$}
   comop                                 { TComOp _ $$ }
