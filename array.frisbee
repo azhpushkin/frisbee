@@ -1,0 +1,8 @@
+active Main {
+  def Void run() {
+    val x;
+    x = 2;
+    val x = 2;
+    return 1;
+  }
+}

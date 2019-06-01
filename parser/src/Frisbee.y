@@ -90,7 +90,7 @@ MethodDeclList :
      |                            { MEmpty }
 
 MethodDecl : 
-       "def" Type ident "(" FormalList ")" "{" VarDeclList StatementList "}" { MethodDecl $2 $3 $5 $8 $9 }
+       "def" Type ident "(" FormalList ")" "{" StatementList "}" { MethodDecl $2 $3 $5 $8 }
 
 VarDeclList :
      Type ident ";" { VarDeclList $1 $2 VEmpty }
@@ -120,6 +120,8 @@ Statement :
     | "while" "(" Exp ")" Statement                { SWhile $3 $5 }
     | "return" Exp ";"                              { SReturn $2 }
     | ident "=" Exp ";"                              { SEqual $1 $3 }
+    | Type ident ";"                              { SVarDecl $1 $2 }
+    | Type ident "=" Exp ";"                              { SVarDeclEqual $1 $2 $4 }
     | Exp "." ident   "=" Exp ";"                              { SEqualField $1 $3 $5 }
     | Exp "!" ident "(" ExpList ")" ";"   { SSendMessage $1 $3 $5}
     | ident "<=" Exp "!" ident "(" ExpList ")" ";"   { SWaitMessage $1 $3 $5 $7 }
@@ -193,7 +195,7 @@ data MethodDeclList
 
 
 data MethodDecl
-    = MethodDecl Type String FormalList VarDeclList StatementList  -- type, name, args, vars, statements
+    = MethodDecl Type String FormalList StatementList  -- type, name, args, statements
     deriving (Show, Eq)
 
 data VarDeclList =
@@ -223,6 +225,8 @@ data Statement
     | SWhile Exp Statement  -- condition, body
     | SReturn Exp  -- expr
     | SEqual String Exp  -- name, expr
+    | SVarDeclEqual Type String Exp  -- type, name, expr
+    | SVarDecl Type String  -- type, name
     | SEqualField Exp String Exp  -- object, field, expr
     | SArrayEqual String Exp Exp  -- name, index, expr
     | SSendMessage Exp String ExpList  -- object, method, args
