@@ -1,8 +1,9 @@
 import ast_def
+from pathlib import Path
 from environ_connect import send_initial_message
 
 from ast_parser import load_and_parse_file
-from builtin_types import BuiltinTypeDeclaration, BUILTIN_TYPES
+from builtin_types import BUILTIN_TYPES
 
 
 def find_new_and_spawn(dataclass_obj):
@@ -21,9 +22,9 @@ def find_new_and_spawn(dataclass_obj):
     return new_and_spawn
 
 
-def load_file(module_name, types_accumulator=None):
-    print('Loading', module_name)
-    tree = load_and_parse_file(module_name)
+def load_file(path: Path, types_accumulator=None):
+    print('Loading', path.name)
+    tree = load_and_parse_file(path)
 
     if types_accumulator is None:
         types_accumulator = {}
@@ -34,20 +35,22 @@ def load_file(module_name, types_accumulator=None):
     for module, imported_types in tree.imports.get_imports().items():
         if module in types_accumulator:
             print('Omitting second appearance', module)
+        elif module in BUILTIN_TYPES:
+            types_accumulator.update({module: BUILTIN_TYPES[module]})
         else:
-            module_types = load_file(module, types_accumulator)
+            module_types = load_file(path.parent / f'{module}.frisbee', types_accumulator)
             types_accumulator.update(module_types)
 
         for imported_type in imported_types:
             typenames_to_module_map[imported_type] = module
 
-    types_accumulator[module_name] = {}
+    types_accumulator[path.stem] = {}
 
     # Write declarations from this module to types map
     for declaration in tree.objects.get_declarations():
-        declaration.module = module_name
-        types_accumulator[module_name][declaration.name] = declaration
-        typenames_to_module_map[declaration.name] = module_name
+        declaration.module = path.stem
+        types_accumulator[path.stem][declaration.name] = declaration
+        typenames_to_module_map[declaration.name] = path.stem
 
     # For each new and spawn expression update module of object according to scope
     # scope is stored in typenames_to_module_map
@@ -58,30 +61,6 @@ def load_file(module_name, types_accumulator=None):
                 expr.module = typenames_to_module_map[expr.typename]
 
     return types_accumulator
-
-
-def get_file_types(tree: ast_def.Program):
-    file_types = {}
-
-    for module, types in tree.imports.get_imports().items():
-        if module in BUILTIN_TYPES:
-            file_types.update({'Socket': BuiltinTypeDeclaration})
-            continue
-
-        file = f'{module}.frisbee'
-
-        module_tree = load_file(file)
-        file_types.update({
-            decl.name: decl
-            for decl in module_tree.objects.get_declarations()
-            if decl.name in types
-        })
-
-    file_types.update({
-        decl.name: decl
-        for decl in tree.objects.get_declarations()
-    })
-    return file_types
 
 
 def run_program(types: dict, main_module):

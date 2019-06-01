@@ -659,11 +659,14 @@ class ExpIO(BaseExp):
     def send_message(self, name, args, return_to=None):
         if name == 'print':
             print("IO ACTOR CALLED: ", args)
+            res = ExpVoid()
+        elif name == 'readline':
+            res = input(args[0].value)
         else:
             raise ValueError("No method {} of actor io".format(name))
 
         if return_to:
-            return_to.put(ExpVoid())
+            local_connector.return_result(return_to, res)
 
 
 # Custom values

@@ -1,5 +1,6 @@
 import sys
-from ast_parser import load_and_parse_file
+from pathlib import Path
+
 from evaluation import load_file, run_program
 
 if len(sys.argv) < 2:
@@ -7,10 +8,8 @@ if len(sys.argv) < 2:
 else:
     FILE = sys.argv[1]
 
-main_module, _ = FILE.split('.')
-
-module_types = load_file(main_module)
+path = Path(sys.argv[1]).resolve()
+tree = load_file(path)
 
 if __name__ == '__main__':
-    run_program(module_types, main_module)
-
+    run_program(tree, main_module=path.stem)

@@ -128,6 +128,11 @@ Statement :
     | Exp "." ident   "=" Exp ";"                              { SEqualField $1 $3 $5 }
     | Exp "!" ident "(" ExpList ")" ";"   { SSendMessage $1 $3 $5}
     | ident "<=" Exp "!" ident "(" ExpList ")" ";"   { SWaitMessage $1 $3 $5 $7 }
+    | Type ident "<=" Exp "!" ident "(" ExpList ")" ";"   { SList (StatementList
+                                                                     (StatementList
+                                                                        Empty
+                                                                        (SWaitMessage $2 $4 $6 $8))
+                                                                     (SVarDecl $1 $2)) }
     | ident "[" Exp "]" "=" Exp ";"                  { SArrayEqual $1 $3 $6 }
     | Exp   ";"                    { SExp $1}
 

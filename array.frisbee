@@ -1,9 +1,0 @@
-active Main {
-  def Void run() {
-    val x  = [1, 2];
-    x = x + [3];
-    io ! print(x);
-    x[2] = 4;
-    io ! print(x[0], x[1], x[2]);
-  }
-}

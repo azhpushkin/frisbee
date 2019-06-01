@@ -1,14 +1,14 @@
 import re
 import subprocess
+from pathlib import Path
 
 from pyparsing import OneOrMore, nestedExpr
 
 import ast_def
 
 
-def load_and_parse_file(module_name) -> ast_def.Program:
-    module_name = module_name + '.frisbee'
-    data = open(module_name).read().encode('utf-8')
+def load_and_parse_file(path: Path) -> ast_def.Program:
+    data = open(path).read().encode('utf-8')
 
     with subprocess.Popen('./frisbee-exe',
                           stdin=subprocess.PIPE,
@@ -19,7 +19,7 @@ def load_and_parse_file(module_name) -> ast_def.Program:
         if proc.returncode != 0:
             err = re.sub(r'CallStack.*', '', err.decode("utf-8").replace('\n', ' '))
             err = re.sub(r'frisbee-exe: ', '', err)
-            print(f'{module_name}: {err}')
+            print(f'{path.stem}: {err}')
             exit()
 
     parser = OneOrMore(nestedExpr()).parseString
