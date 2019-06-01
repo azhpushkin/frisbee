@@ -104,8 +104,11 @@ FormalList :
 
 Type :
      "val"       { TypeAnonymous }
-     | Type "?"    { TypeMaybe $1 }
-     | "[" Type "]"    { TypeArray $2 }
+     | CertainType { $1 }
+
+CertainType :
+     CertainType "?"    { TypeMaybe $1 }
+     | "[" CertainType "]"    { TypeArray $2 }
      | "Void"       { TypeVoid }
      | "Int"    { TypeInt }
      | "String"    { TypeString }
@@ -136,6 +139,7 @@ Exp :
     Exp op Exp                        { ExpOp $1 $2 $3}
     | Exp comop Exp                   { ExpComOp $1 $2 $3}
     | Exp "[" Exp "]"                 { ExpArrayGet $1 $3}
+    | "[" ExpList "]"                 { ExpArrayValue $2 }
     | Exp "." ident "(" ExpList ")"   { ExpFCall $1 $3 $5}
     | Exp "." ident                   { ExpFieldAccess $1 $3}
     | integer_literal                 { ExpInt $1}
@@ -149,12 +153,13 @@ Exp :
     | "new" typeident "(" ExpList")"             { ExpNewPassive $2 $4}
     | "spawn" typeident "(" ExpList ")"             { ExpSpawnActive $2 $4}
     | "not" Exp                         { ExpNot $2}
-    | "(" Exp ")"                     { ExpExp $2}
+    | "(" Exp ")"                     { ExpExp $2} 
 
 ExpList :
         Exp "," ExpList  { ExpList $1 $3 }  
-        | Exp               { ExpList $1 ExpListEmpty }
-        |                 { ExpListEmpty }
+        | Exp            { ExpList $1 ExpListEmpty }
+        | Exp  ","       { ExpList $1 ExpListEmpty }
+        |                { ExpListEmpty }
 
 
 {
@@ -244,6 +249,7 @@ data Exp
     = ExpOp Exp String Exp  -- left, operator, right
     | ExpComOp Exp String Exp  -- left, operator, right
     | ExpArrayGet Exp Exp -- array, index
+    | ExpArrayValue ExpList -- elements
     | ExpFCall Exp String ExpList  -- object, method, args
     | ExpFieldAccess Exp String  -- object, field
     | ExpInt Int  -- value

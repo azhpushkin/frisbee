@@ -133,7 +133,6 @@ class MethodDecl(BaseMethodDecl):
     type: BaseType
     name: str
     args: BaseFormalList
-    vars: BaseVarDeclList
     statements: BaseStatementList
 
     def execute(
@@ -316,10 +315,38 @@ class SEqualField(BaseStatement):
 
 
 @dataclass
+class SVarDeclEqual(BaseStatement):
+    type: BaseType
+    name: str
+    expr: BaseExp
+
+    def run(self, ctx):
+        ctx['env'][self.name] = self.expr.evaluate(ctx)
+
+
+@dataclass
+class SVarDecl(BaseStatement):
+    type: BaseType
+    name: str
+
+    def run(self, ctx):
+        pass
+
+
+@dataclass
 class SArrayEqual(BaseStatement):
     name: str
     index: BaseExp
     expr: BaseExp
+
+    def run(self, ctx):
+        value = self.expr.evaluate(ctx)
+        index = self.index.evaluate(ctx)
+
+        assert isinstance(ctx['env'][self.name], ExpArray), "Not array!"
+        assert isinstance(index, ExpInt), "Not int!"
+
+        ctx['env'][self.name].array[index.value] = value
 
 
 @dataclass
@@ -444,8 +471,17 @@ class ExpArrayGet(BaseExp):
 
     def evaluate(self, ctx):
         array_exp: ExpArray = self.array.evaluate(ctx)
-        index = self.index.evaluate(ctx)
-        return array_exp.array[index]
+        index: ExpInt = self.index.evaluate(ctx)
+        assert isinstance(index, ExpInt)
+        return array_exp.array[index.value]
+
+
+@dataclass
+class ExpArrayValue(BaseExp):
+    elements: BaseExpList
+
+    def evaluate(self, ctx):
+        return ExpArray(array=self.elements.get_exprs(ctx))
 
 
 @dataclass
@@ -733,6 +769,10 @@ class ExpArray(BaseExp):
 
     def evaluate(self, cxt) -> BaseExp:
         return self
+
+    def add(self, other: ExpInt):
+        assert isinstance(other, ExpArray), 'Not array added!'
+        return ExpArray(array=self.array + other.array)
 
 
 ####### Definition of BaseExpList #######

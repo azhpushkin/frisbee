@@ -86,6 +86,8 @@ def get_file_types(tree: ast_def.Program):
 
 def run_program(types: dict, main_module):
     main = types[main_module]['Main']
+
+    # Configure global variables
     ast_def.types_mapping = types
 
     main_proxy: ast_def.ActiveProxy = main.spawn(args=[])
