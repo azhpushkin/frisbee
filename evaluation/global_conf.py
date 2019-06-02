@@ -1,6 +1,6 @@
 import typing
-from .connector import ActorConnector
 
 
-local_connector: ActorConnector
+
+local_connector: typing.Any  # 'connector.ActorConnector'
 types_mapping: typing.Dict[str, typing.Dict[str, typing.Any]]

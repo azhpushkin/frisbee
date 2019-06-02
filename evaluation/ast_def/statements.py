@@ -138,7 +138,11 @@ class SSendMessage(BaseStatement):
 
     def run(self, ctx):
         object = self.object.evaluate(ctx)
-        object.send_message(self.method, self.args.get_exprs(ctx), return_to=None)
+        object.send_message(
+            self.method,
+            self.args.get_exprs(ctx),
+            return_to=None
+        )
 
 
 @dataclass
@@ -150,9 +154,13 @@ class SWaitMessage(BaseStatement):
 
     def run(self, ctx):
         object: ActiveProxy = self.object.evaluate(ctx)
-        object.send_message(self.method, self.args.get_exprs(ctx), return_to=ctx['this'].actor_id)
+        object.send_message(
+            self.method,
+            self.args.get_exprs(ctx),
+            return_to=global_conf.local_connector.actor_id
+        )
 
-        ctx['env'][self.result_name] = eval(global_conf.local_connector.receive_return_value())
+        ctx['env'][self.result_name] = global_conf.local_connector.receive_return_value()
 
 
 @dataclass

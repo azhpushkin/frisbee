@@ -4,7 +4,6 @@ import typing
 from dataclasses import dataclass, field
 from .. import global_conf
 
-
 __all__ = [
     'BaseExp',
     'ExpOp',
@@ -114,11 +113,9 @@ class ExpFCall(BaseExp):
     args: BaseExpList
 
     def evaluate(self, ctx):
-
         object_exp = self.object.evaluate(ctx)
         args: typing.List[BaseExp] = self.args.get_exprs(ctx)
         return object_exp.run_method(name=self.method, args=args)
-
 
 
 @dataclass
@@ -129,7 +126,6 @@ class ExpFieldAccess(BaseExp):
     def evaluate(self, ctx):
         object_exp = self.object.evaluate(ctx)
         return object_exp.get_field(self.field)
-
 
 
 @dataclass
@@ -196,6 +192,7 @@ class ExpString(BaseExp):
 class ExpVoid(BaseExp):
     def evaluate(self, ctx):
         return self
+
 
 @dataclass
 class ExpBool(BaseExp):
@@ -313,9 +310,7 @@ class ActiveProxy(BaseExp):
         global_conf.local_connector.send_message(self.actor_id, name, args, return_to)
 
 
-
-
-####### Definition of BaseExpList #######
+# Definition of BaseExpList #
 
 @dataclass
 class BaseExpList:
@@ -337,4 +332,3 @@ class ExpList(BaseExpList):
 class ExpListEmpty(BaseExpList):
     def get_exprs(self, ctx):
         return []
-

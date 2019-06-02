@@ -79,6 +79,12 @@ class ExpActiveObject(BaseActiveObject):
     def declaration(self):
         return global_conf.types_mapping[self.module][self.typename]
 
+    def get_field(self, name):
+        return self.env['name']
+
+    def set_field(self, name, value):
+        self.env['name'] = value
+
     def send_message(self, name, args, return_to=None):
         method: MethodDecl = self.declaration.get_methods()[name]
         return method.execute(this=self, args=args)

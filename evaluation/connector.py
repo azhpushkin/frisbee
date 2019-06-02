@@ -2,6 +2,9 @@ import uuid
 import zmq
 import time
 
+from .ast_def.expressions import *
+from .passive_object import ExpPassiveObject
+
 
 class ActorConnector:
     actor_id: str
@@ -31,12 +34,11 @@ class ActorConnector:
     def receive_message(self):
         topic, data = self.messages_socket.recv_multipart()
         data = eval(data)
-        print(123, data)
         return data['name'], data['args'], data['return']
 
     def receive_return_value(self):
         topic, result = self.return_socket.recv_multipart()
-        return result.decode('ascii')
+        return eval(result.decode('ascii'))
 
     def return_result(self, return_actor, result):
         self.write_socket.send_multipart([
@@ -44,11 +46,10 @@ class ActorConnector:
             str(result).encode('ascii')
         ])
 
-    def send_message(self, actor_id, name, args, return_to):
-        return_uuid = return_to.actor_id if return_to else None
+    def send_message(self, actor_id, name, args, return_to: str = None):
         self.write_socket.send_multipart([
             actor_id.encode('ascii'),
-            str({'name': name, 'args': args, 'return': return_uuid}).encode('ascii')
+            str({'name': name, 'args': args, 'return': return_to}).encode('ascii')
         ])
 
 
