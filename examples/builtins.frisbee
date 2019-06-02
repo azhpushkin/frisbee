@@ -4,10 +4,11 @@ from socket import SocketServer;
 active Main {
    def Void run() {
      val s = spawn SocketServer(9999);
-     #val v <= io ! readline();#
-     val p <= io ! print(void);
-     io ! print(p);
 
-     val x <= s ! get();
+     while (true) {
+       val x <= s ! get();
+       io ! print("Received", x);
+     }
+
    }
 }

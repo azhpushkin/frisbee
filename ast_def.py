@@ -660,8 +660,6 @@ class ExpIO(BaseExp):
         if name == 'print':
             print("IO ACTOR CALLED: ", args)
             res = ExpVoid()
-        elif name == 'readline':
-            res = input(args[0].value)
         else:
             raise ValueError("No method {} of actor io".format(name))
 

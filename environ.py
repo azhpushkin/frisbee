@@ -16,7 +16,6 @@ time.sleep(0.5)
 
 while True:
     topic, data = read.recv_multipart()
-    print('RECEIVED:', topic, data)
     if topic.startswith(b'return'):
         topic = topic
     else:
@@ -24,7 +23,7 @@ while True:
 
     write.send_multipart([topic, data])
 
-    print('writen to topic ', topic)
+    print(f'[{topic}] {data}')
 
 
 

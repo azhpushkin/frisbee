@@ -22,17 +22,21 @@ def start_socket(port, event: mp.Event, assigned_id: mp.Array):
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind(('localhost', port))
     print(2)
+    sock.listen()
 
     local_connector = ActorConnector()
     assigned_id.value = local_connector.actor_id.encode('ascii')
 
     event.set()
     accepted = None
-    print(3)
+    print(3, accepted)
 
     while True:
+        print(11, local_connector.actor_id)
         data = eval(local_connector.receive_message())
+        print(22, data)
         message_name, args, return_address = data['name'], data['args'], data['return']
+
         if not accepted:
             print('waiting')
             accepted, _ = sock.accept()
@@ -40,13 +44,13 @@ def start_socket(port, event: mp.Event, assigned_id: mp.Array):
 
         print(message_name, args, return_address)
         if message_name == 'get':
-            data = sock.recv(16).decode('ascii')
+            data = accepted.recv(1024).decode('ascii')
             print('Received data', data)
             result = ExpString(value=data)
         elif message_name == 'send':
             data = str(args)
             print('Sending ', data)
-            sock.send(data.encode('ascii'))
+            accepted.send(data.encode('ascii'))
         else:
             raise ValueError('Unknown value ' + str(message_name))
 
@@ -65,6 +69,10 @@ class SocketActiveDeclaration(BuiltinActiveDecl):
         spawned_event.wait()
 
         return ActiveProxy(actor_id=assigned_id.value.decode('ascii'))
+
+
+class SocketActiveDeclaration()
+class SocketActiveDeclaration()
 
 
 
