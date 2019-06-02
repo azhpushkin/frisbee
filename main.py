@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 
-from evaluation import load_file, run_program
+from evaluation.loader import load_file, run_program
 
 if len(sys.argv) < 2:
     FILE = 'example.frisbee'

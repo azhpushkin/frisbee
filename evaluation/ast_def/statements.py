@@ -1,11 +1,30 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import global_conf
-from .expressions import BaseExp, ExpBool, ExpArray, BaseExpList, ExpInt
+
+from .. import global_conf
+from .expressions import BaseExp, ExpBool, ExpArray, BaseExpList, ExpInt, ActiveProxy
 from .types import BaseType
 
+__all__ = [
+    'BaseStatement',
+    'SList',
+    'SIfElse',
+    'SWhile',
+    'SReturn',
+    'SEqual',
+    'SEqualField',
+    'SVarDeclEqual',
+    'SVarDecl',
+    'SArrayEqual',
+    'SSendMessage',
+    'SWaitMessage',
+    'SExp',
 
+    'BaseStatementList',
+    'StatementList',
+    'Empty',
+]
 
 
 @dataclass
@@ -131,7 +150,7 @@ class SWaitMessage(BaseStatement):
 
     def run(self, ctx):
         object: ActiveProxy = self.object.evaluate(ctx)
-        object.send_message(self.method, self.args.get_exprs(ctx), return_to=ctx['this'])
+        object.send_message(self.method, self.args.get_exprs(ctx), return_to=ctx['this'].actor_id)
 
         ctx['env'][self.result_name] = eval(global_conf.local_connector.receive_return_value())
 
@@ -143,8 +162,6 @@ class SExp(BaseStatement):
     def run(self, ctx):
         self.expr.evaluate(ctx)
 
-
-####### Definition of BaseStatementList #######
 
 @dataclass
 class BaseStatementList:

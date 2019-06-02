@@ -1,6 +1,15 @@
-from dataclasses import dataclass
 import typing
+from dataclasses import dataclass
 
+from .declarations import BaseObjectDecl
+from .imports import BaseImportDeclList
+
+__all__ = [
+    'BaseObjectDeclList',
+    'ObjectDeclList',
+    'OEmpty',
+    'Program',
+]
 
 
 @dataclass
@@ -22,9 +31,6 @@ class ObjectDeclList(BaseObjectDeclList):
 class OEmpty(BaseObjectDeclList):
     def get_declarations(self):
         return []
-
-
-
 
 
 @dataclass

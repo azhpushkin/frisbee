@@ -2,6 +2,18 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+__all__ = [
+    'BaseType',
+    'TypeAnonymous',
+    'TypeMaybe',
+    'TypeArray',
+    'TypeInt',
+    'TypeVoid',
+    'TypeBool',
+    'TypeIdent',
+    'TypeString',
+]
+
 
 @dataclass
 class BaseType:
@@ -9,7 +21,8 @@ class BaseType:
 
 
 @dataclass
-class TypeAnonymous(BaseType): pass
+class TypeAnonymous(BaseType):
+    pass
 
 
 @dataclass

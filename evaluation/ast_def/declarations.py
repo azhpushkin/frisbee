@@ -1,26 +1,36 @@
 from __future__ import annotations
 
 import typing
-
 from dataclasses import dataclass, field
+
 from .expressions import BaseExp, ExpVoid
 from .statements import BaseStatementList
 from .types import BaseType
 
+__all__ = [
+    'BaseObjectDecl',
 
+    'BaseMethodDeclList',
+    'MethodDeclList',
+    'MEmpty',
+
+    'BaseMethodDecl',
+    'MethodDecl',
+
+
+    'BaseVarDeclList',
+    'VarDeclList',
+    'VEmpty',
+
+    'BaseFormalList',
+    'FormalList',
+    'FEmpty',
+]
 
 
 @dataclass
 class BaseObjectDecl:
-    name: str
-    vars: BaseVarDeclList
-    methods: BaseMethodDeclList
-    module: str = field(default_factory=lambda: 'NOT_FOUND')
-
-    def get_methods(self):
-        methods = self.methods.get_methods()
-        return {m.name: m for m in methods}
-
+    pass
 
 
 @dataclass
@@ -44,9 +54,9 @@ class MEmpty(BaseMethodDeclList):
         return []
 
 
-
 @dataclass
-class BaseMethodDecl: pass
+class BaseMethodDecl:
+    pass
 
 
 @dataclass
@@ -56,11 +66,7 @@ class MethodDecl(BaseMethodDecl):
     args: BaseFormalList
     statements: BaseStatementList
 
-    def execute(
-            self,
-            this: typing.Union[ExpActiveObject, ExpPassiveObject],
-            args: typing.List[BaseExp],
-    ):
+    def execute(self, this, args: typing.List[BaseExp]):
 
         field_names = [x[1] for x in self.args.get_fields()]
         initial_env = {
@@ -73,8 +79,6 @@ class MethodDecl(BaseMethodDecl):
         self.statements.run(ctx=ctx)
         return ctx.get('return', ExpVoid())
 
-
-####### Definition of BaseVarDeclList #######
 
 @dataclass
 class BaseVarDeclList:

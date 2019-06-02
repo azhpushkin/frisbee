@@ -4,7 +4,13 @@ from pathlib import Path
 
 from pyparsing import OneOrMore, nestedExpr
 
-import ast_def
+from .. import ast_def
+from ..active_object import ActiveDecl
+from .. passive_object import PassiveDecl
+
+__all__ = [
+    'load_and_parse_file',
+]
 
 
 def load_and_parse_file(path: Path) -> ast_def.Program:
@@ -45,7 +51,12 @@ def parse_ast_to_classes(value):
         else:
             raise ValueError(f'Unknown value {value}')
 
-    top_class = getattr(ast_def, value[0])
+    if value[0] == 'ActiveDecl':
+        top_class = ActiveDecl
+    elif value[0] == 'PassiveDecl':
+        top_class = PassiveDecl
+    else:
+        top_class = getattr(ast_def, value[0])
 
     parsed_args = map(parse_ast_to_classes, value[1:])
     fields_kwargs = dict(zip(top_class.__dataclass_fields__.keys(), parsed_args))

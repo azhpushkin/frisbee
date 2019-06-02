@@ -1,5 +1,5 @@
 import typing
-from environ_connect import ActorConnector
+from .connector import ActorConnector
 
 
 local_connector: ActorConnector

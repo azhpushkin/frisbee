@@ -1,10 +1,10 @@
-import ast_def
+from . import ast_def
 from pathlib import Path
-from environ_connect import send_initial_message
+from .connector import send_initial_message
 
-from ast_parser import load_and_parse_file
-import global_conf
-from builtin_types import BUILTIN_TYPES
+from .ast_def.parser import load_and_parse_file
+from . import global_conf
+from .builtin_types import BUILTIN_TYPES
 
 
 def find_new_and_spawn(dataclass_obj):

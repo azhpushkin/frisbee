@@ -2,7 +2,35 @@ from __future__ import annotations
 
 import typing
 from dataclasses import dataclass, field
-import global_conf
+from .. import global_conf
+
+
+__all__ = [
+    'BaseExp',
+    'ExpOp',
+    'ExpComOp',
+    'ExpArrayGet',
+    'ExpArrayValue',
+    'ExpFCall',
+    'ExpFieldAccess',
+    'ExpInt',
+    'ExpVoid',
+    'ExpString',
+    'ExpBool',
+    'ExpIdent',
+    'ExpNewPassive',
+    'ExpSpawnActive',
+    'ExpThis',
+    'ExpNot',
+    'ExpIO',
+    'ExpArray',
+    'ExpExp',
+    'ActiveProxy',
+
+    'BaseExpList',
+    'ExpList',
+    'ExpListEmpty',
+]
 
 
 @dataclass
@@ -281,7 +309,7 @@ class ActiveProxy(BaseExp):
     def evaluate(self, ctx):
         return self
 
-    def send_message(self, name, args, return_to: typing.Optional[ExpActiveObject] = None):
+    def send_message(self, name, args, return_to: typing.Optional[str] = None):
         global_conf.local_connector.send_message(self.actor_id, name, args, return_to)
 
 

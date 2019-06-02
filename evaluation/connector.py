@@ -30,8 +30,9 @@ class ActorConnector:
 
     def receive_message(self):
         topic, data = self.messages_socket.recv_multipart()
-        return data.decode('ascii')
-        # return data['name'], data['args'], data['return']
+        data = eval(data)
+        print(123, data)
+        return data['name'], data['args'], data['return']
 
     def receive_return_value(self):
         topic, result = self.return_socket.recv_multipart()

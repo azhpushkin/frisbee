@@ -1,19 +1,19 @@
-import typing
-from ast_def import *
-import global_conf
-import socket
-
 import multiprocessing as mp
-from environ_connect import ActorConnector
+import socket
+import typing
+
+from . import ast_def
+from . import global_conf
+from .connector import ActorConnector
 
 
 class BuiltinPassiveDecl:
-    def create(self, args: typing.List[BaseExp]):
+    def create(self, args: typing.List[ast_def.BaseExp]):
         return NotImplemented
 
 
 class BuiltinActiveDecl:
-    def spawn(self, args: typing.List[BaseExp]):
+    def spawn(self, args: typing.List[ast_def.BaseExp]):
         return NotImplemented
 
 
@@ -34,9 +34,7 @@ def start_socket(port, event: mp.Event, assigned_id: mp.Array):
 
     while True:
         print(11, global_conf.local_connector.actor_id)
-        data = eval(global_conf.local_connector.receive_message())
-        print(22, data)
-        message_name, args, return_address = data['name'], data['args'], data['return']
+        message_name, args, return_address = eval(global_conf.local_connector.receive_message())
 
         if not accepted:
             print('waiting')
@@ -47,7 +45,7 @@ def start_socket(port, event: mp.Event, assigned_id: mp.Array):
         if message_name == 'get':
             data = accepted.recv(1024).decode('ascii')
             print('Received data', data)
-            result = ExpString(value=data)
+            result = ast_def.ExpString(value=data)
         elif message_name == 'send':
             data = str(args)
             print('Sending ', data)
@@ -69,7 +67,7 @@ class SocketActiveDeclaration(BuiltinActiveDecl):
         proc.start()
         spawned_event.wait()
 
-        return ActiveProxy(actor_id=assigned_id.value.decode('ascii'))
+        return ast_def.ActiveProxy(actor_id=assigned_id.value.decode('ascii'))
 
 
 
