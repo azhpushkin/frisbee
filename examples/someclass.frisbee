@@ -10,13 +10,13 @@ passive SomeClass {
   }
 
   def Void print_with(val actor) {
-  	 actor ! print("From Someclass");
+     actor ! print("From Someclass");
   }
 }
 
 
 passive Aasd {
    def Int asd() {
-     return (new SomeClass("asd"));
+      return (new SomeClass("asd"));
    }
 }

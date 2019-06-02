@@ -28,7 +28,6 @@ __all__ = [
 ]
 
 
-@dataclass
 class BaseObjectDecl:
     pass
 

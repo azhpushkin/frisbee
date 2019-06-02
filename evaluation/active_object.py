@@ -48,10 +48,11 @@ class BaseActiveObject:
 
         event.set()
 
+        actor_obj.on_start()
         while True:
             message_name, args, return_address = global_conf.local_connector.receive_message()
 
-            result = actor_obj.send_message(message_name, args)
+            result = actor_obj.proceed_message(message_name, args)
             if return_address:
                 global_conf.local_connector.return_result(return_address, result)
 
@@ -65,7 +66,10 @@ class BaseActiveObject:
 
         return ActiveProxy(actor_id=assigned_id.value.decode('ascii'))
 
-    def send_message(self, message_name: str, args: typing.List[BaseExp]) -> BaseExp:
+    def on_start(self):
+        pass
+
+    def proceed_message(self, message_name: str, args: typing.List[BaseExp]) -> BaseExp:
         return NotImplemented
 
 
@@ -80,11 +84,15 @@ class ExpActiveObject(BaseActiveObject):
         return global_conf.types_mapping[self.module][self.typename]
 
     def get_field(self, name):
-        return self.env['name']
+        return self.env[name]
 
     def set_field(self, name, value):
-        self.env['name'] = value
+        self.env[name] = value
 
-    def send_message(self, name, args, return_to=None):
+    def proceed_message(self, name, args):
+        method: MethodDecl = self.declaration.get_methods()[name]
+        return method.execute(this=self, args=args)
+
+    def run_method(self, name, args):
         method: MethodDecl = self.declaration.get_methods()[name]
         return method.execute(this=self, args=args)

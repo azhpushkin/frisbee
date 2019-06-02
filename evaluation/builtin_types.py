@@ -5,76 +5,71 @@ import typing
 from . import ast_def
 from . import global_conf
 from .connector import ActorConnector
+from .active_object import BaseActiveObject, BaseActiveObjectDeclaration
 
 
-class BuiltinPassiveDecl:
-    def create(self, args: typing.List[ast_def.BaseExp]):
-        return NotImplemented
+mp.allow_connection_pickling()
 
 
-class BuiltinActiveDecl:
-    def spawn(self, args: typing.List[ast_def.BaseExp]):
-        return NotImplemented
-
-
-def start_socket(port, event: mp.Event, assigned_id: mp.Array):
-    print(123)
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    sock.bind(('localhost', port))
-    print(2)
-    sock.listen()
-
-    global_conf.local_connector = ActorConnector()
-    assigned_id.value = global_conf.local_connector.actor_id.encode('ascii')
-
-    event.set()
-    accepted = None
-    print(3, accepted)
-
-    while True:
-        print(11, global_conf.local_connector.actor_id)
-        message_name, args, return_address = eval(global_conf.local_connector.receive_message())
-
-        if not accepted:
-            print('waiting')
-            accepted, _ = sock.accept()
-            print('got')
-
-        print(message_name, args, return_address)
-        if message_name == 'get':
-            data = accepted.recv(1024).decode('ascii')
-            print('Received data', data)
-            result = ast_def.ExpString(value=data)
-        elif message_name == 'send':
-            data = str(args)
-            print('Sending ', data)
-            accepted.send(data.encode('ascii'))
-        else:
-            raise ValueError('Unknown value ' + str(message_name))
-
-        if return_address:
-            global_conf.local_connector.return_result(return_address, result)
-
-
-class SocketActiveDeclaration(BuiltinActiveDecl):
+class TCPServerDeclaration(BaseActiveObjectDeclaration):
     def spawn(self, args):
-        port = getattr(args[0], 'value', None)  # ExpInt or ExpVoid
-        spawned_event = mp.Event()
-        assigned_id = mp.Array('c', 64)
+        assert len(args) == 1, "One argument required for Socket"
+        assert isinstance(args[0], ast_def.ExpInt), "Int required"
 
-        proc = mp.Process(target=start_socket, args=(port, spawned_event, assigned_id))
-        proc.start()
-        spawned_event.wait()
+        tcp_server = TCPServerActiveObject(port=args[0].value)
+        return tcp_server.start_and_return_proxy()
 
-        return ast_def.ActiveProxy(actor_id=assigned_id.value.decode('ascii'))
+
+class TCPServerActiveObject(BaseActiveObject):
+    def __init__(self, port: int):
+        self.port = port
+        self.sock = None
+        self.connections = []
+
+    def on_start(self):
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.sock.bind(('localhost', self.port))
+        self.sock.listen()
+
+    def proceed_message(self, message_name, args):
+        if message_name == 'accept':
+            new_connection, addr = self.sock.accept()
+            connection_actor = TCPConnectionActiveObject(socket=new_connection)
+            proxy = connection_actor.start_and_return_proxy()
+            self.connections.append(proxy)
+            return proxy
+        else:
+            raise Exception()
+
+
+class TCPConnectionActiveObject(BaseActiveObject):
+    def __init__(self, socket):
+        self.sock = socket
+
+    def proceed_message(self, message_name: str, args):
+        if message_name == 'get':
+            data = self.sock.recv(1024)
+            if not data:
+                return ast_def.ExpVoid()
+            else:
+                return ast_def.ExpString(value=data.decode('ascii').strip())
+
+        elif message_name == 'send':
+            data = str(args).encode('ascii') + b'\n'
+            self.sock.send(data)
+        else:
+            raise Exception()
+
+
+
 
 
 
 
 
 BUILTIN_TYPES = {
-    'socket': {
-        'SocketServer': SocketActiveDeclaration()
+    'sockets': {
+        'TCPServer': TCPServerDeclaration()
     }
 }

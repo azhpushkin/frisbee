@@ -160,8 +160,12 @@ class ExpInt(BaseExp):
         return ExpBool(value=self.value > other.value)
 
     def equal(self, other: ExpInt):
-        assert isinstance(other, ExpInt), 'Not int equal!'
-        return ExpBool(value=self.value == other.value)
+        if isinstance(other, ExpInt):
+            return ExpBool(value=self.value == other.value)
+        elif isinstance(other, ExpInt):
+            return ExpBool(value=False)
+        else:
+            raise ValueError('Not int equal!')
 
     def not_equal(self, other: ExpInt):
         assert isinstance(other, ExpInt), 'Not int not_equal!'
@@ -180,8 +184,12 @@ class ExpString(BaseExp):
         return ExpString(value=self.value + other.value)
 
     def equal(self, other: ExpString):
-        assert isinstance(other, ExpString), 'Not str equal!'
-        return ExpBool(value=self.value == other.value)
+        if isinstance(other, ExpString):
+            return ExpBool(value=self.value == other.value)
+        elif isinstance(other, ExpVoid):
+            return ExpBool(value=False)
+        else:
+            raise ValueError('Not str equal!')
 
     def not_equal(self, other: ExpString):
         assert isinstance(other, ExpString), 'Not str not_equal!'
@@ -201,9 +209,13 @@ class ExpBool(BaseExp):
     def evaluate(self, ctx) -> BaseExp:
         return self
 
-    def equal(self, other: ExpInt):
-        assert isinstance(other, ExpInt), 'Not int equal!'
-        return ExpBool(value=self.value == other.value)
+    def equal(self, other: ExpBool):
+        if isinstance(other, ExpBool):
+            return ExpBool(value=self.value == other.value)
+        elif isinstance(other, ExpVoid):
+            return ExpBool(value=False)
+        else:
+            raise ValueError('Not bool equal!')
 
     def not_equal(self, other: ExpInt):
         assert isinstance(other, ExpInt), 'Not int not_equal!'

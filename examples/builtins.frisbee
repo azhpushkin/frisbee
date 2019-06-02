@@ -1,13 +1,36 @@
-from socket import SocketServer;
+from sockets import TCPServer;
+
+
+active Client {
+   val conn;
+
+   def Void start() {
+
+   io ! print("GO!");
+   val go = true;
+   while(go) {
+      val x <= this.conn ! get();
+      # this.conn ! send(Received  + x) #
+      io ! print(x);
+      if (x == void) {
+        io ! print("this is it");
+        go = false;
+      }
+   }
+   }
+}
 
 
 active Main {
    def Void run() {
-     val s = spawn SocketServer(9999);
+     val s = spawn TCPServer(9999);
 
      while (true) {
-       val x <= s ! get();
-       io ! print("Received", x);
+        val conn <= s ! accept();
+        io ! print("New connection: ", conn);
+
+		(spawn Client(conn)) ! start();
+
      }
 
    }

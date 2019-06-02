@@ -46,6 +46,6 @@ active Main {
         io ! print("NEW VALUE IS " + res.get());
 
 		x.print_with(spawn Printer());
-
+		this.p();
     }
 }
