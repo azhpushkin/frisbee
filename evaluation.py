@@ -3,6 +3,7 @@ from pathlib import Path
 from environ_connect import send_initial_message
 
 from ast_parser import load_and_parse_file
+import global_conf
 from builtin_types import BUILTIN_TYPES
 
 
@@ -67,7 +68,7 @@ def run_program(types: dict, main_module):
     main = types[main_module]['Main']
 
     # Configure global variables
-    ast_def.types_mapping = types
+    global_conf.types_mapping = types
 
     main_proxy: ast_def.ActiveProxy = main.spawn(args=[])
     send_initial_message(main_proxy.actor_id, 'run', [])

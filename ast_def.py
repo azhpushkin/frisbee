@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import typing
 from dataclasses import dataclass, field
-from multiprocessing import Process, Event, Array
+import multiprocessing as mp
+import global_conf
 
 from environ_connect import ActorConnector
 
-local_connector: ActorConnector
-types_mapping: typing.Dict[str, typing.Dict[str, BaseObjectDecl]]
 
 
 ####### Definition of Program #######
@@ -371,9 +370,7 @@ class SWaitMessage(BaseStatement):
         object: ActiveProxy = self.object.evaluate(ctx)
         object.send_message(self.method, self.args.get_exprs(ctx), return_to=ctx['this'])
 
-        global local_connector
-
-        ctx['env'][self.result_name] = eval(local_connector.receive_return_value())
+        ctx['env'][self.result_name] = eval(global_conf.local_connector.receive_return_value())
 
 
 @dataclass
@@ -607,7 +604,7 @@ class ExpNewPassive(BaseExp):
     def evaluate(self, ctx):
         print('New', self.module, self.typename)
         args_expr = self.args.get_exprs(ctx)
-        declaration = types_mapping[self.module][self.typename]
+        declaration = global_conf.types_mapping[self.module][self.typename]
 
         return declaration.create(args_expr)
 
@@ -621,7 +618,7 @@ class ExpSpawnActive(BaseExp):
     def evaluate(self, ctx):
         print('Spawn', self.module, self.typename)
         args_expr = self.args.get_exprs(ctx)
-        declaration = types_mapping[self.module][self.typename]
+        declaration = global_conf.types_mapping[self.module][self.typename]
 
         return declaration.spawn(args_expr)
 
@@ -664,27 +661,26 @@ class ExpIO(BaseExp):
             raise ValueError("No method {} of actor io".format(name))
 
         if return_to:
-            local_connector.return_result(return_to, res)
+            global_conf.local_connector.return_result(return_to, res)
 
 
 # Custom values
-def actor_loop(actor_obj: ExpActiveObject, event: Event, assigned_id: Array):
-    global local_connector
-    local_connector = ActorConnector()
+def actor_loop(actor_obj: ExpActiveObject, event: mp.Event, assigned_id: mp.Array):
+    global_conf.local_connector = ActorConnector()
 
-    assigned_id.value = local_connector.actor_id.encode('ascii')
-    actor_obj.actor_id = local_connector.actor_id
+    assigned_id.value = global_conf.local_connector.actor_id.encode('ascii')
+    actor_obj.actor_id = global_conf.local_connector.actor_id
 
     event.set()
 
     while True:
-        data = eval(local_connector.receive_message())
+        data = eval(global_conf.local_connector.receive_message())
         message_name, args, return_address = data['name'], data['args'], data['return']
 
         result = actor_obj.send_message(message_name, args)
 
         if return_address:
-            local_connector.return_result(return_address, result)
+            global_conf.local_connector.return_result(return_address, result)
 
 
 @dataclass
@@ -697,13 +693,13 @@ class ExpActiveObject(BaseExp):
 
     @property
     def declaration(self):
-        return types_mapping[self.module][self.typename]
+        return global_conf.types_mapping[self.module][self.typename]
 
     def start(self):
-        spawned_event = Event()
-        assigned_id = Array('c', 64)
+        spawned_event = mp.Event()
+        assigned_id = mp.Array('c', 64)
 
-        proc = Process(target=actor_loop, args=(self, spawned_event, assigned_id))
+        proc = mp.Process(target=actor_loop, args=(self, spawned_event, assigned_id))
         proc.start()
         spawned_event.wait()
 
@@ -737,7 +733,7 @@ class ActiveProxy:
         raise ValueError('Cannot set field of actor!')
 
     def send_message(self, name, args, return_to: typing.Optional[ExpActiveObject] = None):
-        local_connector.send_message(self.actor_id, name, args, return_to)
+        global_conf.local_connector.send_message(self.actor_id, name, args, return_to)
 
 
 @dataclass
@@ -748,7 +744,7 @@ class ExpPassiveObject(BaseExp):
 
     @property
     def declaration(self):
-        return types_mapping[self.module][self.typename]
+        return global_conf.types_mapping[self.module][self.typename]
 
     def evaluate(self, ctx) -> BaseExp:
         return self

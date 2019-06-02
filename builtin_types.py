@@ -1,5 +1,6 @@
 import typing
 from ast_def import *
+import global_conf
 import socket
 
 import multiprocessing as mp
@@ -24,16 +25,16 @@ def start_socket(port, event: mp.Event, assigned_id: mp.Array):
     print(2)
     sock.listen()
 
-    local_connector = ActorConnector()
-    assigned_id.value = local_connector.actor_id.encode('ascii')
+    global_conf.local_connector = ActorConnector()
+    assigned_id.value = global_conf.local_connector.actor_id.encode('ascii')
 
     event.set()
     accepted = None
     print(3, accepted)
 
     while True:
-        print(11, local_connector.actor_id)
-        data = eval(local_connector.receive_message())
+        print(11, global_conf.local_connector.actor_id)
+        data = eval(global_conf.local_connector.receive_message())
         print(22, data)
         message_name, args, return_address = data['name'], data['args'], data['return']
 
@@ -55,7 +56,7 @@ def start_socket(port, event: mp.Event, assigned_id: mp.Array):
             raise ValueError('Unknown value ' + str(message_name))
 
         if return_address:
-            local_connector.return_result(return_address, result)
+            global_conf.local_connector.return_result(return_address, result)
 
 
 class SocketActiveDeclaration(BuiltinActiveDecl):
@@ -69,16 +70,6 @@ class SocketActiveDeclaration(BuiltinActiveDecl):
         spawned_event.wait()
 
         return ActiveProxy(actor_id=assigned_id.value.decode('ascii'))
-
-
-class SocketActiveDeclaration()
-class SocketActiveDeclaration()
-
-
-
-
-
-
 
 
 
