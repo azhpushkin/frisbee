@@ -195,6 +195,12 @@ class ExpString(BaseExp):
         assert isinstance(other, ExpString), 'Not str not_equal!'
         return ExpBool(value=self.value != other.value)
 
+    def run_method(self, name, args):
+        if name == 'split':
+            return ExpArray(array=[ExpString(x) for x in self.value.split(args[0].value)])
+        elif name == 'to_int':
+            return ExpInt(value=int(self.value))
+
 
 @dataclass
 class ExpVoid(BaseExp):
@@ -301,7 +307,7 @@ class ExpIO(BaseExp):
 
     def send_message(self, name, args, return_to=None):
         if name == 'print':
-            print("IO ACTOR CALLED: ", args)
+            print("[out]", args)
             res = ExpVoid()
         else:
             raise ValueError("No method {} of actor io".format(name))

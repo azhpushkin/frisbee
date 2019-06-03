@@ -1,22 +1,35 @@
 from sockets import TCPServer;
+from merge import MergeSort;
 
 
 active Client {
    val conn;
 
+   def val get_res(val items, val part) {
+        this.conn ! send(items);
+    }
+
    def Void start() {
 
-   io ! print("GO!");
-   val go = true;
-   while(go) {
-      val x <= this.conn ! get();
-      # this.conn ! send(Received  + x) #
-      io ! print(x);
-      if (x == void) {
-        io ! print("this is it");
-        go = false;
-      }
-   }
+       val array;
+       val strings;
+
+       val waiting = false;
+       while(not waiting) {
+          val x <= this.conn ! get();
+          array = [];
+
+          strings = x.split(" ");
+          val i = 0;
+          while (i < strings.length()) {
+            array = [strings[i].to_int()] + array;
+            i = i + 1;
+          }
+          val sorter = spawn MergeSort(array, this, void, void, void);
+
+          sorter ! merge_sort();  # Will return to get_res #
+          waiting = true;
+       }
    }
 }
 
@@ -29,7 +42,8 @@ active Main {
         val conn <= s ! accept();
         io ! print("New connection: ", conn);
 
-		(spawn Client(conn)) ! start();
+		val x = (spawn Client(conn));
+		x ! start();
 
      }
 
