@@ -217,9 +217,17 @@ class ExpBool(BaseExp):
         else:
             raise ValueError('Not bool equal!')
 
-    def not_equal(self, other: ExpInt):
-        assert isinstance(other, ExpInt), 'Not int not_equal!'
+    def not_equal(self, other: ExpBool):
+        assert isinstance(other, ExpBool), 'Not bool!'
         return ExpBool(value=self.value != other.value)
+
+    def andalso(self, other):
+        assert isinstance(other, ExpBool), 'Not bool!'
+        return ExpBool(value=self.value and other.value)
+
+    def orelse(self, other):
+        assert isinstance(other, ExpBool), 'Not bool!'
+        return ExpBool(value=self.value or other.value)
 
 
 @dataclass
@@ -309,6 +317,12 @@ class ExpArray(BaseExp):
     def add(self, other: ExpInt):
         assert isinstance(other, ExpArray), 'Not array added!'
         return ExpArray(array=self.array + other.array)
+
+    def run_method(self, name, args):
+        if name == 'length':
+            return ExpInt(value=len(self.array))
+        else:
+            assert False
 
 
 @dataclass

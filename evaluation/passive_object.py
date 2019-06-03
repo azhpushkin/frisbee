@@ -27,7 +27,7 @@ class PassiveDecl(BasePassiveObjectDeclaration):
         return {m.name: m for m in methods}
 
     def create(self, args: typing.List[BaseExp]) -> ExpPassiveObject:
-        field_names = self.vars.get_fields().keys()
+        field_names = [name for name, type in self.vars.get_fields()]
         fields = dict(zip(field_names, args))
 
         new_passive = ExpPassiveObject(env=fields, module=self.module, typename=self.name)

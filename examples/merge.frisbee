@@ -1,0 +1,74 @@
+active Main {
+    def val merge(val left, val right) {
+
+        io ! print("GOT", left, right);
+        val result = [];
+        val left_i = 0;
+        val right_i = 0;
+
+        while (left_i < left.length() and right_i < right.length()) {
+           if (left[left_i] < right[right_i]) {
+               result = result + [left[left_i]];
+               left_i = left_i + 1;
+           }
+           else {
+               result = result + [right[right_i]];
+               right_i = right_i + 1;
+           }
+
+        }
+
+        while (left_i < left.length()) {
+            result = result + [left[left_i]];
+            left_i = left_i + 1;
+        }
+        while (right_i < right.length()) {
+            result = result +  [right[right_i]];
+            right_i = right_i + 1;
+        }
+
+        io ! print("Return", result);
+
+
+
+         return result;
+    }
+
+    def val merge_sort(val items) {
+        if (items.length() < 2) {
+            return items;
+        }
+
+
+        val left = [];
+        val right = [];
+        val middle = items.length() / 2;
+
+        val i = 0;
+        while (i < items.length()) {
+           if (i < middle)
+               left = left + [items[i]];
+           else
+               right = right + [items[i]];
+
+           i = i + 1;
+        }
+
+        left = this.merge_sort(left);
+        right = this.merge_sort(right);
+
+        return this.merge(left, right);
+
+    }
+
+
+    def Void run() {
+        val items = [6, 4, 1, 1, 5, 5, 4, 5, 3, 2,];
+
+        val res = this.merge_sort(items);
+        io ! print(res);
+
+
+
+    }
+}

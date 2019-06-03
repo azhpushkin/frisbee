@@ -1,0 +1,7 @@
+master:
+  ip: localhost
+  port: 8000
+
+node1:
+  io: localhost
+  port: 8000

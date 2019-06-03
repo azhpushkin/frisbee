@@ -137,12 +137,16 @@ class SSendMessage(BaseStatement):
     args: BaseExpList
 
     def run(self, ctx):
+        from ..active_object import ExpActiveObject
         object = self.object.evaluate(ctx)
-        object.send_message(
-            self.method,
-            self.args.get_exprs(ctx),
-            return_to=None
-        )
+        args = self.args.get_exprs(ctx)
+
+        for i, o in enumerate(args):
+            if isinstance(o, ExpActiveObject):
+                args[i] = ActiveProxy(actor_id=o.actor_id)
+
+
+        object.send_message(self.method, args, return_to=None)
 
 
 @dataclass
@@ -184,6 +188,8 @@ class StatementList(BaseStatementList):
 
     def run(self, ctx):
         self.head.run(ctx)
+        if ctx.get('return', False):
+            return
         return self.tail.run(ctx)
 
 

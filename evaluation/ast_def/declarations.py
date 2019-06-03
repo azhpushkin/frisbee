@@ -81,7 +81,7 @@ class MethodDecl(BaseMethodDecl):
 
 @dataclass
 class BaseVarDeclList:
-    def get_fields(self) -> dict:
+    def get_fields(self) -> list:
         return NotImplemented
 
 
@@ -92,17 +92,14 @@ class VarDeclList(BaseVarDeclList):
     tail: BaseVarDeclList
 
     def get_fields(self):
-        tail_fields = self.tail.get_fields()
-        tail_fields[self.name] = self.typename
-        return tail_fields
+        tail = self.tail.get_fields()
+        return [(self.name, self.typename), ] + tail
 
 
 @dataclass
 class VEmpty(BaseVarDeclList):
-    def get_fields(self) -> dict:
-        return {}
-
-
+    def get_fields(self) -> list:
+        return []
 
 
 @dataclass

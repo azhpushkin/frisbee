@@ -29,7 +29,7 @@ class ActiveDecl(BaseActiveObjectDeclaration):
         return {m.name: m for m in methods}
 
     def spawn(self, args):
-        field_names = self.vars.get_fields().keys()
+        field_names = [name for name, type in self.vars.get_fields()]
         fields = dict(zip(field_names, args))
 
         new_active = ExpActiveObject(env=fields, module=self.module, typename=self.name)
