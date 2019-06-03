@@ -201,6 +201,9 @@ class ExpVoid(BaseExp):
     def evaluate(self, ctx):
         return self
 
+    def equal(self, other):
+        return ExpBool(isinstance(other, ExpVoid))
+
 
 @dataclass
 class ExpBool(BaseExp):
@@ -245,7 +248,7 @@ class ExpNewPassive(BaseExp):
     module: str = field(default_factory=lambda: 'NOT_FOUND')
 
     def evaluate(self, ctx):
-        print('New', self.module, self.typename)
+        # print('New', self.module, self.typename)
         args_expr = self.args.get_exprs(ctx)
         declaration = global_conf.types_mapping[self.module][self.typename]
 
@@ -259,7 +262,7 @@ class ExpSpawnActive(BaseExp):
     module: str = field(default_factory=lambda: 'NOT_FOUND')
 
     def evaluate(self, ctx):
-        print('Spawn', self.module, self.typename)
+        # print('Spawn', self.module, self.typename)
         args_expr = self.args.get_exprs(ctx)
         declaration = global_conf.types_mapping[self.module][self.typename]
 
@@ -313,6 +316,12 @@ class ExpArray(BaseExp):
 
     def evaluate(self, cxt) -> BaseExp:
         return self
+
+    def equal(self, other):
+        if isinstance(other, ExpArray):
+            return ExpBool(value = self.array == other.array)
+        else:
+            return ExpBool(value=False)
 
     def add(self, other: ExpInt):
         assert isinstance(other, ExpArray), 'Not array added!'

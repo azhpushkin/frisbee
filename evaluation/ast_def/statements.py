@@ -145,6 +145,8 @@ class SSendMessage(BaseStatement):
             if isinstance(o, ExpActiveObject):
                 args[i] = ActiveProxy(actor_id=o.actor_id)
 
+        if isinstance(object, ExpActiveObject):
+            object = ActiveProxy(actor_id=object.actor_id)
 
         object.send_message(self.method, args, return_to=None)
 

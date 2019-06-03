@@ -1,7 +1,14 @@
-active Main {
+from sockets import TCPServer;
+
+active MergeSort {
+    val items;
+    val return_to;
+    val part;
+    val left_res;
+    val right_res;
+
     def val merge(val left, val right) {
 
-        io ! print("GOT", left, right);
         val result = [];
         val left_i = 0;
         val right_i = 0;
@@ -27,48 +34,63 @@ active Main {
             right_i = right_i + 1;
         }
 
-        io ! print("Return", result);
-
-
-
          return result;
     }
 
-    def val merge_sort(val items) {
-        if (items.length() < 2) {
-            return items;
-        }
 
+    def val merge_sort() {
+        if (this.items.length() < 2) {
+            this.return_to ! get_res(this.items, this.part);
+            return void;
+        }
 
         val left = [];
         val right = [];
-        val middle = items.length() / 2;
+        val middle = this.items.length() / 2;
 
         val i = 0;
-        while (i < items.length()) {
+        while (i < this.items.length()) {
            if (i < middle)
-               left = left + [items[i]];
+               left = left + [this.items[i]];
            else
-               right = right + [items[i]];
+               right = right + [this.items[i]];
 
            i = i + 1;
         }
 
-        left = this.merge_sort(left);
-        right = this.merge_sort(right);
+        val left_sort = spawn MergeSort(left, this, "left", void, void);
+        val right_sort = spawn MergeSort(right, this, "right", void, void);
 
-        return this.merge(left, right);
-
+        left_sort ! merge_sort();
+        right_sort ! merge_sort();
     }
 
+    def val get_res(val items, val part) {
+        if (part == "left") this.left_res = items;
+        else this.right_res = items;
+
+
+        if (this.left_res == void or this.right_res == void)
+           return void;
+
+        val x = this.merge(this.left_res, this.right_res);
+        this.return_to ! get_res(x, this.part);
+
+    }
+}
+
+
+active Main {
+
+    def val get_res(val items, val part) {
+      io ! print("Result: ", items.length(), items);
+    }
 
     def Void run() {
         val items = [6, 4, 1, 1, 5, 5, 4, 5, 3, 2,];
 
-        val res = this.merge_sort(items);
-        io ! print(res);
-
-
+        val sorter = spawn MergeSort(items, this, void, void, void);
+        sorter ! merge_sort(this, void);  # Will return to get_res #
 
     }
 }
