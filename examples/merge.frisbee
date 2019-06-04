@@ -28,7 +28,7 @@ active MergeSort {
             left_i = left_i + 1;
         }
         while (right_i < right.length()) {
-            result = result +  [right[right_i]];
+            result = result + [right[right_i]];
             right_i = right_i + 1;
         }
 

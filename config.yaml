@@ -1,7 +1,15 @@
 master:
-  ip: localhost
-  port: 8000
+  ip: 142.93.236.104
+  port: 7777
 
 node1:
-  io: localhost
-  port: 8000
+  ip: 142.93.128.161
+  port: 7777
+  connections:
+    - master
+
+node2:
+  ip: 165.22.192.95
+  port: 7777
+  connections:
+    - master

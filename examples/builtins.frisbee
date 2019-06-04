@@ -10,7 +10,6 @@ active Client {
     }
 
    def Void start() {
-
        val array;
        val strings;
 

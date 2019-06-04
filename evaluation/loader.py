@@ -1,6 +1,6 @@
 from . import ast_def
 from pathlib import Path
-from .connector import send_initial_message
+from .connector import send_initial_message, setup_env_connection
 
 from .ast_def.parser import load_and_parse_file
 from . import global_conf
@@ -64,11 +64,15 @@ def load_file(path: Path, types_accumulator=None):
     return types_accumulator
 
 
-def run_program(types: dict, main_module):
+def run_program(types: dict, main_module, port):
+    setup_env_connection(port)
+
+
     main = types[main_module]['Main']
 
     # Configure global variables
     global_conf.types_mapping = types
 
     main_proxy: ast_def.ActiveProxy = main.spawn(args=[])
+
     send_initial_message(main_proxy.actor_id, 'run', [])
