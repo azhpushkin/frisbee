@@ -2,9 +2,13 @@
 active Main {
 
    def Void run(val master) {
-     io ! print("NODE STARTED");
+     io ! print("NODE STARTED", master);
      master ! connect(this);
 
+   }
+
+   def Void ack() {
+    io ! print("ACK!");
    }
 
 }

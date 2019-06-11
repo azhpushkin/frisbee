@@ -84,3 +84,8 @@ def setup_env_connection(port):
     read, write = resp.split(':')
     global_conf.env_read_port = int(read)
     global_conf.env_write_port = int(write)
+    s.send(b'ACK')
+    mains = s.recv(1024).decode('ascii')
+    s.close()
+
+    return eval(mains)

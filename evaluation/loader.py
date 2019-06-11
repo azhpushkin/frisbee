@@ -65,14 +65,25 @@ def load_file(path: Path, types_accumulator=None):
 
 
 def run_program(types: dict, main_module, port):
-    setup_env_connection(port)
+    other_mains = setup_env_connection(port)
 
 
     main = types[main_module]['Main']
+    run_func = None
+    for method in main.methods.get_methods():
+        if method.name == 'run':
+            run_func = method
+            break
+
+    args = []
+    env_names = [a[1] for a in run_func.args.get_fields()]
+    for env in env_names:
+        args.append(ast_def.ActiveProxy(actor_id=other_mains[env]))
+
 
     # Configure global variables
     global_conf.types_mapping = types
 
     main_proxy: ast_def.ActiveProxy = main.spawn(args=[])
 
-    send_initial_message(main_proxy.actor_id, 'run', [])
+    send_initial_message(main_proxy.actor_id, 'run', args)
