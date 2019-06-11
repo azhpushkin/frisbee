@@ -41,8 +41,8 @@ active Main {
         val conn <= s ! accept();
         io ! print("New connection: ", conn);
 
-		val x = (spawn Client(conn));
-		x ! start();
+        val x = (spawn Client(conn));
+        x ! start();
 
      }
 

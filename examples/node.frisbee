@@ -1,0 +1,10 @@
+
+active Main {
+
+   def Void run(val master) {
+     io ! print("NODE STARTED");
+     master ! connect(this);
+
+   }
+
+}

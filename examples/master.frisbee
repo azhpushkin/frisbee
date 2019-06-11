@@ -1,0 +1,17 @@
+
+active Main {
+   val connections;
+
+   def Void run() {
+     io ! print("MASTER STARTED");
+     this.connections = [];
+
+     this ! connect(this);
+   }
+
+   def Void connect(val actor) {
+     io ! print("NEW CONNECTION");
+     this.connections = this.connections + [actor];
+     io ! print(this.connections);
+   }
+}

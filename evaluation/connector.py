@@ -32,6 +32,10 @@ class ActorConnector:
         self.write_socket.connect(f'tcp://127.0.0.1:{global_conf.env_write_port}')
 
         time.sleep(0.2)  # ensure connection established
+        self.write_socket.send_multipart([
+            'create:{}'.format(self.actor_id).encode('ascii'),
+            b'ACK'
+        ])
 
     def receive_message(self):
         topic, data = self.messages_socket.recv_multipart()
@@ -50,7 +54,7 @@ class ActorConnector:
 
     def send_message(self, actor_id, name, args, return_to: str = None):
         self.write_socket.send_multipart([
-            actor_id.encode('ascii'),
+            'message:{}'.format(actor_id).encode('ascii'),
             str({'name': name, 'args': args, 'return': return_to}).encode('ascii')
         ])
 
@@ -62,7 +66,11 @@ def send_initial_message(actor_id, name, args):
     write_socket.connect(f'tcp://127.0.0.1:{global_conf.env_write_port}')
     time.sleep(0.2)
     write_socket.send_multipart([
-        actor_id.encode('ascii'),
+        'main:{}'.format(actor_id).encode('ascii'),
+        b'ACK'
+    ])
+    write_socket.send_multipart([
+        'message:{}'.format(actor_id).encode('ascii'),
         str({'name': name, 'args': args, 'return': None}).encode('ascii')
     ])
 
