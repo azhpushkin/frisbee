@@ -1,4 +1,4 @@
-import multiprocessing as mp
+import threading
 import socket
 import typing
 
@@ -8,21 +8,22 @@ from .connector import ActorConnector
 from .active_object import BaseActiveObject, BaseActiveObjectDeclaration
 
 
-mp.allow_connection_pickling()
-
 
 class TCPServerDeclaration(BaseActiveObjectDeclaration):
     def spawn(self, args):
-        assert len(args) == 1, "One argument required for Socket"
+        assert len(args) == 2, "Two arguments required for Socket"
         assert isinstance(args[0], ast_def.ExpInt), "Int required"
+        if isinstance(args[1], BaseActiveObject):
+            args[1] = ast_def.ActiveProxy(actor_id=args[1].actor_id, env_name=global_conf.env_name)
 
-        tcp_server = TCPServerActiveObject(port=args[0].value)
+        tcp_server = TCPServerActiveObject(port=args[0].value, connect_actor=args[1])
         return tcp_server.start_and_return_proxy()
 
 
 class TCPServerActiveObject(BaseActiveObject):
-    def __init__(self, port: int):
+    def __init__(self, port: int, connect_actor):
         self.port = port
+        self.connect_actor = connect_actor
         self.sock = None
         self.connections = []
 
@@ -33,12 +34,13 @@ class TCPServerActiveObject(BaseActiveObject):
         self.sock.listen()
 
     def proceed_message(self, message_name, args):
-        if message_name == 'accept':
-            new_connection, addr = self.sock.accept()
-            connection_actor = TCPConnectionActiveObject(socket=new_connection)
-            proxy = connection_actor.start_and_return_proxy()
-            self.connections.append(proxy)
-            return proxy
+        if message_name == 'start':
+            while True:
+                new_connection, addr = self.sock.accept()
+                connection_actor = TCPConnectionActiveObject(socket=new_connection)
+                proxy = connection_actor.start_and_return_proxy()
+                self.connections.append(proxy)
+                self.connect_actor.send_message('connect', [proxy])
         else:
             raise Exception()
 
