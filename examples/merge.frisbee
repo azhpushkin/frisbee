@@ -5,7 +5,8 @@ active MergeSort {
     val left_res;
     val right_res;
 
-    def void merge(val left, val right) {
+
+    def Void merge(val left, val right) {
 
         val result = [];
         val left_i = 0;

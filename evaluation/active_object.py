@@ -53,7 +53,7 @@ class BaseActiveObject:
             message_name, args, return_address = global_conf.local_connector.receive_message()
 
             result = actor_obj.proceed_message(message_name, args)
-            if return_address:
+            if return_address.get('return'):
                 global_conf.local_connector.return_result(return_address, result)
 
     def start_and_return_proxy(self) -> ActiveProxy:
@@ -64,7 +64,7 @@ class BaseActiveObject:
         proc.start()
         spawned_event.wait()
 
-        return ActiveProxy(actor_id=assigned_id.value.decode('ascii'))
+        return ActiveProxy(actor_id=assigned_id.value.decode('ascii'), env_name=global_conf.env_name)
 
     def on_start(self):
         pass

@@ -67,7 +67,6 @@ def load_file(path: Path, types_accumulator=None):
 def run_program(types: dict, main_module, port):
     other_mains = setup_env_connection(port)
 
-
     main = types[main_module]['Main']
     run_func = None
     for method in main.methods.get_methods():
@@ -78,8 +77,7 @@ def run_program(types: dict, main_module, port):
     args = []
     env_names = [a[1] for a in run_func.args.get_fields()]
     for env in env_names:
-        args.append(ast_def.ActiveProxy(actor_id=other_mains[env]))
-
+        args.append(ast_def.ActiveProxy(actor_id=other_mains[env], env_name=env))
 
     # Configure global variables
     global_conf.types_mapping = types

@@ -21,7 +21,7 @@ class ActorConnector:
         context = zmq.Context()
         self.messages_socket = context.socket(zmq.SUB)
         self.messages_socket.connect(f'tcp://127.0.0.1:{global_conf.env_read_port}')
-        self.messages_socket.subscribe(f'messages:{self.actor_id}')
+        self.messages_socket.subscribe(f'message:{self.actor_id}')
         # messages_socket.subscribe('')
 
         self.return_socket = context.socket(zmq.SUB)
@@ -40,22 +40,31 @@ class ActorConnector:
     def receive_message(self):
         topic, data = self.messages_socket.recv_multipart()
         data = eval(data)
-        return data['name'], data['args'], data['return']
+        return_data = {
+            'return': data.get('return'),
+            'return_env': data.get('return_env')
+        }
+        return data['name'], data['args'], return_data
 
     def receive_return_value(self):
         topic, result = self.return_socket.recv_multipart()
         return eval(result.decode('ascii'))
 
-    def return_result(self, return_actor, result):
+    def return_result(self, return_data, result):
         self.write_socket.send_multipart([
-            'return:{}'.format(return_actor).encode('ascii'),
+            'return:{return}:{return_env}'.format(**return_data).encode('ascii'),
             str(result).encode('ascii')
         ])
 
-    def send_message(self, actor_id, name, args, return_to: str = None):
+    def send_message(self, actor_id, env_name, name, args, return_to: str = None):
         self.write_socket.send_multipart([
-            'message:{}'.format(actor_id).encode('ascii'),
-            str({'name': name, 'args': args, 'return': return_to}).encode('ascii')
+            'message:{}:{}'.format(actor_id, env_name).encode('ascii'),
+            str({
+                'name': name,
+                'args': args,
+                'return': return_to,
+                'return_env': global_conf.env_name
+            }).encode('ascii')
         ])
 
 
@@ -70,7 +79,7 @@ def send_initial_message(actor_id, name, args):
         b'ACK'
     ])
     write_socket.send_multipart([
-        'message:{}'.format(actor_id).encode('ascii'),
+        'message:{}:{}'.format(actor_id, global_conf.env_name).encode('ascii'),
         str({'name': name, 'args': args, 'return': None}).encode('ascii')
     ])
 
@@ -81,9 +90,13 @@ def setup_env_connection(port):
     s.send(b'init')
     resp = s.recv(1024).decode('ascii')
 
-    read, write = resp.split(':')
+    env_name, read, write = resp.split(':')
+
+    global_conf.env_name = env_name
     global_conf.env_read_port = int(read)
     global_conf.env_write_port = int(write)
+    print('Connected to env', env_name)
+
     s.send(b'ACK')
     mains = s.recv(1024).decode('ascii')
     s.close()

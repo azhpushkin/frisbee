@@ -342,13 +342,14 @@ class ExpArray(BaseExp):
 
 @dataclass
 class ActiveProxy(BaseExp):
+    env_name: str
     actor_id: str
 
     def evaluate(self, ctx):
         return self
 
     def send_message(self, name, args, return_to: typing.Optional[str] = None):
-        global_conf.local_connector.send_message(self.actor_id, name, args, return_to)
+        global_conf.local_connector.send_message(self.actor_id, self.env_name, name, args, return_to)
 
 
 # Definition of BaseExpList #

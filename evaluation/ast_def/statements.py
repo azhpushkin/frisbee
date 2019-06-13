@@ -143,10 +143,10 @@ class SSendMessage(BaseStatement):
 
         for i, o in enumerate(args):
             if isinstance(o, ExpActiveObject):
-                args[i] = ActiveProxy(actor_id=o.actor_id)
+                args[i] = ActiveProxy(actor_id=o.actor_id, env_name=global_conf.env_name)
 
         if isinstance(object, ExpActiveObject):
-            object = ActiveProxy(actor_id=object.actor_id)
+            object = ActiveProxy(actor_id=object.actor_id, env_name=global_conf.env_name)
 
         object.send_message(self.method, args, return_to=None)
 
