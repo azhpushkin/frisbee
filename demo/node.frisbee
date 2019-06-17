@@ -1,0 +1,29 @@
+from zero_sum import FindZero;
+
+
+active Node {
+   [Node] all_nodes;
+   Int num;
+
+   def Void init() {
+      this.all_nodes = [this, ];
+      this.num = 0;
+   }
+
+   def Void update_nodes(Node new_nodes) {
+      this.all_nodes = new_nodes;
+   }
+
+   def Void find_zero([Int] array, val res,) {
+       this.all_nodes[this.num] ! find_zero_here(array, res);
+       if ((this.num + 1) == this.all_nodes.length())
+          this.num = 0;
+       else
+          this.num = this.num + 1;
+   }
+
+   def Void find_zero_here(val array, val res) {
+       (spawn FindZero(this)) ! find_zero(array, res);
+   }
+
+}
