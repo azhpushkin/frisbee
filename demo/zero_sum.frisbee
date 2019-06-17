@@ -1,0 +1,31 @@
+active FindZero {
+   def Void find_zero([Int] array, val res) {
+      Bool all_zero = true;
+      Int i = 0;
+      Int sum = 0;
+
+      while (i < array.length()) {
+          if (array[i] != 0) all_zero = false;
+
+          sum = sum + array[i];
+          i = i + 1;
+      }
+
+      if (sum == 0) {
+         if (not all_zero) res ! result(array);
+         return void;
+      }
+
+      i = 0;
+      Int saved;
+      while (i < array.length()) {
+          if (array[i] != 0) {
+              saved = array[i];
+              array[i] = 0;
+              (spawn FindZero()) ! find_zero(array);
+              array[i] = saved;
+              i = i + 1;
+          }
+      }
+   }
+}
