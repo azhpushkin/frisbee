@@ -30,7 +30,7 @@ class TCPServerActiveObject(BaseActiveObject):
     def on_start(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.bind(('localhost', self.port))
+        self.sock.bind(('0.0.0.0', self.port))
         self.sock.listen()
 
     def proceed_message(self, message_name, args):
@@ -58,7 +58,8 @@ class TCPConnectionActiveObject(BaseActiveObject):
                 return ast_def.ExpString(value=data.decode('ascii').strip())
 
         elif message_name == 'send':
-            data = str(args).encode('ascii') + b'\n'
+            text = ', '.join(x.value for x in args)
+            data = str(text).encode('ascii') + b'\n'
             self.sock.send(data)
         else:
             raise Exception()

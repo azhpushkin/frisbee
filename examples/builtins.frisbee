@@ -6,29 +6,26 @@ active Client {
    val conn;
 
    def val get_res(val items, val part) {
-        this.conn ! send(items);
+        this.conn ! send(items.to_string());
+        this ! start();
     }
 
    def Void start() {
-       val array;
-       val strings;
+      val array;
+      val strings;
 
-       val waiting = false;
-       while(not waiting) {
-          val x <= this.conn ! get();
-          array = [];
+      val x <= this.conn ! get();
+      array = [];
 
-          strings = x.split(" ");
-          val i = 0;
-          while (i < strings.length()) {
-            array = [strings[i].to_int()] + array;
-            i = i + 1;
-          }
-          val sorter = spawn MergeSort(array, this, void, void, void);
+      strings = x.split(" ");
+      val i = 0;
+      while (i < strings.length()) {
+        array = [strings[i].to_int()] + array;
+        i = i + 1;
+      }
+      val sorter = spawn MergeSort(array, this, void, void, void);
 
-          sorter ! merge_sort();  # Will return to get_res #
-          waiting = true;
-       }
+      sorter ! merge_sort();  # Will return to get_res #
    }
 }
 
@@ -42,7 +39,7 @@ active Main {
    }
 
    def Void run() {
-     val s = spawn TCPServer(9968, this);
+     val s = spawn TCPServer(9967, this);
      s ! start();
    }
 }

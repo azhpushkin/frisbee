@@ -171,6 +171,12 @@ class ExpInt(BaseExp):
         assert isinstance(other, ExpInt), 'Not int not_equal!'
         return ExpBool(value=self.value != other.value)
 
+    def run_method(self, name, args):
+        if name == 'to_string':
+            return ExpString(value=str(self.value))
+        else:
+            assert False
+
 
 @dataclass
 class ExpString(BaseExp):
@@ -210,6 +216,12 @@ class ExpVoid(BaseExp):
     def equal(self, other):
         return ExpBool(isinstance(other, ExpVoid))
 
+    def run_method(self, name, args):
+        if name == 'to_string':
+            return ExpString(value='void')
+        else:
+            assert False
+
 
 @dataclass
 class ExpBool(BaseExp):
@@ -237,6 +249,12 @@ class ExpBool(BaseExp):
     def orelse(self, other):
         assert isinstance(other, ExpBool), 'Not bool!'
         return ExpBool(value=self.value or other.value)
+
+    def run_method(self, name, args):
+        if name == 'to_string':
+            return ExpString(value='true' if self.value else 'false')
+        else:
+            assert False
 
 
 @dataclass
@@ -336,6 +354,9 @@ class ExpArray(BaseExp):
     def run_method(self, name, args):
         if name == 'length':
             return ExpInt(value=len(self.array))
+        elif name == 'to_string':
+            strings = [x.run_method('to_string', []) for x in self.array]
+            return ExpString(value=', '.join(s.value for s in strings))
         else:
             assert False
 
