@@ -4,12 +4,12 @@ master:
 
 node1:
   ip: 142.93.128.161
-  port: 7777
+  port: 7778
   connections:
     - master
 
 node2:
   ip: 165.22.192.95
-  port: 7777
+  port: 7779
   connections:
     - master
