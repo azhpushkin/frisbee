@@ -22,7 +22,7 @@ active FindZero {
           if (array[i] != 0) {
               saved = array[i];
               array[i] = 0;
-              (spawn FindZero()) ! find_zero(array);
+              (spawn FindZero()) ! find_zero(array, res);
               array[i] = saved;
               i = i + 1;
           }
