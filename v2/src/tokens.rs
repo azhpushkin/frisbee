@@ -1,5 +1,3 @@
-use std::{default, ptr::null};
-
 use strum_macros::Display;
 
 #[derive(Display, Debug, PartialEq, PartialOrd, Clone)]
@@ -27,9 +25,9 @@ pub enum Token {
     From, Import,
     True, False, Nil, And, Or, Not,
     This, Caller, Return,
-
-    EOF
 }
+
+
 
 pub type ScannedToken = (Token, i32);
 
@@ -47,8 +45,10 @@ impl Scanner {
 
     fn consume_char(&mut self) -> char {
         // returns char and moves position forward
-        self.position += 1;
-        self.chars[self.position-1]
+        if !self.is_finished() {
+            self.position += 1;
+            self.chars[self.position-1]
+        } else { '\0' }
     }
 
     fn char_ahead(&self, ahead: usize) -> char {
@@ -96,10 +96,13 @@ pub fn scan_tokens(data: String) -> Vec<ScannedToken> {
 
             '<' if scanner.check_ahead(1, '=') => scanner.add_token(Token::LessEqual),
             '<' => scanner.add_token(Token::Less),
+
             '>' if scanner.check_ahead(1, '=') => scanner.add_token(Token::GreaterEqual),
             '>' => scanner.add_token(Token::Greater),
+
             '!' if scanner.check_ahead(1, '=') => scanner.add_token(Token::BangEqual),
             '!' => scanner.add_token(Token::Bang),
+
             '=' if scanner.check_ahead(1, '=') => scanner.add_token(Token::EqualEqual),
             '=' => scanner.add_token(Token::Equal),
 
@@ -137,15 +140,60 @@ pub fn scan_tokens(data: String) -> Vec<ScannedToken> {
                     let num: i32 = content.parse().unwrap();
                     scanner.add_token_with_position(Token::Integer(num), start);
                 }
+            },
+
+            c if c.is_alphabetic() => {
+                while !scanner.is_finished() {
+                    let c = scanner.char_ahead(0);
+                    if c.is_alphanumeric() || c == '_' {
+                        scanner.consume_char();
+                    } else { break; }
+                }
+
+                let s: String = scanner.chars[start..scanner.position].iter().collect();
+                let token = match s.to_lowercase().as_str() {
+                    "active" => Token::Active,
+                    "passive" => Token::Passive,
+                    "spawn" => Token::Spawn,
+                    "new" => Token::New,
+                    "if" => Token::If,
+                    "else" => Token::Else,
+                    "elif" => Token::Elif,
+                    "while" => Token::While,
+                    "for" => Token::For,
+                    "let" => Token::Let,
+                    "def" => Token::Def,
+                    "from" => Token::From,
+                    "import" => Token::Import,
+                    "true" => Token::True,
+                    "false" => Token::False,
+                    "nil" => Token::Nil,
+                    "and" => Token::And,
+                    "or" => Token::Or,
+                    "not" => Token::Not,
+                    "this" => Token::This,
+                    "caller" => Token::Caller,
+                    "return" => Token::Return,
+                    _ => Token::Identifier(s),
+                };
+
+                scanner.add_token_with_position(token, start);
+
+
                 
-                
-            }
+            },
+
             
             ' ' => (),
+            '\t' => (),
+            '\n' => (),
+            
             c => {
                 panic!("Unknown symbol occured: {}", c);
             }
         }
+
+
     }
 
     scanner.tokens
@@ -158,7 +206,7 @@ mod tests {
     
     fn scan_tokens_helper(s: &str) -> Vec<Token> {
         let res = scan_tokens(String::from(s));
-        res.iter().map(|(t, p)| t.clone()).collect::<Vec<Token>>()
+        res.iter().map(|(t, _p)| t.clone()).collect::<Vec<Token>>()
     }
 
     #[test]
@@ -249,6 +297,31 @@ mod tests {
                 Token::Float(23.0),
             ]
         );
-        
+    }
+
+    #[test]
+    fn test_identifiers() {
+        assert_eq!(
+            scan_tokens_helper("asd AsD as57_8"),
+            vec![
+                Token::Identifier(String::from("asd")),
+                Token::Identifier(String::from("AsD")),
+                Token::Identifier(String::from("as57_8")),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_keywords() {
+        assert_eq!(
+            scan_tokens_helper("if Else Spawn Active passiVE"),
+            vec![
+                Token::If,
+                Token::Else,
+                Token::Spawn,
+                Token::Active,
+                Token::Passive,
+            ]
+        );
     }
 }
