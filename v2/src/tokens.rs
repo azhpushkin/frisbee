@@ -189,12 +189,7 @@ pub fn scan_tokens(data: String) -> Vec<ScannedToken> {
                 };
 
                 scanner.add_token_with_position(token, start);
-
-
-                
             },
-
-            
             ' ' => (),
             '\t' => (),
             '\n' => (),
@@ -203,7 +198,6 @@ pub fn scan_tokens(data: String) -> Vec<ScannedToken> {
                 panic!("Unknown symbol occured: {}", c);
             }
         }
-
 
     }
 
