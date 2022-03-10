@@ -2,7 +2,7 @@ use std::{default, ptr::null};
 
 use strum_macros::Display;
 
-#[derive(Display, Debug, PartialEq, PartialOrd)]
+#[derive(Display, Debug, PartialEq, PartialOrd, Clone)]
 pub enum Token {
     LeftParenthesis, RightParenthesis,
     LeftCurlyBrackets, RightCurlyBrackets,
@@ -141,7 +141,7 @@ pub fn scan_tokens(data: String) -> Vec<ScannedToken> {
                 
             }
             
-
+            ' ' => (),
             c => {
                 panic!("Unknown symbol occured: {}", c);
             }
@@ -156,61 +156,99 @@ pub fn scan_tokens(data: String) -> Vec<ScannedToken> {
 mod tests {
     use super::*;
     
-    #[test]
-    fn smoke_check() {
-        let res = scan_tokens(String::from("()[].,"));
-        assert_eq!(res.len(), 6);
-        assert_eq!(res[0], (Token::LeftParenthesis, 0));
-        assert_eq!(res[1], (Token::RightParenthesis, 1));
-        assert_eq!(res[2], (Token::LeftSquareBrackets, 2));
-        assert_eq!(res[3], (Token::RightSquareBrackets, 3));
-        assert_eq!(res[4], (Token::Dot, 4));
-        assert_eq!(res[5], (Token::Comma, 5));
+    fn scan_tokens_helper(s: &str) -> Vec<Token> {
+        let res = scan_tokens(String::from(s));
+        res.iter().map(|(t, p)| t.clone()).collect::<Vec<Token>>()
     }
 
     #[test]
-    fn empty_string() {
-        let res = scan_tokens(String::from(r#""""#));
-        assert_eq!(res.len(), 1);
-        assert_eq!(res[0], (Token::String(String::from("")), 0));
-
-        let res = scan_tokens(String::from(r#"!""."#));
-        assert_eq!(res.len(), 3);
-        assert_eq!(res[0], (Token::Bang, 0));
-        assert_eq!(res[1], (Token::String(String::from("")), 1));
-        assert_eq!(res[2], (Token::Dot, 3));
+    fn test_positions() {
+        let res = scan_tokens(String::from(
+            r#" 123 . [] "hey" 888.888 "#
+        ));
+        assert_eq!(res, vec![
+            (Token::Integer(123), 1),
+            (Token::Dot, 5),
+            (Token::LeftSquareBrackets, 7),
+            (Token::RightSquareBrackets, 8),
+            (Token::String(String::from("hey")), 10),
+            (Token::Float(888.888), 16),
+        ]);
     }
     
     #[test]
-    fn simple_string() {
-        let res = scan_tokens(String::from(r#""123""#));
-        assert_eq!(res.len(), 1);
-        assert_eq!(res[0], (Token::String(String::from("123")), 0));
-
+    fn test_brackets() {
+        assert_eq!(
+            scan_tokens_helper(r#"()[]}{"#),
+            vec![
+                Token::LeftParenthesis,
+                Token::RightParenthesis,
+                Token::LeftSquareBrackets,
+                Token::RightSquareBrackets,
+                Token::RightCurlyBrackets,
+                Token::LeftCurlyBrackets,
+            ]
+        );
     }
 
     #[test]
-    fn string_and_others() {
-        let res = scan_tokens(String::from(r#"+"123"-"#));
-        assert_eq!(res.len(), 3);
-
-        assert_eq!(res[0], (Token::Plus, 0));
-        assert_eq!(res[1], (Token::String(String::from("123")), 1));
-        assert_eq!(res[2], (Token::Minus, 6));
-
+    fn test_empty_string() {
+        assert_eq!(
+            scan_tokens_helper(r#""""#),
+            vec![Token::String(String::from(""))]
+        );
+        assert_eq!(
+            scan_tokens_helper(r#"   ""   "#),
+            vec![Token::String(String::from(""))]
+        );
+        assert_eq!(
+            scan_tokens_helper(r#"  + ""  + "#),
+            vec![
+                Token::Plus,
+                Token::String(String::from("")),
+                Token::Plus
+            ]
+        );
+    }
+    
+    #[test]
+    fn test_simple_string() {
+        assert_eq!(
+            scan_tokens_helper(r#"  "Hello world!"  "#),
+            vec![Token::String(String::from("Hello world!")), ]
+        );
+        assert_eq!(
+            scan_tokens_helper(r#".  "+-//*"  ."#),
+            vec![
+                Token::Dot,
+                Token::String(String::from("+-//*")),
+                Token::Dot,
+            ]
+        );
     }
 
-    #[test]
-    fn float() {
-        let res = scan_tokens(String::from("123.456"));
-        assert_eq!(res.len(), 1);
-        assert_eq!(res[0], (Token::Float(123.456), 0));
-    }
+    // TODO: check panic and errors
 
     #[test]
-    fn integer() {
-        let res = scan_tokens(String::from("123"));
-        assert_eq!(res.len(), 1);
-        assert_eq!(res[0], (Token::Integer(123), 0));
+    fn test_numbers() {
+        assert_eq!(scan_tokens_helper("123.098"), vec![Token::Float(123.098)],);
+        assert_eq!(scan_tokens_helper("-0.098"), vec![Token::Minus, Token::Float(0.098)],);
+
+        assert_eq!(scan_tokens_helper("123"), vec![Token::Integer(123)],);
+        assert_eq!(scan_tokens_helper("0"), vec![Token::Integer(0)],);
+        assert_eq!(scan_tokens_helper("-0"), vec![Token::Minus, Token::Integer(0)],);
+
+        assert_eq!(
+            scan_tokens_helper("0.0 + 999 - -23.0"),
+            vec![
+                Token::Float(0.0),
+                Token::Plus,
+                Token::Integer(999),
+                Token::Minus,
+                Token::Minus,
+                Token::Float(23.0),
+            ]
+        );
+        
     }
 }
