@@ -27,73 +27,111 @@ pub enum Token {
     From, Import,
     True, False, Nil, And, Or, Not,
     This, Caller, Return,
+
+    EOF
 }
 
 pub type ScannedToken = (Token, i32);
 
 
+struct Scanner {
+    chars: Vec<char>,
+    tokens: Vec<ScannedToken>,
+    position: usize
+}
+
+impl Scanner {
+    fn create(chars: Vec<char>) -> Scanner {
+        Scanner { chars, tokens: Vec::new(), position: 0}
+    }
+
+    fn consume_char(&mut self) -> char {
+        // returns char and moves position forward
+        self.position += 1;
+        self.chars[self.position-1]
+    }
+
+    fn char_ahead(&self, ahead: usize) -> char {
+        // returns char ahead of current position without moving position
+        self.chars.get(self.position + ahead).unwrap_or(&'\0').clone()
+    }
+
+    fn check_ahead(&self, ahead: usize, expected: char) -> bool {
+        self.char_ahead(ahead) == expected
+    }
+
+    fn is_finished(&self) -> bool {
+        self.position == self.chars.len()
+    }
+
+    fn add_token(&mut self, token: Token) {
+        self.tokens.push((token, (self.position-1) as i32))
+    }
+
+    fn add_token_with_position(&mut self, token: Token, pos: usize) {
+        self.tokens.push((token, pos as i32))
+    }
+}
+
 pub fn scan_tokens(data: String) -> Vec<ScannedToken> {
-    let data_vec = data.chars().collect::<Vec<_>>();
-    let mut tokens: Vec<ScannedToken> = Vec::new();
-    let mut current: usize = 0;
+    let mut scanner = Scanner::create(data.chars().collect::<Vec<_>>());
 
-    let mut check_next_char = |cur: &usize, c: char| data_vec.get(cur+1).eq(&Some(&c));
+    while !scanner.is_finished() {
+        let start = scanner.position;
+        match scanner.consume_char() {
+            '(' => scanner.add_token(Token::LeftParenthesis),
+            ')' => scanner.add_token(Token::RightParenthesis),
+            '[' => scanner.add_token(Token::LeftSquareBrackets),
+            ']' => scanner.add_token(Token::RightSquareBrackets),
+            '{' => scanner.add_token(Token::LeftCurlyBrackets),
+            '}' => scanner.add_token(Token::RightCurlyBrackets),
 
-
-    while current < data_vec.len()  {
-        match data_vec[current] {
-            '(' => tokens.push((Token::LeftParenthesis, current as i32)),
-            ')' => tokens.push((Token::RightParenthesis, current as i32)),
-            '[' => tokens.push((Token::LeftSquareBrackets, current as i32)),
-            ']' => tokens.push((Token::RightSquareBrackets, current as i32)),
-            '{' => tokens.push((Token::LeftCurlyBrackets, current as i32)),
-            '}' => tokens.push((Token::RightCurlyBrackets, current as i32)),
-
-            ',' => tokens.push((Token::Comma, current as i32)),
-            '.' => tokens.push((Token::Dot, current as i32)),
-            ';' => tokens.push((Token::Semicolon, current as i32)),
-            '+' => tokens.push((Token::Plus, current as i32)),
-            '-' => tokens.push((Token::Minus, current as i32)),
-            '*' => tokens.push((Token::Star, current as i32)),
+            ',' => scanner.add_token(Token::Comma),
+            '.' => scanner.add_token(Token::Dot),
+            ';' => scanner.add_token(Token::Semicolon),
+            '+' => scanner.add_token(Token::Plus),
+            '-' => scanner.add_token(Token::Minus),
+            '*' => scanner.add_token(Token::Star),
             // TODO: No slash due to comments
 
-            '<' if check_next_char(&current, '=') => tokens.push((Token::LessEqual, current as i32)),
-            '<' => tokens.push((Token::Less, current as i32)),
-            '>' if check_next_char(&current, '=') => tokens.push((Token::GreaterEqual, current as i32)),
-            '>' => tokens.push((Token::Greater, current as i32)),
-            '!' if check_next_char(&current, '=') => tokens.push((Token::BangEqual, current as i32)),
-            '!' => tokens.push((Token::Bang, current as i32)),
-            '=' if check_next_char(&current, '=') => tokens.push((Token::EqualEqual, current as i32)),
-            '=' => tokens.push((Token::Equal, current as i32)),
+            '<' if scanner.check_ahead(1, '=') => scanner.add_token(Token::LessEqual),
+            '<' => scanner.add_token(Token::Less),
+            '>' if scanner.check_ahead(1, '=') => scanner.add_token(Token::GreaterEqual),
+            '>' => scanner.add_token(Token::Greater),
+            '!' if scanner.check_ahead(1, '=') => scanner.add_token(Token::BangEqual),
+            '!' => scanner.add_token(Token::Bang),
+            '=' if scanner.check_ahead(1, '=') => scanner.add_token(Token::EqualEqual),
+            '=' => scanner.add_token(Token::Equal),
 
             '"' => {
-                let mut end: usize = current+1;
-                while end < data_vec.len() && data_vec[end] != '"' {
-                    end += 1;
+                while !(scanner.is_finished() || scanner.check_ahead(0, '"')) {
+                    scanner.consume_char();
                 }
-                println!("Current {}", current);
-                println!("End {}", end);
-                if end == data_vec.len() {
-                    panic!("String is not terminated!")
+                if scanner.is_finished() {
+                    panic!("String is not terminated!");
                 } else {
-                    let content: String = data_vec[current+1..end].iter().collect();
-                    tokens.push((Token::String(content), current as i32));
-                    current = end+1;
-                    continue;
+                    let content: String = scanner.chars[start+1..scanner.position].iter().collect();
+                    scanner.add_token_with_position(Token::String(content), start);
+                    scanner.consume_char();
                 }
-            }
+            },
+            // d if d.is_digit(10) => {
+            //     let mut end = current +1;
+            //     while end < data_vec.len() && data_vec[end].is_digit(10) {
+            //         end += 1;
+            //     }
+            //     if end == data_vec.len() || (
+            //         data_vec[end] != '.' && data_vec.get(end+1)
+            // }
             
 
             c => {
                 panic!("Unknown symbol occured: {}", c);
             }
         }
-        
-        // scan
-        current += 1;   
     }
 
-    tokens
+    scanner.tokens
 }
 
 
