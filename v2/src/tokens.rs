@@ -92,19 +92,30 @@ pub fn scan_tokens(data: String) -> Vec<ScannedToken> {
             '+' => scanner.add_token(Token::Plus),
             '-' => scanner.add_token(Token::Minus),
             '*' => scanner.add_token(Token::Star),
-            // TODO: No slash due to comments
+            '/' => {
+                if scanner.check_ahead(0, '/') {
+                    scanner.consume_char();
+                    while !scanner.is_finished() && scanner.char_ahead(0) != '\n' {
+                        scanner.consume_char();
+                    }
+                } else {
+                    scanner.add_token(Token::Slash)
+                }
+            },
 
-            '<' if scanner.check_ahead(1, '=') => scanner.add_token(Token::LessEqual),
-            '<' => scanner.add_token(Token::Less),
+            '=' if scanner.check_ahead(0, '=')
+                => {scanner.consume_char(); scanner.add_token(Token::EqualEqual)},
+            '<' if scanner.check_ahead(0, '=')
+                => {scanner.consume_char(); scanner.add_token(Token::LessEqual)},
+            '>' if scanner.check_ahead(0, '=')
+                => {scanner.consume_char(); scanner.add_token(Token::GreaterEqual)},
+            '!' if scanner.check_ahead(0, '=')
+                => {scanner.consume_char(); scanner.add_token(Token::BangEqual)},
 
-            '>' if scanner.check_ahead(1, '=') => scanner.add_token(Token::GreaterEqual),
-            '>' => scanner.add_token(Token::Greater),
-
-            '!' if scanner.check_ahead(1, '=') => scanner.add_token(Token::BangEqual),
-            '!' => scanner.add_token(Token::Bang),
-
-            '=' if scanner.check_ahead(1, '=') => scanner.add_token(Token::EqualEqual),
             '=' => scanner.add_token(Token::Equal),
+            '<' => scanner.add_token(Token::Less),
+            '>' => scanner.add_token(Token::Greater),
+            '!' => scanner.add_token(Token::Bang),
 
             '"' => {
                 while !(scanner.is_finished() || scanner.check_ahead(0, '"')) {
@@ -235,6 +246,49 @@ mod tests {
                 Token::RightSquareBrackets,
                 Token::RightCurlyBrackets,
                 Token::LeftCurlyBrackets,
+            ]
+        );
+    }
+
+    #[test]
+    fn test_operators() {
+        assert_eq!(
+            scan_tokens_helper("+ - / * "),
+            vec![Token::Plus, Token::Minus, Token::Slash, Token::Star]
+        );
+        assert_eq!(
+            scan_tokens_helper("<= < > >= = == !=!"),
+            vec![
+                Token::LessEqual,
+                Token::Less,
+                Token::Greater,
+                Token::GreaterEqual,
+                Token::Equal,
+                Token::EqualEqual,
+                Token::BangEqual,
+                Token::Bang,
+            ]
+        );
+    }
+
+    #[test]
+    fn test_comments() {
+        assert_eq!(scan_tokens_helper("///"), vec![]);
+        assert_eq!(scan_tokens_helper("/ //"), vec![Token::Slash]);
+        assert_eq!(scan_tokens_helper("/ / /"), vec![Token::Slash, Token::Slash, Token::Slash]);
+        assert_eq!(scan_tokens_helper("//\n / //"), vec![Token::Slash]);
+        
+        assert_eq!(
+            scan_tokens_helper("<= < > >= = == !=!"),
+            vec![
+                Token::LessEqual,
+                Token::Less,
+                Token::Greater,
+                Token::GreaterEqual,
+                Token::Equal,
+                Token::EqualEqual,
+                Token::BangEqual,
+                Token::Bang,
             ]
         );
     }
