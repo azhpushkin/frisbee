@@ -115,14 +115,31 @@ pub fn scan_tokens(data: String) -> Vec<ScannedToken> {
                     scanner.consume_char();
                 }
             },
-            // d if d.is_digit(10) => {
-            //     let mut end = current +1;
-            //     while end < data_vec.len() && data_vec[end].is_digit(10) {
-            //         end += 1;
-            //     }
-            //     if end == data_vec.len() || (
-            //         data_vec[end] != '.' && data_vec.get(end+1)
-            // }
+
+            d if d.is_digit(10) => {
+                let mut is_float = false;
+                while scanner.char_ahead(0).is_digit(10) {
+                    scanner.consume_char();
+                }
+                if scanner.check_ahead(0, '.') && scanner.char_ahead(1).is_digit(10) {
+                    is_float = true;
+                    scanner.consume_char();
+                    while scanner.char_ahead(0).is_digit(10) {
+                        scanner.consume_char();
+                    }
+                }
+
+                let content: String = scanner.chars[start..scanner.position].iter().collect();
+                if is_float {
+                    let num: f32 = content.parse().unwrap();
+                    scanner.add_token_with_position(Token::Float(num), start);
+                } else {
+                    let num: i32 = content.parse().unwrap();
+                    scanner.add_token_with_position(Token::Integer(num), start);
+                }
+                
+                
+            }
             
 
             c => {
@@ -181,5 +198,19 @@ mod tests {
         assert_eq!(res[1], (Token::String(String::from("123")), 1));
         assert_eq!(res[2], (Token::Minus, 6));
 
+    }
+
+    #[test]
+    fn float() {
+        let res = scan_tokens(String::from("123.456"));
+        assert_eq!(res.len(), 1);
+        assert_eq!(res[0], (Token::Float(123.456), 0));
+    }
+
+    #[test]
+    fn integer() {
+        let res = scan_tokens(String::from("123"));
+        assert_eq!(res.len(), 1);
+        assert_eq!(res[0], (Token::Integer(123), 0));
     }
 }
