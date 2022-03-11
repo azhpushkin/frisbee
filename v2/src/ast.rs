@@ -1,19 +1,23 @@
+#[derive(Debug, PartialEq)]
 pub struct Program {
     pub imports: Vec<ImportDecl>,
     pub passive: Vec<ObjectDecl>,
     pub active: Vec<ObjectDecl>
 }
 
+#[derive(Debug, PartialEq)]
 pub struct ImportDecl {
     pub module: String,
     pub typenames: Vec<String> // not Type because only non-builtins are imported
 }
 
+#[derive(Debug, PartialEq)]
 pub struct TypedNamedObject {
     pub typename: Type,
     pub name: String
 }
 
+#[derive(Debug, PartialEq)]
 pub struct ObjectDecl {
     pub is_active: bool,
     pub name: String,
@@ -21,6 +25,7 @@ pub struct ObjectDecl {
     pub methods: Vec<MethodDecl>,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct MethodDecl {
     pub rettype: Type,
     pub name: String,
@@ -28,6 +33,7 @@ pub struct MethodDecl {
     pub statements: Vec<Statement>,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum Type {
     // TODO: TypeAnonymous
     // TODO: TypeMaybe (Type),
@@ -40,6 +46,7 @@ pub enum Type {
     TypeIdent (String),
 }
 
+#[derive(Debug, PartialEq)]
 pub enum Statement {
     SIfElse { condition: Expr, ifbody: Vec<Statement>, elsebody: Vec<Statement>},
     SWhile {condition: Expr, body: Vec<Statement>},
@@ -51,6 +58,7 @@ pub enum Statement {
     SExpr(Expr),
 }
 
+#[derive(Debug, PartialEq)]
 pub enum BinaryOperator {
     Plus, Minus, Multiply, Divide,
     Greater, GreaterThan, Less, LessThan,
@@ -58,10 +66,12 @@ pub enum BinaryOperator {
     And, Or
 }
 
+#[derive(Debug, PartialEq)]
 pub enum UnaryOperator {
     Not, Negate
 }
 
+#[derive(Debug, PartialEq)]
 pub enum Expr {
     ExprUnaryOp {op: UnaryOperator, operand: Box<Expr>},
     ExprBinOp {left: Box<Expr>, right: Box<Expr>, op: BinaryOperator},

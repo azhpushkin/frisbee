@@ -1,7 +1,5 @@
-use std::iter::Scan;
-
 use crate::tokens::*;
-use crate::ast;
+use crate::ast::*;
 
 
 fn token_type(st: ScannedToken) -> Token {
@@ -48,8 +46,8 @@ impl Parser {
     self.position >= self.tokens.len()
   }
 
-  fn parse(&mut self) -> ast::Program {
-    let mut program = ast::Program { imports: vec![], passive: vec![], active: vec![] };
+  fn parse(&mut self) -> Program {
+    let mut program = Program { imports: vec![], passive: vec![], active: vec![] };
 
     while !self.is_finished() {
       let token = self.consume_token().clone();
@@ -64,6 +62,7 @@ impl Parser {
         Token::Passive => {
           program.passive.push(self.parse_object())
         }
+        Token::EOF => { break; },
         t => {
           panic!("Only imports and object declarations are allowed, but received {}", t)
         }
@@ -73,34 +72,34 @@ impl Parser {
     program
   }
   
-  fn parse_import(&mut self) -> ast::ImportDecl {
+  fn parse_import(&mut self) -> ImportDecl {
     match self.consume_token() {
-      (Token::String(module_name), _) => {
+      (Token::Identifier(module_name), _) => {
         self.consume_and_check(Token::Import);
         
         let (typename, _) = self.consume_token();
         let res: String;
         match typename {
-          Token::String(s) => {res = s}
+          Token::Identifier(s) => {res = s}
           _ => panic!("asd")
         };
-        ast::ImportDecl { module: module_name, typenames: vec![typename, ] }
+        ImportDecl { module: module_name, typenames: vec![res, ] }
 
       }
-      _ => panic!("I'm so sorry..")
+      c => panic!("I'm so sorry.. {:?}", c)
     }
 
     
 
   }
 
-  fn parse_object(&mut self) -> ast::ObjectDecl {
-    ast::ObjectDecl { is_active: true, name: "Obj", fields: vec![], methods: vec![] }
+  fn parse_object(&mut self) -> ObjectDecl {
+    ObjectDecl { is_active: true, name: String::from("Obj"), fields: vec![], methods: vec![] }
   }
 }
 
 
-pub fn parse(tokens: Vec<ScannedToken>) -> ast::Program {
+pub fn parse(tokens: Vec<ScannedToken>) -> Program {
   let mut parser = Parser::create(tokens);
   parser.parse()
 
@@ -110,5 +109,33 @@ pub fn parse(tokens: Vec<ScannedToken>) -> ast::Program {
 
 
 mod tests {
-  
+  use super::*;
+  use crate::tokens::scan_tokens;
+
+  fn get_ast_helper(s: &str) -> Program {
+    let tokens = scan_tokens(String::from(s));
+    parse(tokens)
+  }
+
+  #[test]
+  fn simple_import() {
+    assert_eq!(
+      get_ast_helper("from module import Actor"),
+      Program {
+        imports: vec![ImportDecl { module: String::from("module"), typenames: vec![String::from("Actor")] }],
+        passive: vec![], active: vec![]
+      }
+    );
+
+    // assert_eq!(
+    //   get_ast_helper("from some2 import Hello, There"),
+    //   Program {
+    //     imports: vec![ImportDecl { 
+    //       module: String::from("module"),
+    //       typenames: vec![String::from("Hello"), String::from("There")]
+    //     }],
+    //     passive: vec![], active: vec![]
+    //   }
+    // );
+  }
 }

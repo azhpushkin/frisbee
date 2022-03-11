@@ -1,6 +1,6 @@
-mod tokens;
-mod ast;
-mod parser;
+pub mod tokens;
+pub mod ast;
+pub mod parser;
 
 
 
