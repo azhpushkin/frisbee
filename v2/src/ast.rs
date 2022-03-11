@@ -1,34 +1,34 @@
-struct Program {
-    imports: Vec<ImportDecl>,
-    passive: Vec<ObjectDecl>,
-    active: Vec<ObjectDecl>
+pub struct Program {
+    pub imports: Vec<ImportDecl>,
+    pub passive: Vec<ObjectDecl>,
+    pub active: Vec<ObjectDecl>
 }
 
-struct ImportDecl {
-    module: String,
-    typenames: Vec<String> // not Type because only non-builtins are imported
+pub struct ImportDecl {
+    pub module: String,
+    pub typenames: Vec<String> // not Type because only non-builtins are imported
 }
 
-struct TypedNamedObject {
-    typename: Type,
-    name: String
+pub struct TypedNamedObject {
+    pub typename: Type,
+    pub name: String
 }
 
-struct ObjectDecl {
-    is_active: bool,
-    name: String,
-    fields: Vec<TypedNamedObject>,
-    methods: Vec<MethodDecl>,
+pub struct ObjectDecl {
+    pub is_active: bool,
+    pub name: String,
+    pub fields: Vec<TypedNamedObject>,
+    pub methods: Vec<MethodDecl>,
 }
 
-struct MethodDecl {
-    rettype: Type,
-    name: String,
-    args: Vec<TypedNamedObject>,
-    statements: Vec<Statement>,
+pub struct MethodDecl {
+    pub rettype: Type,
+    pub name: String,
+    pub args: Vec<TypedNamedObject>,
+    pub statements: Vec<Statement>,
 }
 
-enum Type {
+pub enum Type {
     // TODO: TypeAnonymous
     // TODO: TypeMaybe (Type),
     TypeArray (Box<Type>),
@@ -40,7 +40,7 @@ enum Type {
     TypeIdent (String),
 }
 
-enum Statement {
+pub enum Statement {
     SIfElse { condition: Expr, ifbody: Vec<Statement>, elsebody: Vec<Statement>},
     SWhile {condition: Expr, body: Vec<Statement>},
     SReturn(Expr),
@@ -51,18 +51,18 @@ enum Statement {
     SExpr(Expr),
 }
 
-enum BinaryOperator {
+pub enum BinaryOperator {
     Plus, Minus, Multiply, Divide,
     Greater, GreaterThan, Less, LessThan,
     IsEqual, IsNotEqual,
     And, Or
 }
 
-enum UnaryOperator {
+pub enum UnaryOperator {
     Not, Negate
 }
 
-enum Expr {
+pub enum Expr {
     ExprUnaryOp {op: UnaryOperator, operand: Box<Expr>},
     ExprBinOp {left: Box<Expr>, right: Box<Expr>, op: BinaryOperator},
     ExprArrayAccess {array: Box<Expr>, index: Box<Expr>},

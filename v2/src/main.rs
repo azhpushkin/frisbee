@@ -1,5 +1,6 @@
 mod tokens;
 mod ast;
+mod parser;
 
 
 
@@ -13,6 +14,6 @@ fn main() {
     println!("=====FILE LOADED=====\n{}\n=====================", file_contents);
 
     let tokens = tokens::scan_tokens(file_contents);
-    println!("{:?}", tokens);
+    
 
 }
