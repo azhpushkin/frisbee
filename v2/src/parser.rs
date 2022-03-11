@@ -42,6 +42,12 @@ impl Parser {
     }
   }
 
+  fn rel_token_check_and_consume(&mut self, rel_pos: isize, token: Token) -> bool {
+    match self.rel_token(rel_pos) {
+      (x, _) => token.eq(x)
+    }
+  }
+
   fn is_finished(&self) -> bool {
     self.position >= self.tokens.len()
   }
@@ -74,16 +80,29 @@ impl Parser {
   
   fn parse_import(&mut self) -> ImportDecl {
     match self.consume_token() {
-      (Token::Identifier(module_name), _) => {
+      (Token::Identifier(module), _) => {
         self.consume_and_check(Token::Import);
         
-        let (typename, _) = self.consume_token();
-        let res: String;
+        let mut typenames: Vec<String> = vec![];
+        let (mut typename, _) = self.consume_token();
+        let mut res: String;
         match typename {
           Token::Identifier(s) => {res = s}
           _ => panic!("asd")
         };
-        ImportDecl { module: module_name, typenames: vec![res, ] }
+        typenames.push(res);
+
+        while self.rel_token_check_and_consume(0, Token::Comma) {
+          self.consume_token();
+          (typename, _) = self.consume_token();
+          match typename {
+            Token::Identifier(s) => {res = s}
+            _ => panic!("asd")
+          };
+          typenames.push(res);
+        }
+        self.consume_and_check(Token::Semicolon);
+        ImportDecl { module, typenames }
 
       }
       c => panic!("I'm so sorry.. {:?}", c)
@@ -120,22 +139,31 @@ mod tests {
   #[test]
   fn simple_import() {
     assert_eq!(
-      get_ast_helper("from module import Actor"),
+      get_ast_helper("from module import Actor;"),
       Program {
         imports: vec![ImportDecl { module: String::from("module"), typenames: vec![String::from("Actor")] }],
         passive: vec![], active: vec![]
       }
     );
+  }
 
-    // assert_eq!(
-    //   get_ast_helper("from some2 import Hello, There"),
-    //   Program {
-    //     imports: vec![ImportDecl { 
-    //       module: String::from("module"),
-    //       typenames: vec![String::from("Hello"), String::from("There")]
-    //     }],
-    //     passive: vec![], active: vec![]
-    //   }
-    // );
+  #[test]
+  fn multiple_imports() {
+    assert_eq!(
+      get_ast_helper("from some2 import Hello, There; from two import One;"),
+      Program {
+        imports: vec![
+          ImportDecl { 
+            module: String::from("some2"),
+            typenames: vec![String::from("Hello"), String::from("There")]
+          },
+          ImportDecl { 
+            module: String::from("two"),
+            typenames: vec![String::from("One")]
+          }
+        ],
+        passive: vec![], active: vec![]
+      }
+    );
   }
 }
