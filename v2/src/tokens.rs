@@ -25,6 +25,8 @@ pub enum Token {
     From, Import,
     True, False, Nil, And, Or, Not,
     This, Caller, Return,
+
+    EOF
 }
 
 
@@ -200,6 +202,7 @@ pub fn scan_tokens(data: String) -> Vec<ScannedToken> {
         }
 
     }
+    scanner.add_token_with_position(Token::EOF, data.len() - 1);
 
     scanner.tokens
 }
@@ -211,7 +214,14 @@ mod tests {
     
     fn scan_tokens_helper(s: &str) -> Vec<Token> {
         let res = scan_tokens(String::from(s));
-        res.iter().map(|(t, _p)| t.clone()).collect::<Vec<Token>>()
+        
+        let mut tokens = res.iter().map(|(t, _p)| t.clone()).collect::<Vec<Token>>();
+        assert_eq!(tokens.last().unwrap(), &Token::EOF);
+
+        tokens.truncate(tokens.len()-1);
+        tokens
+
+
     }
 
     #[test]
@@ -226,6 +236,7 @@ mod tests {
             (Token::RightSquareBrackets, 8),
             (Token::String(String::from("hey")), 10),
             (Token::Float(888.888), 16),
+            (Token::EOF, 23),
         ]);
     }
     
