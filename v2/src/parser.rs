@@ -51,9 +51,20 @@ enum Statement {
     SExpr(Expr),
 }
 
+enum BinaryOperator {
+    Plus, Minus, Multiply, Divide,
+    Greater, GreaterThan, Less, LessThan,
+    IsEqual, IsNotEqual,
+    And, Or
+}
+
+enum UnaryOperator {
+    Not, Negate
+}
+
 enum Expr {
-    ExprUnaryOp {op: String, operand: Box<Expr>},
-    ExprBinOp {left: Box<Expr>, right: Box<Expr>, op: String},
+    ExprUnaryOp {op: UnaryOperator, operand: Box<Expr>},
+    ExprBinOp {left: Box<Expr>, right: Box<Expr>, op: BinaryOperator},
     ExprArrayAccess {array: Box<Expr>, index: Box<Expr>},
     ExprArrayValue (Vec<Box<Expr>>),
     ExprFuncCall {object: Box<Expr>, method: String, args: Vec<Expr>},
