@@ -20,7 +20,7 @@ pub enum Token {
 
     // Keywords
     Active, Passive, Spawn, New,
-    If, Else, Elif, While, For,
+    If, Else, Elif, While, For, // todo; break, continue
     Let, Def,
     From, Import,
     True, False, Nil, And, Or, Not,
