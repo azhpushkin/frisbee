@@ -1,13 +1,13 @@
 use crate::ast::*;
 use crate::tokens::*;
 
-struct Parser {
+pub(super) struct Parser {
     tokens: Vec<ScannedToken>,
     position: usize,
 }
 
-type ParseError = (ScannedToken, &'static str);
-type ParseResult<T> = Result<T, ParseError>;
+pub type ParseError = (ScannedToken, &'static str);
+pub type ParseResult<T> = Result<T, ParseError>;
 // TODO: add expected token
 // TODO: add tests for parsing error
 
@@ -58,7 +58,7 @@ macro_rules! consume_and_check_type_ident {
 }
 
 impl Parser {
-    fn create(tokens: Vec<ScannedToken>) -> Parser {
+    pub fn create(tokens: Vec<ScannedToken>) -> Parser {
         Parser { tokens, position: 0 }
     }
 
@@ -90,7 +90,7 @@ impl Parser {
         self.position >= self.tokens.len()
     }
 
-    fn parse_top_level(&mut self) -> ParseResult<Program> {
+    pub(super) fn parse_top_level(&mut self) -> ParseResult<Program> {
         let mut program = Program { imports: vec![], passive: vec![], active: vec![] };
 
         while !self.is_finished() {
@@ -118,7 +118,7 @@ impl Parser {
         Ok(program)
     }
 
-    fn parse_import(&mut self) -> ParseResult<ImportDecl> {
+    pub(super) fn parse_import(&mut self) -> ParseResult<ImportDecl> {
         consume_and_check!(self, Token::From);
         let module = consume_and_check_ident!(self);
 
@@ -136,11 +136,11 @@ impl Parser {
         Ok(ImportDecl { module, typenames })
     }
 
-    fn parse_type(&mut self) -> ParseResult<Type> {
+    pub(super) fn parse_type(&mut self) -> ParseResult<Type> {
         Ok(Type::TypeString)
     }
 
-    fn parse_object(&mut self, is_active: bool) -> ParseResult<ObjectDecl> {
+    pub(super) fn parse_object(&mut self, is_active: bool) -> ParseResult<ObjectDecl> {
         consume_and_check!(self, Token::Active);
 
         let name = consume_and_check_type_ident!(self);
@@ -153,11 +153,6 @@ impl Parser {
 
         Ok(ObjectDecl { is_active, name, fields, methods })
     }
-}
-
-pub fn parse(tokens: Vec<ScannedToken>) -> ParseResult<Program> {
-    let mut parser = Parser::create(tokens);
-    parser.parse_top_level()
 }
 
 #[cfg(test)]

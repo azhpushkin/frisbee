@@ -15,7 +15,7 @@ fn main() {
 
     let tokens = tokens::scan_tokens(file_contents);
 
-    let ast = parser::parse(tokens);
+    let ast: parser::ParseResult<ast::Program> = parser::parse(tokens);
 
     println!("Ast is: {:?}", ast)
 }
