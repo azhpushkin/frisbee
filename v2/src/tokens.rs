@@ -13,6 +13,7 @@ pub enum Token {
     Greater, GreaterEqual,
     Less, LessEqual,
     Equal, EqualEqual,
+    Question,
     
     Identifier(String),
     TypeIdentifier(String),
@@ -133,6 +134,7 @@ pub fn scan_tokens(data: String) -> Vec<ScannedToken> {
             ',' => scanner.add_token(Token::Comma),
             '.' => scanner.add_token(Token::Dot),
             ';' => scanner.add_token(Token::Semicolon),
+            '?' => scanner.add_token(Token::Question),
             '+' => scanner.add_token(Token::Plus),
             '-' => scanner.add_token(Token::Minus),
             '*' => scanner.add_token(Token::Star),
@@ -273,8 +275,17 @@ mod tests {
     #[test]
     fn test_operators() {
         assert_eq!(
-            scan_tokens_helper("+ - / * "),
-            vec![Token::Plus, Token::Minus, Token::Slash, Token::Star]
+            scan_tokens_helper("+ - / * . ? ; ,"),
+            vec![
+                Token::Plus,
+                Token::Minus,
+                Token::Slash,
+                Token::Star,
+                Token::Dot,
+                Token::Question,
+                Token::Semicolon,
+                Token::Comma,
+            ]
         );
         assert_eq!(
             scan_tokens_helper("<= < > >= = == !=!"),
