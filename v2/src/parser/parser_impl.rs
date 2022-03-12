@@ -1,3 +1,5 @@
+use std::result;
+
 use crate::ast::*;
 use crate::tokens::*;
 
@@ -71,12 +73,13 @@ impl Parser {
 
         match self.tokens.get(pos) {
             Some(x) => x,
-            None => &(Token::EOF, 0), // 0 here is strange
+            None => &(Token::EOF, 0), // 0 here is strange but IDK what else
         }
     }
 
     fn consume_token(&mut self) -> ScannedToken {
         self.position += 1;
+        // TODO: check performance or smth after removing clone() everywhere in file
         self.rel_token(-1).clone()
     }
 
@@ -137,18 +140,27 @@ impl Parser {
     }
 
     pub fn parse_type(&mut self) -> ParseResult<Type> {
-        let type_ident = consume_and_check_type_ident!(self);
-        let typeobj = match type_ident.as_str() {
-            // TODO: TypeList(Box<Type>),
-            // TODO: TypeMaybe?
-            "Int" => Type::TypeInt,
-            "Float" => Type::TypeFloat,
-            "Nil" => Type::TypeNil,
-            "Bool" => Type::TypeBool,
-            "String" => Type::TypeString,
-            _ => Type::TypeIdent(type_ident),
+        let (token, pos) = self.consume_token();
+        let result_type = match token {
+            Token::LeftSquareBrackets => {
+                let item_type = extract_result_if_ok!(self.parse_type());
+                consume_and_check!(self, Token::RightSquareBrackets);
+                Type::TypeList(Box::new(item_type))
+            }
+            Token::TypeIdentifier(s) => match s.as_str() {
+                "Int" => Type::TypeInt,
+                "Float" => Type::TypeFloat,
+                "Nil" => Type::TypeNil,
+                "Bool" => Type::TypeBool,
+                "String" => Type::TypeString,
+                _ => Type::TypeIdent(s),
+            },
+            _ => {
+                return Err(((token, pos), "Wrong token for type definition"));
+            }
         };
-        Ok(typeobj)
+
+        Ok(result_type)
     }
 
     pub fn parse_object(&mut self, is_active: bool) -> ParseResult<ObjectDecl> {
