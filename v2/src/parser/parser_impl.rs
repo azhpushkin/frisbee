@@ -147,6 +147,23 @@ impl Parser {
                 consume_and_check!(self, Token::RightSquareBrackets);
                 Type::TypeList(Box::new(item_type))
             }
+            Token::LeftParenthesis => {
+                let mut tuple_items: Vec<Type> = vec![];
+
+                while !self.rel_token_check(0, Token::RightParenthesis) {
+                    tuple_items.push(extract_result_if_ok!(self.parse_type()));
+                    if self.rel_token_check(0, Token::Comma) {
+                        self.consume_token();
+                    }
+                }
+                self.consume_token();
+
+                match tuple_items.len() {
+                    0 => return Err(((token, pos), "Empty tuple is not allowed")),
+                    1 => tuple_items.pop().unwrap(),
+                    _ => Type::TypeTuple(tuple_items),
+                }
+            }
             Token::TypeIdentifier(s) => match s.as_str() {
                 "Int" => Type::TypeInt,
                 "Float" => Type::TypeFloat,

@@ -125,6 +125,8 @@ fn list_types() {
             ))
         ))
     );
+
+    assert_type_parsing_fails(Parser::parse_type, "[]");
 }
 
 #[test]
@@ -149,7 +151,7 @@ fn tuple_types() {
     assert_type_parses(
         "(Actor, (Nil, Bool, Passive), Int)",
         Type::TypeTuple(vec![
-            Type::TypeString,
+            Type::TypeIdent(String::from("Actor")),
             Type::TypeTuple(vec![
                 Type::TypeNil,
                 Type::TypeBool,
@@ -158,4 +160,17 @@ fn tuple_types() {
             Type::TypeInt
         ])
     );
+
+    // Allow trailing commas here
+    assert_type_parses(
+        "(String, Int, )",
+        Type::TypeTuple(vec![Type::TypeString, Type::TypeInt])
+    );
+
+    // Single element tuple is shrinked to just that element
+    assert_type_parses("(String)", Type::TypeString);
+    assert_type_parses("(Actor, )", Type::TypeIdent(String::from("Actor")));
+
+    // Empty tuple is not allowed
+    assert_type_parsing_fails(Parser::parse_type, "()");
 }
