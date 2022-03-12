@@ -1,7 +1,7 @@
 use crate::ast::*;
 use crate::tokens::*;
 
-pub(super) struct Parser {
+pub struct Parser {
     tokens: Vec<ScannedToken>,
     position: usize,
 }
@@ -90,7 +90,7 @@ impl Parser {
         self.position >= self.tokens.len()
     }
 
-    pub(super) fn parse_top_level(&mut self) -> ParseResult<Program> {
+    pub fn parse_top_level(&mut self) -> ParseResult<Program> {
         let mut program = Program { imports: vec![], passive: vec![], active: vec![] };
 
         while !self.is_finished() {
@@ -118,7 +118,7 @@ impl Parser {
         Ok(program)
     }
 
-    pub(super) fn parse_import(&mut self) -> ParseResult<ImportDecl> {
+    pub fn parse_import(&mut self) -> ParseResult<ImportDecl> {
         consume_and_check!(self, Token::From);
         let module = consume_and_check_ident!(self);
 
@@ -136,7 +136,7 @@ impl Parser {
         Ok(ImportDecl { module, typenames })
     }
 
-    pub(super) fn parse_type(&mut self) -> ParseResult<Type> {
+    pub fn parse_type(&mut self) -> ParseResult<Type> {
         let type_ident = consume_and_check_type_ident!(self);
         let typeobj = match type_ident.as_str() {
             // TODO: TypeList(Box<Type>),
@@ -151,7 +151,7 @@ impl Parser {
         Ok(typeobj)
     }
 
-    pub(super) fn parse_object(&mut self, is_active: bool) -> ParseResult<ObjectDecl> {
+    pub fn parse_object(&mut self, is_active: bool) -> ParseResult<ObjectDecl> {
         consume_and_check!(self, Token::Active);
 
         let name = consume_and_check_type_ident!(self);
