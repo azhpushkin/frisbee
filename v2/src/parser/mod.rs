@@ -1,5 +1,7 @@
 mod parser_impl;
-mod tests;
+
+#[rustfmt::skip]
+#[cfg(test)] mod tests; // mark tests file to improve cargo awareness
 
 use crate::ast::Program;
 use crate::tokens::ScannedToken;
