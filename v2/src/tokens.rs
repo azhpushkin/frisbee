@@ -456,19 +456,19 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected="Symbol is not allowed right after questionmark")]
+    #[should_panic(expected = "Symbol is not allowed right after questionmark")]
     fn ensure_not_alpha_after_question() {
         scan_tokens_helper("Int?asd");
     }
 
     #[test]
-    #[should_panic(expected="Symbol is not allowed right after questionmark")]
+    #[should_panic(expected = "Symbol is not allowed right after questionmark")]
     fn ensure_not_number_after_question() {
         scan_tokens_helper("Int?12sd");
     }
 
     #[test]
-    #[should_panic(expected="Symbol is not allowed right after questionmark")]
+    #[should_panic(expected = "Symbol is not allowed right after questionmark")]
     fn ensure_not_dot_after_question() {
         scan_tokens_helper("Int?.");
     }

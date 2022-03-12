@@ -141,7 +141,7 @@ impl Parser {
 
     pub fn parse_type(&mut self) -> ParseResult<Type> {
         let (token, pos) = self.consume_token();
-        let result_type = match token {
+        let mut result_type = match token {
             Token::LeftSquareBrackets => {
                 let item_type = extract_result_if_ok!(self.parse_type());
                 consume_and_check!(self, Token::RightSquareBrackets);
@@ -176,6 +176,11 @@ impl Parser {
                 return Err(((token, pos), "Wrong token for type definition"));
             }
         };
+
+        while self.rel_token_check(0, Token::Question) {
+            self.consume_token();
+            result_type = Type::TypeMaybe(Box::new(result_type));
+        }
 
         Ok(result_type)
     }

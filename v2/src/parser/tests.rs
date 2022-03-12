@@ -104,7 +104,7 @@ fn types_parsing_errors() {
     assert_type_parsing_fails(Parser::parse_type, "int");
     assert_type_parsing_fails(Parser::parse_type, "asd");
 
-    assert_type_parsing_fails(Parser::parse_type, "?String");
+    assert_type_parsing_fails(Parser::parse_type, "?");
     assert_type_parsing_fails(Parser::parse_type, "[String");
     assert_type_parsing_fails(Parser::parse_type, "[[String]");
     assert_type_parsing_fails(Parser::parse_type, "(String(");
@@ -126,7 +126,9 @@ fn list_types() {
         ))
     );
 
-    assert_type_parsing_fails(Parser::parse_type, "[]");
+    assert_type_parsing_fails(Parser::parse_type, "[ ]");
+    assert_type_parsing_fails(Parser::parse_type, "[Int, String]");
+    assert_type_parsing_fails(Parser::parse_type, "[Int, ]");
 }
 
 #[test]
