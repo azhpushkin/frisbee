@@ -176,3 +176,62 @@ fn tuple_types() {
     // Empty tuple is not allowed
     assert_type_parsing_fails(Parser::parse_type, "()");
 }
+
+
+#[test]
+fn complex_types_maybe_and_list_order() {
+    assert_type_parses(
+        "[Int]?",
+        Type::TypeMaybe(Box::new(
+            Type::TypeList(Box::new(
+                Type::TypeInt
+            )),
+        )),
+    );
+
+    assert_type_parses(
+        "[Int?]",
+        Type::TypeList(Box::new(
+            Type::TypeMaybe(Box::new(
+                Type::TypeInt
+            )),
+        )),
+    );
+}
+
+#[test]
+fn complex_types() {
+    assert_type_parses(
+        "(Actor?, [Bool])",
+        Type::TypeTuple(vec![
+            Type::TypeMaybe(Box::new(
+                Type::TypeIdent(String::from("Actor"))
+            )),
+            Type::TypeList(Box::new(
+                Type::TypeBool
+            )),
+        ])
+    );
+}
+
+#[test]
+fn very_complex_types() {
+    assert_type_parses(
+        "[( [(Bool, Int?)]?, String )]",
+        Type::TypeList(Box::new(
+            Type::TypeTuple(vec![
+                Type::TypeMaybe(Box::new(
+                    Type::TypeList(Box::new(
+                        Type::TypeTuple(vec![
+                            Type::TypeBool,
+                            Type::TypeMaybe(Box::new(
+                                Type::TypeInt
+                            ))
+                        ])
+                    )),
+                )),
+                Type::TypeString
+            ])
+        )),
+    );
+}
