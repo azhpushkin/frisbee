@@ -8,15 +8,28 @@ struct Parser {
 
 type ParseError = (ScannedToken, &'static str);
 
+macro_rules! extract_result_if_ok {
+    ($parse_result:expr) => {
+        match $parse_result {
+            Ok(res) => res,
+            Err(t) => {
+                // Re-wrap pf parsing error is required to coerce type
+                // from Result<T, ParseError> to Result<Program, ParseError>
+                return Err(t);
+            }
+        }
+    };
+}
+
 macro_rules! consume_and_check {
-    ($self:ident, $token:expr) => {{
+    ($self:ident, $token:expr) => {
         match $self.consume_token() {
             (t, _) if t.eq(&$token) => (),
             t => {
                 return Err((t, "Unexpected token"));
             }
         }
-    }};
+    };
 }
 
 macro_rules! consume_and_check_ident {
@@ -77,7 +90,7 @@ impl Parser {
         self.position >= self.tokens.len()
     }
 
-    fn parse(&mut self) -> Result<Program, ParseError> {
+    fn parse_top_level(&mut self) -> Result<Program, ParseError> {
         let mut program = Program {
             imports: vec![],
             passive: vec![],
@@ -85,15 +98,16 @@ impl Parser {
         };
 
         while !self.is_finished() {
-            match self.consume_token().clone() {
-                (Token::From, _) => match self.parse_import() {
-                    Ok(i) => program.imports.push(i),
-                    Err(e) => {
-                        return Err(e);
-                    }
-                },
-                (Token::Active, _) => program.active.push(self.parse_object()),
-                (Token::Passive, _) => program.passive.push(self.parse_object()),
+            match self.rel_token(0).clone() {
+                (Token::From, _) => program
+                    .imports
+                    .push(extract_result_if_ok!(self.parse_import())),
+                (Token::Active, _) => program
+                    .active
+                    .push(extract_result_if_ok!(self.parse_object(true))),
+                (Token::Passive, _) => program
+                    .passive
+                    .push(extract_result_if_ok!(self.parse_object(false))),
                 (Token::EOF, _) => {
                     break;
                 }
@@ -109,6 +123,7 @@ impl Parser {
     }
 
     fn parse_import(&mut self) -> Result<ImportDecl, ParseError> {
+        consume_and_check!(self, Token::From);
         let module = consume_and_check_ident!(self);
 
         consume_and_check!(self, Token::Import);
@@ -125,19 +140,19 @@ impl Parser {
         Ok(ImportDecl { module, typenames })
     }
 
-    fn parse_object(&mut self) -> ObjectDecl {
-        ObjectDecl {
-            is_active: true,
+    fn parse_object(&mut self, is_active: bool) -> Result<ObjectDecl, ParseError> {
+        Ok(ObjectDecl {
+            is_active,
             name: String::from("Obj"),
             fields: vec![],
             methods: vec![],
-        }
+        })
     }
 }
 
 pub fn parse(tokens: Vec<ScannedToken>) -> Result<Program, ParseError> {
     let mut parser = Parser::create(tokens);
-    parser.parse()
+    parser.parse_top_level()
 }
 
 #[cfg(test)]
@@ -145,24 +160,28 @@ mod tests {
     use super::*;
     use crate::tokens::scan_tokens;
 
-    fn get_ast_helper(s: &str) -> Program {
+    type ParsingFunction<T> = fn(&mut Parser) -> Result<T, ParseError>;
+
+    fn parse_helper<T: std::fmt::Debug>(parsefn: ParsingFunction<T>, s: &str) -> T {
         let tokens = scan_tokens(String::from(s));
-        let ast = parse(tokens);
-        assert!(ast.is_ok(), "Parse error: {:?}", ast.unwrap_err());
-        ast.unwrap()
+        let mut parser = Parser::create(tokens);
+        let parsed_ast = parsefn(&mut parser);
+
+        assert!(
+            parsed_ast.is_ok(),
+            "Parse error: {:?}",
+            parsed_ast.unwrap_err()
+        );
+        parsed_ast.unwrap()
     }
 
     #[test]
     fn simple_import() {
         assert_eq!(
-            get_ast_helper("from module import Actor;"),
-            Program {
-                imports: vec![ImportDecl {
-                    module: String::from("module"),
-                    typenames: vec![String::from("Actor")]
-                }],
-                passive: vec![],
-                active: vec![]
+            parse_helper(Parser::parse_import, "from module import Actor;"),
+            ImportDecl {
+                module: String::from("module"),
+                typenames: vec![String::from("Actor")]
             }
         );
     }
@@ -170,7 +189,10 @@ mod tests {
     #[test]
     fn multiple_imports() {
         assert_eq!(
-            get_ast_helper("from some2 import Hello, There; from two import One;"),
+            parse_helper(
+                Parser::parse_top_level,
+                "from some2 import Hello, There; from two import One;"
+            ),
             Program {
                 imports: vec![
                     ImportDecl {
@@ -184,6 +206,22 @@ mod tests {
                 ],
                 passive: vec![],
                 active: vec![]
+            }
+        );
+    }
+
+    #[test]
+    fn active_object_and_fields() {
+        assert_eq!(
+            parse_helper(
+                |p| Parser::parse_object(p, true),
+                "active Actor { String name; Actor lol; }"
+            ),
+            ObjectDecl {
+                is_active: true,
+                name: String::from("Obj"),
+                fields: vec![],
+                methods: vec![]
             }
         );
     }
