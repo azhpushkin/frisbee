@@ -2,17 +2,42 @@ use crate::tokens::*;
 use crate::ast::*;
 
 
-fn token_type(st: ScannedToken) -> Token {
-  match st {
-    (token, _pos) => token
-  }
-}
+// fn token_type(st: ScannedToken) -> Token {
+//   match st {
+//     (token, _pos) => token
+//   }
+// }
 
 
 struct Parser {
   tokens: Vec<ScannedToken>,
   position: usize
 }
+
+type ParseError = (ScannedToken, &'static str);
+
+macro_rules! consume_and_check {
+  ($self:ident, $token:expr) => {
+    {
+      match $self.consume_token() {
+        (t, _) if t.eq(&$token) => (),
+        t => {return Err((t, "Unexpected token"));}
+      }
+    }
+  };
+}
+
+macro_rules! consume_and_check_ident {
+  ($self:ident) => {
+    {
+      match $self.consume_token() {
+        (Token::Identifier(s), _) => s,
+        t => {return Err((t, "Unexpected token (expected identifier)"));}
+      }
+    }
+  };
+}
+
 
 impl Parser {
   fn create(tokens: Vec<ScannedToken>) -> Parser {
@@ -35,14 +60,14 @@ impl Parser {
     self.rel_token(-1).clone()
   }
 
-  fn consume_and_check(&mut self, token: Token) {
-    match self.consume_token() {
-      (t, p) if t.eq(&token) => (),
-      _ => panic!("Wrong char here!")
-    }
-  }
+  // fn consume_and_check2(&mut self, token: Token) -> Result<(), ParseError> {
+  //   match self.consume_token() {
+  //     (t, _) if t.eq(&token) => Ok(()),
+  //     t => Err((t, "Unexpected token"))
+  //   }
+  // }
 
-  fn rel_token_check_and_consume(&mut self, rel_pos: isize, token: Token) -> bool {
+  fn rel_token_check(&mut self, rel_pos: isize, token: Token) -> bool {
     match self.rel_token(rel_pos) {
       (x, _) => token.eq(x)
     }
@@ -52,64 +77,48 @@ impl Parser {
     self.position >= self.tokens.len()
   }
 
-  fn parse(&mut self) -> Program {
+  fn parse(&mut self) -> Result<Program, ParseError> {
     let mut program = Program { imports: vec![], passive: vec![], active: vec![] };
 
     while !self.is_finished() {
-      let token = self.consume_token().clone();
-
-      match token_type(token) {
-        Token::From => {
-          program.imports.push(self.parse_import())
+      match self.consume_token().clone() {
+        (Token::From, _) => {
+          match self.parse_import() {
+            Ok(i) => {program.imports.push(i)},
+            Err(e) => { return Err(e); }
+          }
         },
-        Token::Active => {
+        (Token::Active, _) => {
           program.active.push(self.parse_object())
         }
-        Token::Passive => {
+        (Token::Passive, _) => {
           program.passive.push(self.parse_object())
         }
-        Token::EOF => { break; },
+        (Token::EOF, _) => { break; },
         t => {
-          panic!("Only imports and object declarations are allowed, but received {}", t)
+          return Err((t, "Only imports and object declarations are allowed at top level!"));
         }
       }
     
     }
-    program
+    Ok(program)
   }
   
-  fn parse_import(&mut self) -> ImportDecl {
-    match self.consume_token() {
-      (Token::Identifier(module), _) => {
-        self.consume_and_check(Token::Import);
-        
-        let mut typenames: Vec<String> = vec![];
-        let (mut typename, _) = self.consume_token();
-        let mut res: String;
-        match typename {
-          Token::Identifier(s) => {res = s}
-          _ => panic!("asd")
-        };
-        typenames.push(res);
+  fn parse_import(&mut self) -> Result<ImportDecl, ParseError> {
+    let module = consume_and_check_ident!(self);
 
-        while self.rel_token_check_and_consume(0, Token::Comma) {
-          self.consume_token();
-          (typename, _) = self.consume_token();
-          match typename {
-            Token::Identifier(s) => {res = s}
-            _ => panic!("asd")
-          };
-          typenames.push(res);
-        }
-        self.consume_and_check(Token::Semicolon);
-        ImportDecl { module, typenames }
+    consume_and_check!(self, Token::Import);
+    let mut typenames: Vec<String> = vec![];
 
-      }
-      c => panic!("I'm so sorry.. {:?}", c)
+    typenames.push(consume_and_check_ident!(self));
+
+    while self.rel_token_check(0, Token::Comma) {
+      self.consume_token();
+      typenames.push(consume_and_check_ident!(self));
     }
+    consume_and_check!(self, Token::Semicolon);
 
-    
-
+    Ok(ImportDecl { module, typenames })
   }
 
   fn parse_object(&mut self) -> ObjectDecl {
@@ -118,7 +127,7 @@ impl Parser {
 }
 
 
-pub fn parse(tokens: Vec<ScannedToken>) -> Program {
+pub fn parse(tokens: Vec<ScannedToken>) -> Result<Program, ParseError> {
   let mut parser = Parser::create(tokens);
   parser.parse()
 
@@ -127,13 +136,14 @@ pub fn parse(tokens: Vec<ScannedToken>) -> Program {
 
 
 
+#[cfg(test)]
 mod tests {
   use super::*;
   use crate::tokens::scan_tokens;
 
   fn get_ast_helper(s: &str) -> Program {
     let tokens = scan_tokens(String::from(s));
-    parse(tokens)
+    parse(tokens).unwrap()
   }
 
   #[test]
