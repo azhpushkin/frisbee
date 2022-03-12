@@ -68,3 +68,16 @@ fn active_object_and_fields() {
         }
     );
 }
+
+#[test]
+fn simple_types() {
+    let parse_type = |s| parse_helper(Parser::parse_type, s);
+    assert_eq!(parse_type("String"), Type::TypeString);
+    assert_eq!(parse_type("Int"), Type::TypeInt);
+    assert_eq!(parse_type("Float"), Type::TypeFloat);
+    assert_eq!(parse_type("Nil"), Type::TypeNil);
+    assert_eq!(parse_type("Bool"), Type::TypeBool);
+
+    assert_eq!(parse_type("StriNG"), Type::TypeIdent(String::from("StriNG")));
+    assert_eq!(parse_type("SomeClass"), Type::TypeIdent(String::from("SomeClass")));
+}

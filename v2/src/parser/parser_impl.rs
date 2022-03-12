@@ -137,7 +137,18 @@ impl Parser {
     }
 
     pub(super) fn parse_type(&mut self) -> ParseResult<Type> {
-        Ok(Type::TypeString)
+        let type_ident = consume_and_check_type_ident!(self);
+        let typeobj = match type_ident.as_str() {
+            // TODO: TypeArray(Box<Type>),
+            // TODO: TypeMaybe?
+            "Int" => Type::TypeInt,
+            "Float" => Type::TypeFloat,
+            "Nil" => Type::TypeNil,
+            "Bool" => Type::TypeBool,
+            "String" => Type::TypeString,
+            _ => Type::TypeIdent(type_ident),
+        };
+        Ok(typeobj)
     }
 
     pub(super) fn parse_object(&mut self, is_active: bool) -> ParseResult<ObjectDecl> {
