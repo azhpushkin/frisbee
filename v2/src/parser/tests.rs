@@ -5,7 +5,6 @@ use crate::tokens::scan_tokens;
 
 type ParsingFunction<T> = fn(&mut Parser) -> ParseResult<T>;
 
-
 fn parse_helper<T: std::fmt::Debug>(parsefn: ParsingFunction<T>, s: &str) -> T {
     let tokens = scan_tokens(String::from(s));
     let mut parser = Parser::create(tokens);
@@ -40,10 +39,7 @@ fn multiple_imports() {
                     module: String::from("some2"),
                     typenames: vec![String::from("Hello"), String::from("There")]
                 },
-                ImportDecl {
-                    module: String::from("two"),
-                    typenames: vec![String::from("One")]
-                }
+                ImportDecl { module: String::from("two"), typenames: vec![String::from("One")] }
             ],
             passive: vec![],
             active: vec![]
@@ -72,4 +68,3 @@ fn active_object_and_fields() {
         }
     );
 }
-
