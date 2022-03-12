@@ -18,6 +18,22 @@ fn parse_helper<T: std::fmt::Debug>(parsefn: ParsingFunction<T>, s: &str) -> T {
     parsed_ast.unwrap()
 }
 
+fn assert_type_parsing_fails<T: std::fmt::Debug>(parsefn: ParsingFunction<T>, s: &str) {
+    let tokens = scan_tokens(String::from(s));
+    let mut parser = Parser::create(tokens);
+    let parsed_ast = parsefn(&mut parser);
+
+    assert!(
+        parsed_ast.is_err(),
+        "Parsed to: {:?}",
+        parsed_ast.unwrap()
+    );
+}
+
+fn assert_type_parses(s: &str, t: Type) {
+    assert_eq!(parse_helper(Parser::parse_type, s), t);
+}
+
 #[test]
 fn simple_import() {
     assert_eq!(
@@ -71,13 +87,75 @@ fn active_object_and_fields() {
 
 #[test]
 fn simple_types() {
-    let parse_type = |s| parse_helper(Parser::parse_type, s);
-    assert_eq!(parse_type("String"), Type::TypeString);
-    assert_eq!(parse_type("Int"), Type::TypeInt);
-    assert_eq!(parse_type("Float"), Type::TypeFloat);
-    assert_eq!(parse_type("Nil"), Type::TypeNil);
-    assert_eq!(parse_type("Bool"), Type::TypeBool);
+    assert_type_parses("String", Type::TypeString);
+    assert_type_parses("Int", Type::TypeInt);
+    assert_type_parses("Float", Type::TypeFloat);
+    assert_type_parses("Nil", Type::TypeNil);
+    assert_type_parses("Bool", Type::TypeBool);
 
-    assert_eq!(parse_type("StriNG"), Type::TypeIdent(String::from("StriNG")));
-    assert_eq!(parse_type("SomeClass"), Type::TypeIdent(String::from("SomeClass")));
+    assert_type_parses("StriNG", Type::TypeIdent(String::from("StriNG")));
+    assert_type_parses("SomeClass", Type::TypeIdent(String::from("SomeClass")));
+}
+
+
+#[test]
+fn types_parsing_errors() {
+    assert_type_parsing_fails(Parser::parse_type, "string");
+    assert_type_parsing_fails(Parser::parse_type, "int");
+    assert_type_parsing_fails(Parser::parse_type, "asd");
+
+    assert_type_parsing_fails(Parser::parse_type, "?String");
+    assert_type_parsing_fails(Parser::parse_type, "[String");
+    assert_type_parsing_fails(Parser::parse_type, "[[String]");
+    assert_type_parsing_fails(Parser::parse_type, "(String(");
+    assert_type_parsing_fails(Parser::parse_type, ")String");
+    assert_type_parsing_fails(Parser::parse_type, ")String");
+    
+    
+}
+
+#[test]
+fn list_types() {
+    assert_type_parses("[String]", Type::TypeList(Box::new(Type::TypeString)));
+    assert_type_parses(
+        "[[Actor]]",
+        Type::TypeList(Box::new(
+            Type::TypeList(Box::new(
+                Type::TypeIdent(String::from("Actor"))
+            ))
+        ))
+    );
+}
+
+#[test]
+fn maybe_types() {
+    assert_type_parses("String?", Type::TypeMaybe(Box::new(Type::TypeString)));
+    assert_type_parses(
+        "Actor??",
+        Type::TypeMaybe(Box::new(
+            Type::TypeMaybe(Box::new(
+                Type::TypeIdent(String::from("Actor"))
+            ))
+        ))
+    );
+}
+
+#[test]
+fn tuple_types() {
+    assert_type_parses(
+        "(String, Int)",
+        Type::TypeTuple(vec![Type::TypeString, Type::TypeInt])
+    );
+    assert_type_parses(
+        "(Actor, (Nil, Bool, Passive), Int)",
+        Type::TypeTuple(vec![
+            Type::TypeString,
+            Type::TypeTuple(vec![
+                Type::TypeNil,
+                Type::TypeBool,
+                Type::TypeIdent(String::from("Passive")),
+            ]),
+            Type::TypeInt
+        ])
+    );
 }

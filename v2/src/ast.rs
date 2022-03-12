@@ -37,7 +37,9 @@ pub struct MethodDecl {
 pub enum Type {
     // TODO: TypeAnonymous
     // TODO: TypeMaybe (Type),
-    TypeArray(Box<Type>),
+    TypeList(Box<Type>),
+    TypeTuple(Vec<Type>),
+    TypeMaybe(Box<Type>),
     TypeInt,
     TypeFloat,
     TypeNil,
@@ -98,8 +100,8 @@ pub enum UnaryOperator {
 pub enum Expr {
     ExprUnaryOp { op: UnaryOperator, operand: Box<Expr> },
     ExprBinOp { left: Box<Expr>, right: Box<Expr>, op: BinaryOperator },
-    ExprArrayAccess { array: Box<Expr>, index: Box<Expr> },
-    ExprArrayValue(Vec<Box<Expr>>),
+    ExprListAccess { list: Box<Expr>, index: Box<Expr> },
+    ExprListValue(Vec<Box<Expr>>),
     ExprFuncCall { object: Box<Expr>, method: String, args: Vec<Expr> },
     ExpFieldAccess { object: Box<Expr>, field: String },
     ExprInt(i32),

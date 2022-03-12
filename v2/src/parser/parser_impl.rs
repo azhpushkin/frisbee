@@ -139,7 +139,7 @@ impl Parser {
     pub(super) fn parse_type(&mut self) -> ParseResult<Type> {
         let type_ident = consume_and_check_type_ident!(self);
         let typeobj = match type_ident.as_str() {
-            // TODO: TypeArray(Box<Type>),
+            // TODO: TypeList(Box<Type>),
             // TODO: TypeMaybe?
             "Int" => Type::TypeInt,
             "Float" => Type::TypeFloat,
