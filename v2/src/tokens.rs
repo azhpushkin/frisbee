@@ -41,11 +41,7 @@ struct Scanner {
 
 impl Scanner {
     fn create(chars: Vec<char>) -> Scanner {
-        Scanner {
-            chars,
-            tokens: Vec::new(),
-            position: 0,
-        }
+        Scanner { chars, tokens: Vec::new(), position: 0 }
     }
 
     fn consume_char(&mut self) -> char {

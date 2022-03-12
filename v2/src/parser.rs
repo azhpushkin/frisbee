@@ -7,6 +7,9 @@ struct Parser {
 }
 
 type ParseError = (ScannedToken, &'static str);
+type ParseResult<T> = Result<T, ParseError>;
+// TODO: add expected token
+// TODO: add tests for parsing error
 
 macro_rules! extract_result_if_ok {
     ($parse_result:expr) => {
@@ -56,10 +59,7 @@ macro_rules! consume_and_check_type_ident {
 
 impl Parser {
     fn create(tokens: Vec<ScannedToken>) -> Parser {
-        Parser {
-            tokens,
-            position: 0,
-        }
+        Parser { tokens, position: 0 }
     }
 
     fn rel_token(&self, rel_pos: isize) -> &ScannedToken {
@@ -90,12 +90,8 @@ impl Parser {
         self.position >= self.tokens.len()
     }
 
-    fn parse_top_level(&mut self) -> Result<Program, ParseError> {
-        let mut program = Program {
-            imports: vec![],
-            passive: vec![],
-            active: vec![],
-        };
+    fn parse_top_level(&mut self) -> ParseResult<Program> {
+        let mut program = Program { imports: vec![], passive: vec![], active: vec![] };
 
         while !self.is_finished() {
             match self.rel_token(0).clone() {
@@ -122,7 +118,7 @@ impl Parser {
         Ok(program)
     }
 
-    fn parse_import(&mut self) -> Result<ImportDecl, ParseError> {
+    fn parse_import(&mut self) -> ParseResult<ImportDecl> {
         consume_and_check!(self, Token::From);
         let module = consume_and_check_ident!(self);
 
@@ -140,17 +136,26 @@ impl Parser {
         Ok(ImportDecl { module, typenames })
     }
 
-    fn parse_object(&mut self, is_active: bool) -> Result<ObjectDecl, ParseError> {
-        Ok(ObjectDecl {
-            is_active,
-            name: String::from("Obj"),
-            fields: vec![],
-            methods: vec![],
-        })
+    fn parse_type(&mut self) -> ParseResult<Type> {
+        Ok(Type::TypeString)
+    }
+
+    fn parse_object(&mut self, is_active: bool) -> ParseResult<ObjectDecl> {
+        consume_and_check!(self, Token::Active);
+
+        let name = consume_and_check_type_ident!(self);
+        let fields: Vec<TypedNamedObject> = vec![];
+        let methods: Vec<MethodDecl> = vec![];
+
+        consume_and_check!(self, Token::LeftCurlyBrackets);
+
+        consume_and_check!(self, Token::RightCurlyBrackets);
+
+        Ok(ObjectDecl { is_active, name, fields, methods })
     }
 }
 
-pub fn parse(tokens: Vec<ScannedToken>) -> Result<Program, ParseError> {
+pub fn parse(tokens: Vec<ScannedToken>) -> ParseResult<Program> {
     let mut parser = Parser::create(tokens);
     parser.parse_top_level()
 }
@@ -160,7 +165,7 @@ mod tests {
     use super::*;
     use crate::tokens::scan_tokens;
 
-    type ParsingFunction<T> = fn(&mut Parser) -> Result<T, ParseError>;
+    type ParsingFunction<T> = fn(&mut Parser) -> ParseResult<T>;
 
     fn parse_helper<T: std::fmt::Debug>(parsefn: ParsingFunction<T>, s: &str) -> T {
         let tokens = scan_tokens(String::from(s));
@@ -179,10 +184,7 @@ mod tests {
     fn simple_import() {
         assert_eq!(
             parse_helper(Parser::parse_import, "from module import Actor;"),
-            ImportDecl {
-                module: String::from("module"),
-                typenames: vec![String::from("Actor")]
-            }
+            ImportDecl { module: String::from("module"), typenames: vec![String::from("Actor")] }
         );
     }
 
@@ -219,8 +221,14 @@ mod tests {
             ),
             ObjectDecl {
                 is_active: true,
-                name: String::from("Obj"),
-                fields: vec![],
+                name: String::from("Actor"),
+                fields: vec![
+                    TypedNamedObject { typename: Type::TypeString, name: String::from("name") },
+                    TypedNamedObject {
+                        typename: Type::TypeIdent(String::from("Actor")),
+                        name: String::from("lol")
+                    },
+                ],
                 methods: vec![]
             }
         );
