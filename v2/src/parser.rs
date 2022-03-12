@@ -2,13 +2,6 @@ use crate::tokens::*;
 use crate::ast::*;
 
 
-// fn token_type(st: ScannedToken) -> Token {
-//   match st {
-//     (token, _pos) => token
-//   }
-// }
-
-
 struct Parser {
   tokens: Vec<ScannedToken>,
   position: usize
@@ -29,11 +22,18 @@ macro_rules! consume_and_check {
 
 macro_rules! consume_and_check_ident {
   ($self:ident) => {
-    {
       match $self.consume_token() {
         (Token::Identifier(s), _) => s,
         t => {return Err((t, "Unexpected token (expected identifier)"));}
       }
+  };
+}
+
+macro_rules! consume_and_check_type_ident {
+  ($self:ident) => {
+    match $self.consume_token() {
+      (Token::TypeIdentifier(s), _) => s,
+      t => {return Err((t, "Unexpected token (expected identifier)"));}
     }
   };
 }
@@ -59,13 +59,6 @@ impl Parser {
     self.position += 1;
     self.rel_token(-1).clone()
   }
-
-  // fn consume_and_check2(&mut self, token: Token) -> Result<(), ParseError> {
-  //   match self.consume_token() {
-  //     (t, _) if t.eq(&token) => Ok(()),
-  //     t => Err((t, "Unexpected token"))
-  //   }
-  // }
 
   fn rel_token_check(&mut self, rel_pos: isize, token: Token) -> bool {
     match self.rel_token(rel_pos) {
@@ -110,11 +103,11 @@ impl Parser {
     consume_and_check!(self, Token::Import);
     let mut typenames: Vec<String> = vec![];
 
-    typenames.push(consume_and_check_ident!(self));
+    typenames.push(consume_and_check_type_ident!(self));
 
     while self.rel_token_check(0, Token::Comma) {
       self.consume_token();
-      typenames.push(consume_and_check_ident!(self));
+      typenames.push(consume_and_check_type_ident!(self));
     }
     consume_and_check!(self, Token::Semicolon);
 
@@ -143,7 +136,9 @@ mod tests {
 
   fn get_ast_helper(s: &str) -> Program {
     let tokens = scan_tokens(String::from(s));
-    parse(tokens).unwrap()
+    let ast = parse(tokens);
+    assert!(ast.is_ok(), "Parse error: {:?}", ast.unwrap_err());
+    ast.unwrap()
   }
 
   #[test]

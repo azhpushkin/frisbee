@@ -14,6 +14,7 @@ pub enum Token {
     Equal, EqualEqual,
     
     Identifier(String),
+    TypeIdentifier(String),
     String(String),
     Float(f32),
     Integer(i32),
@@ -164,7 +165,9 @@ pub fn scan_tokens(data: String) -> Vec<ScannedToken> {
                 }
 
                 let s: String = scanner.chars[start..scanner.position].iter().collect();
-                let token = match s.to_lowercase().as_str() {
+                
+                let token = match s.as_str() {
+                    _ if scanner.chars[start].is_uppercase() => Token::TypeIdentifier(s),
                     "active" => Token::Active,
                     "passive" => Token::Passive,
                     "spawn" => Token::Spawn,
@@ -361,11 +364,14 @@ mod tests {
     #[test]
     fn test_identifiers() {
         assert_eq!(
-            scan_tokens_helper("asd AsD as57_8"),
+            scan_tokens_helper("asd AsD as3_F_8 If Else Spawn"),
             vec![
                 Token::Identifier(String::from("asd")),
-                Token::Identifier(String::from("AsD")),
-                Token::Identifier(String::from("as57_8")),
+                Token::TypeIdentifier(String::from("AsD")),
+                Token::Identifier(String::from("as3_F_8")),
+                Token::TypeIdentifier(String::from("If")),
+                Token::TypeIdentifier(String::from("Else")),
+                Token::TypeIdentifier(String::from("Spawn")),
             ]
         );
     }
@@ -373,7 +379,7 @@ mod tests {
     #[test]
     fn test_keywords() {
         assert_eq!(
-            scan_tokens_helper("if Else Spawn Active passiVE"),
+            scan_tokens_helper("if else spawn active passive"),
             vec![
                 Token::If,
                 Token::Else,
