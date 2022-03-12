@@ -70,6 +70,15 @@ impl Scanner {
         self.char_ahead(ahead) == expected
     }
 
+    fn check_next(&mut self, expected: char) -> bool {
+        let is_equal_next = self.check_ahead(0, expected);
+        if is_equal_next {
+            self.consume_char();
+        }
+
+        is_equal_next
+    }
+
     fn is_finished(&self) -> bool {
         self.position == self.chars.len()
     }
@@ -132,8 +141,8 @@ pub fn scan_tokens(data: String) -> Vec<ScannedToken> {
             '-' => scanner.add_token(Token::Minus),
             '*' => scanner.add_token(Token::Star),
             '/' => {
-                if scanner.check_ahead(0, '/') {
-                    scanner.consume_char();
+                if scanner.check_next('/') {
+                    // comment found, skip everything until newline
                     while !scanner.is_finished() && scanner.char_ahead(0) != '\n' {
                         scanner.consume_char();
                     }
@@ -142,26 +151,16 @@ pub fn scan_tokens(data: String) -> Vec<ScannedToken> {
                 }
             }
 
-            '=' if scanner.check_ahead(0, '=') => {
-                scanner.consume_char();
-                scanner.add_token(Token::EqualEqual)
-            }
-            '<' if scanner.check_ahead(0, '=') => {
-                scanner.consume_char();
-                scanner.add_token(Token::LessEqual)
-            }
-            '>' if scanner.check_ahead(0, '=') => {
-                scanner.consume_char();
-                scanner.add_token(Token::GreaterEqual)
-            }
-            '!' if scanner.check_ahead(0, '=') => {
-                scanner.consume_char();
-                scanner.add_token(Token::BangEqual)
-            }
-
+            '=' if scanner.check_next('=') => scanner.add_token(Token::EqualEqual),
             '=' => scanner.add_token(Token::Equal),
+
+            '<' if scanner.check_next('=') => scanner.add_token(Token::LessEqual),
             '<' => scanner.add_token(Token::Less),
+
+            '>' if scanner.check_next('=') => scanner.add_token(Token::GreaterEqual),
             '>' => scanner.add_token(Token::Greater),
+
+            '!' if scanner.check_next('=') => scanner.add_token(Token::BangEqual),
             '!' => scanner.add_token(Token::Bang),
 
             '"' => {
@@ -192,13 +191,13 @@ pub fn scan_tokens(data: String) -> Vec<ScannedToken> {
                 }
 
                 let content: String = scanner.chars[start..scanner.position].iter().collect();
-                if is_float {
-                    let num: f32 = content.parse().unwrap();
-                    scanner.add_token_with_position(Token::Float(num), start);
-                } else {
-                    let num: i32 = content.parse().unwrap();
-                    scanner.add_token_with_position(Token::Integer(num), start);
-                }
+                scanner.add_token_with_position(
+                    match is_float {
+                        true => Token::Float(content.parse().unwrap()),
+                        _ => Token::Integer(content.parse().unwrap()),
+                    },
+                    start,
+                );
             }
 
             c if c.is_alphabetic() => {
