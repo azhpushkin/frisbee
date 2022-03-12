@@ -134,7 +134,6 @@ pub fn scan_tokens(data: String) -> Vec<ScannedToken> {
             ',' => scanner.add_token(Token::Comma),
             '.' => scanner.add_token(Token::Dot),
             ';' => scanner.add_token(Token::Semicolon),
-            '?' => scanner.add_token(Token::Question),
             '+' => scanner.add_token(Token::Plus),
             '-' => scanner.add_token(Token::Minus),
             '*' => scanner.add_token(Token::Star),
@@ -147,6 +146,22 @@ pub fn scan_tokens(data: String) -> Vec<ScannedToken> {
                 } else {
                     scanner.add_token(Token::Slash)
                 }
+            }
+            '?' => {
+                let next_char = scanner.char_ahead(0);
+                if !(next_char.is_whitespace()
+                    || next_char == ','
+                    || next_char == '?'
+                    || next_char == ']'
+                    || next_char == ')'
+                    || next_char == '\0')
+                {
+                    panic!(
+                        "Symbol is not allowed right after questionmark: {}",
+                        next_char
+                    );
+                }
+                scanner.add_token(Token::Question)
             }
 
             '=' if scanner.check_next('=') => scanner.add_token(Token::EqualEqual),
@@ -212,9 +227,7 @@ pub fn scan_tokens(data: String) -> Vec<ScannedToken> {
 
                 scanner.add_token_with_position(identifier_to_token(s), start);
             }
-            ' ' => (),
-            '\t' => (),
-            '\n' => (),
+            c if c.is_whitespace() => (),
 
             c => {
                 panic!("Unknown symbol occured: {}", c);
@@ -406,5 +419,57 @@ mod tests {
             scan_tokens_helper("if else spawn active passive"),
             vec![Token::If, Token::Else, Token::Spawn, Token::Active, Token::Passive,]
         );
+    }
+
+    #[test]
+    fn test_question_next_token() {
+        assert_eq!(
+            scan_tokens_helper("Int?"),
+            vec![Token::TypeIdentifier(String::from("Int")), Token::Question,]
+        );
+        assert_eq!(
+            scan_tokens_helper("Int??"),
+            vec![Token::TypeIdentifier(String::from("Int")), Token::Question, Token::Question]
+        );
+        assert_eq!(
+            scan_tokens_helper("(Int?)"),
+            vec![
+                Token::LeftParenthesis,
+                Token::TypeIdentifier(String::from("Int")),
+                Token::Question,
+                Token::RightParenthesis,
+            ]
+        );
+        assert_eq!(
+            scan_tokens_helper("String?,"),
+            vec![Token::TypeIdentifier(String::from("String")), Token::Question, Token::Comma]
+        );
+        assert_eq!(
+            scan_tokens_helper("[Actor?]"),
+            vec![
+                Token::LeftSquareBrackets,
+                Token::TypeIdentifier(String::from("Actor")),
+                Token::Question,
+                Token::RightSquareBrackets,
+            ]
+        );
+    }
+
+    #[test]
+    #[should_panic(expected="Symbol is not allowed right after questionmark")]
+    fn ensure_not_alpha_after_question() {
+        scan_tokens_helper("Int?asd");
+    }
+
+    #[test]
+    #[should_panic(expected="Symbol is not allowed right after questionmark")]
+    fn ensure_not_number_after_question() {
+        scan_tokens_helper("Int?12sd");
+    }
+
+    #[test]
+    #[should_panic(expected="Symbol is not allowed right after questionmark")]
+    fn ensure_not_dot_after_question() {
+        scan_tokens_helper("Int?.");
     }
 }
