@@ -189,10 +189,19 @@ impl Parser {
         consume_and_check!(self, Token::Active);
 
         let name = consume_and_check_type_ident!(self);
-        let fields: Vec<TypedNamedObject> = vec![];
-        let methods: Vec<MethodDecl> = vec![];
+        let mut fields: Vec<TypedNamedObject> = vec![];
+        let mut methods: Vec<MethodDecl> = vec![];
 
         consume_and_check!(self, Token::LeftCurlyBrackets);
+
+        while !(self.rel_token_check(0, Token::Def)
+            || self.rel_token_check(0, Token::RightCurlyBrackets))
+        {
+            let typename = extract_result_if_ok!(self.parse_type());
+            let name = consume_and_check_ident!(self);
+            consume_and_check!(self, Token::Semicolon);
+            fields.push(TypedNamedObject { typename, name });
+        }
 
         consume_and_check!(self, Token::RightCurlyBrackets);
 
