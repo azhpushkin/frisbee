@@ -27,7 +27,8 @@ pub enum Token {
     Let, Fun,
     From, Import,
     True, False, Nil, And, Or, Not,
-    This, Caller, Return,
+    This, Return,
+    // Caller  // IDK this seems wrong
 
     EOF
 }
@@ -112,7 +113,7 @@ fn identifier_to_token(s: String) -> Token {
         "or" => Token::Or,
         "not" => Token::Not,
         "this" => Token::This,
-        "caller" => Token::Caller,
+        // "caller" => Token::Caller,
         "return" => Token::Return,
         _ => Token::Identifier(s),
     }
