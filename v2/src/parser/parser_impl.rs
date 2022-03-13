@@ -346,6 +346,7 @@ impl Parser {
 
     pub fn parse_expr_primary(&mut self) -> ParseResult<Expr> {
         let (token, pos) = self.rel_token(0);
+        let mut is_groping = false;
         let expr = match token {
             Token::This => Expr::ExprThis,
             Token::Float(f) => Expr::ExprFloat(f.clone()),
@@ -360,6 +361,7 @@ impl Parser {
                 let inner_expr = extract_result_if_ok!(self.parse_expr());
                 // TODO: check error if not closed parenthesis, write test for it
                 consume_and_check!(self, Token::RightParenthesis);
+                is_groping = true;
                 inner_expr
             }
             _ => {
@@ -370,7 +372,11 @@ impl Parser {
                 ));
             }
         };
-        self.consume_token();
+        if !is_groping {
+            self.consume_token();
+        }
+
+        println!("Primary {:?} {:?} ", expr, self.rel_token(0));
 
         Ok(expr)
     }

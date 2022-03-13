@@ -271,7 +271,7 @@ fn very_complex_types() {
 #[test]
 fn operator_simple_equality() {
     assert_expr_parses(
-        "nil == asd",
+        "(nil) == asd",
         Expr::ExprBinOp {
             left: Box::new(Expr::ExprNil),
             right: Box::new(Expr::ExprIdentifier(String::from("asd"))),
@@ -355,6 +355,24 @@ fn expr_operator_order_with_grouping() {
                 right: Box::new(Expr::ExprIdentifier(String::from("qw2"))),
                 op: BinaryOp::Plus
             }),
+            op: BinaryOp::Multiply
+        }
+        
+    )
+}
+
+// TODO: fix this, currently only group is being parsed
+#[test]
+fn expr_operator_order_with_grouping_and_op_after_group() {
+    assert_expr_parses(
+        "(1 + qw2) * 2",
+        Expr::ExprBinOp {
+            left: Box::new(Expr::ExprBinOp{
+                left: Box::new(Expr::ExprInt(1)),
+                right: Box::new(Expr::ExprIdentifier(String::from("qw2"))),
+                op: BinaryOp::Plus
+            }),
+            right: Box::new(Expr::ExprInt(2)),
             op: BinaryOp::Multiply
         }
         
