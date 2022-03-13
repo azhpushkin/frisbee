@@ -1,6 +1,6 @@
+use super::helpers::{bin_op_from_token, unary_op_from_token};
 use crate::ast::*;
 use crate::tokens::*;
-use super::helpers::{bin_op_from_token, unary_op_from_token};
 
 pub struct Parser {
     tokens: Vec<ScannedToken>,
@@ -243,9 +243,9 @@ impl Parser {
 
             consume_and_check!(self, Token::LeftCurlyBrackets);
             consume_and_check!(self, Token::RightCurlyBrackets); // TODO; remote after stmt done
-            // until_closes!(self, Token::RightCurlyBrackets, {
-            //     // stmts.push(extract_result_if_ok!(self.parse_statement()));
-            // });
+                                                                 // until_closes!(self, Token::RightCurlyBrackets, {
+                                                                 //     // stmts.push(extract_result_if_ok!(self.parse_statement()));
+                                                                 // });
             methods.push(MethodDecl { rettype, name, args, statements: stmts });
         }
 
@@ -259,39 +259,89 @@ impl Parser {
     }
 
     pub fn parse_expr(&mut self) -> ParseResult<Expr> {
-        return self.parse_expr_equality()
+        return self.parse_expr_equality();
     }
 
     pub fn parse_expr_comparison(&mut self) -> ParseResult<Expr> {
-        Ok(Expr::ExprThis)
-    }
-    
-    pub fn parse_expr_equality(&mut self) -> ParseResult<Expr> {
-        let mut res_expr = extract_result_if_ok!(self.parse_expr_comparison());
-        while consume_if_matches_one_of!(self, [Token::EqualEqual, Token::BangEqual]) {
-            let right = extract_result_if_ok!(self.parse_expr_comparison());
-            let (op, _) = self.rel_token(-1);
-            res_expr = Expr::ExprBinOp{
+        let mut res_expr = extract_result_if_ok!(self.parse_expr_term());
+        while consume_if_matches_one_of!(
+            self,
+            [Token::Greater, Token::GreaterEqual, Token::LessEqual, Token::Less]
+        ) {
+            let (op, _) = &self.rel_token(-1).clone();
+            let right = extract_result_if_ok!(self.parse_expr_term());
+
+            res_expr = Expr::ExprBinOp {
                 left: Box::new(res_expr),
                 right: Box::new(right),
-                op: bin_op_from_token(op)
+                op: bin_op_from_token(op),
             };
         }
 
         Ok(res_expr)
-        
     }
 
-    // pub fn parse_unary(&mut self) -> ParseResult<Expr> {
-    //     let (token, _pos) = self.rel_token(0);
-    //     let expr = match token {
-    //         Token::Not => {
+    pub fn parse_expr_term(&mut self) -> ParseResult<Expr> {
+        let mut res_expr = extract_result_if_ok!(self.parse_expr_factor());
+        while consume_if_matches_one_of!(self, [Token::Minus, Token::Plus]) {
+            let (op, _) = &self.rel_token(-1).clone();
+            let right = extract_result_if_ok!(self.parse_expr_factor());
 
-    //         }
-    //     }
-    // }
+            res_expr = Expr::ExprBinOp {
+                left: Box::new(res_expr),
+                right: Box::new(right),
+                op: bin_op_from_token(op),
+            };
+        }
 
-    pub fn parse_primary_expr(&mut self) -> ParseResult<Expr> {
+        Ok(res_expr)
+    }
+
+    pub fn parse_expr_factor(&mut self) -> ParseResult<Expr> {
+        let mut res_expr = extract_result_if_ok!(self.parse_expr_unary());
+        while consume_if_matches_one_of!(self, [Token::Star, Token::Slash]) {
+            let (op, _) = &self.rel_token(-1).clone();
+            let right = extract_result_if_ok!(self.parse_expr_unary());
+
+            res_expr = Expr::ExprBinOp {
+                left: Box::new(res_expr),
+                right: Box::new(right),
+                op: bin_op_from_token(op),
+            };
+        }
+
+        Ok(res_expr)
+    }
+
+    pub fn parse_expr_equality(&mut self) -> ParseResult<Expr> {
+        let mut res_expr = extract_result_if_ok!(self.parse_expr_comparison());
+        while consume_if_matches_one_of!(self, [Token::EqualEqual, Token::BangEqual]) {
+            let (op, _) = &self.rel_token(-1).clone();
+            let right = extract_result_if_ok!(self.parse_expr_comparison());
+
+            res_expr = Expr::ExprBinOp {
+                left: Box::new(res_expr),
+                right: Box::new(right),
+                op: bin_op_from_token(op),
+            };
+        }
+
+        Ok(res_expr)
+    }
+
+    pub fn parse_expr_unary(&mut self) -> ParseResult<Expr> {
+        if consume_if_matches_one_of!(self, [Token::Minus, Token::Not]) {
+            let (t, _) = &self.rel_token(-1).clone();
+            let operand = extract_result_if_ok!(self.parse_expr_unary());
+
+            let e = Expr::ExprUnaryOp { operand: Box::new(operand), op: unary_op_from_token(t) };
+            return Ok(e);
+        }
+
+        return self.parse_expr_primary();
+    }
+
+    pub fn parse_expr_primary(&mut self) -> ParseResult<Expr> {
         let (token, _pos) = self.rel_token(0);
         let expr = match token {
             Token::This => Expr::ExprThis,
@@ -303,8 +353,9 @@ impl Parser {
             Token::False => Expr::ExprBool(false),
             Token::Identifier(i) => Expr::ExprIdentifier(i.clone()),
             // TODO: grouping and parentheses
-            _ => panic!("TODO expr not ready")
+            _ => panic!("TODO expr not ready"),
         };
+        self.consume_token();
 
         Ok(expr)
     }

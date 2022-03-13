@@ -1,5 +1,5 @@
-mod parser_impl;
 mod helpers;
+mod parser_impl;
 
 #[rustfmt::skip]
 #[cfg(test)] mod tests; // mark tests file to improve cargo awareness

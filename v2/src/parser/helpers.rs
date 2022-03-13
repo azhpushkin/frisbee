@@ -15,7 +15,7 @@ pub fn bin_op_from_token(t: &Token) -> BinaryOp {
         &Token::BangEqual => BinaryOp::IsNotEqual,
         &Token::And => BinaryOp::And,
         &Token::Or => BinaryOp::Or,
-        _ => panic!("Cant convert token {} to bin op", t)
+        _ => panic!("Cant convert token {} to bin op", t),
     }
 }
 
@@ -23,6 +23,6 @@ pub fn unary_op_from_token(t: &Token) -> UnaryOp {
     match t {
         &Token::Minus => UnaryOp::Negate,
         &Token::Not => UnaryOp::Not,
-        _ => panic!("Cant convert token {} to unary op", t)
+        _ => panic!("Cant convert token {} to unary op", t),
     }
 }

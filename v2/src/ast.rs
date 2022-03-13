@@ -99,7 +99,7 @@ pub enum BinaryOp {
 // all unary ops
 // grouped exprs
 
-// TODO : tuple vs 
+// TODO : tuple vs
 
 #[derive(Debug, PartialEq)]
 pub enum UnaryOp {
