@@ -201,6 +201,7 @@ impl Parser {
         let is_method = |p: &mut Parser| p.rel_token_check(0, Token::Fun);
         let is_obj_end = |p: &mut Parser| p.rel_token_check(0, Token::RightCurlyBrackets);
 
+        // Parse object fields
         while !(is_method(self) || is_obj_end(self)) {
             let typename = extract_result_if_ok!(self.parse_type());
             let name = consume_and_check_ident!(self);
@@ -208,11 +209,13 @@ impl Parser {
             fields.push(TypedNamedObject { typename, name });
         }
 
+        // Parse object methods
         while !is_obj_end(self) {
             consume_and_check!(self, Token::Fun);
             let rettype = extract_result_if_ok!(self.parse_type());
             let name = consume_and_check_ident!(self);
             let mut args: Vec<TypedNamedObject> = vec![];
+            let mut stmts: Vec<Statement> = vec![];
 
             consume_and_check!(self, Token::LeftParenthesis);
             until_closes!(self, Token::RightParenthesis, {
@@ -226,12 +229,22 @@ impl Parser {
             });
 
             consume_and_check!(self, Token::LeftCurlyBrackets);
-            consume_and_check!(self, Token::RightCurlyBrackets);
-            methods.push(MethodDecl { rettype, name, args, statements: vec![] });
+            until_closes!(self, Token::RightParenthesis, {
+                stmts.push(extract_result_if_ok!(self.parse_statement()));
+            });
+            methods.push(MethodDecl { rettype, name, args, statements: stmts });
         }
 
         consume_and_check!(self, Token::RightCurlyBrackets);
 
         Ok(ObjectDecl { is_active, name, fields, methods })
+    }
+
+    pub fn parse_statement(&mut self) -> ParseResult<Statement> {
+        Ok(Statement::SExpr(Expr::ExprThis))
+    }
+
+    pub fn parse_expression(&mut self) -> ParseResult<Expr> {
+        Ok(Expr::ExprThis)
     }
 }

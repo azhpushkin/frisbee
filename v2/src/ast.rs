@@ -75,7 +75,7 @@ pub enum Statement {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum BinaryOperator {
+pub enum BinaryOp {
     Plus,
     Minus,
     Multiply,
@@ -91,15 +91,16 @@ pub enum BinaryOperator {
 }
 
 #[derive(Debug, PartialEq)]
-pub enum UnaryOperator {
+pub enum UnaryOp {
     Not,
     Negate,
 }
 
+// TODO : exceptions lead to message being discarder + logs!!
 #[derive(Debug, PartialEq)]
 pub enum Expr {
-    ExprUnaryOp { op: UnaryOperator, operand: Box<Expr> },
-    ExprBinOp { left: Box<Expr>, right: Box<Expr>, op: BinaryOperator },
+    ExprUnaryOp { op: UnaryOp, operand: Box<Expr> },
+    ExprBinOp { left: Box<Expr>, right: Box<Expr>, op: BinaryOp },
     ExprListAccess { list: Box<Expr>, index: Box<Expr> },
     ExprListValue(Vec<Box<Expr>>),
     ExprFuncCall { object: Box<Expr>, method: String, args: Vec<Expr> },
