@@ -90,6 +90,17 @@ pub enum BinaryOp {
     Or,
 }
 
+// priority from lowest to highest
+// OR, AND
+// IsEqual, IsEqual
+// gt gte lt lte
+// plus minus
+// divide mult
+// all unary ops
+// grouped exprs
+
+// TODO : tuple vs 
+
 #[derive(Debug, PartialEq)]
 pub enum UnaryOp {
     Not,
@@ -97,6 +108,8 @@ pub enum UnaryOp {
 }
 
 // TODO : exceptions lead to message being discarder + logs!!
+// This means that if we do something like array[-1], we do not handle it, lol
+// maybe save state of the actor before running it? (2x memory for this)
 #[derive(Debug, PartialEq)]
 pub enum Expr {
     ExprUnaryOp { op: UnaryOp, operand: Box<Expr> },

@@ -229,9 +229,10 @@ impl Parser {
             });
 
             consume_and_check!(self, Token::LeftCurlyBrackets);
-            until_closes!(self, Token::RightParenthesis, {
-                stmts.push(extract_result_if_ok!(self.parse_statement()));
-            });
+            consume_and_check!(self, Token::RightCurlyBrackets); // TODO; remote after stmt done
+            // until_closes!(self, Token::RightCurlyBrackets, {
+            //     // stmts.push(extract_result_if_ok!(self.parse_statement()));
+            // });
             methods.push(MethodDecl { rettype, name, args, statements: stmts });
         }
 
