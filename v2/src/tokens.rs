@@ -1,7 +1,7 @@
-use strum_macros::{Display, IntoStaticStr};
+use strum_macros::Display;
 
 #[rustfmt::skip]
-#[derive(IntoStaticStr, Display, Debug, PartialEq, PartialOrd, Clone)]
+#[derive(Display, Debug, PartialEq, PartialOrd, Clone)]
 pub enum Token {
     LeftParenthesis, RightParenthesis,
     LeftCurlyBrackets, RightCurlyBrackets,

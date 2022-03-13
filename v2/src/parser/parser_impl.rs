@@ -28,7 +28,7 @@ macro_rules! consume_and_check {
         match $self.consume_token() {
             (t, _) if t.eq(&$expected) => (),
             t => {
-                return Err((t, $expected.into(), Some($expected)));
+                return Err((t, "Unexpected token", Some($expected)));
             }
         }
     };

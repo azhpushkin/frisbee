@@ -19,7 +19,11 @@ fn show_parse_error(program: &String, error: parser::ParseError) {
     };
 
     // Print lines of code, 2 if possible
-    println!("{}\n{}", lines.get(line - 1).unwrap_or(&""), lines[line]);
+    println!(
+        "{:?}\n{}",
+        if line > 0 { lines[line - 1] } else { "" },
+        lines[line]
+    );
     // Print pointer to error and error inself
     println!("{}^\n{}{}", spaces, spaces, formatted_error_msg);
 }
