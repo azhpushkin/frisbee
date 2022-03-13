@@ -1,7 +1,7 @@
-use strum_macros::Display;
+use strum_macros::{Display, IntoStaticStr};
 
 #[rustfmt::skip]
-#[derive(Display, Debug, PartialEq, PartialOrd, Clone)]
+#[derive(IntoStaticStr, Display, Debug, PartialEq, PartialOrd, Clone)]
 pub enum Token {
     LeftParenthesis, RightParenthesis,
     LeftCurlyBrackets, RightCurlyBrackets,
@@ -118,7 +118,7 @@ fn identifier_to_token(s: String) -> Token {
     }
 }
 
-pub fn scan_tokens(data: String) -> Vec<ScannedToken> {
+pub fn scan_tokens(data: &String) -> Vec<ScannedToken> {
     let mut scanner = Scanner::create(data.chars().collect::<Vec<_>>());
 
     while !scanner.is_finished() {
@@ -239,12 +239,32 @@ pub fn scan_tokens(data: String) -> Vec<ScannedToken> {
     scanner.tokens
 }
 
+pub fn get_token_coordinates(data: &String, sc: ScannedToken) -> (usize, usize) {
+    let (_, pos) = sc;
+    let mut line: usize = 0;
+    let mut row: usize = 0;
+    let mut counter: i32 = 0;
+
+    let mut chars = data.chars();
+    while counter < pos {
+        if chars.next().unwrap() == '\n' {
+            line += 1;
+            row = 0;
+        } else {
+            row += 1;
+        }
+
+        counter += 1;
+    }
+    (line, row)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     fn scan_tokens_helper(s: &str) -> Vec<Token> {
-        let res = scan_tokens(String::from(s));
+        let res = scan_tokens(&String::from(s));
 
         let mut tokens = res.iter().map(|(t, _p)| t.clone()).collect::<Vec<Token>>();
         assert_eq!(tokens.last().unwrap(), &Token::EOF);
@@ -255,7 +275,7 @@ mod tests {
 
     #[test]
     fn test_positions() {
-        let res = scan_tokens(String::from(r#" 123 . [] "hey" 888.888 "#));
+        let res = scan_tokens(&String::from(r#" 123 . [] "hey" 888.888 "#));
         assert_eq!(
             res,
             vec![

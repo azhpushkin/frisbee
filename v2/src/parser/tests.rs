@@ -6,7 +6,7 @@ use crate::tokens::scan_tokens;
 type ParsingFunction<T> = fn(&mut Parser) -> ParseResult<T>;
 
 fn parse_helper<T: std::fmt::Debug>(parsefn: ParsingFunction<T>, s: &str) -> T {
-    let tokens = scan_tokens(String::from(s));
+    let tokens = scan_tokens(&String::from(s));
     let mut parser = Parser::create(tokens);
     let parsed_ast = parsefn(&mut parser);
 
@@ -19,7 +19,7 @@ fn parse_helper<T: std::fmt::Debug>(parsefn: ParsingFunction<T>, s: &str) -> T {
 }
 
 fn assert_type_parsing_fails<T: std::fmt::Debug>(parsefn: ParsingFunction<T>, s: &str) {
-    let tokens = scan_tokens(String::from(s));
+    let tokens = scan_tokens(&String::from(s));
     let mut parser = Parser::create(tokens);
     let parsed_ast = parsefn(&mut parser);
 
