@@ -1,5 +1,6 @@
 use crate::ast::*;
 use crate::tokens::*;
+use super::helpers::{bin_op_from_token, unary_op_from_token};
 
 pub struct Parser {
     tokens: Vec<ScannedToken>,
@@ -26,6 +27,18 @@ macro_rules! consume_and_check {
         match $self.consume_token() {
             (t, _) if t.eq(&$expected) => (),
             t => return Err((t, "Unexpected token", Some($expected))),
+        }
+    };
+}
+
+macro_rules! consume_if_matches_one_of {
+    ($self:ident, $expected_arr:expr) => {
+        match $self.rel_token(0) {
+            (t, _) if $expected_arr.contains(t) => {
+                $self.consume_token();
+                true
+            }
+            _ => false,
         }
     };
 }
@@ -245,7 +258,54 @@ impl Parser {
         Ok(Statement::SExpr(Expr::ExprThis))
     }
 
-    pub fn parse_expression(&mut self) -> ParseResult<Expr> {
+    pub fn parse_expr(&mut self) -> ParseResult<Expr> {
+        return self.parse_expr_equality()
+    }
+
+    pub fn parse_expr_comparison(&mut self) -> ParseResult<Expr> {
         Ok(Expr::ExprThis)
+    }
+    
+    pub fn parse_expr_equality(&mut self) -> ParseResult<Expr> {
+        let mut res_expr = extract_result_if_ok!(self.parse_expr_comparison());
+        while consume_if_matches_one_of!(self, [Token::EqualEqual, Token::BangEqual]) {
+            let right = extract_result_if_ok!(self.parse_expr_comparison());
+            let (op, _) = self.rel_token(-1);
+            res_expr = Expr::ExprBinOp{
+                left: Box::new(res_expr),
+                right: Box::new(right),
+                op: bin_op_from_token(op)
+            };
+        }
+
+        Ok(res_expr)
+        
+    }
+
+    // pub fn parse_unary(&mut self) -> ParseResult<Expr> {
+    //     let (token, _pos) = self.rel_token(0);
+    //     let expr = match token {
+    //         Token::Not => {
+
+    //         }
+    //     }
+    // }
+
+    pub fn parse_primary_expr(&mut self) -> ParseResult<Expr> {
+        let (token, _pos) = self.rel_token(0);
+        let expr = match token {
+            Token::This => Expr::ExprThis,
+            Token::Float(f) => Expr::ExprFloat(f.clone()),
+            Token::Integer(i) => Expr::ExprInt(i.clone()),
+            Token::String(s) => Expr::ExprString(s.clone()),
+            Token::Nil => Expr::ExprNil,
+            Token::True => Expr::ExprBool(true),
+            Token::False => Expr::ExprBool(false),
+            Token::Identifier(i) => Expr::ExprIdentifier(i.clone()),
+            // TODO: grouping and parentheses
+            _ => panic!("TODO expr not ready")
+        };
+
+        Ok(expr)
     }
 }

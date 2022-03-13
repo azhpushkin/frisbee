@@ -1,7 +1,7 @@
 use crate::ast::{BinaryOp, UnaryOp};
 use crate::tokens::Token;
 
-fn bin_op_from_token(t: &Token) -> BinaryOp {
+pub fn bin_op_from_token(t: &Token) -> BinaryOp {
     match t {
         &Token::Plus => BinaryOp::Plus,
         &Token::Minus => BinaryOp::Minus,
@@ -19,7 +19,7 @@ fn bin_op_from_token(t: &Token) -> BinaryOp {
     }
 }
 
-fn unary_op_from_token(t: &Token) -> UnaryOp {
+pub fn unary_op_from_token(t: &Token) -> UnaryOp {
     match t {
         &Token::Minus => UnaryOp::Negate,
         &Token::Not => UnaryOp::Not,

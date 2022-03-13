@@ -35,7 +35,7 @@ fn assert_type_parses(s: &str, t: Type) {
 }
 
 fn assert_expr_parses(s: &str, t: Expr) {
-    assert_eq!(parse_helper(Parser::parse_expression, s), t);
+    assert_eq!(parse_helper(Parser::parse_expr, s), t);
 }
 
 #[test]
@@ -265,6 +265,18 @@ fn very_complex_types() {
                 Type::TypeString
             ])
         )),
+    );
+}
+
+#[test]
+fn operator_simple_equality() {
+    assert_expr_parses(
+        "nil == asd",
+        Expr::ExprBinOp {
+            left: Box::new(Expr::ExprNil),
+            right: Box::new(Expr::ExprIdentifier(String::from("asd"))),
+            op: BinaryOp::IsEqual
+        }
     );
 }
 
