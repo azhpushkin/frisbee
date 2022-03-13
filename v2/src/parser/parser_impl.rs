@@ -11,6 +11,21 @@ pub type ParseResult<T> = Result<T, ParseError>;
 // TODO: add expected token to show errors
 // TODO: add tests for parsing error
 
+impl From<Token> for &'static str {
+    fn from(token: Token) -> Self {
+        match token {
+            Token::LeftParenthesis => "Expected token: 2LeftParenthesis",
+            Token::RightParenthesis => "Expected token: 2RightParenthesis",
+            Token::LeftCurlyBrackets => "Expected token: 2LeftCurlyBrackets",
+            Token::RightCurlyBrackets => "Expected token: 2RightCurlyBrackets",
+            Token::LeftSquareBrackets => "Expected token: 2LeftSquareBrackets",
+            Token::RightSquareBrackets => "Expected token: 2RightSquareBrackets",
+            // Token::Import => "Expected token: 2Import",
+            _ => "What?"
+        }
+    }
+}
+
 macro_rules! extract_result_if_ok {
     ($parse_result:expr) => {
         match $parse_result {
@@ -25,11 +40,11 @@ macro_rules! extract_result_if_ok {
 }
 
 macro_rules! consume_and_check {
-    ($self:ident, $token:expr) => {
+    ($self:ident, $expected:expr) => {
         match $self.consume_token() {
-            (t, _) if t.eq(&$token) => (),
+            (t, _) if t.eq(&$expected) => (),
             t => {
-                return Err((t, "Unexpected token"));
+                return Err((t, $expected.into()));
             }
         }
     };
