@@ -347,15 +347,15 @@ fn expr_operator_order() {
 #[test]
 fn expr_operator_order_with_grouping() {
     assert_expr_parses(
-        "1 + (2 * qw2)",
+        "2 * (1 + qw2)",
         Expr::ExprBinOp {
-            left: Box::new(Expr::ExprInt(1)),
+            left: Box::new(Expr::ExprInt(2)),
             right: Box::new(Expr::ExprBinOp{
-                left: Box::new(Expr::ExprInt(2)),
+                left: Box::new(Expr::ExprInt(1)),
                 right: Box::new(Expr::ExprIdentifier(String::from("qw2"))),
                 op: BinaryOp::Plus
             }),
-            op: BinaryOp::Plus
+            op: BinaryOp::Multiply
         }
         
     )

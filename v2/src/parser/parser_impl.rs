@@ -32,7 +32,8 @@ macro_rules! consume_and_check {
 }
 
 macro_rules! consume_if_matches_one_of {
-    ($self:ident, $expected_arr:expr) => {
+    ($self:ident, $expected_arr:expr) => {{
+        println!("looking for {:?}", $expected_arr);
         match $self.rel_token(0) {
             (t, _) if $expected_arr.contains(t) => {
                 $self.consume_token();
@@ -40,7 +41,7 @@ macro_rules! consume_if_matches_one_of {
             }
             _ => false,
         }
-    };
+    }};
 }
 
 macro_rules! consume_and_check_ident {
@@ -285,6 +286,7 @@ impl Parser {
         let mut res_expr = extract_result_if_ok!(self.parse_expr_factor());
         while consume_if_matches_one_of!(self, [Token::Minus, Token::Plus]) {
             let (op, _) = &self.rel_token(-1).clone();
+            println!("Found {:?}", op);
             let right = extract_result_if_ok!(self.parse_expr_factor());
 
             res_expr = Expr::ExprBinOp {
@@ -301,6 +303,7 @@ impl Parser {
         let mut res_expr = extract_result_if_ok!(self.parse_expr_unary());
         while consume_if_matches_one_of!(self, [Token::Star, Token::Slash]) {
             let (op, _) = &self.rel_token(-1).clone();
+            println!("Found {:?}", op);
             let right = extract_result_if_ok!(self.parse_expr_unary());
 
             res_expr = Expr::ExprBinOp {
@@ -342,7 +345,7 @@ impl Parser {
     }
 
     pub fn parse_expr_primary(&mut self) -> ParseResult<Expr> {
-        let (token, _pos) = self.rel_token(0);
+        let (token, pos) = self.rel_token(0);
         let expr = match token {
             Token::This => Expr::ExprThis,
             Token::Float(f) => Expr::ExprFloat(f.clone()),
@@ -352,8 +355,20 @@ impl Parser {
             Token::True => Expr::ExprBool(true),
             Token::False => Expr::ExprBool(false),
             Token::Identifier(i) => Expr::ExprIdentifier(i.clone()),
-            // TODO: grouping and parentheses
-            _ => panic!("TODO expr not ready"),
+            Token::LeftParenthesis => {
+                self.consume_token();
+                let inner_expr = extract_result_if_ok!(self.parse_expr());
+                // TODO: check error if not closed parenthesis, write test for it
+                consume_and_check!(self, Token::RightParenthesis);
+                inner_expr
+            }
+            _ => {
+                return Err((
+                    (token.clone(), pos.clone()),
+                    "Unexpected expression",
+                    Some(token.clone()),
+                ));
+            }
         };
         self.consume_token();
 
