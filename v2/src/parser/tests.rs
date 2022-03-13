@@ -86,6 +86,34 @@ fn active_object_and_fields() {
 }
 
 #[test]
+fn passive_object_and_methods() {
+    assert_eq!(
+        parse_helper(
+            |p| Parser::parse_object(p, false),
+            "passive Data { fun Bool get_person(Int age, String name) {} }"
+        ),
+        ObjectDecl {
+            is_active: false,
+            name: String::from("Data"),
+            fields: vec![],
+            methods: vec![MethodDecl{
+                rettype: Type::TypeBool,
+                name: String::from("get_person"),
+                args: vec![
+                    TypedNamedObject { typename: Type::TypeInt, name: String::from("age") },
+                    TypedNamedObject {
+                        typename: Type::TypeString,
+                        name: String::from("name")
+                    },
+                ],
+                statements: vec![],
+
+            }]
+        }
+    );
+}
+
+#[test]
 fn simple_types() {
     assert_type_parses("String", Type::TypeString);
     assert_type_parses("Int", Type::TypeInt);

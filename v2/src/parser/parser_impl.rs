@@ -1,5 +1,3 @@
-use std::result;
-
 use crate::ast::*;
 use crate::tokens::*;
 
@@ -10,7 +8,7 @@ pub struct Parser {
 
 pub type ParseError = (ScannedToken, &'static str);
 pub type ParseResult<T> = Result<T, ParseError>;
-// TODO: add expected token
+// TODO: add expected token to show errors
 // TODO: add tests for parsing error
 
 macro_rules! extract_result_if_ok {
@@ -186,7 +184,11 @@ impl Parser {
     }
 
     pub fn parse_object(&mut self, is_active: bool) -> ParseResult<ObjectDecl> {
-        consume_and_check!(self, Token::Active);
+        if is_active {
+            consume_and_check!(self, Token::Active);
+        } else {
+            consume_and_check!(self, Token::Passive);
+        }
 
         let name = consume_and_check_type_ident!(self);
         let mut fields: Vec<TypedNamedObject> = vec![];
@@ -194,13 +196,38 @@ impl Parser {
 
         consume_and_check!(self, Token::LeftCurlyBrackets);
 
-        while !(self.rel_token_check(0, Token::Def)
-            || self.rel_token_check(0, Token::RightCurlyBrackets))
-        {
+        let is_method = |p: &mut Parser| p.rel_token_check(0, Token::Fun);
+        let is_obj_end = |p: &mut Parser| p.rel_token_check(0, Token::RightCurlyBrackets);
+
+        while !(is_method(self) || is_obj_end(self)) {
             let typename = extract_result_if_ok!(self.parse_type());
             let name = consume_and_check_ident!(self);
             consume_and_check!(self, Token::Semicolon);
             fields.push(TypedNamedObject { typename, name });
+        }
+
+        while !is_obj_end(self) {
+            consume_and_check!(self, Token::Fun);
+            let rettype = extract_result_if_ok!(self.parse_type());
+            let name = consume_and_check_ident!(self);
+            let mut args: Vec<TypedNamedObject> = vec![];
+
+            consume_and_check!(self, Token::LeftParenthesis);
+            while !self.rel_token_check(0, Token::RightParenthesis) {
+                let argtype = extract_result_if_ok!(self.parse_type());
+                let argname = consume_and_check_ident!(self);
+
+                if self.rel_token_check(0, Token::Comma) {
+                    self.consume_token();
+                }
+                args.push(TypedNamedObject { typename: argtype, name: argname });
+            }
+
+            consume_and_check!(self, Token::RightParenthesis);
+
+            consume_and_check!(self, Token::LeftCurlyBrackets);
+            consume_and_check!(self, Token::RightCurlyBrackets);
+            methods.push(MethodDecl { rettype, name, args, statements: vec![] });
         }
 
         consume_and_check!(self, Token::RightCurlyBrackets);
