@@ -14,11 +14,9 @@ macro_rules! extract_result_if_ok {
     ($parse_result:expr) => {
         match $parse_result {
             Ok(res) => res,
-            Err(t) => {
-                // Re-wrap pf parsing error is required to coerce type
-                // from Result<T, ParseError> to Result<Program, ParseError>
-                return Err(t);
-            }
+            // Re-wrap pf parsing error is required to coerce type
+            // from Result<T, ParseError> to Result<Program, ParseError>
+            Err(t) => return Err(t),
         }
     };
 }
@@ -27,9 +25,7 @@ macro_rules! consume_and_check {
     ($self:ident, $expected:expr) => {
         match $self.consume_token() {
             (t, _) if t.eq(&$expected) => (),
-            t => {
-                return Err((t, "Unexpected token", Some($expected)));
-            }
+            t => return Err((t, "Unexpected token", Some($expected))),
         }
     };
 }
@@ -38,9 +34,7 @@ macro_rules! consume_and_check_ident {
     ($self:ident) => {
         match $self.consume_token() {
             (Token::Identifier(s), _) => s,
-            t => {
-                return Err((t, "Unexpected token (expected identifier)", None));
-            }
+            t => return Err((t, "Unexpected token (expected identifier)", None)),
         }
     };
 }
@@ -49,10 +43,15 @@ macro_rules! consume_and_check_type_ident {
     ($self:ident) => {
         match $self.consume_token() {
             (Token::TypeIdentifier(s), _) => s,
-            t => {
-                return Err((t, "Unexpected token (expected identifier)", None));
-            }
+            t => return Err((t, "Unexpected token (expected identifier)", None)),
         }
+    };
+}
+
+macro_rules! until_closes {
+    ($self:ident, $right_limiter:expr, $code:block) => {
+        while !$self.rel_token_check(0, $right_limiter) $code
+        consume_and_check!($self, $right_limiter);
     };
 }
 
@@ -148,13 +147,12 @@ impl Parser {
             Token::LeftParenthesis => {
                 let mut tuple_items: Vec<Type> = vec![];
 
-                while !self.rel_token_check(0, Token::RightParenthesis) {
+                until_closes!(self, Token::RightParenthesis, {
                     tuple_items.push(extract_result_if_ok!(self.parse_type()));
                     if self.rel_token_check(0, Token::Comma) {
                         self.consume_token();
                     }
-                }
-                self.consume_token();
+                });
 
                 match tuple_items.len() {
                     0 => return Err(((token, pos), "Empty tuple is not allowed", None)),
@@ -217,7 +215,7 @@ impl Parser {
             let mut args: Vec<TypedNamedObject> = vec![];
 
             consume_and_check!(self, Token::LeftParenthesis);
-            while !self.rel_token_check(0, Token::RightParenthesis) {
+            until_closes!(self, Token::RightParenthesis, {
                 let argtype = extract_result_if_ok!(self.parse_type());
                 let argname = consume_and_check_ident!(self);
 
@@ -225,9 +223,7 @@ impl Parser {
                     self.consume_token();
                 }
                 args.push(TypedNamedObject { typename: argtype, name: argname });
-            }
-
-            consume_and_check!(self, Token::RightParenthesis);
+            });
 
             consume_and_check!(self, Token::LeftCurlyBrackets);
             consume_and_check!(self, Token::RightCurlyBrackets);
