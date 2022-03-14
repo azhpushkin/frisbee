@@ -341,34 +341,42 @@ impl Parser {
         return self.parse_method_or_field_access();
     }
 
+    pub fn parse_method_args(&mut self) -> ParseResult<Vec<Expr>> {
+        let args: Vec<Expr>;
+        if self.rel_token_check(1, Token::RightParenthesis) {
+            // Consume both left and right parenthesis
+            self.consume_token();
+            self.consume_token();
+            args = vec![];
+        } else {
+            let args_expr = extract_result_if_ok!(self.parse_group_or_tuple());
+            args = match args_expr {
+                Expr::ExprTupleValue(a) => a,
+                e => vec![e],
+            }
+        }
+        Ok(args)
+    }
+
     pub fn parse_method_or_field_access(&mut self) -> ParseResult<Expr> {
         let mut res_expr = extract_result_if_ok!(self.parse_expr_primary());
 
         while consume_if_matches_one_of!(self, [Token::Dot]) {
-            let field_or_method = consume_and_check_ident!(self);
-            if self.rel_token_check(0, Token::LeftParenthesis) {
-                let args: Vec<Expr>;
-                if self.rel_token_check(1, Token::RightParenthesis) {
-                    // Consume both left and right parenthesis
-                    self.consume_token();
-                    self.consume_token();
-                    args = vec![];
+            // If dot - parse field or method access
+            if self.rel_token_check(-1, Token::Dot) {
+                let field_or_method = consume_and_check_ident!(self);
+                if self.rel_token_check(0, Token::LeftParenthesis) {
+                    res_expr = Expr::ExprMethodCall {
+                        object: Box::new(res_expr),
+                        method: field_or_method,
+                        args: extract_result_if_ok!(self.parse_method_args()),
+                    };
                 } else {
-                    let args_expr = extract_result_if_ok!(self.parse_group_or_tuple());
-                    args = match args_expr {
-                        Expr::ExprTupleValue(a) => a,
-                        e => vec![e],
+                    res_expr = Expr::ExprFieldAccess {
+                        object: Box::new(res_expr),
+                        field: field_or_method,
                     };
                 }
-
-                res_expr = Expr::ExprMethodCall {
-                    object: Box::new(res_expr),
-                    method: field_or_method,
-                    args,
-                };
-            } else {
-                res_expr =
-                    Expr::ExprFieldAccess { object: Box::new(res_expr), field: field_or_method }
             }
         }
 
