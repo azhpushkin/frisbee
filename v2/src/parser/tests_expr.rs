@@ -148,6 +148,9 @@ fn expr_tuple() {
             Expr::ExprTupleValue(vec![Expr::ExprInt(3), Expr::ExprInt(4)]),
         ]),
     );
+
+    // single-element tuple is simplified to just an element
+    assert_expr_parses("(1, )", Expr::ExprInt(1));
 }
 
 #[test]
@@ -173,9 +176,6 @@ fn expr_bad_parenthesis_usage() {
     assert_expr_invalid("()");
     assert_expr_invalid("(, )");
     assert_expr_invalid("(21 +2");
-
-    // Tuple of single value is not allowed
-    assert_expr_invalid("(2, )");
 }
 
 #[test]
@@ -268,6 +268,15 @@ fn expr_method_call() {
 #[test]
 fn expr_method_call_with_args() {
     assert_expr_parses(
+        "asd.qwe(1, )",
+        Expr::ExprMethodCall {
+            object: Box::new(Expr::ExprIdentifier(String::from("asd"))),
+            method: String::from("qwe"),
+            args: vec![Expr::ExprInt(1)],
+        },
+    );
+
+    assert_expr_parses(
         "asd.qwe(1, true, this)",
         Expr::ExprMethodCall {
             object: Box::new(Expr::ExprIdentifier(String::from("asd"))),
@@ -325,6 +334,21 @@ fn expr_call_method_on_list_access() {
             }),
             method: String::from("qwe"),
             args: vec![Expr::ExprThis],
+        },
+    );
+}
+
+#[test]
+fn expr_list_access_on_method_call() {
+    assert_expr_parses(
+        "1.qwe()[0]",
+        Expr::ExprListAccess {
+            list: Box::new(Expr::ExprMethodCall {
+                object: Box::new(Expr::ExprInt(1)),
+                method: String::from("qwe"),
+                args: vec![],
+            }),
+            index: Box::new(Expr::ExprInt(0)),
         },
     );
 }

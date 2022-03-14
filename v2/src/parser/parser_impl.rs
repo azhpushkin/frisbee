@@ -346,13 +346,20 @@ impl Parser {
 
         while consume_if_matches_one_of!(self, [Token::Dot]) {
             let field_or_method = consume_and_check_ident!(self);
-            if consume_if_matches_one_of!(self, [Token::LeftParenthesis]) {
-                let mut args: Vec<Expr> = vec![];
-
-                until_closes!(self, Token::RightParenthesis, {
-                    args.push(extract_result_if_ok!(self.parse_expr()));
-                    consume_if_matches_one_of!(self, [Token::Comma]);
-                });
+            if self.rel_token_check(0, Token::LeftParenthesis) {
+                let args: Vec<Expr>;
+                if self.rel_token_check(1, Token::RightParenthesis) {
+                    // Consume both left and right parenthesis
+                    self.consume_token();
+                    self.consume_token();
+                    args = vec![];
+                } else {
+                    let args_expr = extract_result_if_ok!(self.parse_group_or_tuple());
+                    args = match args_expr {
+                        Expr::ExprTupleValue(a) => a,
+                        e => vec![e],
+                    };
+                }
 
                 res_expr = Expr::ExprMethodCall {
                     object: Box::new(res_expr),
@@ -376,11 +383,6 @@ impl Parser {
         if self.rel_token_check(0, Token::Comma) {
             let mut tuple_exprs: Vec<Expr> = vec![result_expr];
 
-            // Consume comma, and as single-element tuples are not allowed
-            // consume expression or raise an error if expr is not found
-            self.consume_token();
-            tuple_exprs.push(extract_result_if_ok!(self.parse_expr()));
-
             // For the next items, trailing comma is allowed, so expr after comma is optional
             while consume_if_matches_one_of!(self, [Token::Comma]) {
                 if self.rel_token_check(0, Token::RightParenthesis) {
@@ -389,7 +391,11 @@ impl Parser {
                 tuple_exprs.push(extract_result_if_ok!(self.parse_expr()));
             }
 
-            result_expr = Expr::ExprTupleValue(tuple_exprs);
+            if tuple_exprs.len() == 1 {
+                result_expr = tuple_exprs.pop().unwrap();
+            } else {
+                result_expr = Expr::ExprTupleValue(tuple_exprs);
+            }
         }
 
         consume_and_check!(self, Token::RightParenthesis);
