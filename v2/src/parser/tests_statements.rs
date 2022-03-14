@@ -35,6 +35,68 @@ fn stmt_return() {
     assert_stmt_parses("return 1;", Statement::SReturn(Expr::ExprInt(1)));
 }
 
+#[test]
+fn stmt_if() {
+    assert_stmt_invalid("if 1 {2};");
+    assert_stmt_invalid("if 1 {2}");
+
+    assert_stmt_parses(
+        "if 1 {2;}",
+        Statement::SIfElse {
+            condition: Expr::ExprInt(1),
+            ifbody: vec![Statement::SExpr(Expr::ExprInt(1))],
+            elsebody: vec![],
+        },
+    );
+}
+
+#[test]
+fn stmt_if_else() {
+    assert_stmt_invalid("if 1 {2}; else 3");
+    assert_stmt_invalid("if 1 2 else 3");
+    assert_stmt_invalid("if 1 {2;} else {3}");
+    assert_stmt_invalid("if 1 {2;} else {3;};");
+
+    assert_stmt_parses(
+        "if 1 {2;} else {3;}",
+        Statement::SIfElse {
+            condition: Expr::ExprInt(1),
+            ifbody: vec![Statement::SExpr(Expr::ExprInt(1))],
+            elsebody: vec![Statement::SExpr(Expr::ExprInt(3))],
+        },
+    );
+}
+
+#[test]
+fn stmt_while() {
+    assert_stmt_invalid("while 1 {2};");
+    assert_stmt_invalid("while 1 {2}");
+
+    assert_stmt_parses(
+        "while 1 {2;}",
+        Statement::SWhile {
+            condition: Expr::ExprInt(1),
+            body: vec![Statement::SExpr(Expr::ExprInt(1))],
+        },
+    );
+}
+
+#[test]
+fn stmt_for_loop() {
+    // TODO: create SList to fit this?
+    assert_stmt_parses(
+        "for(i=1, ",
+        Statement::SWhile {
+            condition: Expr::ExprInt(1),
+            body: vec![Statement::SExpr(Expr::ExprInt(1))],
+        },
+    );
+}
+
+// TODO: Int x = 1;
+// TODO: x = 2;
+// TODO: qwe ! qwe();
+
 // statements
 // TODO: test array assignment
 // TODO
