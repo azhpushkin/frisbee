@@ -211,6 +211,20 @@ fn expr_list_access() {
 }
 
 #[test]
+fn expr_list_access_chained() {
+    assert_expr_parses(
+        "asd[2][0]",
+        Expr::ExprListAccess {
+            list: Box::new(Expr::ExprListAccess {
+                list: Box::new(Expr::ExprIdentifier(String::from("asd"))),
+                index: Box::new(Expr::ExprInt(2)),
+            }),
+            index: Box::new(Expr::ExprInt(0)),
+        },
+    );
+}
+
+#[test]
 fn expr_field_access() {
     assert_expr_parses(
         "(1).qwe",
@@ -278,6 +292,39 @@ fn expr_method_call_chained() {
             }),
             method: String::from("asd"),
             args: vec![],
+        },
+    );
+}
+
+#[test]
+fn expr_call_method_on_list_literal() {
+    let expected = Expr::ExprMethodCall {
+        object: Box::new(Expr::ExprListValue(vec![
+            Expr::ExprIdentifier(String::from("asd")),
+            Expr::ExprInt(2),
+        ])),
+        method: String::from("qwe"),
+        args: vec![Expr::ExprThis],
+    };
+
+    assert_expr_parses("[asd, 2].qwe(this)", expected.clone());
+    assert_expr_parses("([asd, 2]).qwe(this)", expected.clone());
+}
+
+#[test]
+fn expr_call_method_on_list_access() {
+    assert_expr_parses(
+        "[asd, 2][0].qwe(true)",
+        Expr::ExprMethodCall {
+            object: Box::new(Expr::ExprListAccess {
+                list: Box::new(Expr::ExprListValue(vec![
+                    Expr::ExprIdentifier(String::from("asd")),
+                    Expr::ExprInt(2),
+                ])),
+                index: Box::new(Expr::ExprInt(0)),
+            }),
+            method: String::from("qwe"),
+            args: vec![Expr::ExprThis],
         },
     );
 }

@@ -74,7 +74,7 @@ pub enum Statement {
     SExpr(Expr),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum BinaryOp {
     Plus,
     Minus,
@@ -101,7 +101,7 @@ pub enum BinaryOp {
 
 // TODO : tuple vs
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum UnaryOp {
     Not,
     Negate,
@@ -112,7 +112,7 @@ pub enum UnaryOp {
 // maybe save state of the actor before running it? (2x memory for this)
 
 // TODO: wrap into Into<S> to allowe creation from &str?
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Expr {
     ExprUnaryOp { op: UnaryOp, operand: Box<Expr> },
     ExprBinOp { left: Box<Expr>, right: Box<Expr>, op: BinaryOp },
