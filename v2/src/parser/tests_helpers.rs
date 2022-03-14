@@ -22,5 +22,10 @@ pub fn parse_helper<T: std::fmt::Debug>(parsefn: ParsingFunction<T>, s: &str) ->
 
 pub fn assert_parsing_fails<T: std::fmt::Debug>(parsefn: ParsingFunction<T>, s: &str) {
     let parsed_ast = parse_helper(parsefn, s);
-    assert!(parsed_ast.is_err(), "Parsed to: {:?}", parsed_ast.unwrap());
+    assert!(
+        parsed_ast.is_err(),
+        "{:?} has to fail but parsed to: {:?}",
+        s,
+        parsed_ast.unwrap()
+    );
 }

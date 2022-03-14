@@ -120,7 +120,7 @@ pub enum Expr {
     ExprListValue(Vec<Expr>),
     ExprTupleValue(Vec<Expr>),
     ExprMethodCall { object: Box<Expr>, method: String, args: Vec<Expr> },
-    ExpFieldAccess { object: Box<Expr>, field: String },
+    ExprFieldAccess { object: Box<Expr>, field: String },
     ExprInt(i32),
     ExprString(String),
     ExprBool(bool),

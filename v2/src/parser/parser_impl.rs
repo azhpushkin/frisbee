@@ -332,13 +332,40 @@ impl Parser {
     pub fn parse_expr_unary(&mut self) -> ParseResult<Expr> {
         if consume_if_matches_one_of!(self, [Token::Minus, Token::Not]) {
             let (t, _) = &self.rel_token(-1).clone();
-            let operand = extract_result_if_ok!(self.parse_expr_unary());
+            let operand = extract_result_if_ok!(self.parse_method_or_field_access());
 
             let e = Expr::ExprUnaryOp { operand: Box::new(operand), op: unary_op_from_token(t) };
             return Ok(e);
         }
 
-        return self.parse_expr_primary();
+        return self.parse_method_or_field_access();
+    }
+
+    pub fn parse_method_or_field_access(&mut self) -> ParseResult<Expr> {
+        let mut res_expr = extract_result_if_ok!(self.parse_expr_primary());
+
+        while consume_if_matches_one_of!(self, [Token::Dot]) {
+            let field_or_method = consume_and_check_ident!(self);
+            if consume_if_matches_one_of!(self, [Token::LeftParenthesis]) {
+                let mut args: Vec<Expr> = vec![];
+
+                until_closes!(self, Token::RightParenthesis, {
+                    args.push(extract_result_if_ok!(self.parse_expr()));
+                    consume_if_matches_one_of!(self, [Token::Comma]);
+                });
+
+                res_expr = Expr::ExprMethodCall {
+                    object: Box::new(res_expr),
+                    method: field_or_method,
+                    args,
+                };
+            } else {
+                res_expr =
+                    Expr::ExprFieldAccess { object: Box::new(res_expr), field: field_or_method }
+            }
+        }
+
+        Ok(res_expr)
     }
 
     pub fn parse_group_or_tuple(&mut self) -> ParseResult<Expr> {
@@ -369,7 +396,7 @@ impl Parser {
         Ok(result_expr)
     }
 
-    pub fn parse_array_literal(&mut self) -> ParseResult<Expr> {
+    pub fn parse_list_literal(&mut self) -> ParseResult<Expr> {
         consume_and_check!(self, Token::LeftSquareBrackets);
         let mut list_items: Vec<Expr> = vec![];
 
@@ -394,7 +421,7 @@ impl Parser {
             Token::False => Expr::ExprBool(false),
             Token::Identifier(i) => Expr::ExprIdentifier(i.clone()),
             Token::LeftParenthesis => return self.parse_group_or_tuple(),
-            Token::LeftSquareBrackets => return self.parse_array_literal(),
+            Token::LeftSquareBrackets => return self.parse_list_literal(),
             _ => {
                 return Err((
                     (token.clone(), pos.clone()),

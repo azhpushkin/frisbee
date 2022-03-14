@@ -211,11 +211,40 @@ fn expr_list_access() {
 }
 
 #[test]
+fn expr_field_access() {
+    assert_expr_parses(
+        "(1).qwe",
+        Expr::ExprFieldAccess { object: Box::new(Expr::ExprInt(1)), field: String::from("qwe") },
+    );
+
+    assert_expr_invalid("obj.(field)");
+}
+
+#[test]
+fn expr_field_access_chained_with_method_call() {
+    assert_expr_parses(
+        "obj.field.method()",
+        Expr::ExprMethodCall {
+            object: Box::new(Expr::ExprFieldAccess {
+                object: Box::new(Expr::ExprIdentifier(String::from("obj"))),
+                field: String::from("field"),
+            }),
+            method: String::from("method"),
+            args: vec![],
+        },
+    );
+
+    assert_expr_invalid("obj.field.(method())");
+    assert_expr_invalid("obj.(method())");
+    assert_expr_invalid("obj.(method)()");
+}
+
+#[test]
 fn expr_method_call() {
     assert_expr_parses(
         "1.qwe()",
         Expr::ExprMethodCall {
-            object: Box::new(Expr::ExprInt(2)),
+            object: Box::new(Expr::ExprInt(1)),
             method: String::from("qwe"),
             args: vec![],
         },
@@ -225,9 +254,9 @@ fn expr_method_call() {
 #[test]
 fn expr_method_call_with_args() {
     assert_expr_parses(
-        "asd.qwe(1, bool, this)",
+        "asd.qwe(1, true, this)",
         Expr::ExprMethodCall {
-            object: Box::new(Expr::ExprString(String::from("asd"))),
+            object: Box::new(Expr::ExprIdentifier(String::from("asd"))),
             method: String::from("qwe"),
             args: vec![Expr::ExprInt(1), Expr::ExprBool(true), Expr::ExprThis],
         },
@@ -252,7 +281,7 @@ fn expr_method_call_chained() {
         },
     );
 }
-// TODO: test associativyty
+// TODO: test associativyty (5 / 2 / 3 and 5 - 3 - 2)
 // TODO: test function call
 // TODO: test array access
 // TODO: test array
