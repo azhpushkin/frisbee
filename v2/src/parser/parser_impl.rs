@@ -242,6 +242,7 @@ impl Parser {
             });
 
             consume_and_check!(self, Token::LeftCurlyBrackets);
+            stmts.push(extract_result_if_ok!(self.parse_statement()));
             consume_and_check!(self, Token::RightCurlyBrackets); // TODO; remote after stmt done
                                                                  // until_closes!(self, Token::RightCurlyBrackets, {
                                                                  //     // stmts.push(extract_result_if_ok!(self.parse_statement()));
@@ -255,7 +256,7 @@ impl Parser {
     }
 
     pub fn parse_statement(&mut self) -> ParseResult<Statement> {
-        Ok(Statement::SExpr(Expr::ExprThis))
+        Ok(Statement::SExpr(extract_result_if_ok!(self.parse_expr())))
     }
 
     pub fn parse_expr(&mut self) -> ParseResult<Expr> {
