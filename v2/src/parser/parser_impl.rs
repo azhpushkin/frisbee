@@ -259,25 +259,36 @@ impl Parser {
     }
 
     pub fn parse_statement(&mut self) -> ParseResult<Statement> {
-        let (token, _) = self.rel_token(0);
-        match token {
-            &Token::If => panic!("If is not done!"),
-            &Token::While => panic!("While is not done!"),
-            &Token::Return => panic!("Return is not done!"),
-            &Token::Let => panic!("VarDecl is not done!"),
+        let (token, p) = self.rel_token(0).clone();
+        let stmt = match token {
+            Token::If => panic!("If is not done!"),
+            Token::While => panic!("While is not done!"),
+            Token::Return => {
+                self.consume_token();
+                let expr = extract_result_if_ok!(self.parse_expr());
+                consume_and_check!(self, Token::Semicolon);
+                Statement::SReturn(expr)
+            }
+            Token::Let => panic!("VarDecl is not done!"),
             _ => {
                 let expr = extract_result_if_ok!(self.parse_expr());
                 if consume_if_matches_one_of!(self, [Token::Bang, Token::Equal, Token::Semicolon]) {
                     let (prev, _) = self.rel_token(-1);
                     match prev {
-                        &Token::Semicolon => return Ok(Statement::SExpr(expr)),
+                        &Token::Semicolon => Statement::SExpr(expr),
                         _ => panic!("NOT DONE!"),
                     }
                 } else {
-                    panic!("Unexpected token after expr: {:?}", self.rel_token(0))
+                    return Err((
+                        (token, p),
+                        "Expression abruptly ended",
+                        Some(Token::Semicolon),
+                    ));
                 }
             }
-        }
+        };
+
+        Ok(stmt)
     }
 
     pub fn parse_expr(&mut self) -> ParseResult<Expr> {
