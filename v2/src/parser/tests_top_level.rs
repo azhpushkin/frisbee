@@ -59,7 +59,7 @@ fn passive_object_and_methods() {
     assert_eq!(
         parse_and_unwrap(
             |p| Parser::parse_object(p, false),
-            "passive Data { fun Bool get_person(Int age, String name) { 1 / asd.call() } }"
+            "passive Data { fun Bool get_person(Int age, String name) { 1 / asd.call(); this; } }"
         ),
         ObjectDecl {
             is_active: false,
@@ -72,15 +72,18 @@ fn passive_object_and_methods() {
                     TypedNamedObject { typename: Type::TypeInt, name: String::from("age") },
                     TypedNamedObject { typename: Type::TypeString, name: String::from("name") },
                 ],
-                statements: vec![Statement::SExpr(Expr::ExprBinOp {
-                    left: Box::new(Expr::ExprInt(1)),
-                    right: Box::new(Expr::ExprMethodCall {
-                        object: Box::new(Expr::ExprIdentifier(String::from("asd"))),
-                        method: String::from("call"),
-                        args: vec![]
+                statements: vec![
+                    Statement::SExpr(Expr::ExprBinOp {
+                        left: Box::new(Expr::ExprInt(1)),
+                        right: Box::new(Expr::ExprMethodCall {
+                            object: Box::new(Expr::ExprIdentifier(String::from("asd"))),
+                            method: String::from("call"),
+                            args: vec![]
+                        }),
+                        op: BinaryOp::Divide
                     }),
-                    op: BinaryOp::Divide
-                })],
+                    Statement::SExpr(Expr::ExprThis)
+                ],
             }]
         }
     );

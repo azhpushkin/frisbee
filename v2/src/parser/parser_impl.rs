@@ -242,11 +242,14 @@ impl Parser {
             });
 
             consume_and_check!(self, Token::LeftCurlyBrackets);
-            stmts.push(extract_result_if_ok!(self.parse_statement()));
-            consume_and_check!(self, Token::RightCurlyBrackets); // TODO; remote after stmt done
-                                                                 // until_closes!(self, Token::RightCurlyBrackets, {
-                                                                 //     // stmts.push(extract_result_if_ok!(self.parse_statement()));
-                                                                 // });
+            until_closes!(self, Token::RightCurlyBrackets, {
+                stmts.push(extract_result_if_ok!(self.parse_statement()));
+            });
+
+            // consume_and_check!(self, Token::RightCurlyBrackets); // TODO; remote after stmt done
+            // until_closes!(self, Token::RightCurlyBrackets, {
+            //     // stmts.push(extract_result_if_ok!(self.parse_statement()));
+            // });
             methods.push(MethodDecl { rettype, name, args, statements: stmts });
         }
 
@@ -256,7 +259,25 @@ impl Parser {
     }
 
     pub fn parse_statement(&mut self) -> ParseResult<Statement> {
-        Ok(Statement::SExpr(extract_result_if_ok!(self.parse_expr())))
+        let (token, _) = self.rel_token(0);
+        match token {
+            &Token::If => panic!("If is not done!"),
+            &Token::While => panic!("While is not done!"),
+            &Token::Return => panic!("Return is not done!"),
+            &Token::Let => panic!("VarDecl is not done!"),
+            _ => {
+                let expr = extract_result_if_ok!(self.parse_expr());
+                if consume_if_matches_one_of!(self, [Token::Bang, Token::Equal, Token::Semicolon]) {
+                    let (prev, _) = self.rel_token(-1);
+                    match prev {
+                        &Token::Semicolon => return Ok(Statement::SExpr(expr)),
+                        _ => panic!("NOT DONE!"),
+                    }
+                } else {
+                    panic!("Unexpected token after expr: {:?}", self.rel_token(0))
+                }
+            }
+        }
     }
 
     pub fn parse_expr(&mut self) -> ParseResult<Expr> {
@@ -430,7 +451,7 @@ impl Parser {
 
     pub fn parse_expr_primary(&mut self) -> ParseResult<Expr> {
         let (token, pos) = self.rel_token(0);
-        let mut is_token_consumed = false;
+
         let expr = match token {
             Token::This => Expr::ExprThis,
             Token::Float(f) => Expr::ExprFloat(f.clone()),
@@ -450,9 +471,8 @@ impl Parser {
                 ))
             }
         };
-        if !is_token_consumed {
-            self.consume_token();
-        }
+
+        self.consume_token();
 
         Ok(expr)
     }
