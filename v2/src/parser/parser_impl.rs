@@ -341,9 +341,37 @@ impl Parser {
         return self.parse_expr_primary();
     }
 
+    pub fn parse_group_or_tuple(&mut self) -> ParseResult<Expr> {
+        consume_and_check!(self, Token::LeftParenthesis);
+        let mut result_expr = extract_result_if_ok!(self.parse_expr());
+
+        // If comma - then this is not just grouping, but a tuple
+        if self.rel_token_check(0, Token::Comma) {
+            let mut tuple_exprs: Vec<Expr> = vec![result_expr];
+
+            // Consume comma, and as single-element tuples are not allowed
+            // consume expression or raise an error if expr is not found
+            self.consume_token();
+            tuple_exprs.push(extract_result_if_ok!(self.parse_expr()));
+
+            // For the next items, trailing comma is allowed, so expr after comma is optional
+            while consume_if_matches_one_of!(self, [Token::Comma]) {
+                if self.rel_token_check(0, Token::RightParenthesis) {
+                    break;
+                }
+                tuple_exprs.push(extract_result_if_ok!(self.parse_expr()));
+            }
+
+            result_expr = Expr::ExprTupleValue(tuple_exprs);
+        }
+
+        consume_and_check!(self, Token::RightParenthesis);
+        Ok(result_expr)
+    }
+
     pub fn parse_expr_primary(&mut self) -> ParseResult<Expr> {
         let (token, pos) = self.rel_token(0);
-        let mut is_groping = false;
+        let mut is_token_consumed = false;
         let expr = match token {
             Token::This => Expr::ExprThis,
             Token::Float(f) => Expr::ExprFloat(f.clone()),
@@ -353,23 +381,16 @@ impl Parser {
             Token::True => Expr::ExprBool(true),
             Token::False => Expr::ExprBool(false),
             Token::Identifier(i) => Expr::ExprIdentifier(i.clone()),
-            Token::LeftParenthesis => {
-                self.consume_token();
-                let inner_expr = extract_result_if_ok!(self.parse_expr());
-                // TODO: check error if not closed parenthesis, write test for it
-                consume_and_check!(self, Token::RightParenthesis);
-                is_groping = true;
-                inner_expr
-            }
+            Token::LeftParenthesis => return self.parse_group_or_tuple(),
             _ => {
                 return Err((
                     (token.clone(), pos.clone()),
                     "Unexpected expression",
                     Some(token.clone()),
-                ));
+                ))
             }
         };
-        if !is_groping {
+        if !is_token_consumed {
             self.consume_token();
         }
 
