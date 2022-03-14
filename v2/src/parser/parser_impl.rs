@@ -361,7 +361,7 @@ impl Parser {
     pub fn parse_method_or_field_access(&mut self) -> ParseResult<Expr> {
         let mut res_expr = extract_result_if_ok!(self.parse_expr_primary());
 
-        while consume_if_matches_one_of!(self, [Token::Dot]) {
+        while consume_if_matches_one_of!(self, [Token::Dot, Token::LeftSquareBrackets]) {
             // If dot - parse field or method access
             if self.rel_token_check(-1, Token::Dot) {
                 let field_or_method = consume_and_check_ident!(self);
@@ -377,6 +377,11 @@ impl Parser {
                         field: field_or_method,
                     };
                 }
+            } else {
+                // otherwise - left square brackets, meaning this is list access
+                let index = extract_result_if_ok!(self.parse_expr());
+                consume_and_check!(self, Token::RightSquareBrackets);
+                res_expr = Expr::ExprListAccess { list: Box::new(res_expr), index: Box::new(index) }
             }
         }
 

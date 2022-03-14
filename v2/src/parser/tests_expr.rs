@@ -323,7 +323,7 @@ fn expr_call_method_on_list_literal() {
 #[test]
 fn expr_call_method_on_list_access() {
     assert_expr_parses(
-        "[asd, 2][0].qwe(true)",
+        "[asd, 2][0].qwe(this)",
         Expr::ExprMethodCall {
             object: Box::new(Expr::ExprListAccess {
                 list: Box::new(Expr::ExprListValue(vec![
