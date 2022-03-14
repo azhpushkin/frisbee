@@ -140,6 +140,32 @@ fn expr_tuple() {
             Expr::ExprIdentifier(String::from("ad")),
         ]),
     );
+
+    assert_expr_parses(
+        "((1, 2), (3, 4))",
+        Expr::ExprTupleValue(vec![
+            Expr::ExprTupleValue(vec![Expr::ExprInt(1), Expr::ExprInt(2)]),
+            Expr::ExprTupleValue(vec![Expr::ExprInt(3), Expr::ExprInt(4)]),
+        ]),
+    );
+}
+
+#[test]
+fn expr_group_and_tuple_mixed() {
+    assert_expr_parses(
+        "((1, 2) + (3, 4))",
+        Expr::ExprBinOp {
+            left: Box::new(Expr::ExprTupleValue(vec![
+                Expr::ExprInt(1),
+                Expr::ExprInt(2),
+            ])),
+            right: Box::new(Expr::ExprTupleValue(vec![
+                Expr::ExprInt(3),
+                Expr::ExprInt(4),
+            ])),
+            op: BinaryOp::Plus,
+        },
+    );
 }
 
 #[test]
@@ -150,11 +176,6 @@ fn expr_bad_parenthesis_usage() {
 
     // Tuple of single value is not allowed
     assert_expr_invalid("(2, )");
-}
-
-#[test]
-fn expr_method_call() {
-    assert!(false); // todo
 }
 
 #[test]
@@ -181,6 +202,59 @@ fn expr_list_value() {
     assert_expr_invalid("[, ]");
 }
 
+#[test]
+fn expr_list_access() {
+    assert_expr_parses(
+        "asd[2]",
+        Expr::ExprListAccess {
+            list: Box::new(Expr::ExprIdentifier(String::from("asd"))),
+            index: Box::new(Expr::ExprInt(2)),
+        },
+    );
+}
+
+#[test]
+fn expr_method_call() {
+    assert_expr_parses(
+        "1.qwe()",
+        Expr::ExprMethodCall {
+            object: Box::new(Expr::ExprInt(2)),
+            method: String::from("qwe"),
+            args: vec![],
+        },
+    );
+}
+
+#[test]
+fn expr_method_call_with_args() {
+    assert_expr_parses(
+        "asd.qwe(1, bool, this)",
+        Expr::ExprMethodCall {
+            object: Box::new(Expr::ExprString(String::from("asd"))),
+            method: String::from("qwe"),
+            args: vec![Expr::ExprInt(1), Expr::ExprBool(true), Expr::ExprThis],
+        },
+    );
+}
+
+#[test]
+fn expr_method_call_chained() {
+    assert_expr_parses(
+        "(1, 2).qwe().asd()",
+        Expr::ExprMethodCall {
+            object: Box::new(Expr::ExprMethodCall {
+                object: Box::new(Expr::ExprTupleValue(vec![
+                    Expr::ExprInt(1),
+                    Expr::ExprInt(2),
+                ])),
+                method: String::from("qwe"),
+                args: vec![],
+            }),
+            method: String::from("asd"),
+            args: vec![],
+        },
+    );
+}
 // TODO: test associativyty
 // TODO: test function call
 // TODO: test array access

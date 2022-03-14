@@ -1,3 +1,6 @@
+t:
+	cargo test
+
 f:
 	cargo fmt -- ./src/**/*.rs
 

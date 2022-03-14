@@ -110,6 +110,8 @@ pub enum UnaryOp {
 // TODO : exceptions lead to message being discarder + logs!!
 // This means that if we do something like array[-1], we do not handle it, lol
 // maybe save state of the actor before running it? (2x memory for this)
+
+// TODO: wrap into Into<S> to allowe creation from &str?
 #[derive(Debug, PartialEq)]
 pub enum Expr {
     ExprUnaryOp { op: UnaryOp, operand: Box<Expr> },
@@ -117,7 +119,7 @@ pub enum Expr {
     ExprListAccess { list: Box<Expr>, index: Box<Expr> },
     ExprListValue(Vec<Expr>),
     ExprTupleValue(Vec<Expr>),
-    ExprFuncCall { object: Box<Expr>, method: String, args: Vec<Expr> },
+    ExprMethodCall { object: Box<Expr>, method: String, args: Vec<Expr> },
     ExpFieldAccess { object: Box<Expr>, field: String },
     ExprInt(i32),
     ExprString(String),
