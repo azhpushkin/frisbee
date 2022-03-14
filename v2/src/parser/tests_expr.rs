@@ -193,10 +193,7 @@ fn expr_list_value() {
     // trailing comma is allowed
     assert_expr_parses(
         "[nil, 2.0,]",
-        Expr::ExprListValue(vec![
-            Expr::ExprNil,
-            Expr::ExprIdentifier(String::from("ooi")),
-        ]),
+        Expr::ExprListValue(vec![Expr::ExprNil, Expr::ExprFloat(2.0)]),
     );
 
     assert_expr_invalid("[, ]");

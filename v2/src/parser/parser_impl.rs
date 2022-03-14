@@ -369,6 +369,18 @@ impl Parser {
         Ok(result_expr)
     }
 
+    pub fn parse_array_literal(&mut self) -> ParseResult<Expr> {
+        consume_and_check!(self, Token::LeftSquareBrackets);
+        let mut list_items: Vec<Expr> = vec![];
+
+        until_closes!(self, Token::RightSquareBrackets, {
+            list_items.push(extract_result_if_ok!(self.parse_expr()));
+            consume_if_matches_one_of!(self, [Token::Comma]);
+        });
+
+        return Ok(Expr::ExprListValue(list_items));
+    }
+
     pub fn parse_expr_primary(&mut self) -> ParseResult<Expr> {
         let (token, pos) = self.rel_token(0);
         let mut is_token_consumed = false;
@@ -382,6 +394,7 @@ impl Parser {
             Token::False => Expr::ExprBool(false),
             Token::Identifier(i) => Expr::ExprIdentifier(i.clone()),
             Token::LeftParenthesis => return self.parse_group_or_tuple(),
+            Token::LeftSquareBrackets => return self.parse_array_literal(),
             _ => {
                 return Err((
                     (token.clone(), pos.clone()),
