@@ -1,10 +1,14 @@
 use crate::ast::*;
 
 use super::parser_impl::*;
-use super::tests_helpers::parse_helper;
+use super::tests_helpers::*;
 
 fn assert_expr_parses(s: &str, t: Expr) {
-    assert_eq!(parse_helper(Parser::parse_expr, s), t);
+    assert_eq!(parse_and_unwrap(Parser::parse_expr, s), t);
+}
+
+fn assert_expr_invalid(s: &str) {
+    assert_parsing_fails(Parser::parse_expr, s);
 }
 
 #[test]
@@ -83,6 +87,21 @@ fn expr_operator_order() {
 }
 
 #[test]
+fn expr_simple_groups() {
+    assert_expr_parses("(1)", Expr::ExprInt(1));
+    assert_expr_parses(
+        "(-(-3))",
+        Expr::ExprUnaryOp {
+            op: UnaryOp::Negate,
+            operand: Box::new(Expr::ExprUnaryOp {
+                op: UnaryOp::Negate,
+                operand: Box::new(Expr::ExprInt(3)),
+            }),
+        },
+    );
+}
+
+#[test]
 fn expr_operator_order_with_grouping() {
     assert_expr_parses(
         "2 * (1 + qw2)",
@@ -95,12 +114,8 @@ fn expr_operator_order_with_grouping() {
             }),
             op: BinaryOp::Multiply,
         },
-    )
-}
+    );
 
-// TODO: fix this, currently only group is being parsed
-#[test]
-fn expr_operator_order_with_grouping_and_op_after_group() {
     assert_expr_parses(
         "(1 + qw2) * 2",
         Expr::ExprBinOp {
@@ -112,12 +127,58 @@ fn expr_operator_order_with_grouping_and_op_after_group() {
             right: Box::new(Expr::ExprInt(2)),
             op: BinaryOp::Multiply,
         },
-    )
+    );
 }
 
 #[test]
-fn expr_function_call() {
+fn expr_tuple() {
+    assert_expr_parses(
+        "(1, 2.0, ad)",
+        Expr::ExprTupleValue(vec![
+            Expr::ExprInt(1),
+            Expr::ExprFloat(2.0),
+            Expr::ExprIdentifier(String::from("ad")),
+        ]),
+    );
+}
+
+#[test]
+fn expr_bad_parenthesis_usage() {
+    assert_expr_invalid("()");
+    assert_expr_invalid("(, )");
+    assert_expr_invalid("(21 +2");
+
+    // Tuple of single value is not allowed
+    assert_expr_invalid("(2, )");
+}
+
+#[test]
+fn expr_method_call() {
     assert!(false); // todo
+}
+
+#[test]
+fn expr_list_value() {
+    assert_expr_parses("[]", Expr::ExprListValue(vec![]));
+
+    assert_expr_parses(
+        "[1, ooi]",
+        Expr::ExprListValue(vec![
+            Expr::ExprInt(1),
+            Expr::ExprIdentifier(String::from("ooi")),
+        ]),
+    );
+
+    // trailing comma is allowed
+    assert_expr_parses(
+        "[nil, 2.0,]",
+        Expr::ExprListValue(vec![
+            Expr::ExprNil,
+            Expr::ExprIdentifier(String::from("ooi")),
+        ]),
+    );
+
+    assert_expr_invalid("[, ]");
 }
 
 // TODO: test associativyty

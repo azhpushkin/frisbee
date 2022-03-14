@@ -33,7 +33,6 @@ macro_rules! consume_and_check {
 
 macro_rules! consume_if_matches_one_of {
     ($self:ident, $expected_arr:expr) => {{
-        println!("looking for {:?}", $expected_arr);
         match $self.rel_token(0) {
             (t, _) if $expected_arr.contains(t) => {
                 $self.consume_token();
@@ -286,7 +285,6 @@ impl Parser {
         let mut res_expr = extract_result_if_ok!(self.parse_expr_factor());
         while consume_if_matches_one_of!(self, [Token::Minus, Token::Plus]) {
             let (op, _) = &self.rel_token(-1).clone();
-            println!("Found {:?}", op);
             let right = extract_result_if_ok!(self.parse_expr_factor());
 
             res_expr = Expr::ExprBinOp {
@@ -303,7 +301,6 @@ impl Parser {
         let mut res_expr = extract_result_if_ok!(self.parse_expr_unary());
         while consume_if_matches_one_of!(self, [Token::Star, Token::Slash]) {
             let (op, _) = &self.rel_token(-1).clone();
-            println!("Found {:?}", op);
             let right = extract_result_if_ok!(self.parse_expr_unary());
 
             res_expr = Expr::ExprBinOp {
@@ -375,8 +372,6 @@ impl Parser {
         if !is_groping {
             self.consume_token();
         }
-
-        println!("Primary {:?} {:?} ", expr, self.rel_token(0));
 
         Ok(expr)
     }

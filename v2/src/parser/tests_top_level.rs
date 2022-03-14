@@ -1,12 +1,12 @@
 use crate::ast::*;
 
 use super::parser_impl::*;
-use super::tests_helpers::parse_helper;
+use super::tests_helpers::parse_and_unwrap;
 
 #[test]
 fn simple_import() {
     assert_eq!(
-        parse_helper(Parser::parse_import, "from module import Actor;"),
+        parse_and_unwrap(Parser::parse_import, "from module import Actor;"),
         ImportDecl { module: String::from("module"), typenames: vec![String::from("Actor")] }
     );
 }
@@ -14,7 +14,7 @@ fn simple_import() {
 #[test]
 fn multiple_imports() {
     assert_eq!(
-        parse_helper(
+        parse_and_unwrap(
             Parser::parse_top_level,
             "from some2 import Hello, There; from two import One;"
         ),
@@ -35,7 +35,7 @@ fn multiple_imports() {
 #[test]
 fn active_object_and_fields() {
     assert_eq!(
-        parse_helper(
+        parse_and_unwrap(
             |p| Parser::parse_object(p, true),
             "active Actor { String name; Actor lol; }"
         ),
@@ -57,7 +57,7 @@ fn active_object_and_fields() {
 #[test]
 fn passive_object_and_methods() {
     assert_eq!(
-        parse_helper(
+        parse_and_unwrap(
             |p| Parser::parse_object(p, false),
             "passive Data { fun Bool get_person(Int age, String name) {} }"
         ),
