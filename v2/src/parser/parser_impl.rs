@@ -460,6 +460,20 @@ impl Parser {
         return Ok(Expr::ExprListValue(list_items));
     }
 
+    fn parse_new_passive_expr(&mut self) -> ParseResult<Expr> {
+        consume_and_check!(self, Token::New);
+        let typename = consume_and_check_type_ident!(self);
+        let args = extract_result_if_ok!(self.parse_method_args());
+        Ok(Expr::ExprNewPassive { typename, args })
+    }
+
+    fn parse_spawn_active_expr(&mut self) -> ParseResult<Expr> {
+        consume_and_check!(self, Token::Spawn);
+        let typename = consume_and_check_type_ident!(self);
+        let args = extract_result_if_ok!(self.parse_method_args());
+        Ok(Expr::ExprSpawnActive { typename, args })
+    }
+
     pub fn parse_expr_primary(&mut self) -> ParseResult<Expr> {
         let (token, pos) = self.rel_token(0);
 
@@ -474,6 +488,8 @@ impl Parser {
             Token::Identifier(i) => Expr::ExprIdentifier(i.clone()),
             Token::LeftParenthesis => return self.parse_group_or_tuple(),
             Token::LeftSquareBrackets => return self.parse_list_literal(),
+            Token::New => return self.parse_new_passive_expr(),
+            Token::Spawn => return self.parse_spawn_active_expr(),
             _ => {
                 return Err((
                     (token.clone(), pos.clone()),

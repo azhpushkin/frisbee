@@ -352,11 +352,19 @@ fn expr_list_access_on_method_call() {
         },
     );
 }
-// TODO: test associativyty (5 / 2 / 3 and 5 - 3 - 2)
-// TODO: test function call
-// TODO: test array access
-// TODO: test array
 
-// statements
-// TODO: test array assignment
-// TODO
+#[test]
+fn expr_new_passive() {
+    assert_expr_parses(
+        "new Object()",
+        Expr::ExprNewPassive { typename: String::from("Object"), args: vec![] },
+    );
+}
+
+#[test]
+fn expr_spawn_active() {
+    assert_expr_parses(
+        "spawn Object()",
+        Expr::ExprSpawnActive { typename: String::from("Object"), args: vec![] },
+    );
+}
