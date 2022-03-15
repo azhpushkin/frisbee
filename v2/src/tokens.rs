@@ -24,10 +24,11 @@ pub enum Token {
     // Keywords
     Active, Passive, Spawn, New,
     If, Else, Elif, While, For, // todo; break, continue
-    Let, Fun,
+    Fun,
     From, Import,
     True, False, Nil, And, Or, Not,
     This, Return,
+    // Let // this seems wrong too
     // Caller  // IDK this seems wrong
 
     EOF
@@ -102,7 +103,6 @@ fn identifier_to_token(s: String) -> Token {
         "elif" => Token::Elif,
         "while" => Token::While,
         "for" => Token::For,
-        "let" => Token::Let,
         "fun" => Token::Fun,
         "from" => Token::From,
         "import" => Token::Import,

@@ -259,52 +259,58 @@ impl Parser {
         Ok(statements)
     }
 
+    pub fn parse_if_else_stmt(&mut self) -> ParseResult<Statement> {
+        consume_and_check!(self, Token::If);
+        let condition = extract_result_if_ok!(self.parse_expr());
+        let ifbody = extract_result_if_ok!(self.parse_statements_in_curly_block());
+
+        let elsebody: Vec<Statement>;
+        if consume_if_matches_one_of!(self, [Token::Else]) {
+            elsebody = extract_result_if_ok!(self.parse_statements_in_curly_block());
+        } else {
+            elsebody = vec![];
+        };
+        Ok(Statement::SIfElse { condition, ifbody, elsebody })
+    }
+
+    pub fn parse_while_loop_stmt(&mut self) -> ParseResult<Statement> {
+        consume_and_check!(self, Token::While);
+        let condition = extract_result_if_ok!(self.parse_expr());
+        let body = extract_result_if_ok!(self.parse_statements_in_curly_block());
+        Ok(Statement::SWhile { condition, body })
+    }
+
     pub fn parse_statement(&mut self) -> ParseResult<Statement> {
         let (token, p) = self.rel_token(0).clone();
-        let stmt = match token {
-            Token::If => {
-                self.consume_token();
-                let condition = extract_result_if_ok!(self.parse_expr());
-                let ifbody = extract_result_if_ok!(self.parse_statements_in_curly_block());
-
-                let elsebody: Vec<Statement>;
-                if consume_if_matches_one_of!(self, [Token::Else]) {
-                    elsebody = extract_result_if_ok!(self.parse_statements_in_curly_block());
-                } else {
-                    elsebody = vec![];
-                };
-                Statement::SIfElse { condition, ifbody, elsebody }
-            }
-            Token::While => {
-                self.consume_token();
-                let condition = extract_result_if_ok!(self.parse_expr());
-                let body = extract_result_if_ok!(self.parse_statements_in_curly_block());
-                Statement::SWhile { condition, body }
-            }
+        match token {
+            Token::If => return self.parse_if_else_stmt(),
+            Token::While => return self.parse_while_loop_stmt(),
             Token::Return => {
                 self.consume_token();
                 let expr = extract_result_if_ok!(self.parse_expr());
                 consume_and_check!(self, Token::Semicolon);
-                Statement::SReturn(expr)
+                return Ok(Statement::SReturn(expr));
             }
-            Token::Let => panic!("VarDecl is not done!"),
-            _ => {
-                let expr = extract_result_if_ok!(self.parse_expr());
-                if consume_if_matches_one_of!(self, [Token::Bang, Token::Equal, Token::Semicolon]) {
-                    let (prev, _) = self.rel_token(-1);
-                    match prev {
-                        &Token::Semicolon => Statement::SExpr(expr),
-                        _ => panic!("NOT DONE!"),
-                    }
-                } else {
-                    return Err((
-                        (token, p),
-                        "Expression abruptly ended",
-                        Some(Token::Semicolon),
-                    ));
-                }
-            }
-        };
+            _ => (),
+        }
+
+        // First, try to consume type to see if this is type declaration
+        // TODO
+        let stmt;
+        let expr = extract_result_if_ok!(self.parse_expr());
+        if consume_if_matches_one_of!(self, [Token::Bang, Token::Equal, Token::Semicolon]) {
+            let (prev, _) = self.rel_token(-1);
+            stmt = match prev {
+                &Token::Semicolon => Statement::SExpr(expr),
+                _ => panic!("NOT DONE!"),
+            };
+        } else {
+            return Err((
+                (token, p),
+                "Expression abruptly ended",
+                Some(Token::Semicolon),
+            ));
+        }
 
         Ok(stmt)
     }
