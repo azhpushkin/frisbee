@@ -123,11 +123,11 @@ fn stmt_equal() {
 #[test]
 fn stmt_equal_to_list_item() {
     assert_stmt_parses(
-        "var[-1] = 2;",
+        "var[1] = 2;",
         Statement::SEqual {
             left: Expr::ExprListAccess {
                 list: Box::new(Expr::ExprIdentifier(String::from("var"))),
-                index: Box::new(Expr::ExprInt(-1)),
+                index: Box::new(Expr::ExprInt(1)),
             },
             right: Expr::ExprInt(2),
         },

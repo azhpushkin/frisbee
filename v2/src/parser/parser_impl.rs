@@ -324,23 +324,28 @@ impl Parser {
         // already moved it
 
         self.position = current_pos;
-        let stmt;
+
         let expr = extract_result_if_ok!(self.parse_expr());
-        if consume_if_matches_one_of!(self, [Token::Bang, Token::Equal, Token::Semicolon]) {
-            let (prev, _) = self.rel_token(-1);
-            stmt = match prev {
-                &Token::Semicolon => Statement::SExpr(expr),
-                _ => panic!("NOT DONE!"),
-            };
+
+        if consume_if_matches_one_of!(self, [Token::Semicolon]) {
+            // In some functional languages plain expression might be removed from AST
+            // entirely as they have no effect.
+            // However, in frisbee this is not true, as this is more OOP-like language
+            // and expression like object method call might change its state
+            return Ok(Statement::SExpr(expr));
+        } else if consume_if_matches_one_of!(self, [Token::Equal]) {
+            let value = extract_result_if_ok!(self.parse_expr());
+            consume_and_check!(self, Token::Semicolon);
+            return Ok(Statement::SEqual { left: expr, right: value });
+        } else if consume_if_matches_one_of!(self, [Token::Bang]) {
+            panic!("TODO");
         } else {
             return Err((
-                (token, p),
+                self.rel_token(0).clone(),
                 "Expression abruptly ended",
                 Some(Token::Semicolon),
             ));
         }
-
-        Ok(stmt)
     }
 
     pub fn parse_expr(&mut self) -> ParseResult<Expr> {
