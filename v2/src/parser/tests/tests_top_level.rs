@@ -1,6 +1,6 @@
 use crate::ast::*;
 
-use super::parser_impl::*;
+use super::super::parser_impl::*;
 use super::tests_helpers::parse_and_unwrap;
 
 #[test]

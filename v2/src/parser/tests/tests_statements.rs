@@ -1,6 +1,6 @@
 use crate::ast::*;
 
-use super::parser_impl::*;
+use super::super::parser_impl::*;
 use super::tests_helpers::*;
 
 fn assert_stmt_parses(s: &str, stmt: Statement) {

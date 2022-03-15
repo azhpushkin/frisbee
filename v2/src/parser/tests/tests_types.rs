@@ -1,6 +1,6 @@
 use crate::ast::*;
 
-use super::parser_impl::*;
+use super::super::parser_impl::*;
 use super::tests_helpers::*;
 
 fn assert_type_parses(s: &str, t: Type) {
