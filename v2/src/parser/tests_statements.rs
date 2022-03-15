@@ -113,7 +113,7 @@ fn stmt_equal() {
 
     assert_stmt_parses(
         "var = 2;",
-        Statement::SEqual {
+        Statement::SAssign {
             left: Expr::ExprIdentifier(String::from("var")),
             right: Expr::ExprInt(2),
         },
@@ -124,7 +124,7 @@ fn stmt_equal() {
 fn stmt_equal_to_list_item() {
     assert_stmt_parses(
         "var[1] = 2;",
-        Statement::SEqual {
+        Statement::SAssign {
             left: Expr::ExprListAccess {
                 list: Box::new(Expr::ExprIdentifier(String::from("var"))),
                 index: Box::new(Expr::ExprInt(1)),

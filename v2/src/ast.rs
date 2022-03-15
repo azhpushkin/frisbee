@@ -60,7 +60,7 @@ pub enum Statement {
         body: Vec<Statement>,
     },
     SReturn(Expr),
-    SEqual {
+    SAssign {
         left: Expr,
         right: Expr,
     },

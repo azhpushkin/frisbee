@@ -336,7 +336,7 @@ impl Parser {
         } else if consume_if_matches_one_of!(self, [Token::Equal]) {
             let value = extract_result_if_ok!(self.parse_expr());
             consume_and_check!(self, Token::Semicolon);
-            return Ok(Statement::SEqual { left: expr, right: value });
+            return Ok(Statement::SAssign { left: expr, right: value });
         } else if consume_if_matches_one_of!(self, [Token::Bang]) {
             panic!("TODO");
         } else {
