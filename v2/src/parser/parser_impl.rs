@@ -7,8 +7,26 @@ pub struct Parser {
     position: usize,
 }
 
-pub type ParseError = (ScannedToken, &'static str, Option<Token>);
+#[derive(Debug)]
+pub struct ParseError {
+    pub error_at: ScannedToken,
+    pub error_msg: &'static str,
+    pub expected: Option<Token>,
+}
 pub type ParseResult<T> = Result<T, ParseError>;
+
+fn perr<T>(error_at: &ScannedToken, error_msg: &'static str) -> ParseResult<T> {
+    Err(ParseError { error_at: error_at.clone(), error_msg, expected: None })
+}
+
+fn perr_with_expected<T>(
+    error_at: &ScannedToken,
+    error_msg: &'static str,
+    expected: Token,
+) -> ParseResult<T> {
+    Err(ParseError { error_at: error_at.clone(), error_msg, expected: Some(expected) })
+}
+
 // TODO: add tests for parsing error
 
 macro_rules! extract_result_if_ok {
@@ -26,7 +44,7 @@ macro_rules! consume_and_check {
     ($self:ident, $expected:expr) => {
         match $self.consume_token() {
             (t, _) if t.eq(&$expected) => (),
-            t => return Err((t, "Unexpected token", Some($expected))),
+            t => return perr_with_expected(t, "Unexpected token", $expected),
         }
     };
 }
@@ -46,8 +64,8 @@ macro_rules! consume_if_matches_one_of {
 macro_rules! consume_and_check_ident {
     ($self:ident) => {
         match $self.consume_token() {
-            (Token::Identifier(s), _) => s,
-            t => return Err((t, "Unexpected token (expected identifier)", None)),
+            (Token::Identifier(s), _) => s.clone(),
+            t => return perr(t, "Unexpected token (expected identifier)"),
         }
     };
 }
@@ -55,8 +73,8 @@ macro_rules! consume_and_check_ident {
 macro_rules! consume_and_check_type_ident {
     ($self:ident) => {
         match $self.consume_token() {
-            (Token::TypeIdentifier(s), _) => s,
-            t => return Err((t, "Unexpected token (expected identifier)", None)),
+            (Token::TypeIdentifier(s), _) => s.clone(),
+            t => return perr(t, "Unexpected token (expected identifier)"),
         }
     };
 }
@@ -86,10 +104,10 @@ impl Parser {
         }
     }
 
-    fn consume_token(&mut self) -> ScannedToken {
+    fn consume_token(&mut self) -> &ScannedToken {
         self.position += 1;
         // TODO: check performance or smth after removing clone() everywhere in file
-        self.rel_token(-1).clone()
+        self.rel_token(-1)
     }
 
     fn rel_token_check(&mut self, rel_pos: isize, token: Token) -> bool {
@@ -120,11 +138,10 @@ impl Parser {
                     break;
                 }
                 t => {
-                    return Err((
-                        t,
+                    return perr(
+                        &t,
                         "Only imports and object declarations are allowed at top level!",
-                        None,
-                    ));
+                    );
                 }
             }
         }
@@ -150,7 +167,7 @@ impl Parser {
     }
 
     pub fn parse_type(&mut self) -> ParseResult<Type> {
-        let (token, pos) = self.consume_token();
+        let (token, _) = self.consume_token();
         let mut result_type = match token {
             Token::LeftSquareBrackets => {
                 let item_type = extract_result_if_ok!(self.parse_type());
@@ -168,7 +185,7 @@ impl Parser {
                 });
 
                 match tuple_items.len() {
-                    0 => return Err(((token, pos), "Empty tuple is not allowed", None)),
+                    0 => return perr(self.rel_token(0), "Empty tuple is not allowed"),
                     1 => tuple_items.pop().unwrap(),
                     _ => Type::TypeTuple(tuple_items),
                 }
@@ -179,14 +196,10 @@ impl Parser {
                 "Nil" => Type::TypeNil,
                 "Bool" => Type::TypeBool,
                 "String" => Type::TypeString,
-                _ => Type::TypeIdent(s),
+                _ => Type::TypeIdent(s.clone()),
             },
             _ => {
-                return Err((
-                    (token.clone(), pos),
-                    "Wrong token for type definition",
-                    Some(token),
-                ));
+                return perr(self.rel_token(-1), "Wrong token for type definition");
             }
         };
 
@@ -289,16 +302,16 @@ impl Parser {
             consume_and_check!(self, Token::Semicolon);
             return Ok(Statement::SVarDeclEqual(typedecl, varname, value));
         } else {
-            return Err((
-                self.rel_token(0).clone(),
+            return perr_with_expected(
+                self.rel_token(0),
                 "Wrong variable declaration",
-                Some(Token::Semicolon),
-            ));
+                Token::Semicolon,
+            );
         }
     }
 
     pub fn parse_statement(&mut self) -> ParseResult<Statement> {
-        let (token, p) = self.rel_token(0).clone();
+        let (token, _) = self.rel_token(0);
         match token {
             Token::If => return self.parse_if_else_stmt(),
             Token::While => return self.parse_while_loop_stmt(),
@@ -343,11 +356,11 @@ impl Parser {
             consume_and_check!(self, Token::Semicolon);
             return Ok(Statement::SSendMessage { active: expr, method, args });
         } else {
-            return Err((
-                self.rel_token(0).clone(),
+            return perr_with_expected(
+                self.rel_token(0),
                 "Expression abruptly ended",
-                Some(Token::Semicolon),
-            ));
+                Token::Semicolon,
+            );
         }
     }
 
@@ -535,9 +548,7 @@ impl Parser {
     }
 
     pub fn parse_expr_primary(&mut self) -> ParseResult<Expr> {
-        let (token, pos) = self.rel_token(0);
-
-        let expr = match token {
+        let expr = match &self.rel_token(0).0 {
             Token::This => Expr::ExprThis,
             Token::Float(f) => Expr::ExprFloat(f.clone()),
             Token::Integer(i) => Expr::ExprInt(i.clone()),
@@ -550,12 +561,8 @@ impl Parser {
             Token::LeftSquareBrackets => return self.parse_list_literal(),
             Token::New => return self.parse_new_passive_expr(),
             Token::Spawn => return self.parse_spawn_active_expr(),
-            _ => {
-                return Err((
-                    (token.clone(), pos.clone()),
-                    "Unexpected expression",
-                    Some(token.clone()),
-                ))
+            t => {
+                return perr_with_expected(self.rel_token(0), "Unexpected expression", t.clone());
             }
         };
 

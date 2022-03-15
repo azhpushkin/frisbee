@@ -5,17 +5,15 @@ pub mod tokens;
 // TODO: color output?
 
 fn show_parse_error(program: &String, error: parser::ParseError) {
-    let (sc, error_msg, expected) = error;
-
-    let (line, row) = tokens::get_token_coordinates(&program, sc);
+    let (line, row) = tokens::get_token_coordinates(&program, error.error_at);
 
     println!("Error at line {} (row {}):\n----------\n", line, row,);
 
     let lines: Vec<&str> = program.split('\n').collect();
     let spaces: String = vec![' '; row].into_iter().collect();
-    let formatted_error_msg = match expected {
-        Some(token) => format!("{} (Expected token <{}>)", error_msg, token),
-        None => error_msg.to_string(),
+    let formatted_error_msg = match error.expected {
+        Some(token) => format!("{} (Expected token <{}>)", error.error_msg, token),
+        None => error.error_msg.to_string(),
     };
 
     // Print lines of code, 2 if possible

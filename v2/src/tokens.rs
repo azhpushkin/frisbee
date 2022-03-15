@@ -176,7 +176,7 @@ pub fn scan_tokens(data: &String) -> Vec<ScannedToken> {
 
             '!' if scanner.check_next('=') => scanner.add_token(Token::BangEqual),
             '!' => scanner.add_token(Token::Bang),
-
+            // TODO: think about <=! for send-and-wait pattern
             '"' => {
                 while !(scanner.is_finished() || scanner.check_ahead(0, '"')) {
                     scanner.consume_char();
