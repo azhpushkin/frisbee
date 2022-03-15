@@ -280,6 +280,23 @@ impl Parser {
         Ok(Statement::SWhile { condition, body })
     }
 
+    pub fn parse_var_declaration_continuation(&mut self, typedecl: Type) -> ParseResult<Statement> {
+        let varname = consume_and_check_ident!(self);
+        if consume_if_matches_one_of!(self, [Token::Semicolon]) {
+            return Ok(Statement::SVarDecl(typedecl, varname));
+        } else if consume_if_matches_one_of!(self, [Token::Equal]) {
+            let value = extract_result_if_ok!(self.parse_expr());
+            consume_and_check!(self, Token::Semicolon);
+            return Ok(Statement::SVarDeclEqual(typedecl, varname, value));
+        } else {
+            return Err((
+                self.rel_token(0).clone(),
+                "Wrong variable declaration",
+                Some(Token::Semicolon),
+            ));
+        }
+    }
+
     pub fn parse_statement(&mut self) -> ParseResult<Statement> {
         let (token, p) = self.rel_token(0).clone();
         match token {
@@ -295,7 +312,18 @@ impl Parser {
         }
 
         // First, try to consume type to see if this is type declaration
-        // TODO
+        // If Type is parsed correctly - then this must be some kind of variable declaration
+        let current_pos = self.position;
+        let parsed_type = self.parse_type();
+        if parsed_type.is_ok() {
+            return self.parse_var_declaration_continuation(parsed_type.unwrap());
+        }
+
+        // If type is not parsed, than fallback to other statement types
+        // and return position to pre-type state, as parsing type might have
+        // already moved it
+
+        self.position = current_pos;
         let stmt;
         let expr = extract_result_if_ok!(self.parse_expr());
         if consume_if_matches_one_of!(self, [Token::Bang, Token::Equal, Token::Semicolon]) {
