@@ -64,6 +64,7 @@ pub enum Statement {
         left: Expr,
         right: Expr,
     },
+    SVarDecl(Type, String),
     SVarDeclEqual(Type, String, Expr),
     SSendMessage {
         active: Expr,
@@ -127,6 +128,7 @@ pub enum Expr {
     ExprNil,
     ExprFloat(f32),
     ExprIdentifier(String),
+    // TODO new and spawn expr
     ExprNewPassive { typename: String, args: Vec<Expr> },
     ExprSpawnActive { typename: String, args: Vec<Expr> },
     ExprThis,

@@ -82,20 +82,77 @@ fn stmt_while() {
 }
 
 #[test]
-fn stmt_for_loop() {
-    // TODO: create SList to fit this?
+fn stmt_var_decl() {
+    assert_stmt_invalid("Int a");
+    assert_stmt_invalid("Int 1;");
+
     assert_stmt_parses(
-        "for(i=1, ",
-        Statement::SWhile {
-            condition: Expr::ExprInt(1),
-            body: vec![Statement::SExpr(Expr::ExprInt(1))],
+        "Actor x;",
+        Statement::SVarDecl(Type::TypeIdent(String::from("Actor")), String::from("xx")),
+    );
+}
+
+#[test]
+fn stmt_var_decl_equal() {
+    assert_stmt_invalid("Int a = 1");
+    assert_stmt_invalid("Int 1 = asd;");
+
+    assert_stmt_parses(
+        "Actor x;",
+        Statement::SVarDeclEqual(
+            Type::TypeIdent(String::from("Actor")),
+            String::from("xx"),
+            Expr::ExprIdentifier(String::from("asd")),
+        ),
+    );
+}
+
+#[test]
+fn stmt_equal() {
+    assert_stmt_invalid("a = 1");
+    assert_stmt_invalid("a = asd = q");
+
+    assert_stmt_parses(
+        "var = 2;",
+        Statement::SEqual {
+            left: Expr::ExprIdentifier(String::from("var")),
+            right: Expr::ExprInt(2),
         },
     );
 }
 
-// TODO: Int x = 1;
-// TODO: x = 2;
-// TODO: qwe ! qwe();
+#[test]
+fn stmt_equal_to_list_item() {
+    assert_stmt_parses(
+        "var[-1] = 2;",
+        Statement::SEqual {
+            left: Expr::ExprListAccess {
+                list: Box::new(Expr::ExprIdentifier(String::from("var"))),
+                index: Box::new(Expr::ExprInt(-1)),
+            },
+            right: Expr::ExprInt(2),
+        },
+    );
+}
+
+#[test]
+fn stmt_send_message() {
+    assert_stmt_invalid("a ! 1;");
+    assert_stmt_invalid("a ! asd;");
+    assert_stmt_invalid("a ! ads()");
+
+    assert_stmt_parses(
+        "a.x ! method();",
+        Statement::SSendMessage {
+            active: Expr::ExprFieldAccess {
+                object: Box::new(Expr::ExprIdentifier("a".into())),
+                field: String::from("x"),
+            },
+            method: String::from("method"),
+            args: vec![],
+        },
+    );
+}
 
 // statements
 // TODO: test array assignment
