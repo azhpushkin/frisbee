@@ -338,7 +338,10 @@ impl Parser {
             consume_and_check!(self, Token::Semicolon);
             return Ok(Statement::SAssign { left: expr, right: value });
         } else if consume_if_matches_one_of!(self, [Token::Bang]) {
-            panic!("TODO");
+            let method = consume_and_check_ident!(self);
+            let args = extract_result_if_ok!(self.parse_method_args());
+            consume_and_check!(self, Token::Semicolon);
+            return Ok(Statement::SSendMessage { active: expr, method, args });
         } else {
             return Err((
                 self.rel_token(0).clone(),
