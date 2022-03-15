@@ -68,14 +68,14 @@ fn stmt_if_else() {
 
 #[test]
 fn stmt_while() {
-    assert_stmt_invalid("while 1 {2};");
+    assert_stmt_invalid("while 1; {2}");
     assert_stmt_invalid("while 1 {2}");
 
     assert_stmt_parses(
         "while 1 {2;}",
         Statement::SWhile {
             condition: Expr::ExprInt(1),
-            body: vec![Statement::SExpr(Expr::ExprInt(1))],
+            body: vec![Statement::SExpr(Expr::ExprInt(2))],
         },
     );
 }

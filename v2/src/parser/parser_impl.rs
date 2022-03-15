@@ -275,7 +275,12 @@ impl Parser {
                 };
                 Statement::SIfElse { condition, ifbody, elsebody }
             }
-            Token::While => panic!("While is not done!"),
+            Token::While => {
+                self.consume_token();
+                let condition = extract_result_if_ok!(self.parse_expr());
+                let body = extract_result_if_ok!(self.parse_statements_in_curly_block());
+                Statement::SWhile { condition, body }
+            }
             Token::Return => {
                 self.consume_token();
                 let expr = extract_result_if_ok!(self.parse_expr());
