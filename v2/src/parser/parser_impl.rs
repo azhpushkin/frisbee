@@ -246,10 +246,6 @@ impl Parser {
                 stmts.push(extract_result_if_ok!(self.parse_statement()));
             });
 
-            // consume_and_check!(self, Token::RightCurlyBrackets); // TODO; remote after stmt done
-            // until_closes!(self, Token::RightCurlyBrackets, {
-            //     // stmts.push(extract_result_if_ok!(self.parse_statement()));
-            // });
             methods.push(MethodDecl { rettype, name, args, statements: stmts });
         }
 
@@ -261,7 +257,24 @@ impl Parser {
     pub fn parse_statement(&mut self) -> ParseResult<Statement> {
         let (token, p) = self.rel_token(0).clone();
         let stmt = match token {
-            Token::If => panic!("If is not done!"),
+            Token::If => {
+                self.consume_token();
+                let condition = extract_result_if_ok!(self.parse_expr());
+                let mut ifbody: Vec<Statement> = vec![];
+                consume_and_check!(self, Token::LeftCurlyBrackets);
+                until_closes!(self, Token::RightCurlyBrackets, {
+                    ifbody.push(extract_result_if_ok!(self.parse_statement()));
+                });
+
+                let mut elsebody: Vec<Statement> = vec![];
+                if consume_if_matches_one_of!(self, [Token::Else]) {
+                    consume_and_check!(self, Token::LeftCurlyBrackets);
+                    until_closes!(self, Token::RightCurlyBrackets, {
+                        elsebody.push(extract_result_if_ok!(self.parse_statement()));
+                    });
+                }
+                Statement::SIfElse { condition, ifbody, elsebody }
+            }
             Token::While => panic!("While is not done!"),
             Token::Return => {
                 self.consume_token();

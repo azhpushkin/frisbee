@@ -44,7 +44,7 @@ fn stmt_if() {
         "if 1 {2;}",
         Statement::SIfElse {
             condition: Expr::ExprInt(1),
-            ifbody: vec![Statement::SExpr(Expr::ExprInt(1))],
+            ifbody: vec![Statement::SExpr(Expr::ExprInt(2))],
             elsebody: vec![],
         },
     );
@@ -55,13 +55,12 @@ fn stmt_if_else() {
     assert_stmt_invalid("if 1 {2}; else 3");
     assert_stmt_invalid("if 1 2 else 3");
     assert_stmt_invalid("if 1 {2;} else {3}");
-    assert_stmt_invalid("if 1 {2;} else {3;};");
 
     assert_stmt_parses(
         "if 1 {2;} else {3;}",
         Statement::SIfElse {
             condition: Expr::ExprInt(1),
-            ifbody: vec![Statement::SExpr(Expr::ExprInt(1))],
+            ifbody: vec![Statement::SExpr(Expr::ExprInt(2))],
             elsebody: vec![Statement::SExpr(Expr::ExprInt(3))],
         },
     );
