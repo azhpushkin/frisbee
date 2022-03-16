@@ -1,0 +1,28 @@
+from asd import Actor;
+
+passive Student {
+    String name;
+    Integer? age;
+    [Integer] marks;
+}
+
+active Main {
+    fun Nil spawn() {
+        [Student] ss = [];
+        ss.push(new Student("Anton", 24, [4, 5, 3, 2]));
+        ss.push(new Student("Alina", nil, [5, 5, 4, 5]));
+        ss.push(new Student("Sasha", 23, [3, 3, 3, 3]));
+
+        Int average = 0;
+        // TODO: some kind of for loop would be great
+        Int i = 0;
+        while(i < ss.size()) {
+            // TODO: += -= *= /=  maybe add later on?
+            average = average + ss[i];
+        }
+        average = average / ss.size();
+
+        io = spawn IO(); // TODO; how tf would i do this
+        io ! print(average);
+    }
+}

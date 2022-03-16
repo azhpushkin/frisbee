@@ -6,3 +6,7 @@ f:
 
 a: f
 	git add .
+
+r:
+	# make r f=../examples/test.frisbee
+	cargo run -- ${f}

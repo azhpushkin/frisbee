@@ -16,7 +16,7 @@ static TODO: &str = r#"
     * check that active can both bang and call itself
     * fields of other actors are not accessible 
     * spawn and new return exactly what they need to return
-
+    * default new and spawn take all args one by one
 
 * what to do with caller and do we really
     need to allow everybody to be able to call everyone
