@@ -42,5 +42,5 @@ fn main() {
         return;
     }
 
-    println!("Parsed to {:?}", ast.unwrap());
+    println!("Parsed to {:#?}", ast.unwrap());
 }

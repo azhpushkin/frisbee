@@ -239,7 +239,18 @@ impl Parser {
         while !is_obj_end(self) {
             consume_and_check!(self, Token::Fun);
             let rettype = extract_result_if_ok!(self.parse_type());
-            let name = consume_and_check_ident!(self);
+
+            // Active and passive objects may have spawn and new constructions respectively
+            // so first of all, check those tokens
+            let name: String;
+            if is_active && consume_if_matches_one_of!(self, [Token::Spawn]) {
+                name = String::from("spawn");
+            } else if !is_active && consume_if_matches_one_of!(self, [Token::New]) {
+                name = String::from("new");
+            } else {
+                name = consume_and_check_ident!(self);
+            }
+
             let mut args: Vec<TypedNamedObject> = vec![];
 
             consume_and_check!(self, Token::LeftParenthesis);

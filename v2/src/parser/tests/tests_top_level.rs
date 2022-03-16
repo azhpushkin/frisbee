@@ -1,7 +1,7 @@
 use crate::ast::*;
 
 use super::super::parser_impl::*;
-use super::tests_helpers::parse_and_unwrap;
+use super::tests_helpers::{parse_and_unwrap, assert_parsing_fails};
 
 #[test]
 fn simple_import() {
@@ -86,5 +86,62 @@ fn passive_object_and_methods() {
                 ],
             }]
         }
+    );
+}
+
+
+
+#[test]
+fn passive_object_new_method() {
+    assert_eq!(
+        parse_and_unwrap(
+            |p| Parser::parse_object(p, false),
+            "passive Data { fun Data new() {} }"
+        ),
+        ObjectDecl {
+            is_active: false,
+            name: String::from("Data"),
+            fields: vec![],
+            methods: vec![MethodDecl {
+                rettype: Type::TypeIdent(String::from("Data")),
+                name: String::from("new"),
+                args: vec![],
+                statements: vec![],
+            }]
+        }
+    );
+
+    // spawn is not allowed for passive object
+    assert_parsing_fails(
+        |p| Parser::parse_object(p, false),
+        "passive Data { fun Data spawn() {} }"
+    );
+
+}
+
+#[test]
+fn active_object_spawn_method() {
+    assert_eq!(
+        parse_and_unwrap(
+            |p| Parser::parse_object(p, true),
+            "active Actor { fun Actor spawn() {} }"
+        ),
+        ObjectDecl {
+            is_active: true,
+            name: String::from("Actor"),
+            fields: vec![],
+            methods: vec![MethodDecl {
+                rettype: Type::TypeIdent(String::from("Actor")),
+                name: String::from("spawn"),
+                args: vec![],
+                statements: vec![],
+            }]
+        }
+    );
+
+    // spawn is not allowed for passive object
+    assert_parsing_fails(
+        |p| Parser::parse_object(p, true),
+        "active Actor { fun Actor new() {} }"
     );
 }

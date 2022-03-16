@@ -15,7 +15,7 @@ static TODO: &str = r#"
     * check that bang is only OK for active
     * check that active can both bang and call itself
     * fields of other actors are not accessible 
-
+    * spawn and new return exactly what they need to return
 
 
 * what to do with caller and do we really
