@@ -1,6 +1,0 @@
-pyparsing==2.4.0
-ipython==7.5.0
-pyzmq==18.0.1
-zmq==0.0.0
-pytest==4.5.0
-pyyaml==5.1
