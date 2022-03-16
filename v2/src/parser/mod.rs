@@ -4,7 +4,7 @@ mod parser_impl;
 #[rustfmt::skip] #[cfg(test)] mod tests;
 
 use crate::ast::Program;
-use crate::tokens::ScannedToken;
+use crate::scanner::ScannedToken;
 
 // pass this types through mod.rs
 pub type ParseError = parser_impl::ParseError;

@@ -1,11 +1,11 @@
 pub mod ast;
 pub mod parser;
-pub mod tokens;
+pub mod scanner;
 
 // TODO: color output?
 
 fn show_parse_error(program: &String, error: parser::ParseError) {
-    let (line, row) = tokens::get_token_coordinates(&program, error.error_at);
+    let (line, row) = scanner::get_token_coordinates(&program, error.error_at);
 
     println!("Error at line {} (row {}):\n----------\n", line, row,);
 
@@ -32,7 +32,7 @@ fn main() {
 
     let file_contents = std::fs::read_to_string(file_path).expect("Cant read file");
 
-    let tokens = tokens::scan_tokens(&file_contents);
+    let tokens = scanner::scan_tokens(&file_contents);
 
     let ast: parser::ParseResult<ast::Program> = parser::parse(tokens);
 

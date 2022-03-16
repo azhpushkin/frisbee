@@ -1,6 +1,6 @@
 use super::helpers::{bin_op_from_token, unary_op_from_token};
 use crate::ast::*;
-use crate::tokens::*;
+use crate::scanner::*;
 
 pub struct Parser {
     tokens: Vec<ScannedToken>,

@@ -1,5 +1,5 @@
 use crate::ast::{BinaryOp, UnaryOp};
-use crate::tokens::Token;
+use crate::scanner::Token;
 
 pub fn bin_op_from_token(t: &Token) -> BinaryOp {
     match t {

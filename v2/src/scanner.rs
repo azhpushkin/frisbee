@@ -24,11 +24,12 @@ pub enum Token {
     // Keywords
     Active, Passive, Spawn, New,
     If, Else, Elif, While, For, // todo; break, continue
+    // TODO: add "import as" -> as keyword
     Fun,
     From, Import,
     True, False, Nil, And, Or, Not,
     This, Return,
-    // Let // this seems wrong too
+    // Let // TODO: implement when type inference is there, should be easy?
     // Caller  // IDK this seems wrong
 
     EOF
