@@ -1,7 +1,7 @@
 use crate::ast::*;
 
 use super::super::parser_impl::*;
-use super::tests_helpers::{parse_and_unwrap, assert_parsing_fails};
+use super::tests_helpers::*;
 
 #[test]
 fn simple_import() {
@@ -104,7 +104,7 @@ fn class_object_constructor_method() {
             fields: vec![],
             methods: vec![MethodDecl {
                 rettype: Type::TypeIdent(String::from("Data")),
-                name: String::from("new"),
+                name: String::from("Data"),
                 args: vec![],
                 statements: vec![],
             }]
@@ -136,7 +136,7 @@ fn active_object_constructor_method() {
             fields: vec![],
             methods: vec![MethodDecl {
                 rettype: Type::TypeIdent(String::from("Actor")),
-                name: String::from("spawn"),
+                name: String::from("Actor"),
                 args: vec![],
                 statements: vec![],
             }]
@@ -151,4 +151,21 @@ fn active_object_constructor_method() {
         |p| Parser::parse_object(p, true),
         "active Actor { fun ActorConstructor() {} }"
     );
+}
+
+
+
+#[test]
+fn dublicated_methods_are_not_allowed() {
+    assert_parsing_fails(
+        |p| Parser::parse_object(p, true),
+        "active Actor { fun Nil hello() {} fun Nil hello() {} }"
+    );
+
+    // Same object but without duplicated method is fine
+    let parsed_ast = parse_helper(
+        |p| Parser::parse_object(p, true),
+        "active Actor { fun Nil hello() {} fun Nil hello2() {} }"
+    );
+    assert!(parsed_ast.is_ok());
 }

@@ -218,7 +218,7 @@ impl Parser {
             consume_and_check!(self, Token::Class);
         }
 
-        let name = consume_and_check_type_ident!(self);
+        let new_object_name = consume_and_check_type_ident!(self);
         let mut fields: Vec<TypedNamedObject> = vec![];
         let mut methods: Vec<MethodDecl> = vec![];
 
@@ -240,13 +240,20 @@ impl Parser {
             consume_and_check!(self, Token::Fun);
             let rettype = extract_result_if_ok!(self.parse_type());
 
-            // Active and passive objects may have spawn and new constructions respectively
-            // so first of all, check those tokens
             let name: String;
-            if is_active && consume_if_matches_one_of!(self, [Token::Spawn]) {
-                name = String::from("spawn");
-            } else if !is_active && consume_if_matches_one_of!(self, [Token::Spawn]) {
-                name = String::from("new");
+            if self.rel_token_check(0, Token::LeftParenthesis) {
+                // LeftParenthesis means that this is a constuctor
+                // So check if the constructor name is correct and return error if not
+                name = match &rettype {
+                    Type::TypeIdent(s) if !new_object_name.eq(s) => {
+                        return perr(
+                            self.rel_token(0),
+                            "Wrong typename is used for constructor-like method",
+                        )
+                    }
+                    Type::TypeIdent(s) => s.clone(),
+                    _ => return perr(self.rel_token(0), "Expected method name"),
+                };
             } else {
                 name = consume_and_check_ident!(self);
             }
@@ -271,7 +278,7 @@ impl Parser {
 
         consume_and_check!(self, Token::RightCurlyBrackets);
 
-        Ok(ObjectDecl { is_active, name, fields, methods })
+        Ok(ObjectDecl { is_active, name: new_object_name, fields, methods })
     }
 
     pub fn parse_statements_in_curly_block(&mut self) -> ParseResult<Vec<Statement>> {
