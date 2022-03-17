@@ -26,7 +26,7 @@ fn multiple_imports() {
                 },
                 ImportDecl { module: String::from("two"), typenames: vec![String::from("One")] }
             ],
-            passive: vec![],
+            structs: vec![],
             active: vec![]
         }
     );
@@ -92,11 +92,11 @@ fn passive_object_and_methods() {
 
 
 #[test]
-fn passive_object_new_method() {
+fn passive_object_constructor_method() {
     assert_eq!(
         parse_and_unwrap(
             |p| Parser::parse_object(p, false),
-            "passive Data { fun Data new() {} }"
+            "passive Data { fun Data() {} }"
         ),
         ObjectDecl {
             is_active: false,
@@ -114,17 +114,21 @@ fn passive_object_new_method() {
     // spawn is not allowed for passive object
     assert_parsing_fails(
         |p| Parser::parse_object(p, false),
-        "passive Data { fun Data spawn() {} }"
+        "struct Data { fun Data Data() {} }"
+    );
+    assert_parsing_fails(
+        |p| Parser::parse_object(p, false),
+        "struct Data { fun Data DataConstructor() {} }"
     );
 
 }
 
 #[test]
-fn active_object_spawn_method() {
+fn active_object_constructor_method() {
     assert_eq!(
         parse_and_unwrap(
             |p| Parser::parse_object(p, true),
-            "active Actor { fun Actor spawn() {} }"
+            "active Actor { fun Actor() {} }"
         ),
         ObjectDecl {
             is_active: true,
@@ -139,9 +143,12 @@ fn active_object_spawn_method() {
         }
     );
 
-    // spawn is not allowed for passive object
     assert_parsing_fails(
         |p| Parser::parse_object(p, true),
-        "active Actor { fun Actor new() {} }"
+        "active Actor { fun Actor Actor() {} }"
+    );
+    assert_parsing_fails(
+        |p| Parser::parse_object(p, true),
+        "active Actor { fun ActorConstructor() {} }"
     );
 }

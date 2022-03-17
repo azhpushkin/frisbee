@@ -1,8 +1,9 @@
 #[derive(Debug, PartialEq)]
 pub struct Program {
     pub imports: Vec<ImportDecl>,
-    pub passive: Vec<ObjectDecl>,
+    pub structs: Vec<ObjectDecl>,
     pub active: Vec<ObjectDecl>,
+    // TODO: functions
 }
 
 #[derive(Debug, PartialEq)]

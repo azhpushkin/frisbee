@@ -1,17 +1,31 @@
 from asd import Actor;
+// TODO: rework import system
+// import asd;
+// import asd.asd;
 
-passive Student {
+
+struct Student {
     String name;
     Integer? age;
     [Integer] marks;
+
+    fun Student() {
+
+    }
+}
+
+// TODO: add interfaces
+
+fun Nil hello_there(String) {
+    return 123;
 }
 
 active Main {
     fun Nil spawn() {
         [Student] ss = [];
-        ss.push(new Student("Anton", 24, [4, 5, 3, 2]));
-        ss.push(new Student("Alina", nil, [5, 5, 4, 5]));
-        ss.push(new Student("Sasha", 23, [3, 3, 3, 3]));
+        ss.push(Student("Anton", 24, [4, 5, 3, 2]));
+        ss.push(Student("Alina", nil, [5, 5, 4, 5]));
+        ss.push(Student("Sasha", 23, [3, 3, 3, 3]));
 
         Int average = 0;
         // TODO: some kind of for loop would be great

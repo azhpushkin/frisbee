@@ -121,7 +121,7 @@ impl Parser {
     }
 
     pub fn parse_top_level(&mut self) -> ParseResult<Program> {
-        let mut program = Program { imports: vec![], passive: vec![], active: vec![] };
+        let mut program = Program { imports: vec![], structs: vec![], active: vec![] };
 
         while !self.is_finished() {
             match self.rel_token(0).clone() {
@@ -132,7 +132,7 @@ impl Parser {
                     .active
                     .push(extract_result_if_ok!(self.parse_object(true))),
                 (Token::Passive, _) => program
-                    .passive
+                    .structs
                     .push(extract_result_if_ok!(self.parse_object(false))),
                 (Token::EOF, _) => {
                     break;
