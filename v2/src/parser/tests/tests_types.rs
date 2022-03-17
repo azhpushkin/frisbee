@@ -66,12 +66,13 @@ fn tuple_types() {
         Type::TypeTuple(vec![Type::TypeString, Type::TypeInt]),
     );
     assert_type_parses(
-        "(Actor, (Nil, Bool, Passive), Int)",
+        "(Actor, (Nil, Bool, Class, Passive), Int)",
         Type::TypeTuple(vec![
             Type::TypeIdent(String::from("Actor")),
             Type::TypeTuple(vec![
                 Type::TypeNil,
                 Type::TypeBool,
+                Type::TypeIdent(String::from("Class")),
                 Type::TypeIdent(String::from("Passive")),
             ]),
             Type::TypeInt,

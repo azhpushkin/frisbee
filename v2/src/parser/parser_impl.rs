@@ -131,7 +131,7 @@ impl Parser {
                 (Token::Active, _) => program
                     .active
                     .push(extract_result_if_ok!(self.parse_object(true))),
-                (Token::Passive, _) => program
+                (Token::Class, _) => program
                     .structs
                     .push(extract_result_if_ok!(self.parse_object(false))),
                 (Token::EOF, _) => {
@@ -215,7 +215,7 @@ impl Parser {
         if is_active {
             consume_and_check!(self, Token::Active);
         } else {
-            consume_and_check!(self, Token::Passive);
+            consume_and_check!(self, Token::Class);
         }
 
         let name = consume_and_check_type_ident!(self);
@@ -245,7 +245,7 @@ impl Parser {
             let name: String;
             if is_active && consume_if_matches_one_of!(self, [Token::Spawn]) {
                 name = String::from("spawn");
-            } else if !is_active && consume_if_matches_one_of!(self, [Token::New]) {
+            } else if !is_active && consume_if_matches_one_of!(self, [Token::Spawn]) {
                 name = String::from("new");
             } else {
                 name = consume_and_check_ident!(self);
@@ -544,11 +544,10 @@ impl Parser {
         return Ok(Expr::ExprListValue(list_items));
     }
 
-    fn parse_new_passive_expr(&mut self) -> ParseResult<Expr> {
-        consume_and_check!(self, Token::New);
+    fn parse_new_class_instance_expr(&mut self) -> ParseResult<Expr> {
         let typename = consume_and_check_type_ident!(self);
         let args = extract_result_if_ok!(self.parse_method_args());
-        Ok(Expr::ExprNewPassive { typename, args })
+        Ok(Expr::ExprNewClassInstance { typename, args })
     }
 
     fn parse_spawn_active_expr(&mut self) -> ParseResult<Expr> {
@@ -570,7 +569,7 @@ impl Parser {
             Token::Identifier(i) => Expr::ExprIdentifier(i.clone()),
             Token::LeftParenthesis => return self.parse_group_or_tuple(),
             Token::LeftSquareBrackets => return self.parse_list_literal(),
-            Token::New => return self.parse_new_passive_expr(),
+            Token::TypeIdentifier(_) => return self.parse_new_class_instance_expr(),
             Token::Spawn => return self.parse_spawn_active_expr(),
             t => {
                 return perr_with_expected(self.rel_token(0), "Unexpected expression", t.clone());

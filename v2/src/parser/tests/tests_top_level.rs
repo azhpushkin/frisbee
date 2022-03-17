@@ -55,11 +55,11 @@ fn active_object_and_fields() {
 }
 
 #[test]
-fn passive_object_and_methods() {
+fn class_object_and_methods() {
     assert_eq!(
         parse_and_unwrap(
             |p| Parser::parse_object(p, false),
-            "passive Data { fun Bool get_person(Int age, String name) { 1 / asd.call(); this; } }"
+            "class Data { fun Bool get_person(Int age, String name) { 1 / asd.call(); this; } }"
         ),
         ObjectDecl {
             is_active: false,
@@ -92,11 +92,11 @@ fn passive_object_and_methods() {
 
 
 #[test]
-fn passive_object_constructor_method() {
+fn class_object_constructor_method() {
     assert_eq!(
         parse_and_unwrap(
             |p| Parser::parse_object(p, false),
-            "passive Data { fun Data() {} }"
+            "class Data { fun Data() {} }"
         ),
         ObjectDecl {
             is_active: false,
@@ -111,7 +111,7 @@ fn passive_object_constructor_method() {
         }
     );
 
-    // spawn is not allowed for passive object
+    // spawn is not allowed for classes
     assert_parsing_fails(
         |p| Parser::parse_object(p, false),
         "struct Data { fun Data Data() {} }"

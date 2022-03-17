@@ -126,8 +126,7 @@ fn scan_string(scanner: &mut Scanner, start: usize) {
     if scanner.is_finished() {
         panic!("String is not terminated!");
     } else {
-        let content: String =
-            scanner.chars[start + 1..scanner.position].iter().collect();
+        let content: String = scanner.chars[start + 1..scanner.position].iter().collect();
         scanner.add_token_with_position(Token::String(content), start);
         scanner.consume_char();
     }
@@ -191,7 +190,6 @@ pub fn scan_tokens(data: &String) -> Vec<ScannedToken> {
             '!' if scanner.check_next('=') => scanner.add_token(Token::BangEqual),
             '!' => scanner.add_token(Token::Bang),
             // TODO: think about <=! for send-and-wait pattern
-            
             '"' => scan_string(&mut scanner, start),
             '\'' => scan_string(&mut scanner, start),
 

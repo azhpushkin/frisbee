@@ -131,7 +131,7 @@ pub enum Expr {
     ExprFloat(f32),
     ExprIdentifier(String),
     // TODO new and spawn expr
-    ExprNewPassive { typename: String, args: Vec<Expr> },
+    ExprNewClassInstance { typename: String, args: Vec<Expr> },
     ExprSpawnActive { typename: String, args: Vec<Expr> },
     ExprThis,
     // ExprCaller,
