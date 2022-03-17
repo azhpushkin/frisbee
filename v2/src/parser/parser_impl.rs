@@ -258,6 +258,11 @@ impl Parser {
                 name = consume_and_check_ident!(self);
             }
 
+            let is_duplicated_method = methods.iter().find(|x| x.name == name).is_some();
+            if is_duplicated_method {
+                return perr(self.rel_token(-1), "Duplicated method definition");
+            }
+
             let mut args: Vec<TypedNamedObject> = vec![];
 
             consume_and_check!(self, Token::LeftParenthesis);
