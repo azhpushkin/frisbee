@@ -12,6 +12,12 @@ fn assert_expr_invalid(s: &str) {
 }
 
 #[test]
+fn string_single_and_double_quotes() {
+    assert_expr_parses(r#" 'asd' "#, Expr::ExprString(String::from("asd")));
+    assert_expr_parses(r#" "asd" "#, Expr::ExprString(String::from("asd")));
+}
+
+#[test]
 fn operator_simple_equality() {
     assert_expr_parses(
         "(nil) == asd",
@@ -183,10 +189,10 @@ fn expr_list_value() {
     assert_expr_parses("[]", Expr::ExprListValue(vec![]));
 
     assert_expr_parses(
-        "[1, ooi]",
+        "[1, new]",
         Expr::ExprListValue(vec![
             Expr::ExprInt(1),
-            Expr::ExprIdentifier(String::from("ooi")),
+            Expr::ExprIdentifier(String::from("new")),
         ]),
     );
 
@@ -354,10 +360,10 @@ fn expr_list_access_on_method_call() {
 }
 
 #[test]
-fn expr_new_passive() {
+fn expr_new_class_instance() {
     assert_expr_parses(
-        "new Object()",
-        Expr::ExprNewPassive { typename: String::from("Object"), args: vec![] },
+        "Object()",
+        Expr::ExprNewClassInstance { typename: String::from("Object"), args: vec![] },
     );
 }
 

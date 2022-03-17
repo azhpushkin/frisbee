@@ -22,7 +22,7 @@ pub enum Token {
     Integer(i32),
 
     // Keywords
-    Active, Passive, Spawn, New,
+    Active, Class, Spawn,
     If, Else, Elif, While, For, // todo; break, continue
     // TODO: add "import as" -> as keyword
     Fun,
@@ -96,9 +96,8 @@ fn identifier_to_token(s: String) -> Token {
     match s.as_str() {
         _ if s.chars().next().unwrap().is_uppercase() => Token::TypeIdentifier(s),
         "active" => Token::Active,
-        "passive" => Token::Passive,
+        "class" => Token::Class,
         "spawn" => Token::Spawn,
-        "new" => Token::New,
         "if" => Token::If,
         "else" => Token::Else,
         "elif" => Token::Elif,
@@ -117,6 +116,20 @@ fn identifier_to_token(s: String) -> Token {
         // "caller" => Token::Caller,
         "return" => Token::Return,
         _ => Token::Identifier(s),
+    }
+}
+
+fn scan_string(scanner: &mut Scanner, start: usize) {
+    while !(scanner.is_finished() || scanner.check_ahead(0, '"')) {
+        scanner.consume_char();
+    }
+    if scanner.is_finished() {
+        panic!("String is not terminated!");
+    } else {
+        let content: String =
+            scanner.chars[start + 1..scanner.position].iter().collect();
+        scanner.add_token_with_position(Token::String(content), start);
+        scanner.consume_char();
     }
 }
 
@@ -178,19 +191,9 @@ pub fn scan_tokens(data: &String) -> Vec<ScannedToken> {
             '!' if scanner.check_next('=') => scanner.add_token(Token::BangEqual),
             '!' => scanner.add_token(Token::Bang),
             // TODO: think about <=! for send-and-wait pattern
-            '"' => {
-                while !(scanner.is_finished() || scanner.check_ahead(0, '"')) {
-                    scanner.consume_char();
-                }
-                if scanner.is_finished() {
-                    panic!("String is not terminated!");
-                } else {
-                    let content: String =
-                        scanner.chars[start + 1..scanner.position].iter().collect();
-                    scanner.add_token_with_position(Token::String(content), start);
-                    scanner.consume_char();
-                }
-            }
+            
+            '"' => scan_string(&mut scanner, start),
+            '\'' => scan_string(&mut scanner, start),
 
             d if d.is_digit(10) => {
                 let mut is_float = false;
@@ -438,8 +441,8 @@ mod tests {
     #[test]
     fn test_keywords() {
         assert_eq!(
-            scan_tokens_helper("if else spawn active passive"),
-            vec![Token::If, Token::Else, Token::Spawn, Token::Active, Token::Passive,]
+            scan_tokens_helper("if else spawn active class"),
+            vec![Token::If, Token::Else, Token::Spawn, Token::Active, Token::Class,]
         );
     }
 
