@@ -121,25 +121,29 @@ impl Parser {
     }
 
     pub fn parse_top_level(&mut self) -> ParseResult<Program> {
-        let mut program = Program { imports: vec![], structs: vec![], active: vec![] };
+        let mut program =
+            Program { functions: vec![], imports: vec![], classes: vec![], active: vec![] };
 
         while !self.is_finished() {
-            match self.rel_token(0).clone() {
-                (Token::From, _) => program
+            match self.rel_token(0).0 {
+                Token::From => program
                     .imports
                     .push(extract_result_if_ok!(self.parse_import())),
-                (Token::Active, _) => program
+                Token::Active => program
                     .active
                     .push(extract_result_if_ok!(self.parse_object(true))),
-                (Token::Class, _) => program
-                    .structs
+                Token::Class => program
+                    .classes
                     .push(extract_result_if_ok!(self.parse_object(false))),
-                (Token::EOF, _) => {
+                Token::Fun => program
+                    .functions
+                    .push(extract_result_if_ok!(self.parse_function_definition(None))),
+                Token::EOF => {
                     break;
                 }
-                t => {
+                _ => {
                     return perr(
-                        &t,
+                        self.rel_token(0),
                         "Only imports and object declarations are allowed at top level!",
                     );
                 }
@@ -211,6 +215,49 @@ impl Parser {
         Ok(result_type)
     }
 
+    pub fn parse_function_definition(
+        &mut self,
+        member_of: Option<&String>,
+    ) -> ParseResult<FunctionDecl> {
+        consume_and_check!(self, Token::Fun);
+        let rettype = extract_result_if_ok!(self.parse_type());
+
+        let name: String;
+        if member_of.is_some() && self.rel_token_check(0, Token::LeftParenthesis) {
+            // LeftParenthesis means that this is a constuctor
+            // So check if the constructor name is correct and return error if not
+            name = match &rettype {
+                Type::TypeIdent(s) if s != member_of.unwrap() => {
+                    return perr(
+                        self.rel_token(0),
+                        "Wrong typename is used for constructor-like method",
+                    )
+                }
+                Type::TypeIdent(s) => s.clone(),
+                _ => return perr(self.rel_token(0), "Expected method name"),
+            };
+        } else {
+            name = consume_and_check_ident!(self);
+        }
+
+        let mut args: Vec<TypedNamedObject> = vec![];
+
+        consume_and_check!(self, Token::LeftParenthesis);
+        until_closes!(self, Token::RightParenthesis, {
+            let argtype = extract_result_if_ok!(self.parse_type());
+            let argname = consume_and_check_ident!(self);
+
+            if self.rel_token_check(0, Token::Comma) {
+                self.consume_token();
+            }
+            args.push(TypedNamedObject { typename: argtype, name: argname });
+        });
+
+        let stmts = extract_result_if_ok!(self.parse_statements_in_curly_block());
+
+        Ok(FunctionDecl { rettype, name, args, statements: stmts })
+    }
+
     pub fn parse_object(&mut self, is_active: bool) -> ParseResult<ObjectDecl> {
         if is_active {
             consume_and_check!(self, Token::Active);
@@ -220,7 +267,7 @@ impl Parser {
 
         let new_object_name = consume_and_check_type_ident!(self);
         let mut fields: Vec<TypedNamedObject> = vec![];
-        let mut methods: Vec<MethodDecl> = vec![];
+        let mut methods: Vec<FunctionDecl> = vec![];
 
         consume_and_check!(self, Token::LeftCurlyBrackets);
 
@@ -237,48 +284,14 @@ impl Parser {
 
         // Parse object methods
         while !is_obj_end(self) {
-            consume_and_check!(self, Token::Fun);
-            let rettype = extract_result_if_ok!(self.parse_type());
+            let new_method =
+                extract_result_if_ok!(self.parse_function_definition(Some(&new_object_name)));
 
-            let name: String;
-            if self.rel_token_check(0, Token::LeftParenthesis) {
-                // LeftParenthesis means that this is a constuctor
-                // So check if the constructor name is correct and return error if not
-                name = match &rettype {
-                    Type::TypeIdent(s) if !new_object_name.eq(s) => {
-                        return perr(
-                            self.rel_token(0),
-                            "Wrong typename is used for constructor-like method",
-                        )
-                    }
-                    Type::TypeIdent(s) => s.clone(),
-                    _ => return perr(self.rel_token(0), "Expected method name"),
-                };
-            } else {
-                name = consume_and_check_ident!(self);
-            }
-
-            let is_duplicated_method = methods.iter().find(|x| x.name == name).is_some();
+            let is_duplicated_method = methods.iter().find(|x| x.name == new_method.name).is_some();
             if is_duplicated_method {
                 return perr(self.rel_token(-1), "Duplicated method definition");
             }
-
-            let mut args: Vec<TypedNamedObject> = vec![];
-
-            consume_and_check!(self, Token::LeftParenthesis);
-            until_closes!(self, Token::RightParenthesis, {
-                let argtype = extract_result_if_ok!(self.parse_type());
-                let argname = consume_and_check_ident!(self);
-
-                if self.rel_token_check(0, Token::Comma) {
-                    self.consume_token();
-                }
-                args.push(TypedNamedObject { typename: argtype, name: argname });
-            });
-
-            let stmts = extract_result_if_ok!(self.parse_statements_in_curly_block());
-
-            methods.push(MethodDecl { rettype, name, args, statements: stmts });
+            methods.push(new_method);
         }
 
         consume_and_check!(self, Token::RightCurlyBrackets);

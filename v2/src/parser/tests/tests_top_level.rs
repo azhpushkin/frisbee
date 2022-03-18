@@ -26,11 +26,49 @@ fn multiple_imports() {
                 },
                 ImportDecl { module: String::from("two"), typenames: vec![String::from("One")] }
             ],
-            structs: vec![],
+            classes: vec![],
+            functions: vec![],
             active: vec![]
         }
     );
 }
+
+
+#[test]
+fn function_() {
+    assert_eq!(
+        parse_and_unwrap(
+            Parser::parse_top_level,
+            "fun Bool get_person(Int age, String name) { 1 / asd.call(); this; } "
+        ),
+        Program {
+            imports: vec![],
+            classes: vec![],
+            active: vec![],
+            functions: vec![FunctionDecl {
+                rettype: Type::TypeBool,
+                name: String::from("get_person"),
+                args: vec![
+                    TypedNamedObject { typename: Type::TypeInt, name: String::from("age") },
+                    TypedNamedObject { typename: Type::TypeString, name: String::from("name") },
+                ],
+                statements: vec![
+                    Statement::SExpr(Expr::ExprBinOp {
+                        left: Box::new(Expr::ExprInt(1)),
+                        right: Box::new(Expr::ExprMethodCall {
+                            object: Box::new(Expr::ExprIdentifier(String::from("asd"))),
+                            method: String::from("call"),
+                            args: vec![]
+                        }),
+                        op: BinaryOp::Divide
+                    }),
+                    Statement::SExpr(Expr::ExprThis)
+                ],
+            }]
+        }
+    );
+}
+
 
 #[test]
 fn active_object_and_fields() {
@@ -65,7 +103,7 @@ fn class_object_and_methods() {
             is_active: false,
             name: String::from("Data"),
             fields: vec![],
-            methods: vec![MethodDecl {
+            methods: vec![FunctionDecl {
                 rettype: Type::TypeBool,
                 name: String::from("get_person"),
                 args: vec![
@@ -102,7 +140,7 @@ fn class_object_constructor_method() {
             is_active: false,
             name: String::from("Data"),
             fields: vec![],
-            methods: vec![MethodDecl {
+            methods: vec![FunctionDecl {
                 rettype: Type::TypeIdent(String::from("Data")),
                 name: String::from("Data"),
                 args: vec![],
@@ -134,7 +172,7 @@ fn active_object_constructor_method() {
             is_active: true,
             name: String::from("Actor"),
             fields: vec![],
-            methods: vec![MethodDecl {
+            methods: vec![FunctionDecl {
                 rettype: Type::TypeIdent(String::from("Actor")),
                 name: String::from("Actor"),
                 args: vec![],

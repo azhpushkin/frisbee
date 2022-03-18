@@ -1,9 +1,9 @@
 #[derive(Debug, PartialEq)]
 pub struct Program {
     pub imports: Vec<ImportDecl>,
-    pub structs: Vec<ObjectDecl>,
+    pub functions: Vec<FunctionDecl>,
+    pub classes: Vec<ObjectDecl>,
     pub active: Vec<ObjectDecl>,
-    // TODO: functions
 }
 
 #[derive(Debug, PartialEq)]
@@ -23,11 +23,11 @@ pub struct ObjectDecl {
     pub is_active: bool,
     pub name: String,
     pub fields: Vec<TypedNamedObject>,
-    pub methods: Vec<MethodDecl>,
+    pub methods: Vec<FunctionDecl>,
 }
 
 #[derive(Debug, PartialEq)]
-pub struct MethodDecl {
+pub struct FunctionDecl {
     pub rettype: Type,
     pub name: String,
     pub args: Vec<TypedNamedObject>,
