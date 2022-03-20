@@ -10,6 +10,7 @@ pub struct Program {
 pub struct ImportDecl {
     pub module: String,
     pub typenames: Vec<String>, // not Type because only non-builtins are imported
+    pub functions: Vec<String>,
 }
 
 #[derive(Debug, PartialEq)]

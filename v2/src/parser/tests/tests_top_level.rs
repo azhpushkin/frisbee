@@ -7,9 +7,18 @@ use super::tests_helpers::*;
 fn simple_import() {
     assert_eq!(
         parse_and_unwrap(Parser::parse_import, "from module import Actor;"),
-        ImportDecl { module: String::from("module"), typenames: vec![String::from("Actor")] }
+        ImportDecl { module: String::from("module"), typenames: vec![String::from("Actor")] , functions: vec![]}
     );
 }
+
+#[test]
+fn simple_import_of_functions() {
+    assert_eq!(
+        parse_and_unwrap(Parser::parse_import, "from module import Type, func, f;"),
+        ImportDecl { module: String::from("module"), typenames: vec![String::from("Type")] , functions: vec!["func".into(), "f".into()]}
+    );
+}
+
 
 #[test]
 fn multiple_imports() {
@@ -22,9 +31,10 @@ fn multiple_imports() {
             imports: vec![
                 ImportDecl {
                     module: String::from("some2"),
-                    typenames: vec![String::from("Hello"), String::from("There")]
+                    typenames: vec![String::from("Hello"), String::from("There")],
+                    functions: vec![]
                 },
-                ImportDecl { module: String::from("two"), typenames: vec![String::from("One")] }
+                ImportDecl { module: String::from("two"), typenames: vec![String::from("One")] ,functions: vec![]}
             ],
             classes: vec![],
             functions: vec![],
