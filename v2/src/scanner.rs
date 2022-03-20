@@ -154,9 +154,22 @@ pub fn scan_tokens(data: &String) -> Vec<ScannedToken> {
             '/' => {
                 if scanner.check_next('/') {
                     // comment found, skip everything until newline
-                    while !scanner.is_finished() && scanner.char_ahead(0) != '\n' {
+                    while !scanner.is_finished() && !scanner.check_ahead(0, '\n') {
                         scanner.consume_char();
                     }
+
+                    // Consume trailing \n
+                    scanner.consume_char();
+                } else if scanner.check_next('*') {
+                    let is_commend_end =
+                        |s: &Scanner| s.check_ahead(0, '*') && s.check_ahead(1, '/');
+                    while !scanner.is_finished() && !is_commend_end(&scanner) {
+                        scanner.consume_char();
+                    }
+
+                    // Consume both Start and Slash
+                    scanner.consume_char();
+                    scanner.consume_char();
                 } else {
                     scanner.add_token(Token::Slash)
                 }
@@ -349,18 +362,10 @@ mod tests {
         assert_eq!(scan_tokens_helper("//\n / //"), vec![Token::Slash]);
 
         assert_eq!(
-            scan_tokens_helper("<= < > >= = == !=!"),
-            vec![
-                Token::LessEqual,
-                Token::Less,
-                Token::Greater,
-                Token::GreaterEqual,
-                Token::Equal,
-                Token::EqualEqual,
-                Token::BangEqual,
-                Token::Bang,
-            ]
+            scan_tokens_helper("/* *  / */  * /"),
+            vec![Token::Star, Token::Slash]
         );
+        // assert_eq!(scan_tokens_helper("/* */"), vec![Token::Star, Token::Slash]);
     }
 
     #[test]

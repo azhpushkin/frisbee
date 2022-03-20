@@ -25,9 +25,7 @@ pub fn eval_binary_expr(op: &BinaryOp, left: &Expr, right: &Expr) -> FinalExpr {
         (_, _, _) => {
             return Err(format!(
                 "Cant apply {:?} to L: {:?} and R: {:?}",
-                op,
-                left.as_ref(),
-                right.as_ref()
+                op, left, right
             ))
         }
     };
@@ -37,13 +35,13 @@ pub fn eval_binary_expr(op: &BinaryOp, left: &Expr, right: &Expr) -> FinalExpr {
 
 pub fn eval_expr(expr: &Expr, state: &State) -> FinalExpr {
     let result: Expr = match expr {
-        &Expr::ExprInt(_) => expr.clone(),
-        &Expr::ExprFloat(_) => expr.clone(),
-        &Expr::ExprString(_) => expr.clone(),
-        &Expr::ExprBool(_) => expr.clone(),
-        &Expr::ExprNil => return Ok(Expr::ExprNil),
+        Expr::ExprInt(_) => expr.clone(),
+        Expr::ExprFloat(_) => expr.clone(),
+        Expr::ExprString(_) => expr.clone(),
+        Expr::ExprBool(_) => expr.clone(),
+        Expr::ExprNil => return Ok(Expr::ExprNil),
 
-        &Expr::ExprUnaryOp { op, operand } => {
+        Expr::ExprUnaryOp { op, operand } => {
             let operand_evaluated = extract_result_if_ok!(eval_expr(operand.as_ref(), state));
             match (&op, &operand_evaluated) {
                 (UnaryOp::Not, Expr::ExprBool(b)) => Expr::ExprBool(!b),
@@ -52,20 +50,21 @@ pub fn eval_expr(expr: &Expr, state: &State) -> FinalExpr {
                 (_, _) => return Err(format!("Cant apply {:?} to  {:?} ", op, expr)),
             }
         }
-        &Expr::ExprBinOp { left, right, op } => {
+        Expr::ExprBinOp { left, right, op } => {
             let leftexpr = extract_result_if_ok!(eval_expr(left.as_ref(), state));
             let rightexpr = extract_result_if_ok!(eval_expr(right.as_ref(), state));
             extract_result_if_ok!(eval_binary_expr(&op, &leftexpr, &rightexpr))
         } // &Expr::ExprListAccess{} => return 123;
-          // &Expr::ExprListValue{} => return 123;
-          // &Expr::ExprTupleValue{} => return 123;
-          // &Expr::ExprMethodCall{} => return 123;
-          // &Expr::ExprFieldAccess{} => return 123;
+        // &Expr::ExprListValue{} => return 123;
+        // &Expr::ExprTupleValue{} => return 123;
+        // &Expr::ExprMethodCall{} => return 123;
+        // &Expr::ExprFieldAccess{} => return 123;
 
-          // &Expr::ExprIdentifier{} => return 123;
-          // &Expr::ExprNewClassInstance{} => return 123;
-          // &Expr::ExprSpawnActive{} => return 123;
-          // &Expr::ExprThis{} => return 123;
+        // &Expr::ExprIdentifier{} => return 123;
+        // &Expr::ExprNewClassInstance{} => return 123;
+        // &Expr::ExprSpawnActive{} => return 123;
+        // &Expr::ExprThis{} => return 123;
+        _ => panic!("TODO"),
     };
 
     Ok(result)
