@@ -100,7 +100,7 @@ impl Parser {
         self.rel_token(-1)
     }
 
-    fn rel_token_check(&mut self, rel_pos: isize, token: Token) -> bool {
+    fn rel_token_check(&self, rel_pos: isize, token: Token) -> bool {
         match self.rel_token(rel_pos) {
             (x, _) => token.eq(x),
         }
@@ -378,7 +378,7 @@ impl Parser {
             return Ok(Statement::SAssign { left: expr, right: value });
         } else if consume_if_matches_one_of!(self, [Token::Bang]) {
             let method = consume_and_check_ident!(self);
-            let args = extract_result_if_ok!(self.parse_method_args());
+            let args = extract_result_if_ok!(self.parse_function_call_args());
             consume_and_check!(self, Token::Semicolon);
             return Ok(Statement::SSendMessage { active: expr, method, args });
         } else {
@@ -473,7 +473,7 @@ impl Parser {
         return self.parse_method_or_field_access();
     }
 
-    pub fn parse_method_args(&mut self) -> ParseResult<Vec<Expr>> {
+    pub fn parse_function_call_args(&mut self) -> ParseResult<Vec<Expr>> {
         let args: Vec<Expr>;
         if self.rel_token_check(1, Token::RightParenthesis) {
             // Consume both left and right parenthesis
@@ -493,7 +493,10 @@ impl Parser {
     pub fn parse_method_or_field_access(&mut self) -> ParseResult<Expr> {
         let mut res_expr = extract_result_if_ok!(self.parse_expr_primary());
 
-        while consume_if_matches_one_of!(self, [Token::Dot, Token::LeftSquareBrackets]) {
+        while consume_if_matches_one_of!(
+            self,
+            [Token::Dot, Token::LeftSquareBrackets, Token::LeftParenthesis]
+        ) {
             // If dot - parse field or method access
             if self.rel_token_check(-1, Token::Dot) {
                 let field_or_method = consume_and_check_ident!(self);
@@ -501,7 +504,7 @@ impl Parser {
                     res_expr = Expr::ExprMethodCall {
                         object: Box::new(res_expr),
                         method: field_or_method,
-                        args: extract_result_if_ok!(self.parse_method_args()),
+                        args: extract_result_if_ok!(self.parse_function_call_args()),
                     };
                 } else {
                     res_expr = Expr::ExprFieldAccess {
@@ -509,11 +512,26 @@ impl Parser {
                         field: field_or_method,
                     };
                 }
-            } else {
+            } else if self.rel_token_check(-1, Token::LeftSquareBrackets) {
                 // otherwise - left square brackets, meaning this is list access
                 let index = extract_result_if_ok!(self.parse_expr());
                 consume_and_check!(self, Token::RightSquareBrackets);
                 res_expr = Expr::ExprListAccess { list: Box::new(res_expr), index: Box::new(index) }
+            } else {
+                let cloned_identifier = match res_expr {
+                    Expr::ExprIdentifier(ident) => ident.clone(),
+                    _ => return perr(self.rel_token(0), "Function call of non-function expr"),
+                };
+                self.position -= 1;
+                let args = extract_result_if_ok!(self.parse_function_call_args());
+                if self.rel_token_check(0, Token::LeftParenthesis) {
+                    return perr(
+                        self.rel_token(0),
+                        "No first-class fuctions, chained func calls disallowed",
+                    );
+                }
+
+                res_expr = Expr::ExprFunctionCall { function: cloned_identifier, args };
             }
         }
 
@@ -561,14 +579,14 @@ impl Parser {
 
     fn parse_new_class_instance_expr(&mut self) -> ParseResult<Expr> {
         let typename = consume_and_check_type_ident!(self);
-        let args = extract_result_if_ok!(self.parse_method_args());
+        let args = extract_result_if_ok!(self.parse_function_call_args());
         Ok(Expr::ExprNewClassInstance { typename, args })
     }
 
     fn parse_spawn_active_expr(&mut self) -> ParseResult<Expr> {
         consume_and_check!(self, Token::Spawn);
         let typename = consume_and_check_type_ident!(self);
-        let args = extract_result_if_ok!(self.parse_method_args());
+        let args = extract_result_if_ok!(self.parse_function_call_args());
         Ok(Expr::ExprSpawnActive { typename, args })
     }
 
