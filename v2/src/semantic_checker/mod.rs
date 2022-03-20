@@ -17,6 +17,7 @@ static TODO: &str = r#"
     * fields of other actors are not accessible 
     * spawn and new return exactly what they need to return
     * default new and spawn take all args one by one
+    * infinite recursive classes or actors are not allowed (only maybe probably)
 
 * what to do with caller and do we really
     need to allow everybody to be able to call everyone

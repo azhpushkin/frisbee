@@ -2,6 +2,8 @@ pub mod ast;
 pub mod parser;
 pub mod scanner;
 pub mod semantic_checker;
+pub mod tree_walk;
+pub mod utils;
 
 // TODO: color output?
 

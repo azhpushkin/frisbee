@@ -1,6 +1,7 @@
 use super::helpers::{bin_op_from_token, unary_op_from_token};
 use crate::ast::*;
 use crate::scanner::*;
+use crate::utils::extract_result_if_ok;
 
 pub struct Parser {
     tokens: Vec<ScannedToken>,
@@ -28,17 +29,6 @@ fn perr_with_expected<T>(
 }
 
 // TODO: add tests for parsing error
-
-macro_rules! extract_result_if_ok {
-    ($parse_result:expr) => {
-        match $parse_result {
-            Ok(res) => res,
-            // Re-wrap pf parsing error is required to coerce type
-            // from Result<T, ParseError> to Result<Program, ParseError>
-            Err(t) => return Err(t),
-        }
-    };
-}
 
 macro_rules! consume_and_check {
     ($self:ident, $expected:expr) => {

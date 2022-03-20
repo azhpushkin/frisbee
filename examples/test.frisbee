@@ -1,4 +1,4 @@
-from asd import Actor;
+// from asd import Actor;
 // TODO: rework import system
 // import asd;
 // import asd.asd;
@@ -17,6 +17,7 @@ class Student {
 // TODO: add interfaces
 
 fun Nil hello_there(String s) {
+    // TODO: should raise an error semantic
     return 123;
 }
 
@@ -36,7 +37,6 @@ active Main {
         }
         average = average / ss.size();
 
-        io = spawn IO(); // TODO; how tf would i do this
-        io ! print(average);
+        print("Average" + average.tostring());
     }
 }
