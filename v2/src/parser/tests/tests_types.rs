@@ -52,10 +52,14 @@ fn list_types() {
 fn maybe_types() {
     assert_type_parses("String?", Type::TypeMaybe(Box::new(Type::TypeString)));
     assert_type_parses(
-        "Actor??",
-        Type::TypeMaybe(Box::new(Type::TypeMaybe(Box::new(Type::TypeIdent(
-            String::from("Actor"),
-        ))))),
+        "[Actor?]?",
+        Type::TypeMaybe(Box::new(
+            Type::TypeList(Box::new(
+                Type::TypeMaybe(Box::new(
+                    Type::TypeIdent("Actor".into())
+                ))
+            ))
+        )),
     );
 }
 

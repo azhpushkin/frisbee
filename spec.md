@@ -22,4 +22,13 @@ There are 3 more built-in ways to modify those types:
   Example: `[String]` . Stores list of data
 
   
+
+
+Imports:
+```
+from asd import Type, function;
+
+
+```
+
   

@@ -16,7 +16,7 @@ pub fn parse_and_unwrap<T: std::fmt::Debug>(parsefn: ParsingFunction<T>, s: &str
 
 pub fn parse_helper<T: std::fmt::Debug>(parsefn: ParsingFunction<T>, s: &str) -> ParseResult<T> {
     let tokens = scan_tokens(&String::from(s));
-    let mut parser = Parser::create(tokens);
+    let mut parser = Parser::create(tokens.unwrap());
     parsefn(&mut parser)
 }
 

@@ -1,5 +1,6 @@
 // TODO: define what kind of checks to do
 
+#[allow(dead_code)]
 static TODO: &str = r#"
 * generate one big AST using imports, check imports
     * load file by file, cache by name etc

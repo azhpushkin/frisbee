@@ -134,7 +134,7 @@ impl Parser {
                 _ => {
                     return perr(
                         self.rel_token(0),
-                        "Only imports and object declarations are allowed at top level!",
+                        "Only imports and fun/class/active declarations are allowed at top level!",
                     );
                 }
             }

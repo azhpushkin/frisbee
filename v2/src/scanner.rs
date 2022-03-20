@@ -36,6 +36,7 @@ pub enum Token {
 }
 
 pub type ScannedToken = (Token, i32);
+pub type ScanningError = (&'static str, i32);
 
 struct Scanner {
     chars: Vec<char>,
@@ -119,20 +120,28 @@ fn identifier_to_token(s: String) -> Token {
     }
 }
 
-fn scan_string(scanner: &mut Scanner, start: usize, quote: char) {
+fn scan_string(scanner: &mut Scanner, start: usize, quote: char) -> Option<ScanningError> {
     while !(scanner.is_finished() || scanner.check_ahead(0, quote)) {
         scanner.consume_char();
+        if scanner.char_ahead(0) == '\n' {
+            return Some((
+                "String must be terminated at the same newline!",
+                start as i32,
+            ));
+        }
     }
     if scanner.is_finished() {
-        panic!("String is not terminated!");
+        return Some(("String is not terminated!", start as i32));
     } else {
         let content: String = scanner.chars[start + 1..scanner.position].iter().collect();
         scanner.add_token_with_position(Token::String(content), start);
         scanner.consume_char();
     }
+
+    None
 }
 
-pub fn scan_tokens(data: &String) -> Vec<ScannedToken> {
+pub fn scan_tokens(data: &String) -> Result<Vec<ScannedToken>, ScanningError> {
     let mut scanner = Scanner::create(data.chars().collect::<Vec<_>>());
 
     while !scanner.is_finished() {
@@ -176,17 +185,22 @@ pub fn scan_tokens(data: &String) -> Vec<ScannedToken> {
             }
             '?' => {
                 let next_char = scanner.char_ahead(0);
+                if next_char == '?' {
+                    return Err((
+                        "Double-question mark has no sense (nillable is either ON or OFF)",
+                        (scanner.position as i32) - 1,
+                    ));
+                }
                 if !(next_char.is_whitespace()
                     || next_char == ','
-                    || next_char == '?'
                     || next_char == ']'
                     || next_char == ')'
                     || next_char == '\0')
                 {
-                    panic!(
-                        "Symbol is not allowed right after questionmark: {}",
-                        next_char
-                    );
+                    return Err((
+                        "Symbol is not allowed right after questionmark",
+                        (scanner.position as i32) - 1,
+                    ));
                 }
                 scanner.add_token(Token::Question)
             }
@@ -203,8 +217,18 @@ pub fn scan_tokens(data: &String) -> Vec<ScannedToken> {
             '!' if scanner.check_next('=') => scanner.add_token(Token::BangEqual),
             '!' => scanner.add_token(Token::Bang),
             // TODO: think about <=! for send-and-wait pattern
-            '"' => scan_string(&mut scanner, start, '"'),
-            '\'' => scan_string(&mut scanner, start, '\''),
+            '"' => {
+                let scan_res = scan_string(&mut scanner, start, '"');
+                if scan_res.is_some() {
+                    return Err(scan_res.unwrap());
+                }
+            }
+            '\'' => {
+                let scan_res = scan_string(&mut scanner, start, '\'');
+                if scan_res.is_some() {
+                    return Err(scan_res.unwrap());
+                }
+            }
 
             d if d.is_digit(10) => {
                 let mut is_float = false;
@@ -245,18 +269,17 @@ pub fn scan_tokens(data: &String) -> Vec<ScannedToken> {
             }
             c if c.is_whitespace() => (),
 
-            c => {
-                panic!("Unknown symbol occured: {}", c);
+            _ => {
+                return Err(("Unknown symbol occured", scanner.position as i32 - 1));
             }
         }
     }
     scanner.add_token_with_position(Token::EOF, data.len() - 1);
 
-    scanner.tokens
+    Ok(scanner.tokens)
 }
 
-pub fn get_token_coordinates(data: &String, sc: ScannedToken) -> (usize, usize) {
-    let (_, pos) = sc;
+pub fn get_position_coordinates(data: &String, pos: i32) -> (usize, usize) {
     let mut line: usize = 0;
     let mut row: usize = 0;
     let mut counter: i32 = 0;
@@ -281,6 +304,8 @@ mod tests {
 
     fn scan_tokens_helper(s: &str) -> Vec<Token> {
         let res = scan_tokens(&String::from(s));
+        assert!(res.is_ok(), "Error on scanning: {:?}", res.unwrap_err());
+        let res = res.unwrap();
 
         let mut tokens = res.iter().map(|(t, _p)| t.clone()).collect::<Vec<Token>>();
         assert_eq!(tokens.last().unwrap(), &Token::EOF);
@@ -293,7 +318,7 @@ mod tests {
     fn test_positions() {
         let res = scan_tokens(&String::from(r#" 123 . [] "hey" 888.888 "#));
         assert_eq!(
-            res,
+            res.unwrap(),
             vec![
                 (Token::Integer(123), 1),
                 (Token::Dot, 5),
@@ -452,12 +477,8 @@ mod tests {
     #[test]
     fn test_question_next_token() {
         assert_eq!(
-            scan_tokens_helper("Int?"),
+            scan_tokens_helper("Int? "),
             vec![Token::TypeIdentifier(String::from("Int")), Token::Question,]
-        );
-        assert_eq!(
-            scan_tokens_helper("Int??"),
-            vec![Token::TypeIdentifier(String::from("Int")), Token::Question, Token::Question]
         );
         assert_eq!(
             scan_tokens_helper("(Int?)"),
@@ -484,20 +505,42 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Symbol is not allowed right after questionmark")]
     fn ensure_not_alpha_after_question() {
-        scan_tokens_helper("Int?asd");
+        let res = scan_tokens(&String::from("Int?asd"));
+        assert!(res.is_err());
+        assert_eq!(
+            res.unwrap_err().0,
+            "Symbol is not allowed right after questionmark"
+        );
     }
 
     #[test]
-    #[should_panic(expected = "Symbol is not allowed right after questionmark")]
     fn ensure_not_number_after_question() {
-        scan_tokens_helper("Int?12sd");
+        let res = scan_tokens(&String::from("Int?123"));
+        assert!(res.is_err());
+        assert_eq!(
+            res.unwrap_err().0,
+            "Symbol is not allowed right after questionmark"
+        );
     }
 
     #[test]
-    #[should_panic(expected = "Symbol is not allowed right after questionmark")]
     fn ensure_not_dot_after_question() {
-        scan_tokens_helper("Int?.");
+        let res = scan_tokens(&String::from("Int?."));
+        assert!(res.is_err());
+        assert_eq!(
+            res.unwrap_err().0,
+            "Symbol is not allowed right after questionmark"
+        );
+    }
+
+    #[test]
+    fn ensure_no_double_questionmark() {
+        let res = scan_tokens(&String::from("Int??"));
+        assert!(res.is_err());
+        assert_eq!(
+            res.unwrap_err().0,
+            "Double-question mark has no sense (nillable is either ON or OFF)"
+        );
     }
 }
