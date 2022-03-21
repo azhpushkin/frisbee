@@ -3,7 +3,7 @@ macro_rules! extract_result_if_ok {
         match $parse_result {
             Ok(res) => res,
             // Re-wrap pf parsing error is required to coerce type
-            // from Result<T, ParseError> to Result<Program, ParseError>
+            // from Result<T, ParseError> to Result<FileAst, ParseError>
             Err(t) => return Err(t),
         }
     };

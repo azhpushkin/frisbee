@@ -110,9 +110,9 @@ impl Parser {
         self.position >= self.tokens.len()
     }
 
-    pub fn parse_top_level(&mut self) -> ParseResult<Program> {
+    pub fn parse_top_level(&mut self) -> ParseResult<FileAst> {
         let mut program =
-            Program { functions: vec![], imports: vec![], classes: vec![], active: vec![] };
+            FileAst { functions: vec![], imports: vec![], classes: vec![], active: vec![] };
 
         while !self.is_finished() {
             match self.rel_token(0).0 {

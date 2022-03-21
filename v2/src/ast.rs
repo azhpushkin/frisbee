@@ -1,12 +1,12 @@
 #[derive(Debug, PartialEq)]
-pub struct Program {
+pub struct FileAst {
     pub imports: Vec<ImportDecl>,
     pub functions: Vec<FunctionDecl>,
     pub classes: Vec<ObjectDecl>,
     pub active: Vec<ObjectDecl>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct ImportDecl {
     pub module: String,
     pub typenames: Vec<String>, // not Type because only non-builtins are imported

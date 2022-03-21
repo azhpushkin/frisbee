@@ -1,25 +1,15 @@
-// from asd import Actor;
-// TODO: rework import system
-// import asd;
-// import asd.asd;
+from student import Student;
 
 
-class Student {
-    String name;
-    Integer? age;
-    [Integer] marks;
+/* 
+Ideas around foreach:
 
-    fun Student() {
+foreach(Student s: ss) { ... }
 
-    }
-}
+from std import range;
+foreach(Int i: range(ss.size())) { ... }
 
-// TODO: add interfaces
-
-fun Nil hello_there(String s) {
-    // TODO: should raise an error semantic
-    return 123;
-}
+*/
 
 active Main {
     fun Main() {
@@ -29,11 +19,11 @@ active Main {
         ss.push(Student("Sasha", 23, [3, 3, 3, 3]));
 
         Int average = 0;
-        // TODO: some kind of for loop would be great
         Int i = 0;
         while(i < ss.size()) {
             // TODO: += -= *= /=  maybe add later on?
             average = average + ss[i];
+            i = i + 1;
         }
         average = average / ss.size();
 

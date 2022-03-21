@@ -27,7 +27,7 @@ fn multiple_imports() {
             Parser::parse_top_level,
             "from some2 import Hello, There; from two import One;"
         ),
-        Program {
+        FileAst {
             imports: vec![
                 ImportDecl {
                     module: String::from("some2"),
@@ -51,7 +51,7 @@ fn function_() {
             Parser::parse_top_level,
             "fun Bool get_person(Int age, String name) { 1 / asd.call(); this; } "
         ),
-        Program {
+        FileAst {
             imports: vec![],
             classes: vec![],
             active: vec![],

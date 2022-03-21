@@ -274,7 +274,7 @@ pub fn scan_tokens(data: &String) -> Result<Vec<ScannedToken>, ScanningError> {
             }
         }
     }
-    scanner.add_token_with_position(Token::EOF, data.len() - 1);
+    scanner.add_token_with_position(Token::EOF, data.len());
 
     Ok(scanner.tokens)
 }

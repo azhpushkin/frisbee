@@ -3,49 +3,45 @@ use crate::{errors, parser, scanner};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
+#[derive(Debug)]
 pub struct LoadedFile {
     pub path: PathBuf,
     pub module_name: String,
     pub contents: String,
-    pub ast: Option<Program>,
+    pub ast: FileAst,
 }
 
-impl LoadedFile {
-    pub fn new_unloaded(path: PathBuf) -> LoadedFile {
-        LoadedFile {
-            path: path.clone(),
-            module_name: path.file_name().unwrap().to_str().unwrap().into(),
-            contents: String::from(""),
-            ast: None,
-        }
-    }
-}
-
+#[derive(Debug)]
 pub struct WholeProgram {
     pub workdir: PathBuf,
     pub mainfile: String,
     pub files: HashMap<String, LoadedFile>,
 }
 
-pub fn generate_ast(file: &mut LoadedFile) {
-    println!(" ... Loading {}", file.path.to_str().unwrap());
+pub fn load_file(path: &PathBuf) -> Option<LoadedFile> {
+    println!(" ... Loading {}", path.to_str().unwrap());
 
-    file.contents = std::fs::read_to_string(&file.path).expect("Cant read file");
+    let contents = std::fs::read_to_string(path).expect("Cant read file");
+    let module_name = path_to_module(&path);
 
-    let tokens = scanner::scan_tokens(&file.contents);
+    let tokens = scanner::scan_tokens(&contents);
     if tokens.is_err() {
-        errors::show_scan_error(&file, tokens.unwrap_err());
-        return;
+        errors::show_scan_error(&contents, &module_name, tokens.unwrap_err());
+        return None;
     }
 
-    let ast: parser::ParseResult<Program> = parser::parse(tokens.unwrap());
+    let ast: parser::ParseResult<FileAst> = parser::parse(tokens.unwrap());
 
     if ast.is_err() {
-        errors::show_parse_error(&file, ast.unwrap_err());
-        return;
+        errors::show_parse_error(&contents, &module_name, ast.unwrap_err());
+        return None;
     }
 
-    file.ast = Some(ast.unwrap());
+    Some(LoadedFile { path: path.clone(), module_name, contents, ast: ast.unwrap() })
+}
+
+pub fn path_to_module(path: &PathBuf) -> String {
+    return path.file_name().unwrap().to_str().unwrap().into();
 }
 
 // TODO:  ensure both windows and Unix are working file
@@ -58,24 +54,28 @@ pub fn load_program(entry_file_path: &Path) {
         files: HashMap::new(),
     };
 
-    let x = LoadedFile::new_unloaded(entry_file_path.to_owned());
-    whole_program.files.insert(String::from(filename), x);
+    let mut modules_to_load: Vec<PathBuf> = vec![entry_file_path.to_owned()];
 
-    while true {
-        let unloaded_file = whole_program
-            .files
-            .iter_mut()
-            .find(|(_, v)| v.ast.is_none());
-        if unloaded_file.is_none() {
-            // All files are loaded, nothing to do in the loop anymore
-            break;
-        }
-        let unloaded_file = unloaded_file.unwrap().1;
-
-        generate_ast(unloaded_file);
-        if unloaded_file.ast.is_none() {
-            // Error occured, no AST was generated
+    while !modules_to_load.is_empty() {
+        let path_to_load = modules_to_load.pop().unwrap();
+        let loaded_file = load_file(&path_to_load);
+        if loaded_file.is_none() {
             return;
         }
+
+        let loaded_file = loaded_file.unwrap();
+
+        for import in &loaded_file.ast.imports {
+            let filename = format!("{}.frisbee", import.module);
+            if whole_program.files.get(&filename).is_none() {
+                let mut module_path = whole_program.workdir.clone();
+                module_path.push(filename);
+                modules_to_load.push(module_path);
+            }
+        }
+
+        whole_program
+            .files
+            .insert(path_to_module(&path_to_load), loaded_file);
     }
 }
