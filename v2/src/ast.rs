@@ -8,8 +8,12 @@ pub struct FileAst {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ImportDecl {
-    pub module: String,
-    pub typenames: Vec<String>, // not Type because only non-builtins are imported
+    // Path to module, e.g. `from module.sub..` -> ["module", "sub"]
+    pub module_path: Vec<String>,
+
+    // NOTE: typenames is not Vec<Type> because only non-builtins are imported
+    // so all of the imported types are Type::TypeIdentifier (this is checked by parser)
+    pub typenames: Vec<String>,
     pub functions: Vec<String>,
 }
 

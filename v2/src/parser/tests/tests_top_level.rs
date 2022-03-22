@@ -7,15 +7,15 @@ use super::tests_helpers::*;
 fn simple_import() {
     assert_eq!(
         parse_and_unwrap(Parser::parse_import, "from module import Actor;"),
-        ImportDecl { module: String::from("module"), typenames: vec![String::from("Actor")] , functions: vec![]}
+        ImportDecl { module_path: vec!["module".into()], typenames: vec![String::from("Actor")] , functions: vec![]}
     );
 }
 
 #[test]
 fn simple_import_of_functions() {
     assert_eq!(
-        parse_and_unwrap(Parser::parse_import, "from module import Type, func, f;"),
-        ImportDecl { module: String::from("module"), typenames: vec![String::from("Type")] , functions: vec!["func".into(), "f".into()]}
+        parse_and_unwrap(Parser::parse_import, "from module import func, Type, f;"),
+        ImportDecl { module_path: vec!["module".into()], typenames: vec![String::from("Type")] , functions: vec!["func".into(), "f".into()]}
     );
 }
 
@@ -30,11 +30,11 @@ fn multiple_imports() {
         FileAst {
             imports: vec![
                 ImportDecl {
-                    module: String::from("some2"),
+                    module_path: vec![String::from("some2")],
                     typenames: vec![String::from("Hello"), String::from("There")],
                     functions: vec![]
                 },
-                ImportDecl { module: String::from("two"), typenames: vec![String::from("One")] ,functions: vec![]}
+                ImportDecl { module_path: vec![String::from("two")], typenames: vec![String::from("One")] ,functions: vec![]}
             ],
             classes: vec![],
             functions: vec![],

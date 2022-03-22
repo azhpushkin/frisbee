@@ -150,19 +150,21 @@ impl Parser {
         let mut typenames: Vec<String> = vec![];
         let mut functions: Vec<String> = vec![];
 
-        typenames.push(consume_and_check_type_ident!(self));
-
-        while self.rel_token_check(0, Token::Comma) {
-            self.consume_token();
+        loop {
             match self.consume_token() {
                 (Token::TypeIdentifier(s), _) => typenames.push(s.clone()),
                 (Token::Identifier(s), _) => functions.push(s.clone()),
                 t => return perr(t, "Unexpected token (expected identifier)"),
             }
+            if self.rel_token_check(0, Token::Comma) {
+                self.consume_token();
+            } else if self.rel_token_check(0, Token::Semicolon) {
+                break;
+            }
         }
         consume_and_check!(self, Token::Semicolon);
 
-        Ok(ImportDecl { module, typenames, functions })
+        Ok(ImportDecl { module_path: vec![module], typenames, functions })
     }
 
     pub fn parse_type(&mut self) -> ParseResult<Type> {

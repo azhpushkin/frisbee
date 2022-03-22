@@ -1,4 +1,4 @@
-use crate::{loader, parser, scanner, utils};
+use crate::{parser, scanner, utils};
 
 fn show_error(contents: &String, module: &String, pos: i32, error_msg: String) {
     let (line, row) = utils::get_position_coordinates(&contents, pos);

@@ -307,7 +307,7 @@ mod tests {
                 (Token::RightSquareBrackets, 8),
                 (Token::String(String::from("hey")), 10),
                 (Token::Float(888.888), 16),
-                (Token::EOF, 23),
+                (Token::EOF, 24),
             ]
         );
     }

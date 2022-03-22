@@ -66,7 +66,8 @@ pub fn load_program(entry_file_path: &Path) {
         let loaded_file = loaded_file.unwrap();
 
         for import in &loaded_file.ast.imports {
-            let filename = format!("{}.frisbee", import.module);
+            // todo swap [0] to correct path forming
+            let filename = format!("{}.frisbee", import.module_path[0]);
             if whole_program.files.get(&filename).is_none() {
                 let mut module_path = whole_program.workdir.clone();
                 module_path.push(filename);
