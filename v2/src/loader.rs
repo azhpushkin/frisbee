@@ -3,10 +3,15 @@ use crate::{errors, parser, scanner};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
+type ModulePath = Vec<String>;
+fn alias(mp: &ModulePath) -> String {
+    mp.join(".")
+}
+
 #[derive(Debug)]
 pub struct LoadedFile {
     pub path: PathBuf,
-    pub module_name: String,
+    pub module_path: ModulePath,
     pub contents: String,
     pub ast: FileAst,
 }
@@ -14,69 +19,81 @@ pub struct LoadedFile {
 #[derive(Debug)]
 pub struct WholeProgram {
     pub workdir: PathBuf,
-    pub mainfile: String,
+    pub main_module: String,
     pub files: HashMap<String, LoadedFile>,
 }
 
-pub fn load_file(path: &PathBuf) -> Option<LoadedFile> {
-    println!(" ... Loading {}", path.to_str().unwrap());
+pub fn load_file(workdir: &PathBuf, module_path: ModulePath) -> Option<LoadedFile> {
+    println!(" ... Loading {}", alias(&module_path));
+    let mut file_path = workdir.to_owned();
+    for subpath in &module_path {
+        file_path.push(subpath);
+    }
+    file_path.set_extension("frisbee");
 
-    let contents = std::fs::read_to_string(path).expect("Cant read file");
-    let module_name = path_to_module(&path);
+    let contents = std::fs::read_to_string(&file_path).expect("Cant read file");
 
     let tokens = scanner::scan_tokens(&contents);
     if tokens.is_err() {
-        errors::show_scan_error(&contents, &module_name, tokens.unwrap_err());
+        errors::show_scan_error(&contents, &alias(&module_path), tokens.unwrap_err());
         return None;
     }
 
     let ast: parser::ParseResult<FileAst> = parser::parse(tokens.unwrap());
 
     if ast.is_err() {
-        errors::show_parse_error(&contents, &module_name, ast.unwrap_err());
+        errors::show_parse_error(&contents, &alias(&module_path), ast.unwrap_err());
         return None;
     }
 
-    Some(LoadedFile { path: path.clone(), module_name, contents, ast: ast.unwrap() })
-}
-
-pub fn path_to_module(path: &PathBuf) -> String {
-    return path.file_name().unwrap().to_str().unwrap().into();
+    Some(LoadedFile { path: file_path, module_path, contents, ast: ast.unwrap() })
 }
 
 // TODO:  ensure both windows and Unix are working file
 pub fn load_program(entry_file_path: &Path) {
     let workdir = entry_file_path.parent().unwrap();
-    let filename = entry_file_path.file_name().unwrap().to_str().unwrap();
+
+    if entry_file_path.extension().unwrap() != "frisbee" {
+        panic!(
+            "Only *.frisbee files are allowed, but got {:?}!",
+            entry_file_path.extension()
+        );
+    };
+
+    let main_module = entry_file_path.file_stem().unwrap().to_str().unwrap();
     let mut whole_program = WholeProgram {
         workdir: workdir.to_owned(),
-        mainfile: String::from(filename),
+        main_module: main_module.to_owned(),
         files: HashMap::new(),
     };
 
-    let mut modules_to_load: Vec<PathBuf> = vec![entry_file_path.to_owned()];
+    let mut modules_to_load: Vec<ModulePath> = vec![vec![main_module.to_owned()]];
 
     while !modules_to_load.is_empty() {
-        let path_to_load = modules_to_load.pop().unwrap();
-        let loaded_file = load_file(&path_to_load);
+        let module_path = modules_to_load.pop().unwrap();
+
+        let loaded_file = load_file(&whole_program.workdir, module_path);
         if loaded_file.is_none() {
             return;
         }
 
         let loaded_file = loaded_file.unwrap();
-
-        for import in &loaded_file.ast.imports {
-            // todo swap [0] to correct path forming
-            let filename = format!("{}.frisbee", import.module_path[0]);
-            if whole_program.files.get(&filename).is_none() {
-                let mut module_path = whole_program.workdir.clone();
-                module_path.push(filename);
-                modules_to_load.push(module_path);
-            }
-        }
+        let loaded_file_alias = alias(&loaded_file.module_path);
 
         whole_program
             .files
-            .insert(path_to_module(&path_to_load), loaded_file);
+            .insert(loaded_file_alias.clone(), loaded_file);
+
+        let loaded_file = whole_program.files.get(&loaded_file_alias).unwrap();
+
+        for import in &loaded_file.ast.imports {
+            // todo swap [0] to correct path forming
+            let a = alias(&import.module_path);
+            if whole_program.files.get(&a).is_none() {
+                modules_to_load.push(import.module_path.clone());
+            } else {
+                println!("Using cache for {}", a);
+            }
+        }
     }
 }
