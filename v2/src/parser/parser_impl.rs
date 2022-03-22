@@ -144,7 +144,11 @@ impl Parser {
 
     pub fn parse_import(&mut self) -> ParseResult<ImportDecl> {
         consume_and_check!(self, Token::From);
-        let module = consume_and_check_ident!(self);
+
+        let mut module_path: Vec<String> = vec![consume_and_check_ident!(self)];
+        while consume_if_matches_one_of!(self, [Token::Dot]) {
+            module_path.push(consume_and_check_ident!(self));
+        }
 
         consume_and_check!(self, Token::Import);
         let mut typenames: Vec<String> = vec![];
@@ -164,7 +168,7 @@ impl Parser {
         }
         consume_and_check!(self, Token::Semicolon);
 
-        Ok(ImportDecl { module_path: vec![module], typenames, functions })
+        Ok(ImportDecl { module_path, typenames, functions })
     }
 
     pub fn parse_type(&mut self) -> ParseResult<Type> {

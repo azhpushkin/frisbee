@@ -244,10 +244,7 @@ fn expr_field_access() {
 fn expr_func() {
     assert_expr_parses(
         "(function) (1, )",
-        Expr::ExprFunctionCall {
-            function: String::from("function"),
-            args: vec![Expr::ExprInt(1)],
-        },
+        Expr::ExprFunctionCall { function: String::from("function"), args: vec![Expr::ExprInt(1)] },
     );
 
     assert_expr_invalid("function.()");
@@ -272,7 +269,6 @@ fn expr_field_access_chained_with_method_call() {
     assert_expr_invalid("obj.(method())");
     assert_expr_invalid("obj.(method)()");
 }
-
 
 #[test]
 fn expr_method_call() {
@@ -363,17 +359,17 @@ fn expr_call_method_on_list_access() {
 fn expr_function_call_with_method_call() {
     assert_expr_parses(
         "function()[0].method()",
-        Expr::ExprMethodCall{
-            object: Box::new(Expr::ExprListAccess{
-                list: Box::new(Expr::ExprFunctionCall{
+        Expr::ExprMethodCall {
+            object: Box::new(Expr::ExprListAccess {
+                list: Box::new(Expr::ExprFunctionCall {
                     function: String::from("function"),
                     args: vec![],
                 }),
-                index: Box::new(Expr::ExprInt(0))
+                index: Box::new(Expr::ExprInt(0)),
             }),
             method: String::from("method"),
             args: vec![],
-        }
+        },
     );
 
     assert_expr_invalid("function[0]()");

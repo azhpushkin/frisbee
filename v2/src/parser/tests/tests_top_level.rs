@@ -7,18 +7,38 @@ use super::tests_helpers::*;
 fn simple_import() {
     assert_eq!(
         parse_and_unwrap(Parser::parse_import, "from module import Actor;"),
-        ImportDecl { module_path: vec!["module".into()], typenames: vec![String::from("Actor")] , functions: vec![]}
+        ImportDecl {
+            module_path: vec!["module".into()],
+            typenames: vec![String::from("Actor")],
+            functions: vec![]
+        }
     );
+
+    assert_eq!(
+        parse_and_unwrap(Parser::parse_import, "from module.sub import func;"),
+        ImportDecl {
+            module_path: vec!["module".into(), "sub".into()],
+            typenames: vec![],
+            functions: vec!["func".into()]
+        }
+    );
+
+    assert_parsing_fails(Parser::parse_import, "from module import Type");
+    assert_parsing_fails(Parser::parse_import, "from module. import Type;");
+    assert_parsing_fails(Parser::parse_import, "from module.123 import Type");
 }
 
 #[test]
 fn simple_import_of_functions() {
     assert_eq!(
         parse_and_unwrap(Parser::parse_import, "from module import func, Type, f;"),
-        ImportDecl { module_path: vec!["module".into()], typenames: vec![String::from("Type")] , functions: vec!["func".into(), "f".into()]}
+        ImportDecl {
+            module_path: vec!["module".into()],
+            typenames: vec![String::from("Type")],
+            functions: vec!["func".into(), "f".into()]
+        }
     );
 }
-
 
 #[test]
 fn multiple_imports() {
@@ -34,7 +54,11 @@ fn multiple_imports() {
                     typenames: vec![String::from("Hello"), String::from("There")],
                     functions: vec![]
                 },
-                ImportDecl { module_path: vec![String::from("two")], typenames: vec![String::from("One")] ,functions: vec![]}
+                ImportDecl {
+                    module_path: vec![String::from("two")],
+                    typenames: vec![String::from("One")],
+                    functions: vec![]
+                }
             ],
             classes: vec![],
             functions: vec![],
@@ -42,7 +66,6 @@ fn multiple_imports() {
         }
     );
 }
-
 
 #[test]
 fn function_() {
@@ -78,7 +101,6 @@ fn function_() {
         }
     );
 }
-
 
 #[test]
 fn active_object_and_fields() {
@@ -137,8 +159,6 @@ fn class_object_and_methods() {
     );
 }
 
-
-
 #[test]
 fn class_object_constructor_method() {
     assert_eq!(
@@ -162,13 +182,12 @@ fn class_object_constructor_method() {
     // spawn is not allowed for classes
     assert_parsing_fails(
         |p| Parser::parse_object(p, false),
-        "struct Data { fun Data Data() {} }"
+        "struct Data { fun Data Data() {} }",
     );
     assert_parsing_fails(
         |p| Parser::parse_object(p, false),
-        "struct Data { fun Data DataConstructor() {} }"
+        "struct Data { fun Data DataConstructor() {} }",
     );
-
 }
 
 #[test]
@@ -193,27 +212,25 @@ fn active_object_constructor_method() {
 
     assert_parsing_fails(
         |p| Parser::parse_object(p, true),
-        "active Actor { fun Actor Actor() {} }"
+        "active Actor { fun Actor Actor() {} }",
     );
     assert_parsing_fails(
         |p| Parser::parse_object(p, true),
-        "active Actor { fun ActorConstructor() {} }"
+        "active Actor { fun ActorConstructor() {} }",
     );
 }
-
-
 
 #[test]
 fn dublicated_methods_are_not_allowed() {
     assert_parsing_fails(
         |p| Parser::parse_object(p, true),
-        "active Actor { fun Nil hello() {} fun Nil hello() {} }"
+        "active Actor { fun Nil hello() {} fun Nil hello() {} }",
     );
 
     // Same object but without duplicated method is fine
     let parsed_ast = parse_helper(
         |p| Parser::parse_object(p, true),
-        "active Actor { fun Nil hello() {} fun Nil hello2() {} }"
+        "active Actor { fun Nil hello() {} fun Nil hello2() {} }",
     );
     assert!(parsed_ast.is_ok());
 }
