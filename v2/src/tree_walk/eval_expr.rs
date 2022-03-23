@@ -1,6 +1,5 @@
 use super::state::State;
 use crate::ast::*;
-use crate::utils::extract_result_if_ok;
 
 type FinalExpr = Result<Expr, String>;
 
@@ -42,7 +41,7 @@ pub fn eval_expr(expr: &Expr, state: &State) -> FinalExpr {
         Expr::ExprNil => return Ok(Expr::ExprNil),
 
         Expr::ExprUnaryOp { op, operand } => {
-            let operand_evaluated = extract_result_if_ok!(eval_expr(operand.as_ref(), state));
+            let operand_evaluated = eval_expr(operand.as_ref(), state)?;
             match (&op, &operand_evaluated) {
                 (UnaryOp::Not, Expr::ExprBool(b)) => Expr::ExprBool(!b),
                 (UnaryOp::Negate, Expr::ExprFloat(f)) => Expr::ExprFloat(-f),
@@ -51,9 +50,9 @@ pub fn eval_expr(expr: &Expr, state: &State) -> FinalExpr {
             }
         }
         Expr::ExprBinOp { left, right, op } => {
-            let leftexpr = extract_result_if_ok!(eval_expr(left.as_ref(), state));
-            let rightexpr = extract_result_if_ok!(eval_expr(right.as_ref(), state));
-            extract_result_if_ok!(eval_binary_expr(&op, &leftexpr, &rightexpr))
+            let leftexpr = eval_expr(left.as_ref(), state)?;
+            let rightexpr = eval_expr(right.as_ref(), state)?;
+            eval_binary_expr(&op, &leftexpr, &rightexpr)?
         } // &Expr::ExprListAccess{} => return 123;
         // &Expr::ExprListValue{} => return 123;
         // &Expr::ExprTupleValue{} => return 123;

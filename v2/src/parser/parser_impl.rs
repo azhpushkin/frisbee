@@ -1,7 +1,6 @@
 use super::helpers::{bin_op_from_token, unary_op_from_token};
 use crate::ast::*;
 use crate::scanner::*;
-use crate::utils::extract_result_if_ok;
 
 pub struct Parser {
     tokens: Vec<ScannedToken>,
@@ -116,18 +115,12 @@ impl Parser {
 
         while !self.is_finished() {
             match self.rel_token(0).0 {
-                Token::From => program
-                    .imports
-                    .push(extract_result_if_ok!(self.parse_import())),
-                Token::Active => program
-                    .active
-                    .push(extract_result_if_ok!(self.parse_object(true))),
-                Token::Class => program
-                    .classes
-                    .push(extract_result_if_ok!(self.parse_object(false))),
+                Token::From => program.imports.push(self.parse_import()?),
+                Token::Active => program.active.push(self.parse_object(true)?),
+                Token::Class => program.classes.push(self.parse_object(false)?),
                 Token::Fun => program
                     .functions
-                    .push(extract_result_if_ok!(self.parse_function_definition(None))),
+                    .push(self.parse_function_definition(None)?),
                 Token::EOF => {
                     break;
                 }
@@ -175,7 +168,7 @@ impl Parser {
         let (token, _) = self.consume_token();
         let mut result_type = match token {
             Token::LeftSquareBrackets => {
-                let item_type = extract_result_if_ok!(self.parse_type());
+                let item_type = self.parse_type()?;
                 consume_and_check!(self, Token::RightSquareBrackets);
                 Type::TypeList(Box::new(item_type))
             }
@@ -183,7 +176,7 @@ impl Parser {
                 let mut tuple_items: Vec<Type> = vec![];
 
                 until_closes!(self, Token::RightParenthesis, {
-                    tuple_items.push(extract_result_if_ok!(self.parse_type()));
+                    tuple_items.push(self.parse_type()?);
                     if self.rel_token_check(0, Token::Comma) {
                         self.consume_token();
                     }
@@ -221,7 +214,7 @@ impl Parser {
         member_of: Option<&String>,
     ) -> ParseResult<FunctionDecl> {
         consume_and_check!(self, Token::Fun);
-        let rettype = extract_result_if_ok!(self.parse_type());
+        let rettype = self.parse_type()?;
 
         let name: String;
         if member_of.is_some() && self.rel_token_check(0, Token::LeftParenthesis) {
@@ -245,7 +238,7 @@ impl Parser {
 
         consume_and_check!(self, Token::LeftParenthesis);
         until_closes!(self, Token::RightParenthesis, {
-            let argtype = extract_result_if_ok!(self.parse_type());
+            let argtype = self.parse_type()?;
             let argname = consume_and_check_ident!(self);
 
             if self.rel_token_check(0, Token::Comma) {
@@ -254,7 +247,7 @@ impl Parser {
             args.push(TypedNamedObject { typename: argtype, name: argname });
         });
 
-        let stmts = extract_result_if_ok!(self.parse_statements_in_curly_block(false));
+        let stmts = self.parse_statements_in_curly_block(false)?;
 
         Ok(FunctionDecl { rettype, name, args, statements: stmts })
     }
@@ -277,7 +270,7 @@ impl Parser {
 
         // Parse object fields
         while !(is_method(self) || is_obj_end(self)) {
-            let typename = extract_result_if_ok!(self.parse_type());
+            let typename = self.parse_type()?;
             let name = consume_and_check_ident!(self);
             consume_and_check!(self, Token::Semicolon);
             fields.push(TypedNamedObject { typename, name });
@@ -285,8 +278,7 @@ impl Parser {
 
         // Parse object methods
         while !is_obj_end(self) {
-            let new_method =
-                extract_result_if_ok!(self.parse_function_definition(Some(&new_object_name)));
+            let new_method = self.parse_function_definition(Some(&new_object_name))?;
 
             let is_duplicated_method = methods.iter().find(|x| x.name == new_method.name).is_some();
             if is_duplicated_method {
@@ -308,9 +300,9 @@ impl Parser {
         consume_and_check!(self, Token::LeftCurlyBrackets);
         until_closes!(self, Token::RightCurlyBrackets, {
             if is_loop {
-                statements.push(extract_result_if_ok!(self.parse_statement_inside_loop()));
+                statements.push(self.parse_statement_inside_loop()?);
             } else {
-                statements.push(extract_result_if_ok!(self.parse_statement()));
+                statements.push(self.parse_statement()?);
             }
         });
         Ok(statements)
@@ -318,12 +310,12 @@ impl Parser {
 
     pub fn parse_if_else_stmt(&mut self) -> ParseResult<Statement> {
         consume_and_check!(self, Token::If);
-        let condition = extract_result_if_ok!(self.parse_expr());
-        let ifbody = extract_result_if_ok!(self.parse_statements_in_curly_block(false));
+        let condition = self.parse_expr()?;
+        let ifbody = self.parse_statements_in_curly_block(false)?;
 
         let elsebody: Vec<Statement>;
         if consume_if_matches_one_of!(self, [Token::Else]) {
-            elsebody = extract_result_if_ok!(self.parse_statements_in_curly_block(false));
+            elsebody = self.parse_statements_in_curly_block(false)?;
         } else {
             elsebody = vec![];
         };
@@ -332,8 +324,8 @@ impl Parser {
 
     pub fn parse_while_loop_stmt(&mut self) -> ParseResult<Statement> {
         consume_and_check!(self, Token::While);
-        let condition = extract_result_if_ok!(self.parse_expr());
-        let body = extract_result_if_ok!(self.parse_statements_in_curly_block(true));
+        let condition = self.parse_expr()?;
+        let body = self.parse_statements_in_curly_block(true)?;
         Ok(Statement::SWhile { condition, body })
     }
 
@@ -342,7 +334,7 @@ impl Parser {
         if consume_if_matches_one_of!(self, [Token::Semicolon]) {
             return Ok(Statement::SVarDecl(typedecl, varname));
         } else if consume_if_matches_one_of!(self, [Token::Equal]) {
-            let value = extract_result_if_ok!(self.parse_expr());
+            let value = self.parse_expr()?;
             consume_and_check!(self, Token::Semicolon);
             return Ok(Statement::SVarDeclEqual(typedecl, varname, value));
         } else {
@@ -372,7 +364,7 @@ impl Parser {
             Token::While => return self.parse_while_loop_stmt(),
             Token::Return => {
                 self.consume_token();
-                let expr = extract_result_if_ok!(self.parse_expr());
+                let expr = self.parse_expr()?;
                 consume_and_check!(self, Token::Semicolon);
                 return Ok(Statement::SReturn(expr));
             }
@@ -393,7 +385,7 @@ impl Parser {
 
         self.position = current_pos;
 
-        let expr = extract_result_if_ok!(self.parse_expr());
+        let expr = self.parse_expr()?;
 
         if consume_if_matches_one_of!(self, [Token::Semicolon]) {
             // In some functional languages plain expression might be removed from AST
@@ -402,12 +394,12 @@ impl Parser {
             // and expression like object method call might change its state
             return Ok(Statement::SExpr(expr));
         } else if consume_if_matches_one_of!(self, [Token::Equal]) {
-            let value = extract_result_if_ok!(self.parse_expr());
+            let value = self.parse_expr()?;
             consume_and_check!(self, Token::Semicolon);
             return Ok(Statement::SAssign { left: expr, right: value });
         } else if consume_if_matches_one_of!(self, [Token::Bang]) {
             let method = consume_and_check_ident!(self);
-            let args = extract_result_if_ok!(self.parse_function_call_args());
+            let args = self.parse_function_call_args()?;
             consume_and_check!(self, Token::Semicolon);
             return Ok(Statement::SSendMessage { active: expr, method, args });
         } else {
@@ -424,13 +416,13 @@ impl Parser {
     }
 
     pub fn parse_expr_comparison(&mut self) -> ParseResult<Expr> {
-        let mut res_expr = extract_result_if_ok!(self.parse_expr_term());
+        let mut res_expr = self.parse_expr_term()?;
         while consume_if_matches_one_of!(
             self,
             [Token::Greater, Token::GreaterEqual, Token::LessEqual, Token::Less]
         ) {
             let (op, _) = &self.rel_token(-1).clone();
-            let right = extract_result_if_ok!(self.parse_expr_term());
+            let right = self.parse_expr_term()?;
 
             res_expr = Expr::ExprBinOp {
                 left: Box::new(res_expr),
@@ -443,10 +435,10 @@ impl Parser {
     }
 
     pub fn parse_expr_term(&mut self) -> ParseResult<Expr> {
-        let mut res_expr = extract_result_if_ok!(self.parse_expr_factor());
+        let mut res_expr = self.parse_expr_factor()?;
         while consume_if_matches_one_of!(self, [Token::Minus, Token::Plus]) {
             let (op, _) = &self.rel_token(-1).clone();
-            let right = extract_result_if_ok!(self.parse_expr_factor());
+            let right = self.parse_expr_factor()?;
 
             res_expr = Expr::ExprBinOp {
                 left: Box::new(res_expr),
@@ -459,10 +451,10 @@ impl Parser {
     }
 
     pub fn parse_expr_factor(&mut self) -> ParseResult<Expr> {
-        let mut res_expr = extract_result_if_ok!(self.parse_expr_unary());
+        let mut res_expr = self.parse_expr_unary()?;
         while consume_if_matches_one_of!(self, [Token::Star, Token::Slash]) {
             let (op, _) = &self.rel_token(-1).clone();
-            let right = extract_result_if_ok!(self.parse_expr_unary());
+            let right = self.parse_expr_unary()?;
 
             res_expr = Expr::ExprBinOp {
                 left: Box::new(res_expr),
@@ -475,10 +467,10 @@ impl Parser {
     }
 
     pub fn parse_expr_equality(&mut self) -> ParseResult<Expr> {
-        let mut res_expr = extract_result_if_ok!(self.parse_expr_comparison());
+        let mut res_expr = self.parse_expr_comparison()?;
         while consume_if_matches_one_of!(self, [Token::EqualEqual, Token::BangEqual]) {
             let (op, _) = &self.rel_token(-1).clone();
-            let right = extract_result_if_ok!(self.parse_expr_comparison());
+            let right = self.parse_expr_comparison()?;
 
             res_expr = Expr::ExprBinOp {
                 left: Box::new(res_expr),
@@ -493,7 +485,7 @@ impl Parser {
     pub fn parse_expr_unary(&mut self) -> ParseResult<Expr> {
         if consume_if_matches_one_of!(self, [Token::Minus, Token::Not]) {
             let (t, _) = &self.rel_token(-1).clone();
-            let operand = extract_result_if_ok!(self.parse_method_or_field_access());
+            let operand = self.parse_method_or_field_access()?;
 
             let e = Expr::ExprUnaryOp { operand: Box::new(operand), op: unary_op_from_token(t) };
             return Ok(e);
@@ -510,7 +502,7 @@ impl Parser {
             self.consume_token();
             args = vec![];
         } else {
-            let args_expr = extract_result_if_ok!(self.parse_group_or_tuple());
+            let args_expr = self.parse_group_or_tuple()?;
             args = match args_expr {
                 Expr::ExprTupleValue(a) => a,
                 e => vec![e],
@@ -520,7 +512,7 @@ impl Parser {
     }
 
     pub fn parse_method_or_field_access(&mut self) -> ParseResult<Expr> {
-        let mut res_expr = extract_result_if_ok!(self.parse_expr_primary());
+        let mut res_expr = self.parse_expr_primary()?;
 
         while consume_if_matches_one_of!(
             self,
@@ -533,7 +525,7 @@ impl Parser {
                     res_expr = Expr::ExprMethodCall {
                         object: Box::new(res_expr),
                         method: field_or_method,
-                        args: extract_result_if_ok!(self.parse_function_call_args()),
+                        args: self.parse_function_call_args()?,
                     };
                 } else {
                     res_expr = Expr::ExprFieldAccess {
@@ -543,7 +535,7 @@ impl Parser {
                 }
             } else if self.rel_token_check(-1, Token::LeftSquareBrackets) {
                 // otherwise - left square brackets, meaning this is list access
-                let index = extract_result_if_ok!(self.parse_expr());
+                let index = self.parse_expr()?;
                 consume_and_check!(self, Token::RightSquareBrackets);
                 res_expr = Expr::ExprListAccess { list: Box::new(res_expr), index: Box::new(index) }
             } else {
@@ -552,7 +544,7 @@ impl Parser {
                     _ => return perr(self.rel_token(0), "Function call of non-function expr"),
                 };
                 self.position -= 1;
-                let args = extract_result_if_ok!(self.parse_function_call_args());
+                let args = self.parse_function_call_args()?;
                 if self.rel_token_check(0, Token::LeftParenthesis) {
                     return perr(
                         self.rel_token(0),
@@ -569,7 +561,7 @@ impl Parser {
 
     pub fn parse_group_or_tuple(&mut self) -> ParseResult<Expr> {
         consume_and_check!(self, Token::LeftParenthesis);
-        let mut result_expr = extract_result_if_ok!(self.parse_expr());
+        let mut result_expr = self.parse_expr()?;
 
         // If comma - then this is not just grouping, but a tuple
         if self.rel_token_check(0, Token::Comma) {
@@ -580,7 +572,7 @@ impl Parser {
                 if self.rel_token_check(0, Token::RightParenthesis) {
                     break;
                 }
-                tuple_exprs.push(extract_result_if_ok!(self.parse_expr()));
+                tuple_exprs.push(self.parse_expr()?);
             }
 
             if tuple_exprs.len() == 1 {
@@ -599,7 +591,7 @@ impl Parser {
         let mut list_items: Vec<Expr> = vec![];
 
         until_closes!(self, Token::RightSquareBrackets, {
-            list_items.push(extract_result_if_ok!(self.parse_expr()));
+            list_items.push(self.parse_expr()?);
             consume_if_matches_one_of!(self, [Token::Comma]);
         });
 
@@ -608,14 +600,14 @@ impl Parser {
 
     fn parse_new_class_instance_expr(&mut self) -> ParseResult<Expr> {
         let typename = consume_and_check_type_ident!(self);
-        let args = extract_result_if_ok!(self.parse_function_call_args());
+        let args = self.parse_function_call_args()?;
         Ok(Expr::ExprNewClassInstance { typename, args })
     }
 
     fn parse_spawn_active_expr(&mut self) -> ParseResult<Expr> {
         consume_and_check!(self, Token::Spawn);
         let typename = consume_and_check_type_ident!(self);
-        let args = extract_result_if_ok!(self.parse_function_call_args());
+        let args = self.parse_function_call_args()?;
         Ok(Expr::ExprSpawnActive { typename, args })
     }
 
