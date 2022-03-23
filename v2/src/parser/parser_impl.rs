@@ -254,7 +254,7 @@ impl Parser {
             args.push(TypedNamedObject { typename: argtype, name: argname });
         });
 
-        let stmts = extract_result_if_ok!(self.parse_statements_in_curly_block());
+        let stmts = extract_result_if_ok!(self.parse_statements_in_curly_block(false));
 
         Ok(FunctionDecl { rettype, name, args, statements: stmts })
     }
@@ -300,11 +300,18 @@ impl Parser {
         Ok(ObjectDecl { is_active, name: new_object_name, fields, methods })
     }
 
-    pub fn parse_statements_in_curly_block(&mut self) -> ParseResult<Vec<Statement>> {
+    pub fn parse_statements_in_curly_block(
+        &mut self,
+        is_loop: bool,
+    ) -> ParseResult<Vec<Statement>> {
         let mut statements: Vec<Statement> = vec![];
         consume_and_check!(self, Token::LeftCurlyBrackets);
         until_closes!(self, Token::RightCurlyBrackets, {
-            statements.push(extract_result_if_ok!(self.parse_statement()));
+            if is_loop {
+                statements.push(extract_result_if_ok!(self.parse_statement_inside_loop()));
+            } else {
+                statements.push(extract_result_if_ok!(self.parse_statement()));
+            }
         });
         Ok(statements)
     }
@@ -312,11 +319,11 @@ impl Parser {
     pub fn parse_if_else_stmt(&mut self) -> ParseResult<Statement> {
         consume_and_check!(self, Token::If);
         let condition = extract_result_if_ok!(self.parse_expr());
-        let ifbody = extract_result_if_ok!(self.parse_statements_in_curly_block());
+        let ifbody = extract_result_if_ok!(self.parse_statements_in_curly_block(false));
 
         let elsebody: Vec<Statement>;
         if consume_if_matches_one_of!(self, [Token::Else]) {
-            elsebody = extract_result_if_ok!(self.parse_statements_in_curly_block());
+            elsebody = extract_result_if_ok!(self.parse_statements_in_curly_block(false));
         } else {
             elsebody = vec![];
         };
@@ -326,7 +333,7 @@ impl Parser {
     pub fn parse_while_loop_stmt(&mut self) -> ParseResult<Statement> {
         consume_and_check!(self, Token::While);
         let condition = extract_result_if_ok!(self.parse_expr());
-        let body = extract_result_if_ok!(self.parse_statements_in_curly_block());
+        let body = extract_result_if_ok!(self.parse_statements_in_curly_block(true));
         Ok(Statement::SWhile { condition, body })
     }
 
@@ -345,6 +352,17 @@ impl Parser {
                 Token::Semicolon,
             );
         }
+    }
+
+    pub fn parse_statement_inside_loop(&mut self) -> ParseResult<Statement> {
+        let stmt = match self.rel_token(0).0 {
+            Token::Break => Statement::SBreak,
+            Token::Continue => Statement::SContinue,
+            _ => return self.parse_statement(),
+        };
+        self.consume_token();
+        consume_and_check!(self, Token::Semicolon);
+        Ok(stmt)
     }
 
     pub fn parse_statement(&mut self) -> ParseResult<Statement> {

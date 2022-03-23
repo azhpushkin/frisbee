@@ -23,14 +23,13 @@ pub enum Token {
 
     // Keywords
     Active, Class, Spawn,
-    If, Else, Elif, While, For, // todo; break, continue
-    // TODO: add "import as" -> as keyword
+    If, Else, Elif,
+    While, Foreach, Break, Continue, In,
     Fun,
-    From, Import,
+    From, Import,  // TODO: add "import as" -> as keyword
     True, False, Nil, And, Or, Not,
     This, Return,
     // Let // TODO: implement when type inference is there, should be easy?
-    // Caller  // IDK this seems wrong
 
     EOF
 }
@@ -103,7 +102,10 @@ fn identifier_to_token(s: String) -> Token {
         "else" => Token::Else,
         "elif" => Token::Elif,
         "while" => Token::While,
-        "for" => Token::For,
+        "foreach" => Token::Foreach,
+        "break" => Token::Break,
+        "continue" => Token::Continue,
+        "in" => Token::In,
         "fun" => Token::Fun,
         "from" => Token::From,
         "import" => Token::Import,
@@ -452,6 +454,14 @@ mod tests {
         assert_eq!(
             scan_tokens_helper("if else spawn active class"),
             vec![Token::If, Token::Else, Token::Spawn, Token::Active, Token::Class,]
+        );
+    }
+
+    #[test]
+    fn test_loop_keywords() {
+        assert_eq!(
+            scan_tokens_helper("while foreach break continue in"),
+            vec![Token::While, Token::Foreach, Token::Break, Token::Continue, Token::In]
         );
     }
 

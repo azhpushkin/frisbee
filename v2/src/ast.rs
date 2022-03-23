@@ -65,6 +65,13 @@ pub enum Statement {
         condition: Expr,
         body: Vec<Statement>,
     },
+    SForeach {
+        itemname: String,
+        iterable: Expr,
+        body: Vec<Statement>,
+    },
+    SBreak,
+    SContinue,
     SReturn(Expr),
     SAssign {
         left: Expr,
@@ -107,8 +114,6 @@ pub enum BinaryOp {
 // all unary ops
 // grouped exprs
 
-// TODO : tuple vs
-
 #[derive(Debug, PartialEq, Clone)]
 pub enum UnaryOp {
     Not,
@@ -119,7 +124,6 @@ pub enum UnaryOp {
 // This means that if we do something like array[-1], we do not handle it, lol
 // maybe save state of the actor before running it? (2x memory for this)
 
-// TODO: wrap into Into<S> to allowe creation from &str?
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expr {
     ExprUnaryOp { op: UnaryOp, operand: Box<Expr> },
@@ -136,9 +140,7 @@ pub enum Expr {
     ExprNil,
     ExprFloat(f32),
     ExprIdentifier(String),
-    // TODO new and spawn expr
     ExprNewClassInstance { typename: String, args: Vec<Expr> },
     ExprSpawnActive { typename: String, args: Vec<Expr> },
     ExprThis,
-    // ExprCaller,
 }

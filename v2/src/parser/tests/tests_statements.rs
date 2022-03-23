@@ -81,6 +81,38 @@ fn stmt_while() {
 }
 
 #[test]
+fn stmt_foreach() {
+    assert_stmt_parses(
+        "foreach obj in (objects) {}",
+        Statement::SForeach {
+            itemname: String::from("obj"),
+            iterable: Expr::ExprIdentifier("objects".into()),
+            body: vec![],
+        },
+    );
+
+    assert_stmt_invalid("foreach (obj in objects) {}");
+    assert_stmt_invalid("foreach (obj) in objects {}");
+    assert_stmt_invalid("foreach Obj in objects {}");
+    assert_stmt_invalid("foreach Obj in objects {}");
+}
+
+#[test]
+fn stmt_break_and_continue() {
+    assert_stmt_parses(
+        "while 1 {continue; break;}",
+        Statement::SWhile {
+            condition: Expr::ExprInt(1),
+            body: vec![Statement::SContinue, Statement::SBreak],
+        },
+    );
+
+    // Only parses when inside of a loop
+    assert_stmt_invalid("break;");
+    assert_stmt_invalid("continue;");
+}
+
+#[test]
 fn stmt_var_decl() {
     assert_stmt_invalid("Int a");
     assert_stmt_invalid("Int 1;");
@@ -152,7 +184,3 @@ fn stmt_send_message() {
         },
     );
 }
-
-// statements
-// TODO: test array assignment
-// TODO
