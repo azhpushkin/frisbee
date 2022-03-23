@@ -329,6 +329,15 @@ impl Parser {
         Ok(Statement::SWhile { condition, body })
     }
 
+    pub fn parse_foreach_loop_stmt(&mut self) -> ParseResult<Statement> {
+        consume_and_check!(self, Token::Foreach);
+        let itemname = consume_and_check_ident!(self);
+        consume_and_check!(self, Token::In);
+        let iterable = self.parse_expr()?;
+        let body = self.parse_statements_in_curly_block(true)?;
+        Ok(Statement::SForeach { itemname, iterable, body })
+    }
+
     pub fn parse_var_declaration_continuation(&mut self, typedecl: Type) -> ParseResult<Statement> {
         let varname = consume_and_check_ident!(self);
         if consume_if_matches_one_of!(self, [Token::Semicolon]) {
@@ -362,6 +371,7 @@ impl Parser {
         match token {
             Token::If => return self.parse_if_else_stmt(),
             Token::While => return self.parse_while_loop_stmt(),
+            Token::Foreach => return self.parse_foreach_loop_stmt(),
             Token::Return => {
                 self.consume_token();
                 let expr = self.parse_expr()?;
