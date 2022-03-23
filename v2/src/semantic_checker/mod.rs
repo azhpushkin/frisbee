@@ -1,4 +1,5 @@
 // TODO: define what kind of checks to do
+mod operators;
 
 #[allow(dead_code)]
 static TODO: &str = r#"

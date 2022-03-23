@@ -39,7 +39,7 @@ pub struct FunctionDecl {
     pub statements: Vec<Statement>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Type {
     // TODO: TypeAnonymous
     // TODO: TypeMaybe (Type),
