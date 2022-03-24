@@ -1,9 +1,11 @@
+use std::collections::HashMap;
+
 #[derive(Debug, PartialEq)]
 pub struct FileAst {
     pub imports: Vec<ImportDecl>,
-    pub functions: Vec<FunctionDecl>,
-    pub classes: Vec<ObjectDecl>,
-    pub active: Vec<ObjectDecl>,
+    pub functions: HashMap<String, FunctionDecl>,
+    pub classes: HashMap<String, ObjectDecl>,
+    pub actives: HashMap<String, ObjectDecl>,
 }
 
 #[derive(Debug, PartialEq, Clone)]

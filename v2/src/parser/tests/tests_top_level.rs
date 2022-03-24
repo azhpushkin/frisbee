@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::ast::*;
 
 use super::super::parser_impl::*;
@@ -60,9 +62,9 @@ fn multiple_imports() {
                     functions: vec![]
                 }
             ],
-            classes: vec![],
-            functions: vec![],
-            active: vec![]
+            classes: HashMap::new(),
+            functions: HashMap::new(),
+            actives: HashMap::new(),
         }
     );
 }
@@ -76,28 +78,31 @@ fn function_() {
         ),
         FileAst {
             imports: vec![],
-            classes: vec![],
-            active: vec![],
-            functions: vec![FunctionDecl {
-                rettype: Type::TypeBool,
-                name: String::from("get_person"),
-                args: vec![
-                    TypedNamedObject { typename: Type::TypeInt, name: String::from("age") },
-                    TypedNamedObject { typename: Type::TypeString, name: String::from("name") },
-                ],
-                statements: vec![
-                    Statement::SExpr(Expr::ExprBinOp {
-                        left: Box::new(Expr::ExprInt(1)),
-                        right: Box::new(Expr::ExprMethodCall {
-                            object: Box::new(Expr::ExprIdentifier(String::from("asd"))),
-                            method: String::from("call"),
-                            args: vec![]
+            classes: HashMap::new(),
+            actives: HashMap::new(),
+            functions: HashMap::from([(
+                String::from("get_person"),
+                FunctionDecl {
+                    rettype: Type::TypeBool,
+                    name: String::from("get_person"),
+                    args: vec![
+                        TypedNamedObject { typename: Type::TypeInt, name: String::from("age") },
+                        TypedNamedObject { typename: Type::TypeString, name: String::from("name") },
+                    ],
+                    statements: vec![
+                        Statement::SExpr(Expr::ExprBinOp {
+                            left: Box::new(Expr::ExprInt(1)),
+                            right: Box::new(Expr::ExprMethodCall {
+                                object: Box::new(Expr::ExprIdentifier(String::from("asd"))),
+                                method: String::from("call"),
+                                args: vec![]
+                            }),
+                            op: BinaryOp::Divide
                         }),
-                        op: BinaryOp::Divide
-                    }),
-                    Statement::SExpr(Expr::ExprThis)
-                ],
-            }]
+                        Statement::SExpr(Expr::ExprThis)
+                    ],
+                }
+            )])
         }
     );
 }

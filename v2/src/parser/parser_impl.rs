@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use super::helpers::{bin_op_from_token, unary_op_from_token};
 use crate::ast::*;
 use crate::scanner::*;
@@ -75,6 +77,24 @@ macro_rules! until_closes {
     };
 }
 
+macro_rules! insert_if_not_redefined {
+    ($hashmap:expr, $parse_call:expr, $start:expr) => {{
+        let obj = $parse_call?;
+        let old_value = $hashmap.insert(obj.name.clone(), obj);
+        if old_value.is_some() {
+            return perr($start, "Symbol redefinition");
+        };
+    }};
+}
+
+// fn insert_if_not_duplicated<T>(objects: &HashMap<String, T>, s: String, obj: T) -> bool {
+//     if objects.get(s).is_some() {
+//         false
+//     } else {
+//         objects.insert
+//     }
+// }
+
 impl Parser {
     pub fn create(tokens: Vec<ScannedToken>) -> Parser {
         Parser { tokens, position: 0 }
@@ -110,17 +130,28 @@ impl Parser {
     }
 
     pub fn parse_top_level(&mut self) -> ParseResult<FileAst> {
-        let mut program =
-            FileAst { functions: vec![], imports: vec![], classes: vec![], active: vec![] };
+        let mut file_ast = FileAst {
+            imports: vec![],
+            functions: HashMap::new(),
+            classes: HashMap::new(),
+            actives: HashMap::new(),
+        };
 
         while !self.is_finished() {
+            let start = self.rel_token(0).clone();
             match self.rel_token(0).0 {
-                Token::From => program.imports.push(self.parse_import()?),
-                Token::Active => program.active.push(self.parse_object(true)?),
-                Token::Class => program.classes.push(self.parse_object(false)?),
-                Token::Fun => program
-                    .functions
-                    .push(self.parse_function_definition(None)?),
+                Token::From => file_ast.imports.push(self.parse_import()?),
+                Token::Active => {
+                    insert_if_not_redefined!(file_ast.classes, self.parse_object(true), &start)
+                }
+                Token::Class => {
+                    insert_if_not_redefined!(file_ast.classes, self.parse_object(false), &start);
+                }
+                Token::Fun => insert_if_not_redefined!(
+                    file_ast.functions,
+                    self.parse_function_definition(None),
+                    &start
+                ),
                 Token::EOF => {
                     break;
                 }
@@ -132,7 +163,7 @@ impl Parser {
                 }
             }
         }
-        Ok(program)
+        Ok(file_ast)
     }
 
     pub fn parse_import(&mut self) -> ParseResult<ImportDecl> {
