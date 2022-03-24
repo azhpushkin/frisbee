@@ -1,4 +1,5 @@
 // TODO: define what kind of checks to do
+mod module_types;
 mod operators;
 
 #[allow(dead_code)]
