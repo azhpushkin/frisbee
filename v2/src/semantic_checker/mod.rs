@@ -1,6 +1,7 @@
 // TODO: define what kind of checks to do
 mod module_types;
 mod operators;
+mod tests;
 
 #[allow(dead_code)]
 static TODO: &str = r#"

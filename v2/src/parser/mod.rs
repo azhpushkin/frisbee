@@ -1,7 +1,7 @@
 mod helpers;
 mod parser_impl;
 
-#[rustfmt::skip] #[cfg(test)] mod tests;
+mod tests;
 
 use crate::ast::FileAst;
 use crate::scanner::ScannedToken;
