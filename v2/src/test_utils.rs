@@ -1,4 +1,5 @@
 use std::fs::File;
+use std::path::PathBuf;
 use std::io::Write;
 use tempfile::{tempdir, TempDir};
 
@@ -27,5 +28,9 @@ impl TestFilesCreator {
             self.temp_workdir.path().join(name.into())
         ).unwrap();
         file.write(contents.into().as_bytes()).unwrap();
+    }
+
+    pub fn get_main_path(&self) -> PathBuf {
+        self.temp_workdir.path().join(&self.main_file)
     }
 }
