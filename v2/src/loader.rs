@@ -89,7 +89,7 @@ pub fn load_program(entry_file_path: &Path) -> Option<WholeProgram> {
         for import in &loaded_file.ast.imports {
             // todo swap [0] to correct path forming
             let a = alias(&import.module_path);
-            
+
             if whole_program.files.get(&a).is_none() {
                 modules_to_load.push(import.module_path.clone());
             } else {
@@ -100,27 +100,17 @@ pub fn load_program(entry_file_path: &Path) -> Option<WholeProgram> {
     Some(whole_program)
 }
 
-
 #[cfg(test)]
 mod test {
-    use crate::test_utils::TestFilesCreator;
     use super::*;
+    use crate::test_utils::TestFilesCreator;
 
     #[test]
-    #[should_panic]  // TODO: proper error reporting check
+    #[should_panic] // TODO: proper error reporting check
     fn import_of_missing_file() {
         let mut files_dir = TestFilesCreator::new();
-        files_dir.add_mainfile(
-            "main.frisbee", 
-            r#"
-            from mod import somefun;
+        files_dir.add_mainfile("from mod import somefun;");
 
-            fun Nil somefun() {}
-            "#
-        );
-
-        load_program(files_dir.get_main_path().as_path());
-
+        load_program(files_dir.get_main_path());
     }
-
 }
