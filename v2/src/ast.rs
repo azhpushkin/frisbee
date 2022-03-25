@@ -29,15 +29,15 @@ pub struct TypedNamedObject {
 pub struct ObjectDecl {
     pub is_active: bool,
     pub name: String,
-    pub fields: Vec<TypedNamedObject>,
-    pub methods: Vec<FunctionDecl>,
+    pub fields: HashMap<String, TypedNamedObject>,
+    pub methods: HashMap<String, FunctionDecl>,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct FunctionDecl {
     pub rettype: Type,
     pub name: String,
-    pub args: Vec<TypedNamedObject>,
+    pub args: HashMap<String, TypedNamedObject>,
     pub statements: Vec<Statement>,
 }
 

@@ -77,23 +77,16 @@ macro_rules! until_closes {
     };
 }
 
+// TODO: this might be trait for a special ast hashmap
 macro_rules! insert_if_not_redefined {
-    ($hashmap:expr, $parse_call:expr, $start:expr) => {{
-        let obj = $parse_call?;
-        let old_value = $hashmap.insert(obj.name.clone(), obj);
+    ($hashmap:expr, $obj:expr, $err:expr) => {{
+        let evaluated_obj = $obj;
+        let old_value = $hashmap.insert(evaluated_obj.name.clone(), evaluated_obj);
         if old_value.is_some() {
-            return perr($start, "Symbol redefinition");
+            return $err;
         };
     }};
 }
-
-// fn insert_if_not_duplicated<T>(objects: &HashMap<String, T>, s: String, obj: T) -> bool {
-//     if objects.get(s).is_some() {
-//         false
-//     } else {
-//         objects.insert
-//     }
-// }
 
 impl Parser {
     pub fn create(tokens: Vec<ScannedToken>) -> Parser {
@@ -138,20 +131,23 @@ impl Parser {
         };
 
         while !self.is_finished() {
-            let start = self.rel_token(0).clone();
+            let err = perr(self.rel_token(0), "Symbol redefinition");
+
             match self.rel_token(0).0 {
                 Token::From => file_ast.imports.push(self.parse_import()?),
                 Token::Active => {
-                    insert_if_not_redefined!(file_ast.classes, self.parse_object(true), &start)
+                    insert_if_not_redefined!(file_ast.classes, self.parse_object(true)?, err);
                 }
                 Token::Class => {
-                    insert_if_not_redefined!(file_ast.classes, self.parse_object(false), &start);
+                    insert_if_not_redefined!(file_ast.classes, self.parse_object(false)?, err);
                 }
-                Token::Fun => insert_if_not_redefined!(
-                    file_ast.functions,
-                    self.parse_function_definition(None),
-                    &start
-                ),
+                Token::Fun => {
+                    insert_if_not_redefined!(
+                        file_ast.functions,
+                        self.parse_function_definition(None)?,
+                        err
+                    );
+                }
                 Token::EOF => {
                     break;
                 }
@@ -265,17 +261,19 @@ impl Parser {
             name = consume_and_check_ident!(self);
         }
 
-        let mut args: Vec<TypedNamedObject> = vec![];
+        let mut args: HashMap<String, TypedNamedObject> = HashMap::new();
 
         consume_and_check!(self, Token::LeftParenthesis);
         until_closes!(self, Token::RightParenthesis, {
+            let pos = self.position as isize;
             let argtype = self.parse_type()?;
             let argname = consume_and_check_ident!(self);
 
             if self.rel_token_check(0, Token::Comma) {
                 self.consume_token();
             }
-            args.push(TypedNamedObject { typename: argtype, name: argname });
+            let arg = TypedNamedObject { typename: argtype, name: argname };
+            insert_if_not_redefined!(args, arg, perr(self.rel_token(pos), "args redefinition"));
         });
 
         let stmts = self.parse_statements_in_curly_block(false)?;
@@ -291,8 +289,8 @@ impl Parser {
         }
 
         let new_object_name = consume_and_check_type_ident!(self);
-        let mut fields: Vec<TypedNamedObject> = vec![];
-        let mut methods: Vec<FunctionDecl> = vec![];
+        let mut fields: HashMap<String, TypedNamedObject> = HashMap::new();
+        let mut methods: HashMap<String, FunctionDecl> = HashMap::new();
 
         consume_and_check!(self, Token::LeftCurlyBrackets);
 
@@ -304,18 +302,24 @@ impl Parser {
             let typename = self.parse_type()?;
             let name = consume_and_check_ident!(self);
             consume_and_check!(self, Token::Semicolon);
-            fields.push(TypedNamedObject { typename, name });
+            let field = TypedNamedObject { typename, name };
+            insert_if_not_redefined!(
+                fields,
+                field,
+                perr(self.rel_token(-2), "Field redefinition")
+            );
         }
 
         // Parse object methods
         while !is_obj_end(self) {
+            let pos = self.position as isize;
             let new_method = self.parse_function_definition(Some(&new_object_name))?;
 
-            let is_duplicated_method = methods.iter().find(|x| x.name == new_method.name).is_some();
-            if is_duplicated_method {
-                return perr(self.rel_token(-1), "Duplicated method definition");
-            }
-            methods.push(new_method);
+            insert_if_not_redefined!(
+                methods,
+                new_method,
+                perr(self.rel_token(pos), "Method redefinition")
+            );
         }
 
         consume_and_check!(self, Token::RightCurlyBrackets);
