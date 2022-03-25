@@ -7,6 +7,7 @@ pub mod semantic_checker;
 #[allow(dead_code)]
 pub mod tree_walk; // TODO: remove
 pub mod utils;
+pub mod test_utils;
 
 // TODO: color output?
 
