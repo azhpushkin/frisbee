@@ -8,7 +8,7 @@ pub struct FileAst {
     pub actives: HashMap<String, ObjectDecl>,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq)]
 pub struct ImportDecl {
     // Path to module, e.g. `from module.sub..` -> ["module", "sub"]
     pub module_path: Vec<String>,
