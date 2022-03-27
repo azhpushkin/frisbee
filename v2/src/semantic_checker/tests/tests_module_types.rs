@@ -5,14 +5,14 @@ use crate::test_utils::TestFilesCreator;
 #[should_panic]
 pub fn check_import_function_name_collision() {
     let mut t = TestFilesCreator::new();
-    t.add_mainfile(
+    t.set_mainfile(
         r#"
         from mod import somefun;
 
         fun Nil somefun() {}
         "#,
     );
-    t.add_file("mod.frisbee", "");
+    t.set_file("mod.frisbee", "");
 
     semantic_checker::perform_checks(&t.load_program());
 }
@@ -21,14 +21,14 @@ pub fn check_import_function_name_collision() {
 #[should_panic]
 pub fn check_import_active_type_name_collision() {
     let mut t = TestFilesCreator::new();
-    t.add_mainfile(
+    t.set_mainfile(
         r#"
         from mod import Type;
 
         active Type {}
         "#,
     );
-    t.add_file("mod.frisbee", "");
+    t.set_file("mod.frisbee", "");
 
     semantic_checker::perform_checks(&t.load_program());
 }
@@ -37,7 +37,7 @@ pub fn check_import_active_type_name_collision() {
 #[should_panic]
 pub fn check_no_self_referrings_for_active() {
     let mut t = TestFilesCreator::new();
-    t.add_mainfile("active Type { Type type; }");
+    t.set_mainfile("active Type { Type type; }");
 
     semantic_checker::perform_checks(&t.load_program());
 }
@@ -46,7 +46,7 @@ pub fn check_no_self_referrings_for_active() {
 #[should_panic]
 pub fn check_no_self_referrings_for_passive() {
     let mut t = TestFilesCreator::new();
-    t.add_mainfile("class Type { Type type; }");
+    t.set_mainfile("class Type { Type type; }");
 
     semantic_checker::perform_checks(&t.load_program());
 }
@@ -55,7 +55,7 @@ pub fn check_no_self_referrings_for_passive() {
 #[should_panic]
 pub fn check_no_self_referrings_for_tuple() {
     let mut t = TestFilesCreator::new();
-    t.add_mainfile("class Type { (Type, Int) type; }");
+    t.set_mainfile("class Type { (Type, Int) type; }");
 
     semantic_checker::perform_checks(&t.load_program());
 }

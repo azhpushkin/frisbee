@@ -109,7 +109,7 @@ mod test {
     #[should_panic] // TODO: proper error reporting check
     fn import_of_missing_file() {
         let mut files_dir = TestFilesCreator::new();
-        files_dir.add_mainfile("from mod import somefun;");
+        files_dir.set_mainfile("from mod import somefun;");
 
         load_program(files_dir.get_main_path());
     }

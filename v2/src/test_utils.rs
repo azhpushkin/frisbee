@@ -1,4 +1,4 @@
-use std::fs::File;
+use std::fs::{remove_file, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use tempfile::{tempdir, TempDir};
@@ -17,19 +17,24 @@ impl TestFilesCreator {
         TestFilesCreator { temp_workdir: workdir, main_path }
     }
 
-    pub fn add_mainfile<S>(&mut self, contents: S)
+    pub fn set_mainfile<S>(&mut self, contents: S)
     where
         S: Into<String> + Clone,
     {
-        self.add_file("main.frisbee", contents);
+        self.set_file("main.frisbee", contents);
     }
 
-    pub fn add_file<N, C>(&mut self, name: N, contents: C)
+    pub fn set_file<N, C>(&mut self, name: N, contents: C)
     where
         N: Into<String> + Clone,
         C: Into<String> + Clone,
     {
-        let mut file = File::create(self.temp_workdir.path().join(name.into())).unwrap();
+        let file_path = self.temp_workdir.path().join(name.into());
+        if file_path.exists() {
+            remove_file(file_path.as_path()).unwrap();
+        }
+
+        let mut file = File::create(file_path).unwrap();
         file.write(contents.into().as_bytes()).unwrap();
     }
 
