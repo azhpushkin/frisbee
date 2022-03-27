@@ -35,6 +35,20 @@ pub fn check_import_active_type_name_collision() {
 
 #[test]
 #[should_panic]
+pub fn check_active_and_class_name_collision() {
+    let mut t = TestFilesCreator::new();
+    t.set_mainfile(
+        r#"
+        class Type {}
+        active Type {}
+        "#,
+    );
+
+    semantic_checker::perform_checks(&t.load_program());
+}
+
+#[test]
+#[should_panic]
 pub fn check_no_self_referrings_for_active() {
     let mut t = TestFilesCreator::new();
     t.set_mainfile("active Type { Type type; }");

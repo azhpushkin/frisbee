@@ -3,7 +3,7 @@ use crate::ast::*;
 pub fn check_collision_of_imports_and_definitions_per_module(ast: &FileAst) {
     for import in &ast.imports {
         for typename in &import.typenames {
-            if ast.actives.contains_key(typename) || ast.classes.contains_key(typename) {
+            if ast.types.contains_key(typename) {
                 panic!("Type {} is both imported and defined", typename);
             }
         }
@@ -25,8 +25,7 @@ fn is_type_referring_itself(type_name: &String, field_type: &Type) -> bool {
 }
 
 pub fn check_type_is_not_referring_self(ast: &FileAst) {
-    let types_decl = ast.actives.iter().chain(ast.classes.iter());
-    for (type_name, object_decl) in types_decl {
+    for (type_name, object_decl) in ast.types.iter() {
         for field in object_decl.fields.values() {
             let TypedNamedObject { typename: field_type, .. } = field;
             if is_type_referring_itself(type_name, field_type) {

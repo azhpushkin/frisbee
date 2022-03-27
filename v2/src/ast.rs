@@ -4,8 +4,7 @@ use std::collections::HashMap;
 pub struct FileAst {
     pub imports: Vec<ImportDecl>,
     pub functions: HashMap<String, FunctionDecl>,
-    pub classes: HashMap<String, ObjectDecl>,
-    pub actives: HashMap<String, ObjectDecl>,
+    pub types: HashMap<String, ObjectDecl>,
 }
 
 #[derive(Debug, PartialEq)]

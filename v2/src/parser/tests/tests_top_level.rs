@@ -62,9 +62,8 @@ fn multiple_imports() {
                     functions: vec![]
                 }
             ],
-            classes: HashMap::new(),
+            types: HashMap::new(),
             functions: HashMap::new(),
-            actives: HashMap::new(),
         }
     );
 }
@@ -78,8 +77,7 @@ fn parse_function_definition() {
         ),
         FileAst {
             imports: vec![],
-            classes: HashMap::new(),
-            actives: HashMap::new(),
+            types: HashMap::new(),
             functions: HashMap::from([(
                 String::from("get_person"),
                 FunctionDecl {

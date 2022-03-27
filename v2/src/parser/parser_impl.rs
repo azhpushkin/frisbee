@@ -123,12 +123,8 @@ impl Parser {
     }
 
     pub fn parse_top_level(&mut self) -> ParseResult<FileAst> {
-        let mut file_ast = FileAst {
-            imports: vec![],
-            functions: HashMap::new(),
-            classes: HashMap::new(),
-            actives: HashMap::new(),
-        };
+        let mut file_ast =
+            FileAst { imports: vec![], functions: HashMap::new(), types: HashMap::new() };
 
         while !self.is_finished() {
             let err = perr(self.rel_token(0), "Symbol redefinition");
@@ -136,10 +132,10 @@ impl Parser {
             match self.rel_token(0).0 {
                 Token::From => file_ast.imports.push(self.parse_import()?),
                 Token::Active => {
-                    insert_if_not_redefined!(file_ast.classes, self.parse_object(true)?, err);
+                    insert_if_not_redefined!(file_ast.types, self.parse_object(true)?, err);
                 }
                 Token::Class => {
-                    insert_if_not_redefined!(file_ast.classes, self.parse_object(false)?, err);
+                    insert_if_not_redefined!(file_ast.types, self.parse_object(false)?, err);
                 }
                 Token::Fun => {
                     insert_if_not_redefined!(
