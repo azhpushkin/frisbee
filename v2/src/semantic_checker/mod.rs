@@ -1,3 +1,5 @@
+use crate::loader::WholeProgram;
+
 // TODO: define what kind of checks to do
 mod module_types;
 mod operators;
@@ -5,28 +7,13 @@ mod tests;
 
 #[allow(dead_code)]
 static TODO: &str = r#"
-* generate one big AST using imports, check imports
-    * load file by file, cache by name etc
-    * use cache if multiple of same imports
-* transform:
-    * maybe simplify VarDeclEqual into VarDecl and Equal 
-        * if it is splitted into two, how type inference would work?
-    * SSA form for easier type checking?
-* check types
-    * separate all imported types into active/passive
-    * create table for fields and methods
-    * check each method, remember returns (make sure around if-else)
-    * check that bang is only OK for active
-    * check that active can both bang and call itself
-    * fields of other actors are not accessible 
-    * spawn and new return exactly what they need to return
-    * default new and spawn take all args one by one
-    * infinite recursive classes or actors are not allowed (only maybe probably)
 
-* what to do with caller and do we really
-    need to allow everybody to be able to call everyone
-* what if we allow passing Methods (introduce new type)?
-* maybe simple interface-like stuff? e.g. implement something like traits
-    traits/typeclasses sounds like a best way
 
 "#;
+
+pub fn perform_checks(wp: &WholeProgram) {
+    for (_, file) in &wp.files {
+        module_types::check_collision_of_imports_and_definitions_per_module(&file.ast);
+        module_types::check_type_is_not_referring_self(&file.ast);
+    }
+}

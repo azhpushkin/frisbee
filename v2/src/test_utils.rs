@@ -3,6 +3,8 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use tempfile::{tempdir, TempDir};
 
+use crate::loader::{load_program, WholeProgram};
+
 pub struct TestFilesCreator {
     temp_workdir: TempDir,
     main_path: PathBuf,
@@ -33,5 +35,11 @@ impl TestFilesCreator {
 
     pub fn get_main_path(&self) -> &Path {
         self.main_path.as_path()
+    }
+
+    pub fn load_program(&self) -> WholeProgram {
+        let p = load_program(self.get_main_path());
+        assert!(p.is_some());
+        p.unwrap()
     }
 }

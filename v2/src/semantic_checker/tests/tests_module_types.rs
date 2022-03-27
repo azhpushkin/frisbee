@@ -1,7 +1,5 @@
-use crate::semantic_checker::module_types;
+use crate::semantic_checker;
 use crate::test_utils::TestFilesCreator;
-
-use crate::loader::*;
 
 #[test]
 #[should_panic]
@@ -16,8 +14,7 @@ pub fn check_import_function_name_collision() {
     );
     t.add_file("mod.frisbee", "");
 
-    let wp = load_program(t.get_main_path()).unwrap();
-    module_types::perform_checks(&wp);
+    semantic_checker::perform_checks(&t.load_program());
 }
 
 #[test]
@@ -33,8 +30,7 @@ pub fn check_import_active_type_name_collision() {
     );
     t.add_file("mod.frisbee", "");
 
-    let wp = load_program(t.get_main_path()).unwrap();
-    module_types::perform_checks(&wp);
+    semantic_checker::perform_checks(&t.load_program());
 }
 
 #[test]
@@ -43,16 +39,23 @@ pub fn check_no_self_referrings_for_active() {
     let mut t = TestFilesCreator::new();
     t.add_mainfile("active Type { Type type; }");
 
-    let wp = load_program(t.get_main_path()).unwrap();
-    module_types::perform_checks(&wp);
+    semantic_checker::perform_checks(&t.load_program());
 }
 
 #[test]
 #[should_panic]
 pub fn check_no_self_referrings_for_passive() {
     let mut t = TestFilesCreator::new();
-    t.add_mainfile("passive Type { Type type; }");
+    t.add_mainfile("class Type { Type type; }");
 
-    let wp = load_program(t.get_main_path()).unwrap();
-    module_types::perform_checks(&wp);
+    semantic_checker::perform_checks(&t.load_program());
+}
+
+#[test]
+#[should_panic]
+pub fn check_no_self_referrings_for_tuple() {
+    let mut t = TestFilesCreator::new();
+    t.add_mainfile("class Type { (Type, Int) type; }");
+
+    semantic_checker::perform_checks(&t.load_program());
 }
