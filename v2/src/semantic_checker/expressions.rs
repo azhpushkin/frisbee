@@ -7,6 +7,7 @@ pub struct ExprTypeChecker<'a> {
     variables_types: &'a HashMap<String, Type>,
     types_definitions: &'a HashMap<String, ObjectDecl>,
     funcs_definitions: &'a HashMap<String, FunctionDecl>,
+    scope: &'a Option<ObjectDecl>,
 }
 
 impl<'a> ExprTypeChecker<'a> {
@@ -14,8 +15,9 @@ impl<'a> ExprTypeChecker<'a> {
         variables_types: &'a HashMap<String, Type>,
         types_definitions: &'a HashMap<String, ObjectDecl>,
         funcs_definitions: &'a HashMap<String, FunctionDecl>,
+        scope: &'a Option<ObjectDecl>,
     ) -> ExprTypeChecker<'a> {
-        ExprTypeChecker { variables_types, types_definitions, funcs_definitions }
+        ExprTypeChecker { variables_types, types_definitions, funcs_definitions, scope }
     }
 
     pub fn calculate(&self, expr: &Expr) -> Result<Type, String> {
@@ -63,7 +65,8 @@ impl<'a> ExprTypeChecker<'a> {
 
             Expr::ExprListAccess { list, index } => self.calculate_list_access(list, index),
 
-            Expr::ExprNewClassInstance { typename, args } => {
+            Expr::ExprNewClassInstance { typename, args }
+            | Expr::ExprSpawnActive { typename, args } => {
                 let type_definition = self.types_definitions.get(typename);
                 if type_definition.is_none() {
                     return Err(format!(
@@ -126,8 +129,10 @@ impl<'a> ExprTypeChecker<'a> {
                 }
             }
 
-            Expr::ExprSpawnActive { .. } => panic!("ExprSpawnActive typecheck not implemented!"),
-            Expr::ExprThis => panic!("ExprThis typecheck not implemented!"),
+            Expr::ExprThis => match self.scope {
+                None => Err("Using 'this' in the functions is not allowed!".into()),
+                Some(o) => Ok(Type::TypeIdent(o.name.clone())),
+            },
         }
     }
 
