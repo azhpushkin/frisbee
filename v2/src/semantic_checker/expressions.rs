@@ -37,6 +37,22 @@ impl<'a> ExprTypeChecker<'a> {
                 }
                 Ok(Type::TypeTuple(item_types))
             }
+            Expr::ExprListValue(items) => {
+                if items.len() == 0 {
+                    return Err("Cant calculate type of list if there is no elements".into());
+                }
+                let listtype = self.calculate(items.get(0).unwrap())?;
+                for item in items {
+                    let itemtype = self.calculate(item)?;
+                    if listtype != itemtype {
+                        return Err(format!(
+                            "List type mismatch, expected {:?}, got {:?} in {:?}",
+                            listtype, itemtype, expr
+                        ));
+                    }
+                }
+                Ok(Type::TypeList(Box::new(listtype)))
+            }
 
             Expr::ExprUnaryOp { op, operand } => {
                 calculate_unaryop_type(op, &self.calculate(operand)?)
@@ -44,14 +60,8 @@ impl<'a> ExprTypeChecker<'a> {
             Expr::ExprBinOp { left, right, op } => {
                 calculate_binaryop_type(op, &self.calculate(left)?, &self.calculate(right)?)
             }
+
             Expr::ExprListAccess { list, index } => self.calculate_list_access(list, index),
-            Expr::ExprListValue(items) => {
-                if items.len() == 0 {
-                    return Err("Cant calculate type of list if there is no elements".into());
-                }
-                let listtype = self.calculate(items.get(0).unwrap())?;
-                Err("".into()) // TODO
-            }
 
             Expr::ExprMethodCall { .. } => panic!("ExprMethodCall typecheck not implemented!"),
             Expr::ExprFunctionCall { .. } => panic!("ExprFunctionCall typecheck not implemented!"),
