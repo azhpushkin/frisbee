@@ -73,3 +73,12 @@ pub fn check_no_self_referrings_for_tuple() {
 
     semantic_checker::perform_checks(&t.load_program());
 }
+
+#[test]
+#[should_panic]
+pub fn check_no_self_referrings_in_imports() {
+    let mut t = TestFilesCreator::new();
+    t.set_mainfile("from main import Type;");
+
+    semantic_checker::perform_checks(&t.load_program());
+}

@@ -1,4 +1,4 @@
-use crate::ast::*;
+use crate::{ast::*, loader::LoadedFile};
 
 pub fn check_collision_of_imports_and_definitions_per_module(ast: &FileAst) {
     for import in &ast.imports {
@@ -31,6 +31,14 @@ pub fn check_type_is_not_referring_self(ast: &FileAst) {
             if is_type_referring_itself(type_name, field_type) {
                 panic!("Type {} references itself", type_name)
             }
+        }
+    }
+}
+
+pub fn check_imports_of_itself(file: &LoadedFile) {
+    for import in &file.ast.imports {
+        if import.module_path == file.module_path {
+            panic!("Importing self in {:?} is meaningless", import);
         }
     }
 }
