@@ -99,10 +99,32 @@ impl<'a> ExprTypeChecker<'a> {
             Expr::ExprMethodCall { object, method, args } => {
                 // TODO: implement something for built-in types
                 let obj_type = self.calculate(object.as_ref())?;
-                panic!("asd");
+                match &obj_type {
+                    Type::TypeIdent(t) => {
+                        // TODO: checks for type correctness and method correctness
+                        let typedef = self.types_definitions.get(t).unwrap();
+                        let method = typedef.methods.get(method).unwrap();
+                        return self.check_function_call(method, args);
+                    }
+                    t => panic!("Not implemented for {:?}", t),
+                }
             }
 
-            Expr::ExprFieldAccess { .. } => panic!("ExprFieldAccess typecheck not implemented!"),
+            Expr::ExprFieldAccess { object, field } => {
+                // TODO: implement something for built-in types
+                let obj_type = self.calculate(object.as_ref())?;
+                match &obj_type {
+                    Type::TypeIdent(t) => {
+                        // TODO: checks for type correctness and field correctness
+                        let typedef = self.types_definitions.get(t).unwrap();
+                        return Ok(typedef.fields.get(field).unwrap().typename.clone());
+                    }
+                    t => Err(format!(
+                        "Error at {:?} - type {:?} has no fields",
+                        object, obj_type
+                    )),
+                }
+            }
 
             Expr::ExprSpawnActive { .. } => panic!("ExprSpawnActive typecheck not implemented!"),
             Expr::ExprThis => panic!("ExprThis typecheck not implemented!"),
