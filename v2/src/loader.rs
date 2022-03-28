@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 type ModulePath = Vec<String>;
-fn alias(mp: &ModulePath) -> String {
+pub fn alias(mp: &ModulePath) -> String {
     mp.join(".")
 }
 

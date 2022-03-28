@@ -82,3 +82,23 @@ pub fn check_no_self_referrings_in_imports() {
 
     semantic_checker::perform_checks(&t.load_program());
 }
+
+#[test]
+#[should_panic]
+pub fn check_imported_typess_are_existing() {
+    let mut t = TestFilesCreator::new();
+    t.set_mainfile("from module import X1;");
+    t.set_file("module.frisbee", "class X {}");
+
+    semantic_checker::perform_checks(&t.load_program());
+}
+
+#[test]
+#[should_panic]
+pub fn check_imported_functions_are_existing() {
+    let mut t = TestFilesCreator::new();
+    t.set_mainfile("from module import func;");
+    t.set_file("module.frisbee", "");
+
+    semantic_checker::perform_checks(&t.load_program());
+}

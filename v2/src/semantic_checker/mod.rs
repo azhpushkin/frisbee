@@ -11,6 +11,7 @@ pub fn perform_checks(wp: &WholeProgram) {
         module_types::check_collision_of_imports_and_definitions_per_module(&file.ast);
         module_types::check_type_is_not_referring_self(&file.ast);
         module_types::check_imports_of_itself(file);
+        module_types::check_imports_are_correct(&file.ast.imports, wp);
         // statements::check_statements(&file.ast)
     }
 }

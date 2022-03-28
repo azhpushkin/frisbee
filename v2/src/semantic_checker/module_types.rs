@@ -1,4 +1,5 @@
-use crate::{ast::*, loader::LoadedFile};
+use crate::ast::*;
+use crate::loader::*;
 
 pub fn check_collision_of_imports_and_definitions_per_module(ast: &FileAst) {
     for import in &ast.imports {
@@ -39,6 +40,31 @@ pub fn check_imports_of_itself(file: &LoadedFile) {
     for import in &file.ast.imports {
         if import.module_path == file.module_path {
             panic!("Importing self in {:?} is meaningless", import);
+        }
+    }
+}
+
+pub fn check_imports_are_correct(imports: &Vec<ImportDecl>, wp: &WholeProgram) {
+    for import in imports {
+        let imported_module = wp.files.get(&alias(&import.module_path));
+        let module_ast = &imported_module.unwrap().ast;
+
+        for function in &import.functions {
+            if !module_ast.functions.contains_key(function) {
+                panic!(
+                    "Import {:?} refers to missing function {}",
+                    import, function
+                );
+            }
+        }
+
+        for typename in &import.typenames {
+            if !module_ast.types.contains_key(typename) {
+                panic!(
+                    "Import {:?} refers to missing function {}",
+                    import, typename
+                );
+            }
         }
     }
 }
