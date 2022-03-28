@@ -18,7 +18,7 @@ impl<'a> ExprTypeChecker<'a> {
         ExprTypeChecker { variables_types, types_definitions, funcs_definitions }
     }
 
-    pub fn calculate(&mut self, expr: &Expr) -> Result<Type, String> {
+    pub fn calculate(&self, expr: &Expr) -> Result<Type, String> {
         match expr {
             // Primitive types, that map to basic types
             Expr::ExprInt(_) => Ok(Type::TypeInt),
@@ -63,23 +63,79 @@ impl<'a> ExprTypeChecker<'a> {
 
             Expr::ExprListAccess { list, index } => self.calculate_list_access(list, index),
 
-            Expr::ExprMethodCall { .. } => panic!("ExprMethodCall typecheck not implemented!"),
-            Expr::ExprFunctionCall { .. } => panic!("ExprFunctionCall typecheck not implemented!"),
+            Expr::ExprNewClassInstance { typename, args } => {
+                let type_definition = self.types_definitions.get(typename);
+                if type_definition.is_none() {
+                    return Err(format!(
+                        "Type definition {} is missing for {:?}",
+                        typename, expr
+                    ));
+                }
+                let type_definition = type_definition.unwrap();
+                let default_constructor = FunctionDecl {
+                    rettype: Type::TypeIdent(typename.clone()),
+                    name: typename.clone(),
+                    args: type_definition.fields.clone(),
+                    statements: vec![],
+                };
+                let constuctor = type_definition
+                    .methods
+                    .get(typename)
+                    .unwrap_or(&default_constructor);
+                return self.check_function_call(constuctor, args);
+            }
+            Expr::ExprFunctionCall { function, args } => {
+                let func_def = self.funcs_definitions.get(function);
+                if func_def.is_none() {
+                    return Err(format!(
+                        "Func definition {} is missing for {:?}",
+                        function, expr
+                    ));
+                }
+                let func_def = func_def.unwrap();
+                return self.check_function_call(func_def, args);
+            }
+
+            Expr::ExprMethodCall { object, method, args } => {
+                // TODO: implement something for built-in types
+                let obj_type = self.calculate(object.as_ref())?;
+                panic!("asd");
+            }
+
             Expr::ExprFieldAccess { .. } => panic!("ExprFieldAccess typecheck not implemented!"),
 
-            Expr::ExprNewClassInstance { .. } => {
-                panic!("ExprNewClassInstance typecheck not implemented!")
-            }
             Expr::ExprSpawnActive { .. } => panic!("ExprSpawnActive typecheck not implemented!"),
             Expr::ExprThis => panic!("ExprThis typecheck not implemented!"),
         }
     }
 
-    fn calculate_list_access(
-        &mut self,
-        list: &Box<Expr>,
-        index: &Box<Expr>,
+    fn check_function_call(
+        &self,
+        function: &FunctionDecl,
+        args: &Vec<Expr>,
     ) -> Result<Type, String> {
+        if function.args.len() != args.len() {
+            return Err(format!(
+                "Wrong amount of arguments at {:?}, expected {}",
+                args,
+                function.args.len()
+            ));
+        }
+
+        for ((_, arg_type), arg_expr) in function.args.iter().zip(args.iter()) {
+            let expr_type = self.calculate(arg_expr)?;
+            if arg_type.typename != expr_type {
+                return Err(format!(
+                    "Wrong type for argument {:?}, got {:?}",
+                    arg_type.name, arg_expr
+                ));
+            }
+        }
+
+        Ok(function.rettype.clone())
+    }
+
+    fn calculate_list_access(&self, list: &Box<Expr>, index: &Box<Expr>) -> Result<Type, String> {
         let list_type = self.calculate(list.as_ref())?;
         match list_type {
             Type::TypeList(item) => match self.calculate(index)? {

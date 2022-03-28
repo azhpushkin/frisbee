@@ -18,7 +18,7 @@ pub struct ImportDecl {
     pub functions: Vec<String>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct TypedNamedObject {
     pub typename: Type,
     pub name: String,
