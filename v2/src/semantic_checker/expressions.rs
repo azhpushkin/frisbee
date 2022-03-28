@@ -1,23 +1,16 @@
 use std::collections::HashMap;
 
+use super::execution_env::ExecutionEnv;
 use super::operators::{calculate_binaryop_type, calculate_unaryop_type};
 use crate::ast::*;
 
 pub struct ExprTypeChecker<'a> {
-    variables_types: &'a HashMap<String, Type>,
-    types_definitions: &'a HashMap<String, ObjectDecl>,
-    funcs_definitions: &'a HashMap<String, FunctionDecl>,
-    scope: &'a Option<ObjectDecl>,
+    env: &'a ExecutionEnv,
 }
 
 impl<'a> ExprTypeChecker<'a> {
-    pub fn new(
-        variables_types: &'a HashMap<String, Type>,
-        types_definitions: &'a HashMap<String, ObjectDecl>,
-        funcs_definitions: &'a HashMap<String, FunctionDecl>,
-        scope: &'a Option<ObjectDecl>,
-    ) -> ExprTypeChecker<'a> {
-        ExprTypeChecker { variables_types, types_definitions, funcs_definitions, scope }
+    pub fn new(execution_env: &'a ExecutionEnv) -> ExprTypeChecker<'a> {
+        ExprTypeChecker { env: execution_env }
     }
 
     pub fn calculate(&self, expr: &Expr) -> Result<Type, String> {
@@ -30,7 +23,7 @@ impl<'a> ExprTypeChecker<'a> {
             Expr::ExprFloat(_) => Ok(Type::TypeFloat),
 
             // Simple lookup is enough for this
-            Expr::ExprIdentifier(i) => Ok(self.variables_types.get(i).unwrap().clone()),
+            Expr::ExprIdentifier(i) => Ok(self.env.variables_types.get(i).unwrap().clone()),
 
             Expr::ExprTupleValue(items) => {
                 let mut item_types: Vec<Type> = vec![];
@@ -67,7 +60,7 @@ impl<'a> ExprTypeChecker<'a> {
 
             Expr::ExprNewClassInstance { typename, args }
             | Expr::ExprSpawnActive { typename, args } => {
-                let type_definition = self.types_definitions.get(typename);
+                let type_definition = self.env.types_definitions.get(typename);
                 if type_definition.is_none() {
                     return Err(format!(
                         "Type definition {} is missing for {:?}",
@@ -88,7 +81,7 @@ impl<'a> ExprTypeChecker<'a> {
                 return self.check_function_call(constuctor, args);
             }
             Expr::ExprFunctionCall { function, args } => {
-                let func_def = self.funcs_definitions.get(function);
+                let func_def = self.env.funcs_definitions.get(function);
                 if func_def.is_none() {
                     return Err(format!(
                         "Func definition {} is missing for {:?}",
@@ -105,7 +98,7 @@ impl<'a> ExprTypeChecker<'a> {
                 match &obj_type {
                     Type::TypeIdent(t) => {
                         // TODO: checks for type correctness and method correctness
-                        let typedef = self.types_definitions.get(t).unwrap();
+                        let typedef = self.env.types_definitions.get(t).unwrap();
                         let method = typedef.methods.get(method).unwrap();
                         return self.check_function_call(method, args);
                     }
@@ -119,7 +112,7 @@ impl<'a> ExprTypeChecker<'a> {
                 match &obj_type {
                     Type::TypeIdent(t) => {
                         // TODO: checks for type correctness and field correctness
-                        let typedef = self.types_definitions.get(t).unwrap();
+                        let typedef = self.env.types_definitions.get(t).unwrap();
                         return Ok(typedef.fields.get(field).unwrap().typename.clone());
                     }
                     t => Err(format!(
@@ -129,7 +122,7 @@ impl<'a> ExprTypeChecker<'a> {
                 }
             }
 
-            Expr::ExprThis => match self.scope {
+            Expr::ExprThis => match &self.env.scope {
                 None => Err("Using 'this' in the functions is not allowed!".into()),
                 Some(o) => Ok(Type::TypeIdent(o.name.clone())),
             },

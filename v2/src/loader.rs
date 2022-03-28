@@ -18,7 +18,7 @@ pub struct WholeProgram {
     pub files: HashMap<ModulePathAlias, LoadedFile>,
 }
 
-fn load_file(workdir: &PathBuf, module_path: ModulePath) -> Option<LoadedFile> {
+fn load_file(workdir: &PathBuf, module_path: &ModulePath) -> Option<LoadedFile> {
     println!(" ... Loading {}", module_path.alias().as_str());
     let mut file_path = workdir.to_owned();
     for subpath in module_path.get_vec() {
@@ -41,7 +41,7 @@ fn load_file(workdir: &PathBuf, module_path: ModulePath) -> Option<LoadedFile> {
         return None;
     }
 
-    Some(LoadedFile { path: file_path, module_path, contents, ast: ast.unwrap() })
+    Some(LoadedFile { path: file_path, module_path: module_path.clone(), contents, ast: ast.unwrap() })
 }
 
 // TODO:  ensure both windows and Unix are working file
@@ -67,14 +67,14 @@ pub fn load_program(entry_file_path: &Path) -> Option<WholeProgram> {
     while !modules_to_load.is_empty() {
         let module_path = modules_to_load.pop().unwrap();
 
-        let loaded_file = load_file(&whole_program.workdir, module_path);
+        let loaded_file = load_file(&whole_program.workdir, &module_path);
         if loaded_file.is_none() {
             return None;
         }
 
         let loaded_file = loaded_file.unwrap();
 
-        whole_program.files.insert(module_path.alias(), loaded_file);
+        whole_program.files.insert(module_path.alias().clone(), loaded_file);
 
         let loaded_file = whole_program.files.get(&module_path.alias()).unwrap();
 
