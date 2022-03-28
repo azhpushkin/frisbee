@@ -1,9 +1,13 @@
-use crate::{parser, scanner, utils};
+use crate::{ast::ModulePath, parser, scanner, utils};
 
-fn show_error(contents: &String, module: &String, pos: i32, error_msg: String) {
+fn show_error(contents: &String, module: &ModulePath, pos: i32, error_msg: String) {
     let (line, row) = utils::get_position_coordinates(&contents, pos);
 
-    println!("Error at line {} (in {}):\n----------\n", line, module);
+    println!(
+        "Error at line {} (in {}):\n----------\n",
+        line,
+        module.alias().as_str()
+    );
 
     let lines: Vec<&str> = contents.split('\n').collect();
     let spaces: String = vec![' '; row].into_iter().collect();
@@ -18,11 +22,11 @@ fn show_error(contents: &String, module: &String, pos: i32, error_msg: String) {
     println!("{}^\n{}{}", spaces, spaces, error_msg);
 }
 
-pub fn show_scan_error(contents: &String, module: &String, error: scanner::ScanningError) {
+pub fn show_scan_error(contents: &String, module: &ModulePath, error: scanner::ScanningError) {
     show_error(contents, module, error.1, error.0.into());
 }
 
-pub fn show_parse_error(contents: &String, module: &String, error: parser::ParseError) {
+pub fn show_parse_error(contents: &String, module: &ModulePath, error: parser::ParseError) {
     let formatted_error_msg = match error.expected {
         Some(token) => format!("{} (Expected token <{}>)", error.error_msg, token),
         None => error.error_msg.to_string(),

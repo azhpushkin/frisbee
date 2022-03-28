@@ -184,7 +184,7 @@ impl Parser {
         }
         consume_and_check!(self, Token::Semicolon);
 
-        Ok(ImportDecl { module_path, typenames, functions })
+        Ok(ImportDecl { module_path: ModulePath(module_path), typenames, functions })
     }
 
     pub fn parse_type(&mut self) -> ParseResult<Type> {

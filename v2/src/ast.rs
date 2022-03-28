@@ -7,10 +7,35 @@ pub struct FileAst {
     pub types: HashMap<String, ObjectDecl>,
 }
 
+#[derive(Debug, PartialEq, Clone)]
+pub struct ModulePath(pub Vec<String>);
+
+#[derive(Debug, PartialEq, Clone, Eq, Hash)]
+pub struct ModulePathAlias(String);
+
+impl Into<ModulePathAlias> for ModulePath {
+    fn into(self) -> ModulePathAlias {
+        ModulePathAlias(self.0.join("."))
+    }
+}
+impl ModulePath {
+    pub fn alias(&self) -> ModulePathAlias {
+        self.clone().into()
+    }
+    pub fn get_vec(&self) -> Vec<String> {
+        self.0.clone()
+    } // TODO: lifetime here to avoid copy?
+}
+impl ModulePathAlias {
+    pub fn as_str(&self) -> String {
+        self.0.clone()
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct ImportDecl {
     // Path to module, e.g. `from module.sub..` -> ["module", "sub"]
-    pub module_path: Vec<String>,
+    pub module_path: ModulePath,
 
     // NOTE: typenames is not Vec<Type> because only non-builtins are imported
     // so all of the imported types are Type::TypeIdentifier (this is checked by parser)
@@ -24,7 +49,9 @@ pub struct TypedNamedObject {
     pub name: String,
 }
 
-#[derive(Debug, PartialEq)]
+// TODO: think about removing these clone trains from object and function decl
+// these structs are too big
+#[derive(Debug, PartialEq, Clone)]
 pub struct ObjectDecl {
     pub is_active: bool,
     pub name: String,
@@ -32,7 +59,7 @@ pub struct ObjectDecl {
     pub methods: HashMap<String, FunctionDecl>,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct FunctionDecl {
     pub rettype: Type,
     pub name: String,
@@ -55,7 +82,7 @@ pub enum Type {
     TypeIdent(String),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Statement {
     SIfElse {
         condition: Expr,

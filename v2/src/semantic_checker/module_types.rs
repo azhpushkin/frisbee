@@ -46,7 +46,7 @@ pub fn check_imports_of_itself(file: &LoadedFile) {
 
 pub fn check_imports_are_correct(imports: &Vec<ImportDecl>, wp: &WholeProgram) {
     for import in imports {
-        let imported_module = wp.files.get(&alias(&import.module_path));
+        let imported_module = wp.files.get(&import.module_path.alias());
         let module_ast = &imported_module.unwrap().ast;
 
         for function in &import.functions {

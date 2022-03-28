@@ -3,11 +3,6 @@ use crate::{errors, parser, scanner};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-type ModulePath = Vec<String>;
-pub fn alias(mp: &ModulePath) -> String {
-    mp.join(".")
-}
-
 #[derive(Debug)]
 pub struct LoadedFile {
     pub path: PathBuf,
@@ -19,14 +14,14 @@ pub struct LoadedFile {
 #[derive(Debug)]
 pub struct WholeProgram {
     pub workdir: PathBuf,
-    pub main_module: String,
-    pub files: HashMap<String, LoadedFile>,
+    pub main_module: ModulePath,
+    pub files: HashMap<ModulePathAlias, LoadedFile>,
 }
 
 fn load_file(workdir: &PathBuf, module_path: ModulePath) -> Option<LoadedFile> {
-    println!(" ... Loading {}", alias(&module_path));
+    println!(" ... Loading {}", module_path.alias().as_str());
     let mut file_path = workdir.to_owned();
-    for subpath in &module_path {
+    for subpath in module_path.get_vec() {
         file_path.push(subpath);
     }
     file_path.set_extension("frisbee");
@@ -35,14 +30,14 @@ fn load_file(workdir: &PathBuf, module_path: ModulePath) -> Option<LoadedFile> {
 
     let tokens = scanner::scan_tokens(&contents);
     if tokens.is_err() {
-        errors::show_scan_error(&contents, &alias(&module_path), tokens.unwrap_err());
+        errors::show_scan_error(&contents, &module_path, tokens.unwrap_err());
         return None;
     }
 
     let ast: parser::ParseResult<FileAst> = parser::parse(tokens.unwrap());
 
     if ast.is_err() {
-        errors::show_parse_error(&contents, &alias(&module_path), ast.unwrap_err());
+        errors::show_parse_error(&contents, &module_path, ast.unwrap_err());
         return None;
     }
 
@@ -63,11 +58,11 @@ pub fn load_program(entry_file_path: &Path) -> Option<WholeProgram> {
     let main_module = entry_file_path.file_stem().unwrap().to_str().unwrap();
     let mut whole_program = WholeProgram {
         workdir: workdir.to_owned(),
-        main_module: main_module.to_owned(),
+        main_module: ModulePath(vec![main_module.into()]),
         files: HashMap::new(),
     };
 
-    let mut modules_to_load: Vec<ModulePath> = vec![vec![main_module.to_owned()]];
+    let mut modules_to_load: Vec<ModulePath> = vec![whole_program.main_module.clone()];
 
     while !modules_to_load.is_empty() {
         let module_path = modules_to_load.pop().unwrap();
@@ -78,22 +73,19 @@ pub fn load_program(entry_file_path: &Path) -> Option<WholeProgram> {
         }
 
         let loaded_file = loaded_file.unwrap();
-        let loaded_file_alias = alias(&loaded_file.module_path);
 
-        whole_program
-            .files
-            .insert(loaded_file_alias.clone(), loaded_file);
+        whole_program.files.insert(module_path.alias(), loaded_file);
 
-        let loaded_file = whole_program.files.get(&loaded_file_alias).unwrap();
+        let loaded_file = whole_program.files.get(&module_path.alias()).unwrap();
 
         for import in &loaded_file.ast.imports {
             // todo swap [0] to correct path forming
-            let a = alias(&import.module_path);
+            let alias = import.module_path.alias();
 
-            if whole_program.files.get(&a).is_none() {
+            if whole_program.files.get(&alias).is_none() {
                 modules_to_load.push(import.module_path.clone());
             } else {
-                println!("Using cache for {}", a);
+                println!("Using cache for {}", alias.as_str());
             }
         }
     }
