@@ -7,6 +7,7 @@ mod expressions;
 mod module_types;
 mod operators;
 mod statements;
+mod std_definitions;
 mod tests;
 
 pub fn perform_checks(wp: &WholeProgram) {
@@ -24,14 +25,14 @@ pub fn perform_checks(wp: &WholeProgram) {
             env.scope = Some(typedef.clone());
             env.variables_types = HashMap::new();
             for method in typedef.methods.values() {
-                statements::check_statements(&method.statements, &env);
+                statements::check_statements(&method.statements, &mut env);
             }
         }
 
         for funcdef in file.ast.functions.values() {
             env.scope = None;
             env.variables_types = HashMap::new();
-            statements::check_statements(&funcdef.statements, &env);
+            statements::check_statements(&funcdef.statements, &mut env);
         }
     }
 }

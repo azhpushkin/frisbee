@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use super::execution_env::ExecutionEnv;
 use super::operators::{calculate_binaryop_type, calculate_unaryop_type};
+use super::std_definitions::get_std_methods;
 use crate::ast::*;
 
 pub struct ExprTypeChecker<'a> {
@@ -109,7 +110,12 @@ impl<'a> ExprTypeChecker<'a> {
                         let method = typedef.methods.get(method).unwrap();
                         return self.check_function_call(method, args);
                     }
-                    t => panic!("Not implemented for {:?}", t),
+                    Type::TypeMaybe(_) => panic!("Not implemented for maybe yet!"),
+                    t => {
+                        let typedef = get_std_methods(t);
+                        let method = typedef.methods.get(method).expect("No such method");
+                        return self.check_function_call(method, args);
+                    }
                 }
             }
 

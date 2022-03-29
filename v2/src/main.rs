@@ -20,5 +20,6 @@ fn main() {
         println!("{} is not a file!", file_path_s);
     }
 
-    loader::load_program(file_path);
+    let wp = loader::load_program(file_path).expect("Error loading!");
+    semantic_checker::perform_checks(&wp);
 }
