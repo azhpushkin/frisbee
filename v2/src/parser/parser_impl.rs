@@ -7,6 +7,8 @@ use crate::scanner::*;
 pub struct Parser {
     tokens: Vec<ScannedToken>,
     position: usize,
+    module_path: ModulePathAlias,
+    imported_types: HashMap<String, ModulePathAlias>,
 }
 
 #[derive(Debug)]
@@ -89,8 +91,13 @@ macro_rules! insert_if_not_redefined {
 }
 
 impl Parser {
-    pub fn create(tokens: Vec<ScannedToken>) -> Parser {
-        Parser { tokens, position: 0 }
+    pub fn create(tokens: Vec<ScannedToken>, module_path: &ModulePathAlias) -> Parser {
+        Parser {
+            tokens,
+            position: 0,
+            module_path: module_path.clone(),
+            imported_types: HashMap::new(),
+        }
     }
 
     fn rel_token(&self, rel_pos: isize) -> &ScannedToken {
@@ -122,6 +129,15 @@ impl Parser {
         self.position >= self.tokens.len()
     }
 
+    pub fn get_type_ident(&self, typename: &String) -> Type {
+        let scope = self
+            .imported_types
+            .get(typename)
+            .unwrap_or(&self.module_path)
+            .clone();
+        Type::TypeIdent(typename.clone(), scope)
+    }
+
     pub fn parse_top_level(&mut self) -> ParseResult<FileAst> {
         let mut file_ast =
             FileAst { imports: vec![], functions: HashMap::new(), types: HashMap::new() };
@@ -129,8 +145,17 @@ impl Parser {
         while !self.is_finished() {
             let err = perr(self.rel_token(0), "Symbol redefinition");
 
+            while self.rel_token_check(0, Token::From) {
+                file_ast.imports.push(self.parse_import()?);
+            }
+            for import in &file_ast.imports {
+                for typename in &import.typenames {
+                    self.imported_types
+                        .insert(typename.clone(), import.module_path.alias());
+                }
+            }
+
             match self.rel_token(0).0 {
-                Token::From => file_ast.imports.push(self.parse_import()?),
                 Token::Active => {
                     insert_if_not_redefined!(file_ast.types, self.parse_object(true)?, err);
                 }
@@ -188,14 +213,16 @@ impl Parser {
     }
 
     pub fn parse_type(&mut self) -> ParseResult<Type> {
-        let (token, _) = self.consume_token();
+        let (token, _) = self.rel_token(0);
         let mut result_type = match token {
             Token::LeftSquareBrackets => {
+                self.consume_token();
                 let item_type = self.parse_type()?;
                 consume_and_check!(self, Token::RightSquareBrackets);
                 Type::TypeList(Box::new(item_type))
             }
             Token::LeftParenthesis => {
+                self.consume_token();
                 let mut tuple_items: Vec<Type> = vec![];
 
                 until_closes!(self, Token::RightParenthesis, {
@@ -211,15 +238,20 @@ impl Parser {
                     _ => Type::TypeTuple(tuple_items),
                 }
             }
-            Token::TypeIdentifier(s) => match s.as_str() {
-                "Int" => Type::TypeInt,
-                "Float" => Type::TypeFloat,
-                "Nil" => Type::TypeNil,
-                "Bool" => Type::TypeBool,
-                "String" => Type::TypeString,
-                _ => Type::TypeIdent(s.clone()),
-            },
+            Token::TypeIdentifier(s) => {
+                let t = match s.as_str() {
+                    "Int" => Type::TypeInt,
+                    "Float" => Type::TypeFloat,
+                    "Nil" => Type::TypeNil,
+                    "Bool" => Type::TypeBool,
+                    "String" => Type::TypeString,
+                    _ => self.get_type_ident(s),
+                };
+                self.consume_token();
+                t
+            }
             _ => {
+                self.consume_token();
                 return perr(self.rel_token(-1), "Wrong token for type definition");
             }
         };
@@ -244,13 +276,13 @@ impl Parser {
             // LeftParenthesis means that this is a constuctor
             // So check if the constructor name is correct and return error if not
             name = match &rettype {
-                Type::TypeIdent(s) if s != member_of.unwrap() => {
+                Type::TypeIdent(s, _) if s != member_of.unwrap() => {
                     return perr(
                         self.rel_token(0),
                         "Wrong typename is used for constructor-like method",
                     )
                 }
-                Type::TypeIdent(s) => s.clone(),
+                Type::TypeIdent(s, _) => s.clone(),
                 _ => return perr(self.rel_token(0), "Expected method name"),
             };
         } else {

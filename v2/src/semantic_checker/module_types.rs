@@ -19,7 +19,7 @@ pub fn check_collision_of_imports_and_definitions_per_module(ast: &FileAst) {
 
 fn is_type_referring_itself(type_name: &String, field_type: &Type) -> bool {
     match field_type {
-        Type::TypeIdent(s) if s == type_name => true,
+        Type::TypeIdent(s, _) if s == type_name => true,
         Type::TypeTuple(v) => v.iter().any(|t| is_type_referring_itself(type_name, t)),
         _ => false,
     }

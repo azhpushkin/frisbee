@@ -69,7 +69,7 @@ impl<'a> ExprTypeChecker<'a> {
                 }
                 let type_definition = type_definition.unwrap();
                 let default_constructor = FunctionDecl {
-                    rettype: Type::TypeIdent(typename.clone()),
+                    rettype: Type::TypeIdent(typename.clone(), ModulePathAlias("TODO".into())),
                     name: typename.clone(),
                     args: type_definition.fields.clone(),
                     statements: vec![],
@@ -96,7 +96,7 @@ impl<'a> ExprTypeChecker<'a> {
                 // TODO: implement something for built-in types
                 let obj_type = self.calculate(object.as_ref())?;
                 match &obj_type {
-                    Type::TypeIdent(t) => {
+                    Type::TypeIdent(t, _) => {
                         // TODO: checks for type correctness and method correctness
                         let typedef = self.env.types_definitions.get(t).unwrap();
                         let method = typedef.methods.get(method).unwrap();
@@ -110,7 +110,7 @@ impl<'a> ExprTypeChecker<'a> {
                 // TODO: implement something for built-in types
                 let obj_type = self.calculate(object.as_ref())?;
                 match &obj_type {
-                    Type::TypeIdent(t) => {
+                    Type::TypeIdent(t, _) => {
                         // TODO: checks for type correctness and field correctness
                         let typedef = self.env.types_definitions.get(t).unwrap();
                         return Ok(typedef.fields.get(field).unwrap().typename.clone());
@@ -137,7 +137,10 @@ impl<'a> ExprTypeChecker<'a> {
             }
             Expr::ExprThis => match &self.env.scope {
                 None => Err("Using 'this' in the functions is not allowed!".into()),
-                Some(o) => Ok(Type::TypeIdent(o.name.clone())),
+                Some(o) => Ok(Type::TypeIdent(
+                    o.name.clone(),
+                    ModulePathAlias("TODO".into()),
+                )),
             },
         }
     }

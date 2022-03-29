@@ -119,7 +119,10 @@ fn stmt_var_decl() {
 
     assert_stmt_parses(
         "Actor x;",
-        Statement::SVarDecl(Type::TypeIdent(String::from("Actor")), String::from("x")),
+        Statement::SVarDecl(
+            Type::TypeIdent(String::from("Actor"), get_test_module_path()),
+            String::from("x"),
+        ),
     );
 }
 
@@ -131,7 +134,7 @@ fn stmt_var_decl_equal() {
     assert_stmt_parses(
         "Actor x = asd;",
         Statement::SVarDeclEqual(
-            Type::TypeIdent(String::from("Actor")),
+            Type::TypeIdent(String::from("Actor"), get_test_module_path()),
             String::from("x"),
             Expr::ExprIdentifier(String::from("asd")),
         ),

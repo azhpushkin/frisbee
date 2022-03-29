@@ -11,7 +11,7 @@ pub struct FileAst {
 pub struct ModulePath(pub Vec<String>);
 
 #[derive(Debug, PartialEq, Clone, Eq, Hash)]
-pub struct ModulePathAlias(String);
+pub struct ModulePathAlias(pub String);
 
 impl Into<ModulePathAlias> for ModulePath {
     fn into(self) -> ModulePathAlias {
@@ -79,7 +79,7 @@ pub enum Type {
     TypeNil,
     TypeBool,
     TypeString,
-    TypeIdent(String),
+    TypeIdent(String, ModulePathAlias),
 }
 
 #[derive(Debug, PartialEq, Clone)]

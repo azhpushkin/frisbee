@@ -15,8 +15,14 @@ fn simple_types() {
     assert_type_parses("Nil", Type::TypeNil);
     assert_type_parses("Bool", Type::TypeBool);
 
-    assert_type_parses("StriNG", Type::TypeIdent(String::from("StriNG")));
-    assert_type_parses("SomeClass", Type::TypeIdent(String::from("SomeClass")));
+    assert_type_parses(
+        "StriNG",
+        Type::TypeIdent("StriNG".into(), get_test_module_path()),
+    );
+    assert_type_parses(
+        "SomeClass",
+        Type::TypeIdent("SomeClass".into(), get_test_module_path()),
+    );
 }
 
 #[test]
@@ -40,6 +46,7 @@ fn list_types() {
         "[[Actor]]",
         Type::TypeList(Box::new(Type::TypeList(Box::new(Type::TypeIdent(
             String::from("Actor"),
+            get_test_module_path(),
         ))))),
     );
 
@@ -54,7 +61,7 @@ fn maybe_types() {
     assert_type_parses(
         "[Actor?]?",
         Type::TypeMaybe(Box::new(Type::TypeList(Box::new(Type::TypeMaybe(
-            Box::new(Type::TypeIdent("Actor".into())),
+            Box::new(Type::TypeIdent("Actor".into(), get_test_module_path())),
         ))))),
     );
 }
@@ -68,12 +75,12 @@ fn tuple_types() {
     assert_type_parses(
         "(Actor, (Nil, Bool, Class, Passive), Int)",
         Type::TypeTuple(vec![
-            Type::TypeIdent(String::from("Actor")),
+            Type::TypeIdent(String::from("Actor"), get_test_module_path()),
             Type::TypeTuple(vec![
                 Type::TypeNil,
                 Type::TypeBool,
-                Type::TypeIdent(String::from("Class")),
-                Type::TypeIdent(String::from("Passive")),
+                Type::TypeIdent("Class".into(), get_test_module_path()),
+                Type::TypeIdent("Passive".into(), get_test_module_path()),
             ]),
             Type::TypeInt,
         ]),
@@ -87,7 +94,10 @@ fn tuple_types() {
 
     // Single element tuple is shrinked to just that element
     assert_type_parses("(String)", Type::TypeString);
-    assert_type_parses("(Actor, )", Type::TypeIdent(String::from("Actor")));
+    assert_type_parses(
+        "(Actor, )",
+        Type::TypeIdent("Actor".into(), get_test_module_path()),
+    );
 
     // Empty tuple is not allowed
     assert_parsing_fails(Parser::parse_type, "()");
@@ -111,7 +121,10 @@ fn complex_types() {
     assert_type_parses(
         "(Actor?, [Bool])",
         Type::TypeTuple(vec![
-            Type::TypeMaybe(Box::new(Type::TypeIdent(String::from("Actor")))),
+            Type::TypeMaybe(Box::new(Type::TypeIdent(
+                "Actor".into(),
+                get_test_module_path(),
+            ))),
             Type::TypeList(Box::new(Type::TypeBool)),
         ]),
     );
