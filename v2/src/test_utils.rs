@@ -53,14 +53,13 @@ impl TestFilesCreator {
 pub fn split_to_files(s: &str) -> HashMap<String, String> {
     let mut res: HashMap<String, String> = HashMap::new();
 
-    for group in s.split("//--") {
-        if !group.contains("file:") {
+    for group in s.split("// file:") {
+        if !group.contains(".frisbee") {
             continue;
         }
         let (file, contents) = group
             .split_once("\n")
             .expect("Error unwrapping test file content");
-        let (_, file) = file.split_once("file:").unwrap();
         res.insert(file.trim().into(), contents.trim().into());
     }
 
@@ -88,11 +87,11 @@ mod tests {
     fn test_split_to_files() {
         let res = split_to_files(
             r#"
-            //-- file: main.frisbee
+            // file: main.frisbee
             from sub.mod import Type;
 
             class Main {}
-            //-- file: sub/mod.frisbee
+            // file: sub/mod.frisbee
             active Type {}
         "#,
         );
