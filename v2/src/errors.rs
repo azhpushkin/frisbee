@@ -28,7 +28,7 @@ pub fn show_scan_error(contents: &String, module: &ModulePath, error: scanner::S
 
 pub fn show_parse_error(contents: &String, module: &ModulePath, error: parser::ParseError) {
     let formatted_error_msg = match error.expected {
-        Some(token) => format!("{} (Expected token <{}>)", error.error_msg, token),
+        Some(token) => format!("{} (Expected token <{:?}>)", error.error_msg, token),
         None => error.error_msg.to_string(),
     };
 
