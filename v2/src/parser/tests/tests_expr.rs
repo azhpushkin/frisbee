@@ -246,12 +246,6 @@ fn expr_own_field_access() {
         "@qwe",
         Expr::ExprOwnFieldAccess { field: String::from("qwe") },
     );
-
-    assert_expr_invalid("(@).field");
-    assert_expr_invalid("@.field");
-    assert_expr_invalid("@(field)");
-    assert_expr_invalid("@field");
-    assert_expr_invalid("@ field");
 }
 
 #[test]
@@ -321,6 +315,18 @@ fn expr_method_call_with_args() {
             object: Box::new(Expr::ExprIdentifier(String::from("asd"))),
             method: String::from("qwe"),
             args: vec![Expr::ExprInt(1), Expr::ExprBool(true), Expr::ExprThis],
+        },
+    );
+}
+
+#[test]
+fn expr_own_method_call_and_field_access() {
+    assert_expr_parses(
+        "@qwe().next(@field)",
+        Expr::ExprMethodCall {
+            object: Box::new(Expr::ExprOwnMethodCall { method: String::from("qwe"), args: vec![] }),
+            method: String::from("next"),
+            args: vec![Expr::ExprOwnFieldAccess { field: "field".into() }],
         },
     );
 }

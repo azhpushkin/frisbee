@@ -126,6 +126,7 @@ impl<'a> ExprTypeChecker<'a> {
                 None => Err("Using 'this' in the functions is not allowed!".into()),
                 Some(o) => Ok(Type::TypeIdent(o.name.clone())),
             },
+            _ => panic!("TODO"),
         }
     }
 

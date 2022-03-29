@@ -580,8 +580,13 @@ impl Parser {
                 consume_and_check!(self, Token::RightSquareBrackets);
                 res_expr = Expr::ExprListAccess { list: Box::new(res_expr), index: Box::new(index) }
             } else {
+                let mut is_own_method = false;
+                if matches!(res_expr, Expr::ExprOwnFieldAccess { .. }) {
+                    is_own_method = true;
+                }
                 let cloned_identifier = match res_expr {
                     Expr::ExprIdentifier(ident) => ident.clone(),
+                    Expr::ExprOwnFieldAccess { field } => field.clone(),
                     _ => return perr(self.rel_token(0), "Function call of non-function expr"),
                 };
                 self.position -= 1;
@@ -592,8 +597,11 @@ impl Parser {
                         "No first-class fuctions, chained func calls disallowed",
                     );
                 }
-
-                res_expr = Expr::ExprFunctionCall { function: cloned_identifier, args };
+                if is_own_method {
+                    res_expr = Expr::ExprOwnMethodCall { method: cloned_identifier, args };
+                } else {
+                    res_expr = Expr::ExprFunctionCall { function: cloned_identifier, args };
+                }
             }
         }
 
@@ -662,6 +670,7 @@ impl Parser {
             Token::True => Expr::ExprBool(true),
             Token::False => Expr::ExprBool(false),
             Token::Identifier(i) => Expr::ExprIdentifier(i.clone()),
+            Token::OwnIdentifier(f) => Expr::ExprOwnFieldAccess { field: f.clone() },
             Token::LeftParenthesis => return self.parse_group_or_tuple(),
             Token::LeftSquareBrackets => return self.parse_list_literal(),
             Token::TypeIdentifier(_) => return self.parse_new_class_instance_expr(),

@@ -222,7 +222,7 @@ pub fn scan_tokens(data: &String) -> Result<Vec<ScannedToken>, ScanningError> {
                 scanner.add_token(Token::Question)
             }
             '@' => {
-                if !scanner.char_ahead(0).is_alphanumeric() {
+                if !scanner.char_ahead(0).is_alphabetic() {
                     return Err(("Identifier required after @", scanner.position as i32));
                 }
                 let token = scan_identifier(&mut scanner, start + 1);
@@ -482,7 +482,8 @@ mod tests {
         assert!(scan_tokens(&"@".into()).is_err());
         assert!(scan_tokens(&"@ field".into()).is_err());
         assert!(scan_tokens(&"(@)field".into()).is_err());
-        assert!(scan_tokens(&"@(field)".into()).is_err());
+        assert!(scan_tokens(&"@.field".into()).is_err());
+        assert!(scan_tokens(&"@2field".into()).is_err());
     }
 
     #[test]
