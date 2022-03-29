@@ -41,7 +41,12 @@ fn load_file(workdir: &PathBuf, module_path: &ModulePath) -> Option<LoadedFile> 
         return None;
     }
 
-    Some(LoadedFile { path: file_path, module_path: module_path.clone(), contents, ast: ast.unwrap() })
+    Some(LoadedFile {
+        path: file_path,
+        module_path: module_path.clone(),
+        contents,
+        ast: ast.unwrap(),
+    })
 }
 
 // TODO:  ensure both windows and Unix are working file
@@ -74,7 +79,9 @@ pub fn load_program(entry_file_path: &Path) -> Option<WholeProgram> {
 
         let loaded_file = loaded_file.unwrap();
 
-        whole_program.files.insert(module_path.alias().clone(), loaded_file);
+        whole_program
+            .files
+            .insert(module_path.alias().clone(), loaded_file);
 
         let loaded_file = whole_program.files.get(&module_path.alias()).unwrap();
 

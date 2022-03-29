@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fs::{remove_file, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -46,5 +47,72 @@ impl TestFilesCreator {
         let p = load_program(self.get_main_path());
         assert!(p.is_some());
         p.unwrap()
+    }
+}
+
+pub fn split_to_files(s: &str) -> HashMap<String, String> {
+    let mut res: HashMap<String, String> = HashMap::new();
+
+    for group in s.split("//--") {
+        if !group.contains("file:") {
+            continue;
+        }
+        let (file, contents) = group
+            .split_once("\n")
+            .expect("Error unwrapping test file content");
+        let (_, file) = file.split_once("file:").unwrap();
+        res.insert(file.trim().into(), contents.trim().into());
+    }
+
+    res
+}
+
+pub fn setup_and_load_program(s: &str) -> WholeProgram {
+    let files = split_to_files(s);
+    if !files.contains_key("main.frisbee") {
+        panic!("Please make sure main.frisbee is loaded!");
+    }
+
+    let mut t = TestFilesCreator::new();
+    for (key, value) in files {
+        t.set_file(key, value);
+    }
+    return t.load_program();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_split_to_files() {
+        let res = split_to_files(
+            r#"
+            //-- file: main.frisbee
+            from sub.mod import Type;
+
+            class Main {}
+            //-- file: sub/mod.frisbee
+            active Type {}
+        "#,
+        );
+
+        assert_eq!(res.len(), 2);
+        assert_eq!(
+            res.get("main.frisbee").unwrap(),
+            r#"
+            from sub.mod import Type;
+
+            class Main {}
+            "#
+            .trim()
+        );
+        assert_eq!(
+            res.get("sub/mod.frisbee").unwrap(),
+            r#"
+            active Type {}
+            "#
+            .trim()
+        );
     }
 }

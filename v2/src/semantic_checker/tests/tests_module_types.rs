@@ -77,6 +77,15 @@ pub fn check_no_self_referrings_for_tuple() {
 #[test]
 #[should_panic]
 pub fn check_no_self_referrings_in_imports() {
+    let x = r#"
+    // File: main.frisbee
+    from main import Type
+
+    //File
+    class Type{}
+
+    "#;
+
     let mut t = TestFilesCreator::new();
     t.set_mainfile("from main import Type;");
 
