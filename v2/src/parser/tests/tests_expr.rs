@@ -423,7 +423,11 @@ fn expr_list_access_on_method_call() {
 fn expr_new_class_instance() {
     assert_expr_parses(
         "Object()",
-        Expr::ExprNewClassInstance { typename: String::from("Object"), args: vec![] },
+        Expr::ExprNewClassInstance {
+            typename: String::from("Object"),
+            module_path: get_test_module_path(),
+            args: vec![],
+        },
     );
 }
 
@@ -431,6 +435,10 @@ fn expr_new_class_instance() {
 fn expr_spawn_active() {
     assert_expr_parses(
         "spawn Object()",
-        Expr::ExprSpawnActive { typename: String::from("Object"), args: vec![] },
+        Expr::ExprSpawnActive {
+            typename: String::from("Object"),
+            module_path: get_test_module_path(),
+            args: vec![],
+        },
     );
 }
