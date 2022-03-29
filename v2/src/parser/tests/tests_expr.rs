@@ -241,6 +241,20 @@ fn expr_field_access() {
 }
 
 #[test]
+fn expr_own_field_access() {
+    assert_expr_parses(
+        "@qwe",
+        Expr::ExprOwnFieldAccess { field: String::from("qwe") },
+    );
+
+    assert_expr_invalid("(@).field");
+    assert_expr_invalid("@.field");
+    assert_expr_invalid("@(field)");
+    assert_expr_invalid("@field");
+    assert_expr_invalid("@ field");
+}
+
+#[test]
 fn expr_func() {
     assert_expr_parses(
         "(function) (1, )",
@@ -279,6 +293,14 @@ fn expr_method_call() {
             method: String::from("qwe"),
             args: vec![],
         },
+    );
+}
+
+#[test]
+fn expr_own_method_call() {
+    assert_expr_parses(
+        "(@qwe())",
+        Expr::ExprOwnMethodCall { method: String::from("qwe"), args: vec![] },
     );
 }
 

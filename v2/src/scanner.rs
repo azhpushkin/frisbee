@@ -16,6 +16,7 @@ pub enum Token {
     Question,
     
     Identifier(String),
+    OwnIdentifier(String),
     TypeIdentifier(String),
     String(String),
     Float(f32),
@@ -143,6 +144,20 @@ fn scan_string(scanner: &mut Scanner, start: usize, quote: char) -> Option<Scann
     None
 }
 
+fn scan_identifier(scanner: &mut Scanner, start: usize) -> Token {
+    while !scanner.is_finished() {
+        let c = scanner.char_ahead(0);
+        if c.is_alphanumeric() || c == '_' {
+            scanner.consume_char();
+        } else {
+            break;
+        }
+    }
+
+    let s: String = scanner.chars[start..scanner.position].iter().collect();
+    identifier_to_token(s)
+}
+
 pub fn scan_tokens(data: &String) -> Result<Vec<ScannedToken>, ScanningError> {
     let mut scanner = Scanner::create(data.chars().collect::<Vec<_>>());
 
@@ -206,6 +221,18 @@ pub fn scan_tokens(data: &String) -> Result<Vec<ScannedToken>, ScanningError> {
                 }
                 scanner.add_token(Token::Question)
             }
+            '@' => {
+                if !scanner.char_ahead(0).is_alphanumeric() {
+                    return Err(("Identifier required after @", scanner.position as i32));
+                }
+                let token = scan_identifier(&mut scanner, start + 1);
+                match token {
+                    Token::Identifier(s) => {
+                        scanner.add_token_with_position(Token::OwnIdentifier(s), start)
+                    }
+                    _ => return Err(("Identifier required after @", scanner.position as i32)),
+                }
+            }
 
             '=' if scanner.check_next('=') => scanner.add_token(Token::EqualEqual),
             '=' => scanner.add_token(Token::Equal),
@@ -256,18 +283,9 @@ pub fn scan_tokens(data: &String) -> Result<Vec<ScannedToken>, ScanningError> {
             }
 
             c if c.is_alphabetic() => {
-                while !scanner.is_finished() {
-                    let c = scanner.char_ahead(0);
-                    if c.is_alphanumeric() || c == '_' {
-                        scanner.consume_char();
-                    } else {
-                        break;
-                    }
-                }
+                let token = scan_identifier(&mut scanner, start.clone());
 
-                let s: String = scanner.chars[start..scanner.position].iter().collect();
-
-                scanner.add_token_with_position(identifier_to_token(s), start);
+                scanner.add_token_with_position(token, start);
             }
             c if c.is_whitespace() => (),
 
@@ -447,6 +465,24 @@ mod tests {
                 Token::TypeIdentifier(String::from("Spawn")),
             ]
         );
+    }
+
+    #[test]
+    fn test_own_identifiers() {
+        assert_eq!(
+            scan_tokens_helper("@field @method_12()"),
+            vec![
+                Token::OwnIdentifier("field".into()),
+                Token::OwnIdentifier("method_12".into()),
+                Token::LeftParenthesis,
+                Token::RightParenthesis,
+            ]
+        );
+
+        assert!(scan_tokens(&"@".into()).is_err());
+        assert!(scan_tokens(&"@ field".into()).is_err());
+        assert!(scan_tokens(&"(@)field".into()).is_err());
+        assert!(scan_tokens(&"@(field)".into()).is_err());
     }
 
     #[test]
