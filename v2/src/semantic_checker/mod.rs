@@ -19,6 +19,7 @@ pub fn perform_checks(wp: &WholeProgram) {
 
     for (_, file) in wp.files.iter() {
         let mut env = execution_env::get_env_for_file(wp, file);
+
         for typedef in file.ast.types.values() {
             env.scope = Some(typedef.clone());
             env.variables_types = HashMap::new();

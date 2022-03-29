@@ -1,6 +1,5 @@
 use crate::semantic_checker;
 use crate::test_utils::setup_and_load_program;
-use crate::test_utils::TestFilesCreator;
 
 #[test]
 #[should_panic]
