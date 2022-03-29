@@ -121,12 +121,24 @@ impl<'a> ExprTypeChecker<'a> {
                     )),
                 }
             }
-
+            Expr::ExprOwnMethodCall { .. } | Expr::ExprOwnFieldAccess { .. }
+                if self.env.scope.is_none() =>
+            {
+                Err("Using @ is not allowed in functions".into())
+            }
+            Expr::ExprOwnMethodCall { method, args } => {
+                let own_type = self.env.scope.as_ref().unwrap();
+                let method = own_type.methods.get(method).unwrap();
+                return self.check_function_call(method, args);
+            }
+            Expr::ExprOwnFieldAccess { field } => {
+                let own_type = self.env.scope.as_ref().unwrap();
+                return Ok(own_type.fields.get(field).unwrap().typename.clone());
+            }
             Expr::ExprThis => match &self.env.scope {
                 None => Err("Using 'this' in the functions is not allowed!".into()),
                 Some(o) => Ok(Type::TypeIdent(o.name.clone())),
             },
-            _ => panic!("TODO"),
         }
     }
 
