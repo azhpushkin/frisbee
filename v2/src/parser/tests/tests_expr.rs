@@ -361,8 +361,7 @@ fn expr_call_method_on_list_literal() {
         args: vec![Expr::ExprThis],
     };
 
-    assert_expr_parses("[asd, 2].qwe(this)", expected.clone());
-    assert_expr_parses("([asd, 2]).qwe(this)", expected.clone());
+    assert_expr_parses("([asd, 2]).qwe(this)", expected);
 }
 
 #[test]

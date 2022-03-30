@@ -53,7 +53,7 @@ impl TestFilesCreator {
 pub fn split_to_files(s: &str) -> HashMap<String, String> {
     let mut res: HashMap<String, String> = HashMap::new();
 
-    for group in s.split("// file:") {
+    for group in s.split("===== file:") {
         if !group.contains(".frisbee") {
             continue;
         }
@@ -87,11 +87,11 @@ mod tests {
     fn test_split_to_files() {
         let res = split_to_files(
             r#"
-            // file: main.frisbee
+            ===== file: main.frisbee
             from sub.mod import Type;
 
             class Main {}
-            // file: sub/mod.frisbee
+            ===== file: sub/mod.frisbee
             active Type {}
         "#,
         );

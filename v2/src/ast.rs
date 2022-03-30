@@ -49,7 +49,7 @@ pub struct TypedNamedObject {
 
 // TODO: think about removing these clone trains from object and function decl
 // these structs are too big
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq)]
 pub struct ObjectDecl {
     pub is_active: bool,
     pub name: String,
@@ -57,7 +57,7 @@ pub struct ObjectDecl {
     pub methods: Vec<FunctionDecl>,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq)]
 pub struct FunctionDecl {
     pub rettype: Type,
     pub name: String,
@@ -80,7 +80,7 @@ pub enum Type {
     TypeIdent(String),
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq)]
 pub enum Statement {
     SIfElse {
         condition: Expr,
@@ -150,7 +150,7 @@ pub enum UnaryOp {
 // This means that if we do something like array[-1], we do not handle it, lol
 // maybe save state of the actor before running it? (2x memory for this)
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq)]
 pub enum Expr {
     ExprUnaryOp { op: UnaryOp, operand: Box<Expr> },
     ExprBinOp { left: Box<Expr>, right: Box<Expr>, op: BinaryOp },
