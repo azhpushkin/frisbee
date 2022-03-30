@@ -2,7 +2,7 @@
 pub struct FileAst {
     pub imports: Vec<ImportDecl>,
     pub functions: Vec<FunctionDecl>,
-    pub types: Vec<ObjectDecl>,
+    pub types: Vec<ClassDecl>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -50,7 +50,7 @@ pub struct TypedNamedObject {
 // TODO: think about removing these clone trains from object and function decl
 // these structs are too big
 #[derive(Debug, PartialEq)]
-pub struct ObjectDecl {
+pub struct ClassDecl {
     pub is_active: bool,
     pub name: String,
     pub fields: Vec<TypedNamedObject>,

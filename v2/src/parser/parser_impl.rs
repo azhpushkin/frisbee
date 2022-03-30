@@ -251,7 +251,7 @@ impl Parser {
         Ok(FunctionDecl { rettype, name, args, statements: stmts })
     }
 
-    pub fn parse_object(&mut self, is_active: bool) -> ParseResult<ObjectDecl> {
+    pub fn parse_object(&mut self, is_active: bool) -> ParseResult<ClassDecl> {
         if is_active {
             consume_and_check!(self, Token::Active);
         } else {
@@ -284,7 +284,7 @@ impl Parser {
 
         consume_and_check!(self, Token::RightCurlyBrackets);
 
-        Ok(ObjectDecl { is_active, name: new_object_name, fields, methods })
+        Ok(ClassDecl { is_active, name: new_object_name, fields, methods })
     }
 
     pub fn parse_statements_in_curly_block(

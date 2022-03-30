@@ -107,7 +107,7 @@ fn active_object_and_fields() {
             |p| Parser::parse_object(p, true),
             "active Actor { String name; Actor lol; }"
         ),
-        ObjectDecl {
+        ClassDecl {
             is_active: true,
             name: String::from("Actor"),
             fields: vec![
@@ -129,7 +129,7 @@ fn class_object_and_methods() {
             |p| Parser::parse_object(p, false),
             "class Data { fun Bool get_person(Int age, String name) { 1 / asd.call(); this; } }"
         ),
-        ObjectDecl {
+        ClassDecl {
             is_active: false,
             name: String::from("Data"),
             fields: vec![],
@@ -164,7 +164,7 @@ fn class_object_constructor_method() {
             |p| Parser::parse_object(p, false),
             "class Data { fun Data() {} }"
         ),
-        ObjectDecl {
+        ClassDecl {
             is_active: false,
             name: String::from("Data"),
             fields: vec![],
@@ -195,7 +195,7 @@ fn active_object_constructor_method() {
             |p| Parser::parse_object(p, true),
             "active Actor { fun Actor() {} }"
         ),
-        ObjectDecl {
+        ClassDecl {
             is_active: true,
             name: String::from("Actor"),
             fields: vec![],
