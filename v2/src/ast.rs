@@ -80,6 +80,7 @@ pub enum Type {
     TypeMaybe(Box<Type>),
 
     TypeIdent(String),
+    TypeIdentQualified(ModulePathAlias, String),
 }
 
 #[derive(Debug, PartialEq)]

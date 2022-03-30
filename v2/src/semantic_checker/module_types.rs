@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::iter::FromIterator;
 
 use super::semantic_error::{sem_err, SemanticError, SemanticResult};
 use crate::ast::*;
@@ -102,33 +103,64 @@ pub fn get_typenames_signatures(
             );
         }
 
+        let fields_annotated: SemanticResult<Vec<Type>> = class_decl
+            .fields
+            .iter()
+            .map(|t| annotate_type(&t.typename, typenames_mapping))
+            .collect();
+        let fields_annotated = fields_annotated?;
         let mut signature = ObjectSignature {
             module_path_alias: file.module_path.alias(),
             name: class_decl.name.clone(),
             is_active: class_decl.is_active,
-            fields: HashMap::new(), // TODO
+            fields: HashMap::from_iter(
+                class_decl
+                    .fields
+                    .iter()
+                    .enumerate()
+                    .map(|(i, f)| (f.name.clone(), fields_annotated[i].clone())),
+            ),
             methods: HashMap::new(),
         };
     }
     Ok(signatures)
 }
 
-// fn annotate_type(t: Type) -> Type {
-//     match t {
-//         Type::TypeInt => Type::TypeInt,
-//         Type::TypeFloat => Type::TypeFloat,
-//         Type::TypeNil => Type::TypeNil,
-//         Type::TypeBool => Type::TypeBool,
-//         Type::TypeString => Type::TypeString,
+fn annotate_type(t: &Type, typenames_mapping: &FileObjectsMapping) -> SemanticResult<Type> {
+    let new_t = match t {
+        Type::TypeInt => Type::TypeInt,
+        Type::TypeFloat => Type::TypeFloat,
+        Type::TypeNil => Type::TypeNil,
+        Type::TypeBool => Type::TypeBool,
+        Type::TypeString => Type::TypeString,
 
-//         Type::TypeList{..} => Type::TypeList(),
-//         Type::TypeTuple{..} => Type::TypeTuple(),
-//         Type::TypeMaybe{..} => Type::TypeMaybe(),
+        Type::TypeList(t) => {
+            Type::TypeList(Box::new(annotate_type(t.as_ref(), typenames_mapping)?))
+        }
+        Type::TypeMaybe(t) => {
+            Type::TypeMaybe(Box::new(annotate_type(t.as_ref(), typenames_mapping)?))
+        }
+        Type::TypeTuple(ts) => {
+            let ts_annotated: SemanticResult<Vec<Type>> = ts
+                .iter()
+                .map(|t| annotate_type(t, typenames_mapping))
+                .collect();
+            Type::TypeTuple(ts_annotated?)
+        }
 
-//         Type::TypeIdent{..} => Type::TypeIdent(),
-//     }
-
-// }
+        Type::TypeIdent(s) => {
+            let obj_path = typenames_mapping.get(s);
+            if obj_path.is_none() {
+                return sem_err!("Type {} is not defined in this scope!", s);
+            } else {
+                let (alias, name) = obj_path.unwrap();
+                Type::TypeIdentQualified(alias.clone(), name.clone())
+            }
+        }
+        Type::TypeIdentQualified(..) => panic!("Did not expected {:?}", t),
+    };
+    Ok(new_t)
+}
 
 // pub fn get_module_types(file: &LoadedFile) -> HashMap<ObjectPath, ObjectSignature> {
 //     for objtype in file.ast.types.iter() {
