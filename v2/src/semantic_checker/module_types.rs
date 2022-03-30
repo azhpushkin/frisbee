@@ -91,9 +91,10 @@ pub fn get_typenames_signatures(
     file: &LoadedFile,
     typenames_mapping: &FileObjectsMapping,
 ) -> SemanticResult<HashMap<ObjectPath, ObjectSignature>> {
-    let signatures: HashMap<ObjectPath, ObjectSignature> = HashMap::new();
+    let mut signatures: HashMap<ObjectPath, ObjectSignature> = HashMap::new();
 
     for class_decl in file.ast.types.iter() {
+        let object_path: ObjectPath = (file.module_path.alias(), class_decl.name.clone());
         if does_class_contains_itself(class_decl) {
             // This will result in memory layout recursion, if allowed
             return sem_err!(
@@ -103,25 +104,32 @@ pub fn get_typenames_signatures(
             );
         }
 
-        let fields_annotated: SemanticResult<Vec<Type>> = class_decl
-            .fields
-            .iter()
-            .map(|t| annotate_type(&t.typename, typenames_mapping))
-            .collect();
-        let fields_annotated = fields_annotated?;
-        let mut signature = ObjectSignature {
+        let mut class_signature = ObjectSignature {
             module_path_alias: file.module_path.alias(),
             name: class_decl.name.clone(),
             is_active: class_decl.is_active,
-            fields: HashMap::from_iter(
-                class_decl
-                    .fields
-                    .iter()
-                    .enumerate()
-                    .map(|(i, f)| (f.name.clone(), fields_annotated[i].clone())),
-            ),
+            fields: typednameobjects_to_hashmap(&class_decl.fields, typenames_mapping)?,
             methods: HashMap::new(),
         };
+
+        for method in class_decl.methods.iter() {
+            let method_signature = FunctionSignature {
+                rettype: annotate_type(&method.rettype, typenames_mapping)?,
+                args: typednameobjects_to_hashmap(&method.args, typenames_mapping)?,
+            };
+            let prev = class_signature
+                .methods
+                .insert(method.name.clone(), method_signature);
+            if prev.is_some() {
+                return sem_err!(
+                    "Redefinition of method {} in {:?}",
+                    method.name,
+                    object_path
+                );
+            }
+        }
+
+        signatures.insert(object_path, class_signature);
     }
     Ok(signatures)
 }
@@ -160,6 +168,23 @@ fn annotate_type(t: &Type, typenames_mapping: &FileObjectsMapping) -> SemanticRe
         Type::TypeIdentQualified(..) => panic!("Did not expected {:?}", t),
     };
     Ok(new_t)
+}
+
+fn typednameobjects_to_hashmap(
+    items: &Vec<TypedNamedObject>,
+    typenames_mapping: &FileObjectsMapping,
+) -> SemanticResult<HashMap<String, Type>> {
+    let annotated: SemanticResult<Vec<Type>> = items
+        .iter()
+        .map(|t| annotate_type(&t.typename, typenames_mapping))
+        .collect();
+    let annotated = annotated?;
+    Ok(HashMap::from_iter(
+        items
+            .iter()
+            .enumerate()
+            .map(|(i, t)| (t.name.clone(), annotated[i].clone())),
+    ))
 }
 
 // pub fn get_module_types(file: &LoadedFile) -> HashMap<ObjectPath, ObjectSignature> {

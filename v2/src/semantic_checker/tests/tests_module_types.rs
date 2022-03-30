@@ -81,6 +81,21 @@ pub fn check_active_and_class_name_collision() {
 }
 
 #[test]
+pub fn check_method_name_collisions() {
+    let wp = setup_and_load_program(
+        r#"
+        ===== file: main.frisbee
+        class Type {
+            fun Nil hello() {}
+            fun Nil hello() {}
+        }
+    "#,
+    );
+
+    assert!(semantic_checker::perform_checks(&wp).is_err());
+}
+
+#[test]
 pub fn check_self_referrings_for_active_are_allowed() {
     let wp = setup_and_load_program(
         r#"
