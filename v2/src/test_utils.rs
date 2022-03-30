@@ -45,7 +45,7 @@ impl TestFilesCreator {
 
     pub fn load_program(&self) -> WholeProgram {
         let p = load_program(self.get_main_path());
-        assert!(p.is_some());
+        assert!(p.is_some(), "Loading error!");
         p.unwrap()
     }
 }

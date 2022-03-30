@@ -44,7 +44,7 @@ pub fn check_import_function_name_collision() {
 
         fun Nil somefun() {}
         ===== file: mod.frisbee
-        fun Bool somefun()
+        fun Bool somefun() {}
     "#,
     );
 

@@ -51,6 +51,36 @@ pub fn get_typenames_mapping(file: &LoadedFile) -> Result<FileObjectsMapping, Se
     Ok(mapping)
 }
 
+pub fn get_functions_mapping(file: &LoadedFile) -> Result<FileObjectsMapping, SemanticError> {
+    let file_alias = file.module_path.alias();
+    let mut mapping: FileObjectsMapping = HashMap::new();
+
+    let defined_types = file
+        .ast
+        .functions
+        .iter()
+        .map(|f| (file.module_path.alias(), f.name.clone()));
+
+    let imported_types = file.ast.imports.iter().flat_map(|i| {
+        i.functions
+            .iter()
+            .map(move |funcname| (i.module_path.alias(), funcname.clone()))
+    });
+
+    for obj_path in defined_types.chain(imported_types) {
+        if mapping.contains_key(&obj_path.1) {
+            return sem_err!(
+                "Function {} introduced several times in module {:?}",
+                obj_path.1,
+                file_alias
+            );
+        }
+        mapping.insert(obj_path.1.clone(), obj_path);
+    }
+
+    Ok(mapping)
+}
+
 // fn annotate_type(t: Type) -> Type {
 //     match t {
 //         Type::TypeInt => Type::TypeInt,
@@ -82,22 +112,6 @@ pub fn check_imports_of_itself(file: &LoadedFile) -> SemanticResult {
     }
     Ok(())
 }
-
-// pub fn check_collision_of_imports_and_definitions_per_module(ast: &FileAst) {
-//     for import in &ast.imports {
-//         for typename in &import.typenames {
-//             if ast.types.contains_key(typename) {
-//                 panic!("Type {} is both imported and defined", typename);
-//             }
-//         }
-
-//         for funcname in &import.functions {
-//             if ast.functions.contains_key(funcname) {
-//                 panic!("Function {} is both imported and defined", funcname);
-//             }
-//         }
-//     }
-// }
 
 // fn is_type_referring_itself(type_name: &String, field_type: &Type) -> bool {
 //     match field_type {
