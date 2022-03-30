@@ -19,7 +19,7 @@ pub fn check_import_from_same_module_is_fine() {
 }
 
 #[test]
-pub fn check_import_of_same_obj_are_not_allowed() {
+pub fn check_import_of_same_function_are_not_allowed() {
     let wp = setup_and_load_program(
         r#"
         ===== file: main.frisbee
@@ -129,7 +129,7 @@ pub fn check_no_self_referrings_in_imports() {
 }
 
 #[test]
-pub fn check_imported_typess_are_existing() {
+pub fn check_imported_types_are_existing() {
     let wp = setup_and_load_program(
         r#"
         ===== file: main.frisbee

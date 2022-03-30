@@ -1,6 +1,78 @@
-use super::semantic_error::{sem_err, SemanticResult};
+use std::collections::HashMap;
+
+use super::semantic_error::{sem_err, SemanticError, SemanticResult};
 use crate::ast::*;
 use crate::loader::*;
+
+pub struct ObjectSignature {
+    module_path_alias: ModulePathAlias,
+    name: String,
+    is_active: bool,
+    fields: HashMap<String, Type>,
+    methods: HashMap<String, FunctionSignature>,
+}
+
+pub struct FunctionSignature {
+    rettype: Type,
+    args: HashMap<String, Type>,
+}
+
+// These are applicable for both Types and functions
+pub type ObjectPath = (ModulePathAlias, String);
+pub type FileObjectsMapping = HashMap<String, ObjectPath>;
+
+pub fn get_typenames_mapping(file: &LoadedFile) -> Result<FileObjectsMapping, SemanticError> {
+    let file_alias = file.module_path.alias();
+    let mut mapping: FileObjectsMapping = HashMap::new();
+
+    let defined_types = file
+        .ast
+        .types
+        .iter()
+        .map(|d| (file.module_path.alias(), d.name.clone()));
+
+    let imported_types = file.ast.imports.iter().flat_map(|i| {
+        i.typenames
+            .iter()
+            .map(move |typename| (i.module_path.alias(), typename.clone()))
+    });
+
+    for obj_path in defined_types.chain(imported_types) {
+        if mapping.contains_key(&obj_path.1) {
+            return sem_err!(
+                "Type {} introduced several times in module {:?}",
+                obj_path.1,
+                file_alias
+            );
+        }
+        mapping.insert(obj_path.1.clone(), obj_path);
+    }
+
+    Ok(mapping)
+}
+
+// fn annotate_type(t: Type) -> Type {
+//     match t {
+//         Type::TypeInt => Type::TypeInt,
+//         Type::TypeFloat => Type::TypeFloat,
+//         Type::TypeNil => Type::TypeNil,
+//         Type::TypeBool => Type::TypeBool,
+//         Type::TypeString => Type::TypeString,
+
+//         Type::TypeList{..} => Type::TypeList(),
+//         Type::TypeTuple{..} => Type::TypeTuple(),
+//         Type::TypeMaybe{..} => Type::TypeMaybe(),
+
+//         Type::TypeIdent{..} => Type::TypeIdent(),
+//     }
+
+// }
+
+// pub fn get_module_types(file: &LoadedFile) -> HashMap<ObjectPath, ObjectSignature> {
+//     for objtype in file.ast.types.iter() {
+//         let object_path = (file.module_path.alias(), objtype.name.clone()),
+//     }
+// }
 
 pub fn check_imports_of_itself(file: &LoadedFile) -> SemanticResult {
     for import in &file.ast.imports {

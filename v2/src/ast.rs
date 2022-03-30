@@ -69,14 +69,16 @@ pub struct FunctionDecl {
 pub enum Type {
     // TODO: TypeAnonymous
     // TODO: TypeMaybe (Type),
-    TypeList(Box<Type>),
-    TypeTuple(Vec<Type>),
-    TypeMaybe(Box<Type>),
     TypeInt,
     TypeFloat,
     TypeNil,
     TypeBool,
     TypeString,
+
+    TypeList(Box<Type>),
+    TypeTuple(Vec<Type>),
+    TypeMaybe(Box<Type>),
+
     TypeIdent(String),
 }
 
