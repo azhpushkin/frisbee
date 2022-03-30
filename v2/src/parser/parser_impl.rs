@@ -243,7 +243,7 @@ impl Parser {
             if self.rel_token_check(0, Token::Comma) {
                 self.consume_token();
             }
-            args.push(TypedNamedObject { typename: argtype, name: argname })
+            args.push(TypedNamedObject { objtype: argtype, name: argname })
         });
 
         let stmts = self.parse_statements_in_curly_block(false)?;
@@ -272,7 +272,7 @@ impl Parser {
             let typename = self.parse_type()?;
             let name = consume_and_check_ident!(self);
             consume_and_check!(self, Token::Semicolon);
-            fields.push(TypedNamedObject { typename, name });
+            fields.push(TypedNamedObject { objtype: typename, name });
         }
 
         // Parse object methods

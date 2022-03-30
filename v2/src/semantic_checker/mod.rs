@@ -8,24 +8,28 @@ use crate::{
 mod semantic_error;
 // mod execution_env;
 // mod expressions;
-mod module_types;
+mod modules;
 // mod operators;
 // mod statements;
 // mod std_definitions;
 mod tests;
 
 pub fn perform_checks(wp: &WholeProgram) -> semantic_error::SemanticResult<()> {
-    let mut mappings_per_file: HashMap<ModulePathAlias, module_types::FileMappings> =
+    let mut mappings_per_file: HashMap<ModulePathAlias, modules::FileMappings> = HashMap::new();
+    let mut global_types_mapping: HashMap<modules::ObjectPath, modules::ObjectSignature> =
+        HashMap::new();
+    let mut global_funcs_mapping: HashMap<modules::ObjectPath, modules::FunctionSignature> =
         HashMap::new();
 
     for (file_name, file) in wp.files.iter() {
-        module_types::check_module_does_not_import_itself(file)?;
+        modules::check_module_does_not_import_itself(file)?;
 
-        let file_mappings = module_types::FileMappings {
-            typenames: module_types::get_typenames_mapping(file)?,
-            functions: module_types::get_functions_mapping(file)?,
+        let file_mappings = modules::FileMappings {
+            typenames: modules::get_typenames_mapping(file)?,
+            functions: modules::get_functions_mapping(file)?,
         };
-        module_types::get_typenames_signatures(file, &file_mappings.typenames)?;
+        modules::get_typenames_signatures(file, &file_mappings.typenames)?;
+        modules::get_functions_signatures(file, &file_mappings.typenames)?;
 
         mappings_per_file.insert(file_name.clone(), file_mappings);
     }

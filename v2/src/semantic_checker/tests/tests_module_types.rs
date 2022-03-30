@@ -96,6 +96,23 @@ pub fn check_method_name_collisions() {
 }
 
 #[test]
+pub fn check_same_function_names_are_fine() {
+    let wp = setup_and_load_program(
+        r#"
+        ===== file: main.frisbee
+        from mod import hello;
+
+        fun Nil samename() {}
+        ===== file: mod.frisbee
+        fun Nil samename() {}
+        fun Nil hello() {}
+    "#,
+    );
+
+    assert!(semantic_checker::perform_checks(&wp).is_ok());
+}
+
+#[test]
 pub fn check_self_referrings_for_active_are_allowed() {
     let wp = setup_and_load_program(
         r#"

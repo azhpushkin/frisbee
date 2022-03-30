@@ -134,6 +134,23 @@ pub fn get_typenames_signatures(
     Ok(signatures)
 }
 
+pub fn get_functions_signatures(
+    file: &LoadedFile,
+    typenames_mapping: &FileObjectsMapping,
+) -> SemanticResult<HashMap<ObjectPath, FunctionSignature>> {
+    let mut signatures: HashMap<ObjectPath, FunctionSignature> = HashMap::new();
+
+    for function_decl in file.ast.functions.iter() {
+        let object_path: ObjectPath = (file.module_path.alias(), function_decl.name.clone());
+        let signature = FunctionSignature {
+            rettype: annotate_type(&function_decl.rettype, typenames_mapping)?,
+            args: typednameobjects_to_hashmap(&function_decl.args, typenames_mapping)?,
+        };
+        signatures.insert(object_path, signature);
+    }
+    Ok(signatures)
+}
+
 fn annotate_type(t: &Type, typenames_mapping: &FileObjectsMapping) -> SemanticResult<Type> {
     let new_t = match t {
         Type::TypeInt => Type::TypeInt,
@@ -176,7 +193,7 @@ fn typednameobjects_to_hashmap(
 ) -> SemanticResult<HashMap<String, Type>> {
     let annotated: SemanticResult<Vec<Type>> = items
         .iter()
-        .map(|t| annotate_type(&t.typename, typenames_mapping))
+        .map(|t| annotate_type(&t.objtype, typenames_mapping))
         .collect();
     let annotated = annotated?;
     Ok(HashMap::from_iter(
@@ -216,7 +233,7 @@ pub fn does_class_contains_itself(class_decl: &ClassDecl) -> bool {
         return false;
     }
     let check_field =
-        |field: &TypedNamedObject| does_type_contain_itself(&field.typename, &class_decl.name);
+        |field: &TypedNamedObject| does_type_contain_itself(&field.objtype, &class_decl.name);
     return class_decl.fields.iter().any(check_field);
 }
 
