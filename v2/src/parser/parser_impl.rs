@@ -129,15 +129,12 @@ impl Parser {
         self.position >= self.tokens.len()
     }
 
-    pub fn get_type_module_path(&self, typename: &String) -> ModulePathAlias {
-        self.imported_types
+    pub fn get_type_ident(&self, typename: &String) -> Type {
+        let scope = self
+            .imported_types
             .get(typename)
             .unwrap_or(&self.module_path)
-            .clone()
-    }
-
-    pub fn get_type_ident(&self, typename: &String) -> Type {
-        let scope = self.get_type_module_path(typename);
+            .clone();
         Type::TypeIdent(typename.clone(), scope)
     }
 
@@ -684,17 +681,15 @@ impl Parser {
 
     fn parse_new_class_instance_expr(&mut self) -> ParseResult<Expr> {
         let typename = consume_and_check_type_ident!(self);
-        let module_path = self.get_type_module_path(&typename);
         let args = self.parse_function_call_args()?;
-        Ok(Expr::ExprNewClassInstance { typename, module_path, args })
+        Ok(Expr::ExprNewClassInstance { typename, args })
     }
 
     fn parse_spawn_active_expr(&mut self) -> ParseResult<Expr> {
         consume_and_check!(self, Token::Spawn);
         let typename = consume_and_check_type_ident!(self);
-        let module_path = self.get_type_module_path(&typename);
         let args = self.parse_function_call_args()?;
-        Ok(Expr::ExprSpawnActive { typename, module_path, args })
+        Ok(Expr::ExprSpawnActive { typename, args })
     }
 
     pub fn parse_expr_primary(&mut self) -> ParseResult<Expr> {

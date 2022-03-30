@@ -59,12 +59,9 @@ impl<'a> ExprTypeChecker<'a> {
 
             Expr::ExprListAccess { list, index } => self.calculate_list_access(list, index),
 
-            Expr::ExprNewClassInstance { typename, module_path, args }
-            | Expr::ExprSpawnActive { typename, module_path, args } => {
-                let type_definition = self
-                    .env
-                    .types_definitions
-                    .get(&(typename.clone(), module_path.clone()));
+            Expr::ExprNewClassInstance { typename, args }
+            | Expr::ExprSpawnActive { typename, args } => {
+                let type_definition = self.env.types_definitions.get(typename);
                 if type_definition.is_none() {
                     return Err(format!(
                         "Type definition {} is missing for {:?}",
@@ -100,13 +97,9 @@ impl<'a> ExprTypeChecker<'a> {
                 // TODO: implement something for built-in types
                 let obj_type = self.calculate(object.as_ref())?;
                 match &obj_type {
-                    Type::TypeIdent(t, m) => {
+                    Type::TypeIdent(t, _) => {
                         // TODO: checks for type correctness and method correctness
-                        let typedef = self
-                            .env
-                            .types_definitions
-                            .get(&(t.clone(), m.clone()))
-                            .expect(format!("Unknown type {:?}", obj_type).as_str());
+                        let typedef = self.env.types_definitions.get(t).unwrap();
                         let method = typedef.methods.get(method).unwrap();
                         return self.check_function_call(method, args);
                     }
@@ -123,13 +116,9 @@ impl<'a> ExprTypeChecker<'a> {
                 // TODO: implement something for built-in types
                 let obj_type = self.calculate(object.as_ref())?;
                 match &obj_type {
-                    Type::TypeIdent(t, m) => {
+                    Type::TypeIdent(t, _) => {
                         // TODO: checks for type correctness and field correctness
-                        let typedef = self
-                            .env
-                            .types_definitions
-                            .get(&(t.clone(), m.clone()))
-                            .expect(format!("Unknown type {:?}", obj_type).as_str());
+                        let typedef = self.env.types_definitions.get(t).unwrap();
                         return Ok(typedef.fields.get(field).unwrap().typename.clone());
                     }
                     t => Err(format!(

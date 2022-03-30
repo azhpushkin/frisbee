@@ -154,56 +154,23 @@ pub enum UnaryOp {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expr {
-    ExprUnaryOp {
-        op: UnaryOp,
-        operand: Box<Expr>,
-    },
-    ExprBinOp {
-        left: Box<Expr>,
-        right: Box<Expr>,
-        op: BinaryOp,
-    },
-    ExprListAccess {
-        list: Box<Expr>,
-        index: Box<Expr>,
-    },
+    ExprUnaryOp { op: UnaryOp, operand: Box<Expr> },
+    ExprBinOp { left: Box<Expr>, right: Box<Expr>, op: BinaryOp },
+    ExprListAccess { list: Box<Expr>, index: Box<Expr> },
     ExprListValue(Vec<Expr>),
     ExprTupleValue(Vec<Expr>),
-    ExprFunctionCall {
-        function: String,
-        args: Vec<Expr>,
-    },
-    ExprMethodCall {
-        object: Box<Expr>,
-        method: String,
-        args: Vec<Expr>,
-    },
-    ExprFieldAccess {
-        object: Box<Expr>,
-        field: String,
-    },
-    ExprOwnMethodCall {
-        method: String,
-        args: Vec<Expr>,
-    },
-    ExprOwnFieldAccess {
-        field: String,
-    },
+    ExprFunctionCall { function: String, args: Vec<Expr> },
+    ExprMethodCall { object: Box<Expr>, method: String, args: Vec<Expr> },
+    ExprFieldAccess { object: Box<Expr>, field: String },
+    ExprOwnMethodCall { method: String, args: Vec<Expr> },
+    ExprOwnFieldAccess { field: String },
     ExprInt(i32),
     ExprString(String),
     ExprBool(bool),
     ExprNil,
     ExprFloat(f32),
     ExprIdentifier(String),
-    ExprNewClassInstance {
-        typename: String,
-        module_path: ModulePathAlias,
-        args: Vec<Expr>,
-    },
-    ExprSpawnActive {
-        typename: String,
-        module_path: ModulePathAlias,
-        args: Vec<Expr>,
-    },
+    ExprNewClassInstance { typename: String, args: Vec<Expr> },
+    ExprSpawnActive { typename: String, args: Vec<Expr> },
     ExprThis,
 }
