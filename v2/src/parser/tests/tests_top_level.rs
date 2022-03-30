@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::ast::*;
 
 use super::super::parser_impl::*;
@@ -62,8 +60,8 @@ fn multiple_imports() {
                     functions: vec![]
                 }
             ],
-            types: HashMap::new(),
-            functions: HashMap::new(),
+            types: vec![],
+            functions: vec![],
         }
     );
 }
@@ -77,36 +75,27 @@ fn parse_function_definition() {
         ),
         FileAst {
             imports: vec![],
-            types: HashMap::new(),
-            functions: HashMap::from([(
-                String::from("get_person"),
-                FunctionDecl {
-                    rettype: Type::TypeBool,
-                    name: String::from("get_person"),
-                    args: HashMap::from([
-                        (
-                            "age".into(),
-                            TypedNamedObject { typename: Type::TypeInt, name: "age".into() }
-                        ),
-                        (
-                            "name".into(),
-                            TypedNamedObject { typename: Type::TypeString, name: "name".into() }
-                        ),
-                    ]),
-                    statements: vec![
-                        Statement::SExpr(Expr::ExprBinOp {
-                            left: Box::new(Expr::ExprInt(1)),
-                            right: Box::new(Expr::ExprMethodCall {
-                                object: Box::new(Expr::ExprIdentifier(String::from("asd"))),
-                                method: String::from("call"),
-                                args: vec![]
-                            }),
-                            op: BinaryOp::Divide
+            types: vec![],
+            functions: vec![FunctionDecl {
+                rettype: Type::TypeBool,
+                name: String::from("get_person"),
+                args: vec![
+                    TypedNamedObject { typename: Type::TypeInt, name: "age".into() },
+                    TypedNamedObject { typename: Type::TypeString, name: "name".into() }
+                ],
+                statements: vec![
+                    Statement::SExpr(Expr::ExprBinOp {
+                        left: Box::new(Expr::ExprInt(1)),
+                        right: Box::new(Expr::ExprMethodCall {
+                            object: Box::new(Expr::ExprIdentifier(String::from("asd"))),
+                            method: String::from("call"),
+                            args: vec![]
                         }),
-                        Statement::SExpr(Expr::ExprThis)
-                    ],
-                }
-            )])
+                        op: BinaryOp::Divide
+                    }),
+                    Statement::SExpr(Expr::ExprThis)
+                ],
+            }]
         }
     );
 }
@@ -121,20 +110,14 @@ fn active_object_and_fields() {
         ObjectDecl {
             is_active: true,
             name: String::from("Actor"),
-            fields: HashMap::from([
-                (
-                    "lol".into(),
-                    TypedNamedObject {
-                        typename: Type::TypeIdent(String::from("Actor")),
-                        name: "lol".into()
-                    }
-                ),
-                (
-                    "name".into(),
-                    TypedNamedObject { typename: Type::TypeString, name: "name".into() }
-                ),
-            ]),
-            methods: HashMap::new(),
+            fields: vec![
+                TypedNamedObject { typename: Type::TypeString, name: "name".into() },
+                TypedNamedObject {
+                    typename: Type::TypeIdent(String::from("Actor")),
+                    name: "lol".into()
+                },
+            ],
+            methods: vec![],
         }
     );
 }
@@ -149,36 +132,27 @@ fn class_object_and_methods() {
         ObjectDecl {
             is_active: false,
             name: String::from("Data"),
-            fields: HashMap::new(),
-            methods: HashMap::from([(
-                "get_person".into(),
-                FunctionDecl {
-                    rettype: Type::TypeBool,
-                    name: String::from("get_person"),
-                    args: HashMap::from([
-                        (
-                            "age".into(),
-                            TypedNamedObject { typename: Type::TypeInt, name: "age".into() }
-                        ),
-                        (
-                            "name".into(),
-                            TypedNamedObject { typename: Type::TypeString, name: "name".into() }
-                        ),
-                    ]),
-                    statements: vec![
-                        Statement::SExpr(Expr::ExprBinOp {
-                            left: Box::new(Expr::ExprInt(1)),
-                            right: Box::new(Expr::ExprMethodCall {
-                                object: Box::new(Expr::ExprIdentifier(String::from("asd"))),
-                                method: String::from("call"),
-                                args: vec![]
-                            }),
-                            op: BinaryOp::Divide
+            fields: vec![],
+            methods: vec![FunctionDecl {
+                rettype: Type::TypeBool,
+                name: String::from("get_person"),
+                args: vec![
+                    TypedNamedObject { typename: Type::TypeInt, name: "age".into() },
+                    TypedNamedObject { typename: Type::TypeString, name: "name".into() },
+                ],
+                statements: vec![
+                    Statement::SExpr(Expr::ExprBinOp {
+                        left: Box::new(Expr::ExprInt(1)),
+                        right: Box::new(Expr::ExprMethodCall {
+                            object: Box::new(Expr::ExprIdentifier(String::from("asd"))),
+                            method: String::from("call"),
+                            args: vec![]
                         }),
-                        Statement::SExpr(Expr::ExprThis)
-                    ],
-                }
-            )])
+                        op: BinaryOp::Divide
+                    }),
+                    Statement::SExpr(Expr::ExprThis)
+                ],
+            }]
         }
     );
 }
@@ -193,16 +167,13 @@ fn class_object_constructor_method() {
         ObjectDecl {
             is_active: false,
             name: String::from("Data"),
-            fields: HashMap::new(),
-            methods: HashMap::from([(
-                "Data".into(),
-                FunctionDecl {
-                    rettype: Type::TypeIdent(String::from("Data")),
-                    name: String::from("Data"),
-                    args: HashMap::new(),
-                    statements: vec![],
-                }
-            )])
+            fields: vec![],
+            methods: vec![FunctionDecl {
+                rettype: Type::TypeIdent(String::from("Data")),
+                name: String::from("Data"),
+                args: vec![],
+                statements: vec![],
+            }]
         }
     );
 
@@ -227,16 +198,13 @@ fn active_object_constructor_method() {
         ObjectDecl {
             is_active: true,
             name: String::from("Actor"),
-            fields: HashMap::new(),
-            methods: HashMap::from([(
-                "Actor".into(),
-                FunctionDecl {
-                    rettype: Type::TypeIdent(String::from("Actor")),
-                    name: String::from("Actor"),
-                    args: HashMap::new(),
-                    statements: vec![],
-                }
-            )])
+            fields: vec![],
+            methods: vec![FunctionDecl {
+                rettype: Type::TypeIdent(String::from("Actor")),
+                name: String::from("Actor"),
+                args: vec![],
+                statements: vec![],
+            }]
         }
     );
 
@@ -248,58 +216,4 @@ fn active_object_constructor_method() {
         |p| Parser::parse_object(p, true),
         "active Actor { fun ActorConstructor() {} }",
     );
-}
-
-#[test]
-fn dublicated_methods_are_not_allowed() {
-    assert_parsing_fails(
-        Parser::parse_top_level,
-        "active Actor { fun Nil hello() {} fun Nil hello() {} }",
-    );
-
-    // Same object but without duplicated method is fine
-    let parsed_ast = parse_helper(
-        Parser::parse_top_level,
-        "active Actor { fun Nil hello() {} fun Nil hello2() {} }",
-    );
-    assert!(parsed_ast.is_ok());
-}
-
-#[test]
-fn dublicated_fields_are_not_allowed() {
-    assert_parsing_fails(
-        Parser::parse_top_level,
-        "active Actor { Bool lol; Int lol; }",
-    );
-
-    // Same object but without duplicated method is fine
-    let parsed_ast = parse_helper(
-        Parser::parse_top_level,
-        "active Actor { Bool lol; Int lol_; }",
-    );
-    assert!(parsed_ast.is_ok());
-}
-
-#[test]
-fn dublicated_args_in_function_are_not_allowed() {
-    assert_parsing_fails(Parser::parse_top_level, "fun Nil hello(Int a, Bool a) {}");
-
-    // Same object but without duplicated method is fine
-    let parsed_ast = parse_helper(Parser::parse_top_level, "fun Nil hello(Int a, Bool a_) {}");
-    assert!(parsed_ast.is_ok());
-}
-
-#[test]
-fn dublicated_args_in_method_are_not_allowed() {
-    assert_parsing_fails(
-        Parser::parse_top_level,
-        "active Actor { fun Nil hello(Int a, Bool a) {} }",
-    );
-
-    // Same object but without duplicated method is fine
-    let parsed_ast = parse_helper(
-        Parser::parse_top_level,
-        "active Actor { fun Nil hello(Int a, Bool a_) {} }",
-    );
-    assert!(parsed_ast.is_ok());
 }

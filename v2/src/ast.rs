@@ -1,10 +1,8 @@
-use std::collections::HashMap;
-
 #[derive(Debug, PartialEq)]
 pub struct FileAst {
     pub imports: Vec<ImportDecl>,
-    pub functions: HashMap<String, FunctionDecl>,
-    pub types: HashMap<String, ObjectDecl>,
+    pub functions: Vec<FunctionDecl>,
+    pub types: Vec<ObjectDecl>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -55,15 +53,15 @@ pub struct TypedNamedObject {
 pub struct ObjectDecl {
     pub is_active: bool,
     pub name: String,
-    pub fields: HashMap<String, TypedNamedObject>,
-    pub methods: HashMap<String, FunctionDecl>,
+    pub fields: Vec<TypedNamedObject>,
+    pub methods: Vec<FunctionDecl>,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct FunctionDecl {
     pub rettype: Type,
     pub name: String,
-    pub args: HashMap<String, TypedNamedObject>,
+    pub args: Vec<TypedNamedObject>,
     pub statements: Vec<Statement>,
 }
 
