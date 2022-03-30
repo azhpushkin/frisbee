@@ -2,10 +2,12 @@ pub type SemanticError = String;
 pub type SemanticResult = Result<(), SemanticError>;
 
 macro_rules! sem_err {
-    ($($arg : tt), *) => {
-        Err(format!($($arg), *))
-     };
+    ($($args : tt)*) => {{
+        Err(format!($($args)*))
+     }};
 }
+
+pub(crate) use sem_err;
 
 #[cfg(test)]
 mod tests {

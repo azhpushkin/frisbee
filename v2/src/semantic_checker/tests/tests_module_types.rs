@@ -15,7 +15,7 @@ pub fn check_import_from_same_module_is_fine() {
     "#,
     );
 
-    assert!(semantic_checker::perform_checks(&wp).is_some());
+    assert!(semantic_checker::perform_checks(&wp).is_ok());
 }
 
 #[test]
@@ -32,11 +32,10 @@ pub fn check_import_of_same_obj_are_not_allowed() {
     "#,
     );
 
-    semantic_checker::perform_checks(&wp);
+    assert!(semantic_checker::perform_checks(&wp).is_err());
 }
 
 #[test]
-#[should_panic]
 pub fn check_import_function_name_collision() {
     let wp = setup_and_load_program(
         r#"
@@ -49,11 +48,10 @@ pub fn check_import_function_name_collision() {
     "#,
     );
 
-    semantic_checker::perform_checks(&wp);
+    assert!(semantic_checker::perform_checks(&wp).is_err());
 }
 
 #[test]
-#[should_panic]
 pub fn check_import_active_type_name_collision() {
     let wp = setup_and_load_program(
         r#"
@@ -66,11 +64,10 @@ pub fn check_import_active_type_name_collision() {
     "#,
     );
 
-    semantic_checker::perform_checks(&wp);
+    assert!(semantic_checker::perform_checks(&wp).is_err());
 }
 
 #[test]
-#[should_panic]
 pub fn check_active_and_class_name_collision() {
     let wp = setup_and_load_program(
         r#"
@@ -80,7 +77,7 @@ pub fn check_active_and_class_name_collision() {
     "#,
     );
 
-    semantic_checker::perform_checks(&wp);
+    assert!(semantic_checker::perform_checks(&wp).is_err());
 }
 
 #[test]
@@ -92,11 +89,10 @@ pub fn check_self_referrings_for_active_are_allowed() {
     "#,
     );
 
-    semantic_checker::perform_checks(&wp);
+    assert!(semantic_checker::perform_checks(&wp).is_ok());
 }
 
 #[test]
-#[should_panic]
 pub fn check_no_self_referrings_for_passive() {
     let wp = setup_and_load_program(
         r#"
@@ -105,11 +101,10 @@ pub fn check_no_self_referrings_for_passive() {
     "#,
     );
 
-    semantic_checker::perform_checks(&wp);
+    assert!(semantic_checker::perform_checks(&wp).is_err());
 }
 
 #[test]
-#[should_panic]
 pub fn check_no_self_referrings_for_tuple() {
     let wp = setup_and_load_program(
         r#"
@@ -118,11 +113,10 @@ pub fn check_no_self_referrings_for_tuple() {
     "#,
     );
 
-    semantic_checker::perform_checks(&wp);
+    assert!(semantic_checker::perform_checks(&wp).is_err());
 }
 
 #[test]
-#[should_panic]
 pub fn check_no_self_referrings_in_imports() {
     let wp = setup_and_load_program(
         r#"
@@ -131,11 +125,10 @@ pub fn check_no_self_referrings_in_imports() {
     "#,
     );
 
-    semantic_checker::perform_checks(&wp);
+    assert!(semantic_checker::perform_checks(&wp).is_err());
 }
 
 #[test]
-#[should_panic]
 pub fn check_imported_typess_are_existing() {
     let wp = setup_and_load_program(
         r#"
@@ -146,11 +139,10 @@ pub fn check_imported_typess_are_existing() {
     "#,
     );
 
-    semantic_checker::perform_checks(&wp);
+    assert!(semantic_checker::perform_checks(&wp).is_err());
 }
 
 #[test]
-#[should_panic]
 pub fn check_imported_functions_are_existing() {
     let wp = setup_and_load_program(
         r#"
@@ -161,5 +153,5 @@ pub fn check_imported_functions_are_existing() {
     "#,
     );
 
-    semantic_checker::perform_checks(&wp);
+    assert!(semantic_checker::perform_checks(&wp).is_err());
 }
