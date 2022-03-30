@@ -6,7 +6,7 @@ fn show_error(contents: &String, module: &ModulePath, pos: i32, error_msg: Strin
     println!(
         "Error at line {} (in {}):\n----------\n",
         line,
-        module.alias().as_str()
+        module.alias().to_string()
     );
 
     let lines: Vec<&str> = contents.split('\n').collect();

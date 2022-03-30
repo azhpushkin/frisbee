@@ -21,6 +21,11 @@ pub struct FunctionSignature {
 pub type ObjectPath = (ModulePathAlias, String);
 pub type FileObjectsMapping = HashMap<String, ObjectPath>;
 
+pub struct FileMappings {
+    pub typenames: FileObjectsMapping,
+    pub functions: FileObjectsMapping,
+}
+
 pub fn get_typenames_mapping(file: &LoadedFile) -> Result<FileObjectsMapping, SemanticError> {
     let file_alias = file.module_path.alias();
     let mut mapping: FileObjectsMapping = HashMap::new();
@@ -104,7 +109,7 @@ pub fn get_functions_mapping(file: &LoadedFile) -> Result<FileObjectsMapping, Se
 //     }
 // }
 
-pub fn check_imports_of_itself(file: &LoadedFile) -> SemanticResult {
+pub fn check_module_does_not_import_itself(file: &LoadedFile) -> SemanticResult {
     for import in &file.ast.imports {
         if import.module_path == file.module_path {
             return sem_err!("Module {:?} is importing itself!", file.module_path.alias());

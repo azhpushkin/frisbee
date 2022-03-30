@@ -19,7 +19,7 @@ pub struct WholeProgram {
 }
 
 fn load_file(workdir: &PathBuf, module_path: &ModulePath) -> Option<LoadedFile> {
-    println!(" ... Loading {}", module_path.alias().as_str());
+    println!(" ... Loading {}", module_path.alias().to_string());
     let mut file_path = workdir.to_owned();
     for subpath in module_path.get_vec() {
         file_path.push(subpath);
@@ -92,7 +92,7 @@ pub fn load_program(entry_file_path: &Path) -> Option<WholeProgram> {
             if whole_program.files.get(&alias).is_none() {
                 modules_to_load.push(import.module_path.clone());
             } else {
-                println!("Using cache for {}", alias.as_str());
+                println!("Using cache for {}", alias.to_string());
             }
         }
     }

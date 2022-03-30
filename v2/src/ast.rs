@@ -25,7 +25,7 @@ impl ModulePath {
     } // TODO: lifetime here to avoid copy?
 }
 impl ModulePathAlias {
-    pub fn as_str(&self) -> String {
+    pub fn to_string(&self) -> String {
         self.0.clone()
     }
 }
