@@ -14,7 +14,7 @@ mod module_types;
 // mod std_definitions;
 mod tests;
 
-pub fn perform_checks(wp: &WholeProgram) -> semantic_error::SemanticResult {
+pub fn perform_checks(wp: &WholeProgram) -> semantic_error::SemanticResult<()> {
     let mut mappings_per_file: HashMap<ModulePathAlias, module_types::FileMappings> =
         HashMap::new();
 
@@ -25,6 +25,8 @@ pub fn perform_checks(wp: &WholeProgram) -> semantic_error::SemanticResult {
             typenames: module_types::get_typenames_mapping(file)?,
             functions: module_types::get_functions_mapping(file)?,
         };
+        module_types::get_typenames_signatures(file, &file_mappings.typenames)?;
+
         mappings_per_file.insert(file_name.clone(), file_mappings);
     }
 

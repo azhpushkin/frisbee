@@ -1,5 +1,5 @@
 pub type SemanticError = String;
-pub type SemanticResult = Result<(), SemanticError>;
+pub type SemanticResult<T> = Result<T, SemanticError>;
 
 macro_rules! sem_err {
     ($($args : tt)*) => {{
@@ -15,7 +15,7 @@ mod tests {
 
     #[test]
     pub fn check_sem_err() {
-        let res: SemanticResult = sem_err!("The Answer is {}", 42);
+        let res: SemanticResult<()> = sem_err!("The Answer is {}", 42);
         assert!(res.is_err());
         assert_eq!(res.unwrap_err(), "The Answer is 42");
     }

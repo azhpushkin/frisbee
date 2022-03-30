@@ -5,16 +5,16 @@ use crate::ast::*;
 use crate::loader::*;
 
 pub struct ObjectSignature {
-    module_path_alias: ModulePathAlias,
-    name: String,
-    is_active: bool,
-    fields: HashMap<String, Type>,
-    methods: HashMap<String, FunctionSignature>,
+    pub module_path_alias: ModulePathAlias,
+    pub name: String,
+    pub is_active: bool,
+    pub fields: HashMap<String, Type>,
+    pub methods: HashMap<String, FunctionSignature>,
 }
 
 pub struct FunctionSignature {
-    rettype: Type,
-    args: HashMap<String, Type>,
+    pub rettype: Type,
+    pub args: HashMap<String, Type>,
 }
 
 // These are applicable for both Types and functions
@@ -26,7 +26,7 @@ pub struct FileMappings {
     pub functions: FileObjectsMapping,
 }
 
-pub fn get_typenames_mapping(file: &LoadedFile) -> Result<FileObjectsMapping, SemanticError> {
+pub fn get_typenames_mapping(file: &LoadedFile) -> SemanticResult<FileObjectsMapping> {
     let file_alias = file.module_path.alias();
     let mut mapping: FileObjectsMapping = HashMap::new();
 
@@ -56,7 +56,7 @@ pub fn get_typenames_mapping(file: &LoadedFile) -> Result<FileObjectsMapping, Se
     Ok(mapping)
 }
 
-pub fn get_functions_mapping(file: &LoadedFile) -> Result<FileObjectsMapping, SemanticError> {
+pub fn get_functions_mapping(file: &LoadedFile) -> SemanticResult<FileObjectsMapping> {
     let file_alias = file.module_path.alias();
     let mut mapping: FileObjectsMapping = HashMap::new();
 
@@ -86,6 +86,33 @@ pub fn get_functions_mapping(file: &LoadedFile) -> Result<FileObjectsMapping, Se
     Ok(mapping)
 }
 
+pub fn get_typenames_signatures(
+    file: &LoadedFile,
+    typenames_mapping: &FileObjectsMapping,
+) -> SemanticResult<HashMap<ObjectPath, ObjectSignature>> {
+    let signatures: HashMap<ObjectPath, ObjectSignature> = HashMap::new();
+
+    for class_decl in file.ast.types.iter() {
+        if does_class_contains_itself(class_decl) {
+            // This will result in memory layout recursion, if allowed
+            return sem_err!(
+                "Type {} in {:?} contains itself, not allowed!",
+                class_decl.name,
+                file.module_path.alias()
+            );
+        }
+
+        let mut signature = ObjectSignature {
+            module_path_alias: file.module_path.alias(),
+            name: class_decl.name.clone(),
+            is_active: class_decl.is_active,
+            fields: HashMap::new(), // TODO
+            methods: HashMap::new(),
+        };
+    }
+    Ok(signatures)
+}
+
 // fn annotate_type(t: Type) -> Type {
 //     match t {
 //         Type::TypeInt => Type::TypeInt,
@@ -109,7 +136,7 @@ pub fn get_functions_mapping(file: &LoadedFile) -> Result<FileObjectsMapping, Se
 //     }
 // }
 
-pub fn check_module_does_not_import_itself(file: &LoadedFile) -> SemanticResult {
+pub fn check_module_does_not_import_itself(file: &LoadedFile) -> SemanticResult<()> {
     for import in &file.ast.imports {
         if import.module_path == file.module_path {
             return sem_err!("Module {:?} is importing itself!", file.module_path.alias());
@@ -118,24 +145,23 @@ pub fn check_module_does_not_import_itself(file: &LoadedFile) -> SemanticResult 
     Ok(())
 }
 
-// fn is_type_referring_itself(type_name: &String, field_type: &Type) -> bool {
-//     match field_type {
-//         Type::TypeIdent(s) if s == type_name => true,
-//         Type::TypeTuple(v) => v.iter().any(|t| is_type_referring_itself(type_name, t)),
-//         _ => false,
-//     }
-// }
+fn does_type_contain_itself(field_type: &Type, type_name: &String) -> bool {
+    match field_type {
+        Type::TypeIdent(s) if s == type_name => true,
+        Type::TypeTuple(v) => v.iter().any(|t| does_type_contain_itself(t, type_name)),
+        _ => false,
+    }
+}
 
-// pub fn check_type_is_not_referring_self(ast: &FileAst) {
-//     for (type_name, object_decl) in ast.types.iter() {
-//         for field in object_decl.fields.values() {
-//             let TypedNamedObject { typename: field_type, .. } = field;
-//             if is_type_referring_itself(type_name, field_type) {
-//                 panic!("Type {} references itself", type_name)
-//             }
-//         }
-//     }
-// }
+pub fn does_class_contains_itself(class_decl: &ClassDecl) -> bool {
+    if class_decl.is_active {
+        // Active Type is in fact reference, so it is fine to have active refer to itself
+        return false;
+    }
+    let check_field =
+        |field: &TypedNamedObject| does_type_contain_itself(&field.typename, &class_decl.name);
+    return class_decl.fields.iter().any(check_field);
+}
 
 // pub fn check_imports_are_correct(imports: &Vec<ImportDecl>, wp: &WholeProgram) {
 //     for import in imports {
