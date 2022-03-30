@@ -3,7 +3,7 @@ pub mod errors;
 pub mod loader;
 pub mod parser;
 pub mod scanner;
-// pub mod semantic_checker;
+pub mod semantic_checker;
 pub mod test_utils;
 #[allow(dead_code)]
 // pub mod tree_walk; // TODO: remove
