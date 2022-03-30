@@ -112,33 +112,6 @@ fn parse_function_definition() {
 }
 
 #[test]
-fn parse_type_from_import() {
-    assert_eq!(
-        parse_and_unwrap(
-            Parser::parse_top_level,
-            "from module.lol import Type; fun Type test() {} "
-        ),
-        FileAst {
-            imports: vec![ImportDecl {
-                module_path: ModulePath(vec!["module".into(), "lol".into()]),
-                typenames: vec![String::from("Type")],
-                functions: vec![]
-            },],
-            types: HashMap::new(),
-            functions: HashMap::from([(
-                String::from("test"),
-                FunctionDecl {
-                    rettype: Type::TypeIdent("Type".into(), ModulePathAlias("module.lol".into())),
-                    name: String::from("test"),
-                    args: HashMap::new(),
-                    statements: vec![],
-                }
-            )])
-        }
-    );
-}
-
-#[test]
 fn active_object_and_fields() {
     assert_eq!(
         parse_and_unwrap(
@@ -152,7 +125,7 @@ fn active_object_and_fields() {
                 (
                     "lol".into(),
                     TypedNamedObject {
-                        typename: Type::TypeIdent(String::from("Actor"), get_test_module_path()),
+                        typename: Type::TypeIdent(String::from("Actor")),
                         name: "lol".into()
                     }
                 ),
@@ -224,7 +197,7 @@ fn class_object_constructor_method() {
             methods: HashMap::from([(
                 "Data".into(),
                 FunctionDecl {
-                    rettype: Type::TypeIdent(String::from("Data"), get_test_module_path()),
+                    rettype: Type::TypeIdent(String::from("Data")),
                     name: String::from("Data"),
                     args: HashMap::new(),
                     statements: vec![],
@@ -258,7 +231,7 @@ fn active_object_constructor_method() {
             methods: HashMap::from([(
                 "Actor".into(),
                 FunctionDecl {
-                    rettype: Type::TypeIdent(String::from("Actor"), get_test_module_path()),
+                    rettype: Type::TypeIdent(String::from("Actor")),
                     name: String::from("Actor"),
                     args: HashMap::new(),
                     statements: vec![],

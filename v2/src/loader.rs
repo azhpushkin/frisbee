@@ -34,7 +34,7 @@ fn load_file(workdir: &PathBuf, module_path: &ModulePath) -> Option<LoadedFile> 
         return None;
     }
 
-    let ast: parser::ParseResult<FileAst> = parser::parse(tokens.unwrap(), module_path.alias());
+    let ast: parser::ParseResult<FileAst> = parser::parse(tokens.unwrap());
 
     if ast.is_err() {
         errors::show_parse_error(&contents, &module_path, ast.unwrap_err());

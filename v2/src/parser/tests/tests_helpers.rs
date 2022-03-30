@@ -1,5 +1,5 @@
 use super::super::parser_impl::*;
-use crate::{ast::ModulePathAlias, scanner::scan_tokens};
+use crate::scanner::scan_tokens;
 
 pub type ParsingFunction<T> = fn(&mut Parser) -> ParseResult<T>;
 
@@ -16,7 +16,7 @@ pub fn parse_and_unwrap<T: std::fmt::Debug>(parsefn: ParsingFunction<T>, s: &str
 
 pub fn parse_helper<T: std::fmt::Debug>(parsefn: ParsingFunction<T>, s: &str) -> ParseResult<T> {
     let tokens = scan_tokens(&String::from(s));
-    let mut parser = Parser::create(tokens.unwrap(), &get_test_module_path());
+    let mut parser = Parser::create(tokens.unwrap());
     parsefn(&mut parser)
 }
 
@@ -28,8 +28,4 @@ pub fn assert_parsing_fails<T: std::fmt::Debug>(parsefn: ParsingFunction<T>, s: 
         s,
         parsed_ast.unwrap()
     );
-}
-
-pub fn get_test_module_path() -> ModulePathAlias {
-    ModulePathAlias("test".into())
 }
