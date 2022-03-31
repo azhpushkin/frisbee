@@ -1,5 +1,23 @@
-use crate::semantic_checker;
+use crate::ast::{ModulePath, ModulePathAlias};
+use crate::loader::{LoadedFile, WholeProgram};
+use crate::semantic_checker::{modules::*, perform_checks, semantic_error::SemanticResult};
 use crate::test_utils::setup_and_load_program;
+
+use std::collections::HashMap;
+
+fn new_obj_path(module: &str, name: &str) -> ObjectPath {
+    (new_alias(module), name.into())
+}
+
+fn new_alias(module: &str) -> ModulePathAlias {
+    ModulePath(vec![module.to_string()]).alias()
+}
+
+fn get_file<'a>(wp: &'a WholeProgram, module: &str) -> &'a LoadedFile {
+    &wp.files
+        .get(&new_alias(module))
+        .expect(format!("Module {} not found", module).as_str())
+}
 
 #[test]
 pub fn check_import_from_same_module_is_fine() {
@@ -15,7 +33,20 @@ pub fn check_import_from_same_module_is_fine() {
     "#,
     );
 
-    assert!(semantic_checker::perform_checks(&wp).is_ok());
+    assert!(perform_checks(&wp).is_ok());
+    let funcs_mapping: SemanticResult<FileObjectsMapping> = Ok(HashMap::from([(
+        "somefun".into(),
+        new_obj_path("mod", "somefun"),
+    )]));
+    let types_mapping: SemanticResult<FileObjectsMapping> = Ok(HashMap::from([(
+        "Type".into(),
+        new_obj_path("mod", "Type"),
+    )]));
+    // Types and functions mappings are the same
+    assert_eq!(get_functions_mapping(get_file(&wp, "main")), funcs_mapping);
+    assert_eq!(get_functions_mapping(get_file(&wp, "mod")), funcs_mapping);
+    assert_eq!(get_typenames_mapping(get_file(&wp, "main")), types_mapping);
+    assert_eq!(get_typenames_mapping(get_file(&wp, "mod")), types_mapping);
 }
 
 #[test]
@@ -32,7 +63,7 @@ pub fn check_import_of_same_function_are_not_allowed() {
     "#,
     );
 
-    assert!(semantic_checker::perform_checks(&wp).is_err());
+    assert!(perform_checks(&wp).is_err());
 }
 
 #[test]
@@ -48,7 +79,7 @@ pub fn check_import_function_name_collision() {
     "#,
     );
 
-    assert!(semantic_checker::perform_checks(&wp).is_err());
+    assert!(perform_checks(&wp).is_err());
 }
 
 #[test]
@@ -64,7 +95,7 @@ pub fn check_import_active_type_name_collision() {
     "#,
     );
 
-    assert!(semantic_checker::perform_checks(&wp).is_err());
+    assert!(perform_checks(&wp).is_err());
 }
 
 #[test]
@@ -77,7 +108,7 @@ pub fn check_active_and_class_name_collision() {
     "#,
     );
 
-    assert!(semantic_checker::perform_checks(&wp).is_err());
+    assert!(perform_checks(&wp).is_err());
 }
 
 #[test]
@@ -92,7 +123,7 @@ pub fn check_method_name_collisions() {
     "#,
     );
 
-    assert!(semantic_checker::perform_checks(&wp).is_err());
+    assert!(perform_checks(&wp).is_err());
 }
 
 #[test]
@@ -109,7 +140,7 @@ pub fn check_same_function_names_are_fine() {
     "#,
     );
 
-    assert!(semantic_checker::perform_checks(&wp).is_ok());
+    assert!(perform_checks(&wp).is_ok());
 }
 
 #[test]
@@ -121,7 +152,7 @@ pub fn check_self_referrings_for_active_are_allowed() {
     "#,
     );
 
-    assert!(semantic_checker::perform_checks(&wp).is_ok());
+    assert!(perform_checks(&wp).is_ok());
 }
 
 #[test]
@@ -133,7 +164,7 @@ pub fn check_no_self_referrings_for_passive() {
     "#,
     );
 
-    assert!(semantic_checker::perform_checks(&wp).is_err());
+    assert!(perform_checks(&wp).is_err());
 }
 
 #[test]
@@ -145,7 +176,7 @@ pub fn check_no_self_referrings_for_tuple() {
     "#,
     );
 
-    assert!(semantic_checker::perform_checks(&wp).is_err());
+    assert!(perform_checks(&wp).is_err());
 }
 
 #[test]
@@ -157,7 +188,7 @@ pub fn check_no_self_referrings_in_imports() {
     "#,
     );
 
-    assert!(semantic_checker::perform_checks(&wp).is_err());
+    assert!(perform_checks(&wp).is_err());
 }
 
 #[test]
@@ -171,7 +202,7 @@ pub fn check_imported_types_are_existing() {
     "#,
     );
 
-    assert!(semantic_checker::perform_checks(&wp).is_err());
+    assert!(perform_checks(&wp).is_err());
 }
 
 #[test]
@@ -185,5 +216,5 @@ pub fn check_imported_functions_are_existing() {
     "#,
     );
 
-    assert!(semantic_checker::perform_checks(&wp).is_err());
+    assert!(perform_checks(&wp).is_err());
 }

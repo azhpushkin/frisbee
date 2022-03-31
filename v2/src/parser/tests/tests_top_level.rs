@@ -80,8 +80,8 @@ fn parse_function_definition() {
                 rettype: Type::TypeBool,
                 name: String::from("get_person"),
                 args: vec![
-                    TypedNamedObject { objtype: Type::TypeInt, name: "age".into() },
-                    TypedNamedObject { objtype: Type::TypeString, name: "name".into() }
+                    TypedNamedObject { typename: Type::TypeInt, name: "age".into() },
+                    TypedNamedObject { typename: Type::TypeString, name: "name".into() }
                 ],
                 statements: vec![
                     Statement::SExpr(Expr::ExprBinOp {
@@ -111,9 +111,9 @@ fn active_object_and_fields() {
             is_active: true,
             name: String::from("Actor"),
             fields: vec![
-                TypedNamedObject { objtype: Type::TypeString, name: "name".into() },
+                TypedNamedObject { typename: Type::TypeString, name: "name".into() },
                 TypedNamedObject {
-                    objtype: Type::TypeIdent(String::from("Actor")),
+                    typename: Type::TypeIdent(String::from("Actor")),
                     name: "lol".into()
                 },
             ],
@@ -137,8 +137,8 @@ fn class_object_and_methods() {
                 rettype: Type::TypeBool,
                 name: String::from("get_person"),
                 args: vec![
-                    TypedNamedObject { objtype: Type::TypeInt, name: "age".into() },
-                    TypedNamedObject { objtype: Type::TypeString, name: "name".into() },
+                    TypedNamedObject { typename: Type::TypeInt, name: "age".into() },
+                    TypedNamedObject { typename: Type::TypeString, name: "name".into() },
                 ],
                 statements: vec![
                     Statement::SExpr(Expr::ExprBinOp {

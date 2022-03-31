@@ -193,7 +193,7 @@ fn typednameobjects_to_hashmap(
 ) -> SemanticResult<HashMap<String, Type>> {
     let annotated: SemanticResult<Vec<Type>> = items
         .iter()
-        .map(|t| annotate_type(&t.objtype, typenames_mapping))
+        .map(|t| annotate_type(&t.typename, typenames_mapping))
         .collect();
     let annotated = annotated?;
     Ok(HashMap::from_iter(
@@ -233,7 +233,7 @@ pub fn does_class_contains_itself(class_decl: &ClassDecl) -> bool {
         return false;
     }
     let check_field =
-        |field: &TypedNamedObject| does_type_contain_itself(&field.objtype, &class_decl.name);
+        |field: &TypedNamedObject| does_type_contain_itself(&field.typename, &class_decl.name);
     return class_decl.fields.iter().any(check_field);
 }
 

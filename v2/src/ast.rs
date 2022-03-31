@@ -43,7 +43,7 @@ pub struct ImportDecl {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct TypedNamedObject {
-    pub objtype: Type,
+    pub typename: Type,
     pub name: String,
 }
 
