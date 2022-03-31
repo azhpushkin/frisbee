@@ -6,7 +6,7 @@ use crate::ast::*;
 use crate::loader::*;
 
 #[derive(PartialEq, Debug)]
-pub struct ObjectSignature {
+pub struct ClassSignature {
     pub module_path_alias: ModulePathAlias,
     pub name: String,
     pub is_active: bool,
@@ -21,17 +21,24 @@ pub struct FunctionSignature {
 }
 
 // These are applicable for both Types and functions
-pub type ObjectPath = (ModulePathAlias, String);
-pub type FileObjectsMapping = HashMap<String, ObjectPath>;
+pub type SymbolOrigin = (ModulePathAlias, String);
+pub type SymbolOriginsMapping = HashMap<String, SymbolOrigin>;
 
-pub struct FileMappings {
-    pub typenames: FileObjectsMapping,
-    pub functions: FileObjectsMapping,
+pub struct SymbolOriginsPerFile {
+    pub typenames: SymbolOriginsMapping,
+    pub functions: SymbolOriginsMapping,
 }
 
-pub fn get_typenames_mapping(file: &LoadedFile) -> SemanticResult<FileObjectsMapping> {
+pub type ClassSignaturesMapping = HashMap<SymbolOrigin, ClassSignature>;
+pub type FunctionSignaturesMapping = HashMap<SymbolOrigin, FunctionSignature>;
+pub struct GlobalSignatures {
+    pub typenames: ClassSignaturesMapping,
+    pub functions: FunctionSignaturesMapping,
+}
+
+pub fn get_typenames_mapping(file: &LoadedFile) -> SemanticResult<SymbolOriginsMapping> {
     let file_alias = file.module_path.alias();
-    let mut mapping: FileObjectsMapping = HashMap::new();
+    let mut mapping: SymbolOriginsMapping = HashMap::new();
 
     let defined_types = file
         .ast
@@ -59,9 +66,9 @@ pub fn get_typenames_mapping(file: &LoadedFile) -> SemanticResult<FileObjectsMap
     Ok(mapping)
 }
 
-pub fn get_functions_mapping(file: &LoadedFile) -> SemanticResult<FileObjectsMapping> {
+pub fn get_functions_mapping(file: &LoadedFile) -> SemanticResult<SymbolOriginsMapping> {
     let file_alias = file.module_path.alias();
-    let mut mapping: FileObjectsMapping = HashMap::new();
+    let mut mapping: SymbolOriginsMapping = HashMap::new();
 
     let defined_types = file
         .ast
@@ -91,12 +98,12 @@ pub fn get_functions_mapping(file: &LoadedFile) -> SemanticResult<FileObjectsMap
 
 pub fn get_typenames_signatures(
     file: &LoadedFile,
-    typenames_mapping: &FileObjectsMapping,
-) -> SemanticResult<HashMap<ObjectPath, ObjectSignature>> {
-    let mut signatures: HashMap<ObjectPath, ObjectSignature> = HashMap::new();
+    typenames_mapping: &SymbolOriginsMapping,
+) -> SemanticResult<ClassSignaturesMapping> {
+    let mut signatures: HashMap<SymbolOrigin, ClassSignature> = HashMap::new();
 
     for class_decl in file.ast.types.iter() {
-        let object_path: ObjectPath = (file.module_path.alias(), class_decl.name.clone());
+        let symbol_origin: SymbolOrigin = (file.module_path.alias(), class_decl.name.clone());
         if does_class_contains_itself(class_decl) {
             // This will result in memory layout recursion, if allowed
             return sem_err!(
@@ -106,7 +113,7 @@ pub fn get_typenames_signatures(
             );
         }
 
-        let mut class_signature = ObjectSignature {
+        let mut class_signature = ClassSignature {
             module_path_alias: file.module_path.alias(),
             name: class_decl.name.clone(),
             is_active: class_decl.is_active,
@@ -126,34 +133,34 @@ pub fn get_typenames_signatures(
                 return sem_err!(
                     "Redefinition of method {} in {:?}",
                     method.name,
-                    object_path
+                    symbol_origin
                 );
             }
         }
 
-        signatures.insert(object_path, class_signature);
+        signatures.insert(symbol_origin, class_signature);
     }
     Ok(signatures)
 }
 
 pub fn get_functions_signatures(
     file: &LoadedFile,
-    typenames_mapping: &FileObjectsMapping,
-) -> SemanticResult<HashMap<ObjectPath, FunctionSignature>> {
-    let mut signatures: HashMap<ObjectPath, FunctionSignature> = HashMap::new();
+    typenames_mapping: &SymbolOriginsMapping,
+) -> SemanticResult<FunctionSignaturesMapping> {
+    let mut signatures: HashMap<SymbolOrigin, FunctionSignature> = HashMap::new();
 
     for function_decl in file.ast.functions.iter() {
-        let object_path: ObjectPath = (file.module_path.alias(), function_decl.name.clone());
+        let symbol_origin: SymbolOrigin = (file.module_path.alias(), function_decl.name.clone());
         let signature = FunctionSignature {
             rettype: annotate_type(&function_decl.rettype, typenames_mapping)?,
             args: typednameobjects_to_hashmap(&function_decl.args, typenames_mapping)?,
         };
-        signatures.insert(object_path, signature);
+        signatures.insert(symbol_origin, signature);
     }
     Ok(signatures)
 }
 
-fn annotate_type(t: &Type, typenames_mapping: &FileObjectsMapping) -> SemanticResult<Type> {
+fn annotate_type(t: &Type, typenames_mapping: &SymbolOriginsMapping) -> SemanticResult<Type> {
     let new_t = match t {
         Type::TypeInt => Type::TypeInt,
         Type::TypeFloat => Type::TypeFloat,
@@ -191,7 +198,7 @@ fn annotate_type(t: &Type, typenames_mapping: &FileObjectsMapping) -> SemanticRe
 
 fn typednameobjects_to_hashmap(
     items: &Vec<TypedNamedObject>,
-    typenames_mapping: &FileObjectsMapping,
+    typenames_mapping: &SymbolOriginsMapping,
 ) -> SemanticResult<HashMap<String, Type>> {
     let annotated: SemanticResult<Vec<Type>> = items
         .iter()
@@ -205,12 +212,6 @@ fn typednameobjects_to_hashmap(
             .map(|(i, t)| (t.name.clone(), annotated[i].clone())),
     ))
 }
-
-// pub fn get_module_types(file: &LoadedFile) -> HashMap<ObjectPath, ObjectSignature> {
-//     for objtype in file.ast.types.iter() {
-//         let object_path = (file.module_path.alias(), objtype.name.clone()),
-//     }
-// }
 
 pub fn check_module_does_not_import_itself(file: &LoadedFile) -> SemanticResult<()> {
     for import in &file.ast.imports {
@@ -238,28 +239,3 @@ pub fn does_class_contains_itself(class_decl: &ClassDecl) -> bool {
         |field: &TypedNamedObject| does_type_contain_itself(&field.typename, &class_decl.name);
     return class_decl.fields.iter().any(check_field);
 }
-
-// pub fn check_imports_are_correct(imports: &Vec<ImportDecl>, wp: &WholeProgram) {
-//     for import in imports {
-//         let imported_module = wp.files.get(&import.module_path.alias());
-//         let module_ast = &imported_module.unwrap().ast;
-
-//         for function in &import.functions {
-//             if !module_ast.functions.contains_key(function) {
-//                 panic!(
-//                     "Import {:?} refers to missing function {}",
-//                     import, function
-//                 );
-//             }
-//         }
-
-//         for typename in &import.typenames {
-//             if !module_ast.types.contains_key(typename) {
-//                 panic!(
-//                     "Import {:?} refers to missing function {}",
-//                     import, typename
-//                 );
-//             }
-//         }
-//     }
-// }

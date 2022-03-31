@@ -5,7 +5,7 @@ use crate::test_utils::setup_and_load_program;
 
 use std::collections::HashMap;
 
-fn new_obj_path(module: &str, name: &str) -> ObjectPath {
+fn new_obj_path(module: &str, name: &str) -> SymbolOrigin {
     (new_alias(module), name.into())
 }
 
@@ -20,12 +20,12 @@ fn get_file<'a>(wp: &'a WholeProgram, module: &str) -> &'a LoadedFile {
         .expect(format!("Module {} not found", module).as_str())
 }
 
-fn get_functions_signatures_helper(file: &LoadedFile) -> HashMap<ObjectPath, FunctionSignature> {
+fn get_functions_signatures_helper(file: &LoadedFile) -> HashMap<SymbolOrigin, FunctionSignature> {
     let type_map = get_typenames_mapping(file).unwrap();
     get_functions_signatures(file, &type_map).unwrap()
 }
 
-fn get_typenames_signatures_helper(file: &LoadedFile) -> HashMap<ObjectPath, ObjectSignature> {
+fn get_typenames_signatures_helper(file: &LoadedFile) -> HashMap<SymbolOrigin, ClassSignature> {
     let type_map = get_typenames_mapping(file).unwrap();
     get_typenames_signatures(file, &type_map).unwrap()
 }
@@ -46,11 +46,11 @@ pub fn check_import_from_same_module_is_fine() {
 
     assert!(perform_checks(&wp).is_ok());
 
-    let funcs_mapping: SemanticResult<FileObjectsMapping> = Ok(HashMap::from([(
+    let funcs_mapping: SemanticResult<SymbolOriginsMapping> = Ok(HashMap::from([(
         "somefun".into(),
         new_obj_path("mod", "somefun"),
     )]));
-    let types_mapping: SemanticResult<FileObjectsMapping> = Ok(HashMap::from([(
+    let types_mapping: SemanticResult<SymbolOriginsMapping> = Ok(HashMap::from([(
         "Type".into(),
         new_obj_path("mod", "Type"),
     )]));
@@ -207,7 +207,7 @@ pub fn check_self_referrings_for_active_are_allowed() {
 
     assert!(perform_checks(&wp).is_ok());
 
-    let type_signature = ObjectSignature {
+    let type_signature = ClassSignature {
         module_path_alias: new_alias("main"),
         name: "Type".into(),
         is_active: true,

@@ -14,30 +14,27 @@ mod operators;
 mod std_definitions;
 mod tests;
 
+use modules::*;
 use semantic_error::{sem_err, SemanticResult};
 
 pub fn perform_checks(wp: &WholeProgram) -> SemanticResult<()> {
-    let mut mappings_per_file: HashMap<ModulePathAlias, modules::FileMappings> = HashMap::new();
-    let mut global_types_mapping: HashMap<modules::ObjectPath, modules::ObjectSignature> =
-        HashMap::new();
-    let mut global_funcs_mapping: HashMap<modules::ObjectPath, modules::FunctionSignature> =
-        HashMap::new();
+    let mut mappings_per_file: HashMap<ModulePathAlias, SymbolOriginsPerFile> = HashMap::new();
+    let mut global_mapping =
+        GlobalSignatures { typenames: HashMap::new(), functions: HashMap::new() };
 
     for (file_name, file) in wp.files.iter() {
-        modules::check_module_does_not_import_itself(file)?;
+        check_module_does_not_import_itself(file)?;
 
-        let file_mappings = modules::FileMappings {
-            typenames: modules::get_typenames_mapping(file)?,
-            functions: modules::get_functions_mapping(file)?,
+        let file_mappings = SymbolOriginsPerFile {
+            typenames: get_typenames_mapping(file)?,
+            functions: get_functions_mapping(file)?,
         };
-        global_types_mapping.extend(modules::get_typenames_signatures(
-            file,
-            &file_mappings.typenames,
-        )?);
-        global_funcs_mapping.extend(modules::get_functions_signatures(
-            file,
-            &file_mappings.typenames,
-        )?);
+        let file_type_signatures = get_typenames_signatures(file, &file_mappings.typenames)?;
+
+        let file_function_signatures = get_functions_signatures(file, &file_mappings.typenames)?;
+
+        global_mapping.typenames.extend(file_type_signatures);
+        global_mapping.functions.extend(file_function_signatures);
         mappings_per_file.insert(file_name.clone(), file_mappings);
     }
 
@@ -48,11 +45,11 @@ pub fn perform_checks(wp: &WholeProgram) -> SemanticResult<()> {
         let unknown_type = file_mappings
             .typenames
             .values()
-            .find(|t| !global_types_mapping.contains_key(t));
+            .find(|t| !global_mapping.typenames.contains_key(t));
         let unknown_func = file_mappings
             .functions
             .values()
-            .find(|f| !global_funcs_mapping.contains_key(f));
+            .find(|f| !global_mapping.functions.contains_key(f));
 
         // Check that all
         if let Some(t) = unknown_type {
