@@ -192,6 +192,74 @@ pub fn check_same_function_names_are_fine() {
 }
 
 #[test]
+pub fn check_constructor() {
+    let wp = setup_and_load_program(
+        r#"
+        ===== file: main.frisbee
+        class Person {
+            String name;
+            Int age;
+
+            fun Person() {}
+        }
+    "#,
+    );
+
+    assert!(perform_checks(&wp).is_ok());
+
+    let fields = HashMap::from([("name".into(), Type::TypeString), ("age".into(), Type::TypeInt)]);
+    let constructor = FunctionSignature {
+        rettype: Type::TypeIdentQualified(new_alias("main"), "Person".into()),
+        args: HashMap::new(),
+    };
+
+    let person_signature = ClassSignature {
+        module_path_alias: new_alias("main"),
+        name: "Person".into(),
+        is_active: false,
+        fields: fields.clone(),
+        methods: HashMap::from([("Person".into(), constructor)]),
+    };
+    assert_eq!(
+        get_typenames_signatures_helper(get_file(&wp, "main")),
+        HashMap::from([(new_obj_path("main", "Person"), person_signature)])
+    );
+}
+
+#[test]
+pub fn check_default_constructor() {
+    let wp = setup_and_load_program(
+        r#"
+        ===== file: main.frisbee
+        class Person {
+            String name;
+            Int age;
+        }
+    "#,
+    );
+
+    assert!(perform_checks(&wp).is_ok());
+
+    let fields = HashMap::from([("name".into(), Type::TypeString), ("age".into(), Type::TypeInt)]);
+    let default_constructor = FunctionSignature {
+        rettype: Type::TypeIdentQualified(new_alias("main"), "Person".into()),
+        args: fields.clone(),
+    };
+
+    let person_signature = ClassSignature {
+        module_path_alias: new_alias("main"),
+        name: "Person".into(),
+        is_active: false,
+        fields: fields.clone(),
+        methods: HashMap::from([("Person".into(), default_constructor)]),
+    };
+    assert_eq!(
+        get_typenames_signatures_helper(get_file(&wp, "main")),
+        HashMap::from([(new_obj_path("main", "Person"), person_signature)])
+    );
+}
+
+#[test]
 pub fn check_self_referrings_for_active_are_allowed() {
     let wp = setup_and_load_program(
         r#"
