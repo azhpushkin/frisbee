@@ -1,8 +1,67 @@
-use crate::semantic_checker::execution_env;
-use crate::test_utils::setup_and_load_program;
+use std::collections::HashMap;
 
-#[test]
-fn test_dummy() {
-    // I'm lazy to write this yet...
-    assert!(true);
+use super::super::modules::*;
+use super::super::type_env::TypeEnv;
+use crate::ast::{Expr, ModulePath, Type};
+use crate::parser::parser_impl::Parser;
+use crate::scanner::scan_tokens;
+use crate::test_utils::{new_alias, setup_and_load_program};
+
+const example_program: &str = r#"
+===== file: main.frisbee
+class Person {
+    String name;
+    Int? age;
+    
+    [String] get_nicknames() {}
+    Bool is_adult() {}
 }
+"#;
+
+fn setup_env(use_scope: bool) -> TypeEnv {
+    let wp = setup_and_load_program(example_program);
+    let file = wp
+        .files
+        .get(&ModulePath(vec!["main".into()]).alias())
+        .unwrap();
+    let origins = SymbolOriginsPerFile {
+        typenames: get_typenames_mapping(file).unwrap(),
+        functions: get_functions_mapping(file).unwrap(),
+    };
+    let signatures = GlobalSignatures {
+        typenames: get_typenames_signatures(file, &origins.typenames).unwrap(),
+        functions: get_functions_signatures(file, &origins.typenames).unwrap(),
+    };
+    let person_type = Type::TypeIdentQualified(new_alias("main"), "Person".into());
+
+    TypeEnv {
+        variables_types: HashMap::from([
+            ("alice".into(), person_type.clone()),
+            ("bob".into(), Type::TypeMaybe(Box::new(person_type))),
+            (
+                "cli_args".into(),
+                Type::TypeList(Box::new(Type::TypeString)),
+            ),
+        ]),
+        symbol_origins: origins,
+        signatures: signatures,
+        scope: if use_scope {
+            Some((new_alias("main"), "Person".into()))
+        } else {
+            None
+        },
+    }
+}
+
+fn parse_expr(expr_string: &str) -> Expr {
+    let tokens = scan_tokens(&expr_string.into());
+    let mut parser = Parser::create(tokens.expect("Scanning failed!"));
+    parser.parse_expr().expect("Parsing failed!")
+}
+
+// NO SCOPE
+// 1+1 -> Int
+// 1.0 + 1.0 -> Float
+// [1, 2] + [1, 2] -> [Int]
+// [2, 2] + ["asd"]  ERROR
+// "asd" + "asd" String

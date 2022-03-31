@@ -1,17 +1,12 @@
 use crate::ast::{ModulePath, ModulePathAlias, Type};
 use crate::loader::{LoadedFile, WholeProgram};
 use crate::semantic_checker::{modules::*, perform_checks, semantic_error::SemanticResult};
-use crate::test_utils::setup_and_load_program;
+use crate::test_utils::{new_alias, setup_and_load_program};
 
 use std::collections::HashMap;
 
 fn new_obj_path(module: &str, name: &str) -> SymbolOrigin {
     (new_alias(module), name.into())
-}
-
-fn new_alias(module: &str) -> ModulePathAlias {
-    // NOTE: this does not work for module.submodule right now
-    ModulePath(vec![module.to_string()]).alias()
 }
 
 fn get_file<'a>(wp: &'a WholeProgram, module: &str) -> &'a LoadedFile {

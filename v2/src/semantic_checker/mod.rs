@@ -6,7 +6,7 @@ use crate::ast::ModulePathAlias;
 use crate::loader::{LoadedFile, WholeProgram};
 
 mod semantic_error;
-// mod execution_env;
+mod type_env;
 // mod expressions;
 mod modules;
 mod operators;
