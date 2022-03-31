@@ -270,6 +270,13 @@ pub fn check_self_referrings_for_active_are_allowed() {
 
     assert!(perform_checks(&wp).is_ok());
 
+    let default_constructor = FunctionSignature {
+        rettype: Type::TypeIdentQualified(new_alias("main"), "Type".into()),
+        args: HashMap::from([(
+            "type".into(),
+            Type::TypeIdentQualified(new_alias("main"), "Type".into()),
+        )]),
+    };
     let type_signature = ClassSignature {
         module_path_alias: new_alias("main"),
         name: "Type".into(),
@@ -278,7 +285,7 @@ pub fn check_self_referrings_for_active_are_allowed() {
             "type".into(),
             Type::TypeIdentQualified(new_alias("main"), "Type".into()),
         )]),
-        methods: HashMap::new(),
+        methods: HashMap::from([("Type".into(), default_constructor)]),
     };
     assert_eq!(
         get_typenames_signatures_helper(get_file(&wp, "main")),

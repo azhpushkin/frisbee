@@ -138,6 +138,20 @@ pub fn get_typenames_signatures(
             }
         }
 
+        // If no constructor is mentioned - then add default one for typecheck
+        if !class_signature.methods.contains_key(&class_decl.name) {
+            let constructor = FunctionSignature {
+                rettype: Type::TypeIdentQualified(
+                    file.module_path.alias(),
+                    class_decl.name.clone(),
+                ),
+                args: class_signature.fields.clone(),
+            };
+            class_signature
+                .methods
+                .insert(class_decl.name.clone(), constructor);
+        }
+
         signatures.insert(symbol_origin, class_signature);
     }
     Ok(signatures)
