@@ -1,4 +1,4 @@
-use crate::ast::{ModulePath, ModulePathAlias};
+use crate::ast::{ModulePath, ModulePathAlias, Type};
 use crate::loader::{LoadedFile, WholeProgram};
 use crate::semantic_checker::{modules::*, perform_checks, semantic_error::SemanticResult};
 use crate::test_utils::setup_and_load_program;
@@ -10,6 +10,7 @@ fn new_obj_path(module: &str, name: &str) -> ObjectPath {
 }
 
 fn new_alias(module: &str) -> ModulePathAlias {
+    // NOTE: this does not work for module.submodule right now
     ModulePath(vec![module.to_string()]).alias()
 }
 
@@ -34,6 +35,7 @@ pub fn check_import_from_same_module_is_fine() {
     );
 
     assert!(perform_checks(&wp).is_ok());
+
     let funcs_mapping: SemanticResult<FileObjectsMapping> = Ok(HashMap::from([(
         "somefun".into(),
         new_obj_path("mod", "somefun"),
@@ -131,16 +133,55 @@ pub fn check_same_function_names_are_fine() {
     let wp = setup_and_load_program(
         r#"
         ===== file: main.frisbee
-        from mod import hello;
+        from mod import hello, Person;
 
-        fun Nil samename() {}
+        fun Nil samename(Person someone) {}
         ===== file: mod.frisbee
-        fun Nil samename() {}
+        fun Person samename() {}
         fun Nil hello() {}
+
+        class Person {}
     "#,
     );
 
     assert!(perform_checks(&wp).is_ok());
+
+    assert_eq!(
+        get_functions_mapping(get_file(&wp, "main")).unwrap(),
+        HashMap::from([
+            ("hello".into(), new_obj_path("mod", "hello")),
+            ("samename".into(), new_obj_path("main", "samename")),
+        ])
+    );
+    assert_eq!(
+        get_functions_mapping(get_file(&wp, "mod")).unwrap(),
+        HashMap::from([
+            ("hello".into(), new_obj_path("mod", "hello")),
+            ("samename".into(), new_obj_path("mod", "samename")),
+        ])
+    );
+
+    let samename_main = FunctionSignature {
+        rettype: Type::TypeNil,
+        args: HashMap::from([(
+            "someone".into(),
+            Type::TypeIdentQualified(new_alias("mod"), "Person".into()),
+        )]),
+    };
+    let samename_mod = FunctionSignature {
+        rettype: Type::TypeIdentQualified(new_alias("mod"), "Person".into()),
+        args: HashMap::new(),
+    };
+    let hello = FunctionSignature { rettype: Type::TypeNil, args: HashMap::new() };
+    // assert_eq!(
+    //     get_functions_signatures(
+    //         get_file(&wp, "main"),
+    //         get_typenames_mapping(get_file(&wp, "main")).unwrap()
+    //     ).unwrap(),
+    //     HashMap::from(vec![
+    //         (new_obj_path())
+    //     ])
+    // )
 }
 
 #[test]
