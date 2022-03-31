@@ -2,18 +2,16 @@ use std::collections::HashMap;
 use std::iter::Extend;
 use std::iter::Iterator;
 
-use crate::{
-    ast::ModulePathAlias,
-    loader::{LoadedFile, WholeProgram},
-};
+use crate::ast::ModulePathAlias;
+use crate::loader::{LoadedFile, WholeProgram};
 
 mod semantic_error;
 // mod execution_env;
 // mod expressions;
 mod modules;
-// mod operators;
+mod operators;
 // mod statements;
-// mod std_definitions;
+mod std_definitions;
 mod tests;
 
 use semantic_error::{sem_err, SemanticResult};
