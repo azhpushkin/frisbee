@@ -5,6 +5,7 @@ use super::semantic_error::{sem_err, SemanticError, SemanticResult};
 use crate::ast::*;
 use crate::loader::*;
 
+#[derive(PartialEq, Debug)]
 pub struct ObjectSignature {
     pub module_path_alias: ModulePathAlias,
     pub name: String,
@@ -13,6 +14,7 @@ pub struct ObjectSignature {
     pub methods: HashMap<String, FunctionSignature>,
 }
 
+#[derive(PartialEq, Debug)]
 pub struct FunctionSignature {
     pub rettype: Type,
     pub args: HashMap<String, Type>,

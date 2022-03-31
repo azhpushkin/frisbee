@@ -20,6 +20,16 @@ fn get_file<'a>(wp: &'a WholeProgram, module: &str) -> &'a LoadedFile {
         .expect(format!("Module {} not found", module).as_str())
 }
 
+fn get_functions_signatures_helper(file: &LoadedFile) -> HashMap<ObjectPath, FunctionSignature> {
+    let type_map = get_typenames_mapping(file).unwrap();
+    get_functions_signatures(file, &type_map).unwrap()
+}
+
+fn get_typenames_signatures_helper(file: &LoadedFile) -> HashMap<ObjectPath, ObjectSignature> {
+    let type_map = get_typenames_mapping(file).unwrap();
+    get_typenames_signatures(file, &type_map).unwrap()
+}
+
 #[test]
 pub fn check_import_from_same_module_is_fine() {
     let wp = setup_and_load_program(
@@ -172,16 +182,18 @@ pub fn check_same_function_names_are_fine() {
         rettype: Type::TypeIdentQualified(new_alias("mod"), "Person".into()),
         args: HashMap::new(),
     };
-    let hello = FunctionSignature { rettype: Type::TypeNil, args: HashMap::new() };
-    // assert_eq!(
-    //     get_functions_signatures(
-    //         get_file(&wp, "main"),
-    //         get_typenames_mapping(get_file(&wp, "main")).unwrap()
-    //     ).unwrap(),
-    //     HashMap::from(vec![
-    //         (new_obj_path())
-    //     ])
-    // )
+    let hello_mod = FunctionSignature { rettype: Type::TypeNil, args: HashMap::new() };
+    assert_eq!(
+        get_functions_signatures_helper(get_file(&wp, "main")),
+        HashMap::from([(new_obj_path("main", "samename"), samename_main)])
+    );
+    assert_eq!(
+        get_functions_signatures_helper(get_file(&wp, "mod")),
+        HashMap::from([
+            (new_obj_path("mod", "samename"), samename_mod),
+            (new_obj_path("mod", "hello"), hello_mod),
+        ])
+    );
 }
 
 #[test]
@@ -194,6 +206,21 @@ pub fn check_self_referrings_for_active_are_allowed() {
     );
 
     assert!(perform_checks(&wp).is_ok());
+
+    let type_signature = ObjectSignature {
+        module_path_alias: new_alias("main"),
+        name: "Type".into(),
+        is_active: true,
+        fields: HashMap::from([(
+            "type".into(),
+            Type::TypeIdentQualified(new_alias("main"), "Type".into()),
+        )]),
+        methods: HashMap::new(),
+    };
+    assert_eq!(
+        get_typenames_signatures_helper(get_file(&wp, "main")),
+        HashMap::from([(new_obj_path("main", "Type"), type_signature)])
+    );
 }
 
 #[test]
