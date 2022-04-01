@@ -4,7 +4,7 @@ use crate::ast::*;
 use crate::loader::LoadedFile;
 
 use super::expressions::ExprTypeChecker;
-use super::modules::{GlobalSignatures, SymbolOriginsPerFile};
+use super::modules::{annotate_type, GlobalSignatures, SymbolOriginsPerFile};
 use super::semantic_error::{sem_err, SemanticResult};
 use super::type_env::TypeEnv;
 
@@ -36,9 +36,13 @@ pub fn check_statements(statements: &Vec<Statement>, env: &mut TypeEnv) -> Seman
                 env.variables_types.insert(s.clone(), t.clone());
             }
             Statement::SVarDeclEqual(t, s, e) => {
-                let expr_t = ExprTypeChecker::new(env).calculate(e).expect("1111");
-                if expr_t != *t {
-                    panic!("Expressions not match at {:?}", statement);
+                let expr_t = ExprTypeChecker::new(env).calculate(e).unwrap();
+                let expected = annotate_type(t, &env.symbol_origins.typenames)?;
+                if expr_t != expected {
+                    panic!(
+                        "Expressions not match at {:?}, expected {:?}, got {:?}",
+                        statement, t, expr_t
+                    );
                 }
                 env.variables_types.insert(s.clone(), t.clone());
             }

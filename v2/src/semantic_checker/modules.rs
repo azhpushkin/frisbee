@@ -176,7 +176,7 @@ pub fn get_functions_signatures(
     Ok(signatures)
 }
 
-fn annotate_type(t: &Type, typenames_mapping: &SymbolOriginsMapping) -> SemanticResult<Type> {
+pub fn annotate_type(t: &Type, typenames_mapping: &SymbolOriginsMapping) -> SemanticResult<Type> {
     let new_t = match t {
         Type::TypeInt => Type::TypeInt,
         Type::TypeFloat => Type::TypeFloat,

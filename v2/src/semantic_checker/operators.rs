@@ -42,15 +42,21 @@ pub fn calculate_binaryop_type(
             left.clone(),
         ),
 
-        BinaryOp::IsEqual | BinaryOp::IsNotEqual => match (left, right) {
-            (T::TypeMaybe(t1), t2) => get_res(t1.as_ref() == t2 || t2 == &T::TypeNil, T::TypeBool),
-            (t1, T::TypeMaybe(t2)) => get_res(t1 == t2.as_ref() || t1 == &T::TypeNil, T::TypeBool),
-            _ => get_res(left == right, T::TypeBool),
-        },
+        BinaryOp::IsEqual | BinaryOp::IsNotEqual => {
+            get_res(are_types_same_or_maybe(left, right), Type::TypeBool)
+        }
 
         BinaryOp::And | BinaryOp::Or => {
             get_res(left == right && matches!(left, T::TypeBool), T::TypeBool)
         }
+    }
+}
+
+pub fn are_types_same_or_maybe(left: &Type, right: &Type) -> bool {
+    match (left, right) {
+        (T::TypeMaybe(t1), t2) => t1.as_ref() == t2 || t2 == &T::TypeNil,
+        (t1, T::TypeMaybe(t2)) => t1 == t2.as_ref() || t1 == &T::TypeNil,
+        _ => left == right,
     }
 }
 

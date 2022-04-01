@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use super::modules::FunctionSignature;
-use super::operators::{calculate_binaryop_type, calculate_unaryop_type};
+use super::operators::{are_types_same_or_maybe, calculate_binaryop_type, calculate_unaryop_type};
 use super::semantic_error::{sem_err, SemanticResult};
 use super::std_definitions::{get_std_method, get_std_methods};
 use super::type_env::TypeEnv;
@@ -170,11 +170,12 @@ impl<'a> ExprTypeChecker<'a> {
 
         for (expected_arg, arg_expr) in function.args.iter().zip(args.iter()) {
             let expr_type = self.calculate(arg_expr)?;
-            if expected_arg.1 != expr_type {
+            if !are_types_same_or_maybe(&expected_arg.1, &expr_type) {
                 return sem_err!(
-                    "Wrong type for argument {}, expected {:?}, got {:?}",
+                    "Wrong type for argument {}, expected {:?}, got {:?} ({:?})",
                     expected_arg.0,
                     expected_arg.1,
+                    expr_type,
                     arg_expr
                 );
             }
