@@ -1,20 +1,22 @@
 use std::collections::HashMap;
 
-use super::execution_env::ExecutionEnv;
+use super::modules::FunctionSignature;
 use super::operators::{calculate_binaryop_type, calculate_unaryop_type};
-use super::std_definitions::get_std_methods;
+use super::semantic_error::{SemanticResult, sem_err};
+use super::std_definitions::{get_std_methods, get_std_method};
+use super::type_env::TypeEnv;
 use crate::ast::*;
 
 pub struct ExprTypeChecker<'a> {
-    env: &'a ExecutionEnv,
+    env: &'a TypeEnv,
 }
 
 impl<'a> ExprTypeChecker<'a> {
-    pub fn new(execution_env: &'a ExecutionEnv) -> ExprTypeChecker<'a> {
-        ExprTypeChecker { env: execution_env }
+    pub fn new(type_env: &'a TypeEnv) -> ExprTypeChecker<'a> {
+        ExprTypeChecker { env: type_env }
     }
 
-    pub fn calculate(&self, expr: &Expr) -> Result<Type, String> {
+    pub fn calculate(&self, expr: &Expr) -> SemanticResult<Type> {
         match expr {
             // Primitive types, that map to basic types
             Expr::ExprInt(_) => Ok(Type::TypeInt),
@@ -61,53 +63,55 @@ impl<'a> ExprTypeChecker<'a> {
 
             Expr::ExprNewClassInstance { typename, args }
             | Expr::ExprSpawnActive { typename, args } => {
-                let type_definition = self.env.types_definitions.get(typename);
+                let type_origin = self.env.symbol_origins.typenames.get(typename).unwrap();
+                let type_definition = self.env.signatures.typenames.get(type_origin);
                 if type_definition.is_none() {
-                    return Err(format!(
+                    return sem_err!(
                         "Type definition {} is missing for {:?}",
                         typename, expr
-                    ));
+                    );
                 }
                 let type_definition = type_definition.unwrap();
-                let default_constructor = FunctionDecl {
-                    rettype: Type::TypeIdent(typename.clone()),
-                    name: typename.clone(),
-                    args: type_definition.fields.clone(),
-                    statements: vec![],
-                };
+
+                if matches!(expr, Expr::ExprNewClassInstance{..}) && type_definition.is_active {
+                    return sem_err!("{} is active and must be spawned!", typename);
+                } else if matches!(expr, Expr::ExprSpawnActive{..}) && !type_definition.is_active {
+                    return sem_err!("Cant spawn passive {}!", typename);
+                }
                 let constuctor = type_definition
                     .methods
                     .get(typename)
-                    .unwrap_or(&default_constructor);
+                    .unwrap();
                 return self.check_function_call(constuctor, args);
             }
             Expr::ExprFunctionCall { function, args } => {
-                let func_def = self.env.funcs_definitions.get(function);
-                if func_def.is_none() {
-                    return Err(format!(
+                let func_origin = self.env.symbol_origins.functions.get(function);
+                let func_definition = self.env.signatures.functions.get(func_origin.unwrap());
+                if func_definition.is_none() {
+                    return sem_err!(
                         "Func definition {} is missing for {:?}",
                         function, expr
-                    ));
+                    );
                 }
-                let func_def = func_def.unwrap();
-                return self.check_function_call(func_def, args);
+                let func_definition = func_definition.unwrap();
+                return self.check_function_call(func_definition, args);
             }
 
             Expr::ExprMethodCall { object, method, args } => {
                 // TODO: implement something for built-in types
                 let obj_type = self.calculate(object.as_ref())?;
                 match &obj_type {
-                    Type::TypeIdent(t) => {
+                    Type::TypeIdentQualified(alias, typename) => {
                         // TODO: checks for type correctness and method correctness
-                        let typedef = self.env.types_definitions.get(t).unwrap();
+                        let typedef = self.env.signatures.typenames.get(&(*alias, *typename)).unwrap();
                         let method = typedef.methods.get(method).unwrap();
                         return self.check_function_call(method, args);
-                    }
+                    },
+                    Type::TypeIdent(t) => panic!("TypeIdent should not be present here!"),
                     Type::TypeMaybe(_) => panic!("Not implemented for maybe yet!"),
                     t => {
-                        let typedef = get_std_methods(t);
-                        let method = typedef.methods.get(method).expect("No such method");
-                        return self.check_function_call(method, args);
+                        let method = get_std_method(t, method)?;
+                        return self.check_function_call(&method, args);
                     }
                 }
             }
@@ -116,11 +120,13 @@ impl<'a> ExprTypeChecker<'a> {
                 // TODO: implement something for built-in types
                 let obj_type = self.calculate(object.as_ref())?;
                 match &obj_type {
-                    Type::TypeIdent(t) => {
-                        // TODO: checks for type correctness and field correctness
-                        let typedef = self.env.types_definitions.get(t).unwrap();
-                        return Ok(typedef.fields.get(field).unwrap().typename.clone());
-                    }
+                    Type::TypeIdentQualified(alias, typename) => {
+                        // TODO: checks for type correctness and method correctness
+                        let typedef = self.env.signatures.typenames.get(&(*alias, *typename)).unwrap();
+                        let field = typedef.fields.get(field).unwrap();
+                        return Ok(field.clone());
+                    },
+                    Type::TypeIdent(t) => panic!("TypeIdent should not be present here!"),
                     t => Err(format!(
                         "Error at {:?} - type {:?} has no fields",
                         object, obj_type
@@ -133,24 +139,31 @@ impl<'a> ExprTypeChecker<'a> {
                 Err("Using @ is not allowed in functions".into())
             }
             Expr::ExprOwnMethodCall { method, args } => {
-                let own_type = self.env.scope.as_ref().unwrap();
-                let method = own_type.methods.get(method).unwrap();
+                let type_origin = self.env.scope.as_ref().unwrap();
+                let own_definition = self.env.signatures.typenames.get(type_origin).unwrap();
+                let method = own_definition.methods.get(method).unwrap();
                 return self.check_function_call(method, args);
             }
             Expr::ExprOwnFieldAccess { field } => {
-                let own_type = self.env.scope.as_ref().unwrap();
-                return Ok(own_type.fields.get(field).unwrap().typename.clone());
+                let type_origin = self.env.scope.as_ref().unwrap();
+                let own_definition = self.env.signatures.typenames.get(type_origin);
+
+                let field = own_definition.unwrap().fields.get(field).unwrap();
+                return Ok(field.clone());
             }
             Expr::ExprThis => match &self.env.scope {
                 None => Err("Using 'this' in the functions is not allowed!".into()),
-                Some(o) => Ok(Type::TypeIdent(o.name.clone())),
+                Some(o) => {
+                    let (module, name) = self.env.scope.as_ref().unwrap().clone();
+                    Ok(Type::TypeIdentQualified(module, name))
+                },
             },
         }
     }
 
     fn check_function_call(
         &self,
-        function: &FunctionDecl,
+        function: &FunctionSignature,
         args: &Vec<Expr>,
     ) -> Result<Type, String> {
         if function.args.len() != args.len() {
