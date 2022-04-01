@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use super::modules::FunctionSignature;
 use super::operators::{calculate_binaryop_type, calculate_unaryop_type};
-use super::semantic_error::{SemanticResult, sem_err};
-use super::std_definitions::{get_std_methods, get_std_method};
+use super::semantic_error::{sem_err, SemanticResult};
+use super::std_definitions::{get_std_method, get_std_methods};
 use super::type_env::TypeEnv;
 use crate::ast::*;
 
@@ -66,32 +66,24 @@ impl<'a> ExprTypeChecker<'a> {
                 let type_origin = self.env.symbol_origins.typenames.get(typename).unwrap();
                 let type_definition = self.env.signatures.typenames.get(type_origin);
                 if type_definition.is_none() {
-                    return sem_err!(
-                        "Type definition {} is missing for {:?}",
-                        typename, expr
-                    );
+                    return sem_err!("Type definition {} is missing for {:?}", typename, expr);
                 }
                 let type_definition = type_definition.unwrap();
 
-                if matches!(expr, Expr::ExprNewClassInstance{..}) && type_definition.is_active {
+                if matches!(expr, Expr::ExprNewClassInstance { .. }) && type_definition.is_active {
                     return sem_err!("{} is active and must be spawned!", typename);
-                } else if matches!(expr, Expr::ExprSpawnActive{..}) && !type_definition.is_active {
+                } else if matches!(expr, Expr::ExprSpawnActive { .. }) && !type_definition.is_active
+                {
                     return sem_err!("Cant spawn passive {}!", typename);
                 }
-                let constuctor = type_definition
-                    .methods
-                    .get(typename)
-                    .unwrap();
+                let constuctor = type_definition.methods.get(typename).unwrap();
                 return self.check_function_call(constuctor, args);
             }
             Expr::ExprFunctionCall { function, args } => {
                 let func_origin = self.env.symbol_origins.functions.get(function);
                 let func_definition = self.env.signatures.functions.get(func_origin.unwrap());
                 if func_definition.is_none() {
-                    return sem_err!(
-                        "Func definition {} is missing for {:?}",
-                        function, expr
-                    );
+                    return sem_err!("Func definition {} is missing for {:?}", function, expr);
                 }
                 let func_definition = func_definition.unwrap();
                 return self.check_function_call(func_definition, args);
@@ -103,10 +95,11 @@ impl<'a> ExprTypeChecker<'a> {
                 match &obj_type {
                     Type::TypeIdentQualified(alias, typename) => {
                         // TODO: checks for type correctness and method correctness
-                        let typedef = self.env.signatures.typenames.get(&(*alias, *typename)).unwrap();
+                        let origin = (alias.clone(), typename.clone());
+                        let typedef = self.env.signatures.typenames.get(&origin).unwrap();
                         let method = typedef.methods.get(method).unwrap();
                         return self.check_function_call(method, args);
-                    },
+                    }
                     Type::TypeIdent(t) => panic!("TypeIdent should not be present here!"),
                     Type::TypeMaybe(_) => panic!("Not implemented for maybe yet!"),
                     t => {
@@ -122,10 +115,11 @@ impl<'a> ExprTypeChecker<'a> {
                 match &obj_type {
                     Type::TypeIdentQualified(alias, typename) => {
                         // TODO: checks for type correctness and method correctness
-                        let typedef = self.env.signatures.typenames.get(&(*alias, *typename)).unwrap();
+                        let origin = (alias.clone(), typename.clone());
+                        let typedef = self.env.signatures.typenames.get(&origin).unwrap();
                         let field = typedef.fields.get(field).unwrap();
                         return Ok(field.clone());
-                    },
+                    }
                     Type::TypeIdent(t) => panic!("TypeIdent should not be present here!"),
                     t => Err(format!(
                         "Error at {:?} - type {:?} has no fields",
@@ -156,7 +150,7 @@ impl<'a> ExprTypeChecker<'a> {
                 Some(o) => {
                     let (module, name) = self.env.scope.as_ref().unwrap().clone();
                     Ok(Type::TypeIdentQualified(module, name))
-                },
+                }
             },
         }
     }
@@ -174,13 +168,14 @@ impl<'a> ExprTypeChecker<'a> {
             ));
         }
 
-        for ((_, arg_type), arg_expr) in function.args.iter().zip(args.iter()) {
+        for (expected_arg, arg_expr) in function.args.iter().zip(args.iter()) {
             let expr_type = self.calculate(arg_expr)?;
-            if arg_type.typename != expr_type {
-                return Err(format!(
-                    "Wrong type for argument {:?}, got {:?}",
-                    arg_type.name, arg_expr
-                ));
+            if expected_arg.1 != expr_type {
+                return sem_err!(
+                    "Wrong type for argument {}, got {:?}",
+                    expected_arg.0,
+                    arg_expr
+                );
             }
         }
 

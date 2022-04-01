@@ -5,6 +5,7 @@ use super::super::type_env::TypeEnv;
 use crate::ast::{Expr, ModulePath, Type};
 use crate::parser::parser_impl::Parser;
 use crate::scanner::scan_tokens;
+use crate::semantic_checker::expressions::ExprTypeChecker;
 use crate::test_utils::{new_alias, setup_and_load_program};
 
 const example_program: &str = r#"
@@ -13,9 +14,19 @@ class Person {
     String name;
     Int? age;
     
-    [String] get_nicknames() {}
-    Bool is_adult() {}
+    fun [String] get_nicknames() {}
+    fun Bool is_adult() {}
 }
+
+active Worker {
+    String id;
+}
+
+// varibles, defined in setup_env:
+// Worker worker
+// Person alice
+// Person? bob
+// [String] cli_args
 "#;
 
 fn setup_env(use_scope: bool) -> TypeEnv {
@@ -42,6 +53,10 @@ fn setup_env(use_scope: bool) -> TypeEnv {
                 "cli_args".into(),
                 Type::TypeList(Box::new(Type::TypeString)),
             ),
+            (
+                "worker".into(),
+                Type::TypeIdentQualified(new_alias("main"), "Worker".into()),
+            ),
         ]),
         symbol_origins: origins,
         signatures: signatures,
@@ -57,6 +72,35 @@ fn parse_expr(expr_string: &str) -> Expr {
     let tokens = scan_tokens(&expr_string.into());
     let mut parser = Parser::create(tokens.expect("Scanning failed!"));
     parser.parse_expr().expect("Parsing failed!")
+}
+
+fn assert_expr_ok(expr_str: &str, use_scope: bool, expected_type: Type) {
+    let expr = parse_expr(expr_str);
+    let env = setup_env(use_scope);
+    let checker = ExprTypeChecker::new(&env);
+    let res = checker.calculate(&expr);
+    assert!(res.is_ok(), "Typecheck failed: {}", res.unwrap_err());
+    assert_eq!(res.unwrap(), expected_type);
+}
+
+fn assert_expr_fails(expr_str: &str, use_scope: bool) {
+    let expr = parse_expr(expr_str);
+    let env = setup_env(use_scope);
+    let checker = ExprTypeChecker::new(&env);
+    let res = checker.calculate(&expr);
+    assert!(
+        res.is_err(),
+        "Typecheck HAD TO FAIL, BUT resulted in : {:?}",
+        res.unwrap()
+    );
+}
+
+#[test]
+fn test_simple_operator() {
+    assert_expr_ok("1 + 1", false, Type::TypeInt);
+    assert_expr_ok("2.0 + 0.0", false, Type::TypeFloat);
+
+    assert_expr_fails("2.0 + \"hello\" ", false);
 }
 
 // NO SCOPE

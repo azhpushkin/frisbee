@@ -5,11 +5,11 @@ use std::iter::Iterator;
 use crate::ast::ModulePathAlias;
 use crate::loader::{LoadedFile, WholeProgram};
 
-mod semantic_error;
-mod type_env;
-// mod expressions;
+mod expressions;
 mod modules;
 mod operators;
+mod semantic_error;
+mod type_env;
 // mod statements;
 mod std_definitions;
 mod tests;

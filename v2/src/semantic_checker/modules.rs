@@ -17,7 +17,7 @@ pub struct ClassSignature {
 #[derive(PartialEq, Debug)]
 pub struct FunctionSignature {
     pub rettype: Type,
-    pub args: HashMap<String, Type>,
+    pub args: Vec<(String, Type)>,
 }
 
 // These are applicable for both Types and functions
@@ -117,14 +117,16 @@ pub fn get_typenames_signatures(
             module_path_alias: file.module_path.alias(),
             name: class_decl.name.clone(),
             is_active: class_decl.is_active,
-            fields: typednameobjects_to_hashmap(&class_decl.fields, typenames_mapping)?,
+            fields: (typednameobjects_to_func_args(&class_decl.fields, typenames_mapping)?
+                .into_iter()
+                .collect()),
             methods: HashMap::new(),
         };
 
         for method in class_decl.methods.iter() {
             let method_signature = FunctionSignature {
                 rettype: annotate_type(&method.rettype, typenames_mapping)?,
-                args: typednameobjects_to_hashmap(&method.args, typenames_mapping)?,
+                args: typednameobjects_to_func_args(&method.args, typenames_mapping)?,
             };
             let prev = class_signature
                 .methods
@@ -145,7 +147,7 @@ pub fn get_typenames_signatures(
                     file.module_path.alias(),
                     class_decl.name.clone(),
                 ),
-                args: class_signature.fields.clone(),
+                args: typednameobjects_to_func_args(&class_decl.fields, typenames_mapping)?,
             };
             class_signature
                 .methods
@@ -167,7 +169,7 @@ pub fn get_functions_signatures(
         let symbol_origin: SymbolOrigin = (file.module_path.alias(), function_decl.name.clone());
         let signature = FunctionSignature {
             rettype: annotate_type(&function_decl.rettype, typenames_mapping)?,
-            args: typednameobjects_to_hashmap(&function_decl.args, typenames_mapping)?,
+            args: typednameobjects_to_func_args(&function_decl.args, typenames_mapping)?,
         };
         signatures.insert(symbol_origin, signature);
     }
@@ -210,21 +212,19 @@ fn annotate_type(t: &Type, typenames_mapping: &SymbolOriginsMapping) -> Semantic
     Ok(new_t)
 }
 
-fn typednameobjects_to_hashmap(
+fn typednameobjects_to_func_args(
     items: &Vec<TypedNamedObject>,
     typenames_mapping: &SymbolOriginsMapping,
-) -> SemanticResult<HashMap<String, Type>> {
-    let annotated: SemanticResult<Vec<Type>> = items
-        .iter()
-        .map(|t| annotate_type(&t.typename, typenames_mapping))
-        .collect();
-    let annotated = annotated?;
-    Ok(HashMap::from_iter(
-        items
-            .iter()
-            .enumerate()
-            .map(|(i, t)| (t.name.clone(), annotated[i].clone())),
-    ))
+) -> SemanticResult<Vec<(String, Type)>> {
+    let mut res: Vec<(String, Type)> = vec![];
+    res.reserve_exact(items.len());
+    for item in items {
+        res.push((
+            item.name.clone(),
+            annotate_type(&item.typename, typenames_mapping)?,
+        ));
+    }
+    return Ok(res);
 }
 
 pub fn check_module_does_not_import_itself(file: &LoadedFile) -> SemanticResult<()> {

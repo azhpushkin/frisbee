@@ -168,16 +168,16 @@ pub fn check_same_function_names_are_fine() {
 
     let samename_main = FunctionSignature {
         rettype: Type::TypeNil,
-        args: HashMap::from([(
+        args: vec![(
             "someone".into(),
             Type::TypeIdentQualified(new_alias("mod"), "Person".into()),
-        )]),
+        )],
     };
     let samename_mod = FunctionSignature {
         rettype: Type::TypeIdentQualified(new_alias("mod"), "Person".into()),
-        args: HashMap::new(),
+        args: vec![],
     };
-    let hello_mod = FunctionSignature { rettype: Type::TypeNil, args: HashMap::new() };
+    let hello_mod = FunctionSignature { rettype: Type::TypeNil, args: vec![] };
     assert_eq!(
         get_functions_signatures_helper(get_file(&wp, "main")),
         HashMap::from([(new_obj_path("main", "samename"), samename_main)])
@@ -210,7 +210,7 @@ pub fn check_constructor() {
     let fields = HashMap::from([("name".into(), Type::TypeString), ("age".into(), Type::TypeInt)]);
     let constructor = FunctionSignature {
         rettype: Type::TypeIdentQualified(new_alias("main"), "Person".into()),
-        args: HashMap::new(),
+        args: vec![],
     };
 
     let person_signature = ClassSignature {
@@ -240,7 +240,7 @@ pub fn check_default_constructor() {
 
     assert!(perform_checks(&wp).is_ok());
 
-    let fields = HashMap::from([("name".into(), Type::TypeString), ("age".into(), Type::TypeInt)]);
+    let fields = vec![("name".into(), Type::TypeString), ("age".into(), Type::TypeInt)];
     let default_constructor = FunctionSignature {
         rettype: Type::TypeIdentQualified(new_alias("main"), "Person".into()),
         args: fields.clone(),
@@ -250,7 +250,7 @@ pub fn check_default_constructor() {
         module_path_alias: new_alias("main"),
         name: "Person".into(),
         is_active: false,
-        fields: fields.clone(),
+        fields: fields.into_iter().collect(),
         methods: HashMap::from([("Person".into(), default_constructor)]),
     };
     assert_eq!(
@@ -272,10 +272,10 @@ pub fn check_self_referrings_for_active_are_allowed() {
 
     let default_constructor = FunctionSignature {
         rettype: Type::TypeIdentQualified(new_alias("main"), "Type".into()),
-        args: HashMap::from([(
+        args: vec![(
             "type".into(),
             Type::TypeIdentQualified(new_alias("main"), "Type".into()),
-        )]),
+        )],
     };
     let type_signature = ClassSignature {
         module_path_alias: new_alias("main"),

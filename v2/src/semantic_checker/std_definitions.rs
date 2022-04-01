@@ -8,13 +8,13 @@ fn get_list_methods(inside: &Type) -> HashMap<String, FunctionSignature> {
     HashMap::from([
         (
             "size".into(),
-            FunctionSignature { rettype: Type::TypeInt, args: HashMap::new() },
+            FunctionSignature { rettype: Type::TypeInt, args: vec![] },
         ),
         (
             "push".into(),
             FunctionSignature {
                 rettype: Type::TypeNil,
-                args: HashMap::from([("item".into(), inside.clone())]),
+                args: vec![("item".into(), inside.clone())],
             },
         ),
     ])
