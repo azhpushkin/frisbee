@@ -29,7 +29,7 @@ active Worker {
 // [String] cli_args
 "#;
 
-fn setup_env(use_scope: bool) -> TypeEnv {
+fn setup_maps(use_scope: bool) -> (SymbolOriginsPerFile, GlobalSignatures) {
     let wp = setup_and_load_program(example_program);
     let file = wp
         .files
@@ -43,6 +43,14 @@ fn setup_env(use_scope: bool) -> TypeEnv {
         typenames: get_typenames_signatures(file, &origins.typenames).unwrap(),
         functions: get_functions_signatures(file, &origins.typenames).unwrap(),
     };
+    (origins, signatures)
+}
+
+fn setup_env<'a>(
+    use_scope: bool,
+    s: &'a SymbolOriginsPerFile,
+    g: &'a GlobalSignatures,
+) -> TypeEnv<'a> {
     let person_type = Type::TypeIdentQualified(new_alias("main"), "Person".into());
 
     TypeEnv {
@@ -58,8 +66,8 @@ fn setup_env(use_scope: bool) -> TypeEnv {
                 Type::TypeIdentQualified(new_alias("main"), "Worker".into()),
             ),
         ]),
-        symbol_origins: origins,
-        signatures: signatures,
+        symbol_origins: s,
+        signatures: g,
         scope: if use_scope {
             Some((new_alias("main"), "Person".into()))
         } else {
@@ -76,7 +84,8 @@ fn parse_expr(expr_string: &str) -> Expr {
 
 fn assert_expr_ok(expr_str: &str, use_scope: bool, expected_type: Type) {
     let expr = parse_expr(expr_str);
-    let env = setup_env(use_scope);
+    let (s, g) = setup_maps(use_scope);
+    let env = setup_env(use_scope, &s, &g);
     let checker = ExprTypeChecker::new(&env);
     let res = checker.calculate(&expr);
     assert!(res.is_ok(), "Typecheck failed: {}", res.unwrap_err());
@@ -85,7 +94,8 @@ fn assert_expr_ok(expr_str: &str, use_scope: bool, expected_type: Type) {
 
 fn assert_expr_fails(expr_str: &str, use_scope: bool) {
     let expr = parse_expr(expr_str);
-    let env = setup_env(use_scope);
+    let (s, g) = setup_maps(use_scope);
+    let env = setup_env(use_scope, &s, &g);
     let checker = ExprTypeChecker::new(&env);
     let res = checker.calculate(&expr);
     assert!(

@@ -9,10 +9,10 @@ mod expressions;
 mod modules;
 mod operators;
 mod semantic_error;
-mod type_env;
-// mod statements;
+mod statements;
 mod std_definitions;
 mod tests;
+mod type_env;
 
 use modules::*;
 use semantic_error::{sem_err, SemanticResult};
@@ -58,6 +58,8 @@ pub fn perform_checks(wp: &WholeProgram) -> SemanticResult<()> {
         if let Some(f) = unknown_func {
             return sem_err!("{:?} function in module {:?} is non-existing", f, file_name);
         }
+
+        statements::check_statements_in_file(file, file_mappings, &global_mapping);
     }
 
     Ok(())

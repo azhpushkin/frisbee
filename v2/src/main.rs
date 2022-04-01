@@ -21,5 +21,6 @@ fn main() {
     }
 
     let wp = loader::load_program(file_path).expect("Error loading!");
-    // semantic_checker::perform_checks(&wp);
+    let x = semantic_checker::perform_checks(&wp);
+    assert!(x.is_ok(), "{}", x.unwrap_err());
 }

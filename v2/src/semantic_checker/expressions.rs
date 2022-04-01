@@ -8,7 +8,7 @@ use super::type_env::TypeEnv;
 use crate::ast::*;
 
 pub struct ExprTypeChecker<'a> {
-    env: &'a TypeEnv,
+    env: &'a TypeEnv<'a>,
 }
 
 impl<'a> ExprTypeChecker<'a> {
@@ -172,8 +172,9 @@ impl<'a> ExprTypeChecker<'a> {
             let expr_type = self.calculate(arg_expr)?;
             if expected_arg.1 != expr_type {
                 return sem_err!(
-                    "Wrong type for argument {}, got {:?}",
+                    "Wrong type for argument {}, expected {:?}, got {:?}",
                     expected_arg.0,
+                    expected_arg.1,
                     arg_expr
                 );
             }
