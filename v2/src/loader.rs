@@ -1,7 +1,8 @@
-use crate::ast::*;
-use crate::{errors, parser, scanner};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+
+use crate::ast::*;
+use crate::{errors, parser, scanner};
 
 #[derive(Debug)]
 pub struct LoadedFile {
@@ -19,9 +20,10 @@ pub struct WholeProgram {
 }
 
 fn load_file(workdir: &PathBuf, module_path: &ModulePath) -> Option<LoadedFile> {
-    println!(" ... Loading {}", module_path.alias().to_string());
+    // TODO: implement logging system for this
+    println!(" ... Loading {}", module_path.alias_str());
     let mut file_path = workdir.to_owned();
-    for subpath in module_path.get_vec() {
+    for subpath in module_path.0.iter() {
         file_path.push(subpath);
     }
     file_path.set_extension("frisbee");
@@ -40,6 +42,7 @@ fn load_file(workdir: &PathBuf, module_path: &ModulePath) -> Option<LoadedFile> 
         errors::show_parse_error(&contents, &module_path, ast.unwrap_err());
         return None;
     }
+    println!(" ... {} loaded!", module_path.alias().0);
 
     Some(LoadedFile {
         path: file_path,
@@ -92,7 +95,7 @@ pub fn load_program(entry_file_path: &Path) -> Option<WholeProgram> {
             if whole_program.files.get(&alias).is_none() {
                 modules_to_load.push(import.module_path.clone());
             } else {
-                println!("Using cache for {}", alias.to_string());
+                println!("Using cache for {}", alias.0);
             }
         }
     }
@@ -101,8 +104,9 @@ pub fn load_program(entry_file_path: &Path) -> Option<WholeProgram> {
 
 #[cfg(test)]
 mod test {
-    use super::*;
     use crate::test_utils::{setup_and_load_program, TestFilesCreator};
+
+    use super::*;
 
     #[test]
     #[should_panic] // TODO: proper error reporting check

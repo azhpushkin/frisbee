@@ -9,24 +9,14 @@ pub struct FileAst {
 pub struct ModulePath(pub Vec<String>);
 
 #[derive(Debug, PartialEq, Clone, Eq, Hash)]
-pub struct ModulePathAlias(String);
+pub struct ModulePathAlias(pub String);
 
-impl Into<ModulePathAlias> for ModulePath {
-    fn into(self) -> ModulePathAlias {
-        ModulePathAlias(self.0.join("."))
-    }
-}
 impl ModulePath {
     pub fn alias(&self) -> ModulePathAlias {
-        self.clone().into()
+        ModulePathAlias(self.alias_str())
     }
-    pub fn get_vec(&self) -> Vec<String> {
-        self.0.clone()
-    } // TODO: lifetime here to avoid copy?
-}
-impl ModulePathAlias {
-    pub fn to_string(&self) -> String {
-        self.0.clone()
+    pub fn alias_str(&self) -> String {
+        self.0.join(".")
     }
 }
 

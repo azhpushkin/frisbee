@@ -1,3 +1,4 @@
+use crate::ast::ModulePathAlias;
 use crate::{ast::ModulePath, parser, scanner, utils};
 
 fn show_error(contents: &String, module: &ModulePath, pos: i32, error_msg: String) {
@@ -6,7 +7,7 @@ fn show_error(contents: &String, module: &ModulePath, pos: i32, error_msg: Strin
     println!(
         "Error at line {} (in {}):\n----------\n",
         line,
-        module.alias().to_string()
+        module.alias().0
     );
 
     let lines: Vec<&str> = contents.split('\n').collect();
