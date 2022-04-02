@@ -78,8 +78,8 @@ fn split_to_files(s: &str) -> HashMap<String, String> {
 }
 
 pub fn setup_and_load_program(s: &str) -> WholeProgram {
-    // Note that temporary dir is removed together with TestFieldCreator, meaning
-    // that after returning of the WholeProgram object, source code files are non-existent
+    // Note that temporary dir is removed together with TestFeildCreator, meaning
+    // that after returning Whole
     let files = split_to_files(s);
     if !files.contains_key("main.frisbee") {
         panic!("Please make sure main.frisbee is loaded!");

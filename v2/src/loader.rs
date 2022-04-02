@@ -102,7 +102,7 @@ pub fn load_program(entry_file_path: &Path) -> Option<WholeProgram> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test_utils::TestFilesCreator;
+    use crate::test_utils::{setup_and_load_program, TestFilesCreator};
 
     #[test]
     #[should_panic] // TODO: proper error reporting check
@@ -111,5 +111,36 @@ mod test {
         files_dir.set_mainfile("from mod import somefun;");
 
         load_program(files_dir.get_main_path());
+    }
+
+    #[test]
+    fn check_loading_of_files() {
+        let wp = setup_and_load_program(
+            r#"
+            ===== file: main.frisbee
+            from sub.mod import Type;
+
+            class Main {}
+            ===== file: sub/mod.frisbee
+            active Type {}
+        "#,
+        );
+        assert_eq!(wp.files.len(), 2);
+
+        let main_module_path = ModulePath(vec!["main".into()]);
+        let sub_mod_module_path = ModulePath(vec!["sub".into(), "mod".into()]);
+        assert_eq!(wp.main_module, main_module_path);
+
+        let main_file = &wp.files[&main_module_path.alias()];
+        let sub_mod_file = &wp.files[&sub_mod_module_path.alias()];
+
+        assert_eq!(main_file.path, wp.workdir.join("main.frisbee"));
+        assert_eq!(main_file.module_path, main_module_path);
+
+        assert_eq!(
+            sub_mod_file.path,
+            wp.workdir.join("sub").join("mod.frisbee")
+        );
+        assert_eq!(sub_mod_file.module_path, sub_mod_module_path);
     }
 }
