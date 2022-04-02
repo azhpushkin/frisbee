@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 
-use super::super::modules::*;
-use super::super::type_env::TypeEnv;
 use crate::ast::{Expr, ModulePath, Type};
 use crate::parser::parser_impl::Parser;
 use crate::scanner::scan_tokens;
 use crate::semantic_checker::expressions::ExprTypeChecker;
 use crate::test_utils::{new_alias, setup_and_load_program};
+
+use super::super::modules::*;
+use super::super::type_env::TypeEnv;
 
 const example_program: &str = r#"
 ===== file: main.frisbee

@@ -1,10 +1,10 @@
+use crate::ast::FileAst;
+use crate::scanner::ScannedToken;
+
 mod helpers;
 pub mod parser_impl;
 
 mod tests;
-
-use crate::ast::FileAst;
-use crate::scanner::ScannedToken;
 
 // pass this types through mod.rs
 pub type ParseError = parser_impl::ParseError;

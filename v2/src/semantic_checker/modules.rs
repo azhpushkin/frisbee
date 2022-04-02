@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 use std::iter::FromIterator;
 
-use super::semantic_error::{sem_err, SemanticError, SemanticResult};
-use super::symbols::*;
 use crate::ast::*;
 use crate::loader::*;
+
+use super::semantic_error::{sem_err, SemanticError, SemanticResult};
+use super::symbols::*;
 
 pub fn get_typenames_mapping(file: &LoadedFile) -> SemanticResult<SymbolOriginsMapping> {
     let file_alias = file.module_path.alias();

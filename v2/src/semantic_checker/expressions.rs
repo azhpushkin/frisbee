@@ -1,11 +1,12 @@
 use std::collections::HashMap;
 
+use crate::ast::*;
+
 use super::modules::FunctionSignature;
 use super::operators::{are_types_same_or_maybe, calculate_binaryop_type, calculate_unaryop_type};
 use super::semantic_error::{sem_err, SemanticResult};
 use super::std_definitions::{get_std_method, get_std_methods};
 use super::type_env::TypeEnv;
-use crate::ast::*;
 
 pub struct ExprTypeChecker<'a> {
     env: &'a TypeEnv<'a>,

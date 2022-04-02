@@ -1,3 +1,5 @@
+use std::path::Path;
+
 pub mod ast;
 pub mod errors;
 pub mod loader;
@@ -10,8 +12,6 @@ pub mod test_utils;
 pub mod utils;
 
 // TODO: color output?
-
-use std::path::Path;
 
 fn main() {
     let file_path_s = std::env::args().last().unwrap();

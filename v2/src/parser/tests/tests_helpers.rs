@@ -1,5 +1,6 @@
-use super::super::parser_impl::*;
 use crate::scanner::scan_tokens;
+
+use super::super::parser_impl::*;
 
 pub type ParsingFunction<T> = fn(&mut Parser) -> ParseResult<T>;
 

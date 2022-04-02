@@ -1,5 +1,6 @@
-use super::state::State;
 use crate::ast::*;
+
+use super::state::State;
 
 type FinalExpr = Result<Expr, String>;
 

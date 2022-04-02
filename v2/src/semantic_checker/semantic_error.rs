@@ -7,7 +7,7 @@ macro_rules! sem_err {
      }};
 }
 
-pub(crate) use sem_err;
+#[rustfmt::skip] pub(crate) use sem_err;
 
 #[cfg(test)]
 mod tests {
