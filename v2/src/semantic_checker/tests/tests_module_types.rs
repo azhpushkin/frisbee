@@ -1,12 +1,16 @@
-use crate::ast::{ModulePath, ModulePathAlias, Type};
-use crate::loader::{LoadedFile, WholeProgram};
-use crate::semantic_checker::{modules::*, perform_checks, semantic_error::SemanticResult};
-use crate::test_utils::{new_alias, setup_and_load_program};
-
 use std::collections::HashMap;
 
-fn new_obj_path(module: &str, name: &str) -> SymbolOrigin {
-    (new_alias(module), name.into())
+use crate::ast::{ModulePath, ModulePathAlias, Type};
+use crate::loader::{LoadedFile, WholeProgram};
+use crate::semantic_checker::check_and_gather_symbols_mappings;
+use crate::test_utils::{new_alias, setup_and_load_program};
+
+use super::super::modules::*;
+use super::super::semantic_error::SemanticResult;
+use super::super::symbols::*;
+
+fn new_symbol(module: &str, name: &str) -> SymbolOrigin {
+    SymbolOrigin { module: new_alias(module), name: name.into() }
 }
 
 fn get_file<'a>(wp: &'a WholeProgram, module: &str) -> &'a LoadedFile {
@@ -39,16 +43,14 @@ pub fn check_import_from_same_module_is_fine() {
     "#,
     );
 
-    assert!(perform_checks(&wp).is_ok());
+    assert!(check_and_gather_symbols_mappings(&wp).is_ok());
 
     let funcs_mapping: SemanticResult<SymbolOriginsMapping> = Ok(HashMap::from([(
         "somefun".into(),
-        new_obj_path("mod", "somefun"),
+        new_symbol("mod", "somefun"),
     )]));
-    let types_mapping: SemanticResult<SymbolOriginsMapping> = Ok(HashMap::from([(
-        "Type".into(),
-        new_obj_path("mod", "Type"),
-    )]));
+    let types_mapping: SemanticResult<SymbolOriginsMapping> =
+        Ok(HashMap::from([("Type".into(), new_symbol("mod", "Type"))]));
     // Types and functions mappings are the same
     assert_eq!(get_functions_mapping(get_file(&wp, "main")), funcs_mapping);
     assert_eq!(get_functions_mapping(get_file(&wp, "mod")), funcs_mapping);
@@ -70,7 +72,7 @@ pub fn check_import_of_same_function_are_not_allowed() {
     "#,
     );
 
-    assert!(perform_checks(&wp).is_err());
+    assert!(check_and_gather_symbols_mappings(&wp).is_err());
 }
 
 #[test]
@@ -86,7 +88,7 @@ pub fn check_import_function_name_collision() {
     "#,
     );
 
-    assert!(perform_checks(&wp).is_err());
+    assert!(check_and_gather_symbols_mappings(&wp).is_err());
 }
 
 #[test]
@@ -102,7 +104,7 @@ pub fn check_import_active_type_name_collision() {
     "#,
     );
 
-    assert!(perform_checks(&wp).is_err());
+    assert!(check_and_gather_symbols_mappings(&wp).is_err());
 }
 
 #[test]
@@ -115,7 +117,7 @@ pub fn check_active_and_class_name_collision() {
     "#,
     );
 
-    assert!(perform_checks(&wp).is_err());
+    assert!(check_and_gather_symbols_mappings(&wp).is_err());
 }
 
 #[test]
@@ -130,7 +132,7 @@ pub fn check_method_name_collisions() {
     "#,
     );
 
-    assert!(perform_checks(&wp).is_err());
+    assert!(check_and_gather_symbols_mappings(&wp).is_err());
 }
 
 #[test]
@@ -149,20 +151,20 @@ pub fn check_same_function_names_are_fine() {
     "#,
     );
 
-    assert!(perform_checks(&wp).is_ok());
+    assert!(check_and_gather_symbols_mappings(&wp).is_ok());
 
     assert_eq!(
         get_functions_mapping(get_file(&wp, "main")).unwrap(),
         HashMap::from([
-            ("hello".into(), new_obj_path("mod", "hello")),
-            ("samename".into(), new_obj_path("main", "samename")),
+            ("hello".into(), new_symbol("mod", "hello")),
+            ("samename".into(), new_symbol("main", "samename")),
         ])
     );
     assert_eq!(
         get_functions_mapping(get_file(&wp, "mod")).unwrap(),
         HashMap::from([
-            ("hello".into(), new_obj_path("mod", "hello")),
-            ("samename".into(), new_obj_path("mod", "samename")),
+            ("hello".into(), new_symbol("mod", "hello")),
+            ("samename".into(), new_symbol("mod", "samename")),
         ])
     );
 
@@ -180,13 +182,13 @@ pub fn check_same_function_names_are_fine() {
     let hello_mod = FunctionSignature { rettype: Type::TypeNil, args: vec![] };
     assert_eq!(
         get_functions_signatures_helper(get_file(&wp, "main")),
-        HashMap::from([(new_obj_path("main", "samename"), samename_main)])
+        HashMap::from([(new_symbol("main", "samename"), samename_main)])
     );
     assert_eq!(
         get_functions_signatures_helper(get_file(&wp, "mod")),
         HashMap::from([
-            (new_obj_path("mod", "samename"), samename_mod),
-            (new_obj_path("mod", "hello"), hello_mod),
+            (new_symbol("mod", "samename"), samename_mod),
+            (new_symbol("mod", "hello"), hello_mod),
         ])
     );
 }
@@ -205,7 +207,7 @@ pub fn check_constructor() {
     "#,
     );
 
-    assert!(perform_checks(&wp).is_ok());
+    assert!(check_and_gather_symbols_mappings(&wp).is_ok());
 
     let fields = HashMap::from([("name".into(), Type::TypeString), ("age".into(), Type::TypeInt)]);
     let constructor = FunctionSignature {
@@ -222,7 +224,7 @@ pub fn check_constructor() {
     };
     assert_eq!(
         get_typenames_signatures_helper(get_file(&wp, "main")),
-        HashMap::from([(new_obj_path("main", "Person"), person_signature)])
+        HashMap::from([(new_symbol("main", "Person"), person_signature)])
     );
 }
 
@@ -238,7 +240,7 @@ pub fn check_default_constructor() {
     "#,
     );
 
-    assert!(perform_checks(&wp).is_ok());
+    assert!(check_and_gather_symbols_mappings(&wp).is_ok());
 
     let fields = vec![("name".into(), Type::TypeString), ("age".into(), Type::TypeInt)];
     let default_constructor = FunctionSignature {
@@ -255,7 +257,7 @@ pub fn check_default_constructor() {
     };
     assert_eq!(
         get_typenames_signatures_helper(get_file(&wp, "main")),
-        HashMap::from([(new_obj_path("main", "Person"), person_signature)])
+        HashMap::from([(new_symbol("main", "Person"), person_signature)])
     );
 }
 
@@ -268,7 +270,7 @@ pub fn check_self_referrings_for_active_are_allowed() {
     "#,
     );
 
-    assert!(perform_checks(&wp).is_ok());
+    assert!(check_and_gather_symbols_mappings(&wp).is_ok());
 
     let default_constructor = FunctionSignature {
         rettype: Type::TypeIdentQualified(new_alias("main"), "Type".into()),
@@ -289,7 +291,7 @@ pub fn check_self_referrings_for_active_are_allowed() {
     };
     assert_eq!(
         get_typenames_signatures_helper(get_file(&wp, "main")),
-        HashMap::from([(new_obj_path("main", "Type"), type_signature)])
+        HashMap::from([(new_symbol("main", "Type"), type_signature)])
     );
 }
 
@@ -302,7 +304,7 @@ pub fn check_no_self_referrings_for_passive() {
     "#,
     );
 
-    assert!(perform_checks(&wp).is_err());
+    assert!(check_and_gather_symbols_mappings(&wp).is_err());
 }
 
 #[test]
@@ -314,7 +316,7 @@ pub fn check_no_self_referrings_for_tuple() {
     "#,
     );
 
-    assert!(perform_checks(&wp).is_err());
+    assert!(check_and_gather_symbols_mappings(&wp).is_err());
 }
 
 #[test]
@@ -326,7 +328,7 @@ pub fn check_no_self_referrings_in_imports() {
     "#,
     );
 
-    assert!(perform_checks(&wp).is_err());
+    assert!(check_and_gather_symbols_mappings(&wp).is_err());
 }
 
 #[test]
@@ -340,7 +342,7 @@ pub fn check_imported_types_are_existing() {
     "#,
     );
 
-    assert!(perform_checks(&wp).is_err());
+    assert!(check_and_gather_symbols_mappings(&wp).is_err());
 }
 
 #[test]
@@ -354,5 +356,5 @@ pub fn check_imported_functions_are_existing() {
     "#,
     );
 
-    assert!(perform_checks(&wp).is_err());
+    assert!(check_and_gather_symbols_mappings(&wp).is_err());
 }

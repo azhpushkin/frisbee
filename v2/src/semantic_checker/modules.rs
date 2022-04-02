@@ -2,39 +2,9 @@ use std::collections::HashMap;
 use std::iter::FromIterator;
 
 use super::semantic_error::{sem_err, SemanticError, SemanticResult};
+use super::symbols::*;
 use crate::ast::*;
 use crate::loader::*;
-
-#[derive(PartialEq, Debug)]
-pub struct ClassSignature {
-    pub module_path_alias: ModulePathAlias,
-    pub name: String,
-    pub is_active: bool,
-    pub fields: HashMap<String, Type>,
-    pub methods: HashMap<String, FunctionSignature>,
-}
-
-#[derive(PartialEq, Debug)]
-pub struct FunctionSignature {
-    pub rettype: Type,
-    pub args: Vec<(String, Type)>,
-}
-
-// These are applicable for both Types and functions
-pub type SymbolOrigin = (ModulePathAlias, String);
-pub type SymbolOriginsMapping = HashMap<String, SymbolOrigin>;
-
-pub struct SymbolOriginsPerFile {
-    pub typenames: SymbolOriginsMapping,
-    pub functions: SymbolOriginsMapping,
-}
-
-pub type ClassSignaturesMapping = HashMap<SymbolOrigin, ClassSignature>;
-pub type FunctionSignaturesMapping = HashMap<SymbolOrigin, FunctionSignature>;
-pub struct GlobalSignatures {
-    pub typenames: ClassSignaturesMapping,
-    pub functions: FunctionSignaturesMapping,
-}
 
 pub fn get_typenames_mapping(file: &LoadedFile) -> SemanticResult<SymbolOriginsMapping> {
     let file_alias = file.module_path.alias();
@@ -52,15 +22,18 @@ pub fn get_typenames_mapping(file: &LoadedFile) -> SemanticResult<SymbolOriginsM
             .map(move |typename| (i.module_path.alias(), typename.clone()))
     });
 
-    for obj_path in defined_types.chain(imported_types) {
-        if mapping.contains_key(&obj_path.1) {
+    for (module_alias, typename) in defined_types.chain(imported_types) {
+        if mapping.contains_key(&typename) {
             return sem_err!(
                 "Type {} introduced several times in module {:?}",
-                obj_path.1,
+                typename,
                 file_alias
             );
         }
-        mapping.insert(obj_path.1.clone(), obj_path);
+        mapping.insert(
+            typename.clone(),
+            SymbolOrigin { module: module_alias, name: typename },
+        );
     }
 
     Ok(mapping)
@@ -82,15 +55,18 @@ pub fn get_functions_mapping(file: &LoadedFile) -> SemanticResult<SymbolOriginsM
             .map(move |funcname| (i.module_path.alias(), funcname.clone()))
     });
 
-    for obj_path in defined_types.chain(imported_types) {
-        if mapping.contains_key(&obj_path.1) {
+    for (module_alias, funcname) in defined_types.chain(imported_types) {
+        if mapping.contains_key(&funcname) {
             return sem_err!(
                 "Function {} introduced several times in module {:?}",
-                obj_path.1,
+                funcname,
                 file_alias
             );
         }
-        mapping.insert(obj_path.1.clone(), obj_path);
+        mapping.insert(
+            funcname.clone(),
+            SymbolOrigin { module: module_alias, name: funcname },
+        );
     }
 
     Ok(mapping)
@@ -99,11 +75,12 @@ pub fn get_functions_mapping(file: &LoadedFile) -> SemanticResult<SymbolOriginsM
 pub fn get_typenames_signatures(
     file: &LoadedFile,
     typenames_mapping: &SymbolOriginsMapping,
-) -> SemanticResult<ClassSignaturesMapping> {
+) -> SemanticResult<HashMap<SymbolOrigin, ClassSignature>> {
     let mut signatures: HashMap<SymbolOrigin, ClassSignature> = HashMap::new();
 
     for class_decl in file.ast.types.iter() {
-        let symbol_origin: SymbolOrigin = (file.module_path.alias(), class_decl.name.clone());
+        let symbol_origin =
+            SymbolOrigin { module: file.module_path.alias(), name: class_decl.name.clone() };
         if does_class_contains_itself(class_decl) {
             // This will result in memory layout recursion, if allowed
             return sem_err!(
@@ -162,11 +139,12 @@ pub fn get_typenames_signatures(
 pub fn get_functions_signatures(
     file: &LoadedFile,
     typenames_mapping: &SymbolOriginsMapping,
-) -> SemanticResult<FunctionSignaturesMapping> {
+) -> SemanticResult<HashMap<SymbolOrigin, FunctionSignature>> {
     let mut signatures: HashMap<SymbolOrigin, FunctionSignature> = HashMap::new();
 
     for function_decl in file.ast.functions.iter() {
-        let symbol_origin: SymbolOrigin = (file.module_path.alias(), function_decl.name.clone());
+        let symbol_origin =
+            SymbolOrigin { module: file.module_path.alias(), name: function_decl.name.clone() };
         let signature = FunctionSignature {
             rettype: annotate_type(&function_decl.rettype, typenames_mapping)?,
             args: typednameobjects_to_func_args(&function_decl.args, typenames_mapping)?,
@@ -199,15 +177,15 @@ pub fn annotate_type(t: &Type, typenames_mapping: &SymbolOriginsMapping) -> Sema
         }
 
         Type::TypeIdent(s) => {
-            let obj_path = typenames_mapping.get(s);
-            if obj_path.is_none() {
-                return sem_err!("Type {} is not defined in this scope!", s);
+            let symbol_origin = typenames_mapping.get(s);
+            if let Some(symbol_origin) = symbol_origin {
+                Type::TypeIdentQualified(symbol_origin.module.clone(), symbol_origin.name.clone())
             } else {
-                let (alias, name) = obj_path.unwrap();
-                Type::TypeIdentQualified(alias.clone(), name.clone())
+                return sem_err!("Unknown type {}", s);
             }
         }
         Type::TypeIdentQualified(..) => panic!("Did not expected {:?}", t),
+        Type::TypeAnonymous => panic!("Did not expected {:?}", t),
     };
     Ok(new_t)
 }

@@ -57,19 +57,24 @@ pub struct FunctionDecl {
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Type {
-    // TODO: TypeAnonymous
-    // TODO: TypeMaybe (Type),
+    // Primitive types
     TypeInt,
     TypeFloat,
     TypeNil,
     TypeBool,
     TypeString,
 
+    // Type wrappers
     TypeList(Box<Type>),
     TypeTuple(Vec<Type>),
     TypeMaybe(Box<Type>),
 
+    // User-defined type
     TypeIdent(String),
+
+    // Used for empty arrays, nil values and future `let` expression
+    TypeAnonymous,
+
     TypeIdentQualified(ModulePathAlias, String),
 }
 
@@ -104,7 +109,6 @@ pub enum Statement {
         args: Vec<Expr>,
     },
     // TODO: SWaitMessage
-    // TODO: break and continue?
     SExpr(Expr),
 }
 
@@ -164,4 +168,7 @@ pub enum Expr {
     ExprNewClassInstance { typename: String, args: Vec<Expr> },
     ExprSpawnActive { typename: String, args: Vec<Expr> },
     ExprThis,
+
+    ExprNewClassInstanceQualified { module: ModulePathAlias, typename: String, args: Vec<Expr> },
+    ExprSpawnActiveQualified { module: ModulePathAlias, typename: String, args: Vec<Expr> },
 }

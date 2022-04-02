@@ -152,6 +152,7 @@ impl<'a> ExprTypeChecker<'a> {
                     Ok(Type::TypeIdentQualified(module, name))
                 }
             },
+            _ => todo!("asd"),
         }
     }
 

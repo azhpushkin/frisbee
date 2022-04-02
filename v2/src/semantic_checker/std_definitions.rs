@@ -1,8 +1,10 @@
-use super::modules::FunctionSignature;
-use super::semantic_error::SemanticResult;
+use std::collections::HashMap;
+
 use crate::ast::Type;
 use crate::semantic_checker::semantic_error::sem_err;
-use std::collections::HashMap;
+
+use super::semantic_error::SemanticResult;
+use super::symbols::FunctionSignature;
 
 fn get_list_methods(inside: &Type) -> HashMap<String, FunctionSignature> {
     HashMap::from([
