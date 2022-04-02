@@ -1,7 +1,8 @@
 use std::collections::HashMap;
-use std::fs::{remove_file, File};
+use std::fs::{create_dir_all, remove_file, File};
 use std::io::Write;
 use std::path::{Path, PathBuf};
+
 use tempfile::{tempdir, TempDir};
 
 use crate::ast::{ModulePath, ModulePathAlias};
@@ -31,11 +32,20 @@ impl TestFilesCreator {
         N: Into<String> + Clone,
         C: Into<String> + Clone,
     {
-        let file_path = self.temp_workdir.path().join(name.into());
+        assert!(
+            name.clone().into().ends_with(".frisbee"),
+            "File to create must end with .frisbee, but {} given",
+            name.clone().into()
+        );
+
+        let mut file_path = self.temp_workdir.path().to_owned();
+        file_path.extend(name.clone().into().split("/"));
+
         if file_path.exists() {
             remove_file(file_path.as_path()).unwrap();
         }
 
+        create_dir_all(file_path.parent().unwrap()).unwrap();
         let mut file = File::create(file_path).unwrap();
         file.write(contents.into().as_bytes()).unwrap();
     }
@@ -51,7 +61,7 @@ impl TestFilesCreator {
     }
 }
 
-pub fn split_to_files(s: &str) -> HashMap<String, String> {
+fn split_to_files(s: &str) -> HashMap<String, String> {
     let mut res: HashMap<String, String> = HashMap::new();
 
     for group in s.split("===== file:") {
@@ -68,6 +78,8 @@ pub fn split_to_files(s: &str) -> HashMap<String, String> {
 }
 
 pub fn setup_and_load_program(s: &str) -> WholeProgram {
+    // Note that temporary dir is removed together with TestFieldCreator, meaning
+    // that after returning of the WholeProgram object, source code files are non-existent
     let files = split_to_files(s);
     if !files.contains_key("main.frisbee") {
         panic!("Please make sure main.frisbee is loaded!");
@@ -87,6 +99,8 @@ pub fn new_alias(module: &str) -> ModulePathAlias {
 
 #[cfg(test)]
 mod tests {
+    use std::fs::read_to_string;
+
     use super::*;
 
     #[test]
@@ -119,5 +133,33 @@ mod tests {
             "#
             .trim()
         );
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_that_file_must_end_in_frisbee() {
+        let mut t = TestFilesCreator::new();
+        t.set_file("main.other", "");
+    }
+
+    #[test]
+    fn test_setup_and_load_program() {
+        let mut t = TestFilesCreator::new();
+        t.set_file("main.frisbee", "from sub.mod import Type;\n\nclass Main {}");
+        t.set_file("mod.frisbee", "fun Nil hello_world() {}");
+        t.set_file("sub/mod.frisbee", "active Type {}");
+
+        let wp = t.load_program();
+
+        let main_prog = read_to_string(wp.workdir.join("main.frisbee"));
+        let mod_prog = read_to_string(wp.workdir.join("mod.frisbee"));
+        let sub_mod_prog = read_to_string(wp.workdir.join("sub/mod.frisbee"));
+
+        assert_eq!(
+            main_prog.unwrap(),
+            "from sub.mod import Type;\n\nclass Main {}".trim()
+        );
+        assert_eq!(mod_prog.unwrap(), r#"fun Nil hello_world() {}"#.trim());
+        assert_eq!(sub_mod_prog.unwrap(), r#"active Type {}"#.trim());
     }
 }
