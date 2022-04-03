@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::ast::{ModulePath, ModulePathAlias, Type};
 use crate::loader::{LoadedFile, WholeProgram};
-use crate::semantic_checker::check_and_gather_symbols_mappings;
+use crate::semantic_checker::check_and_gather_symbols_info;
 use crate::test_utils::{new_alias, setup_and_load_program};
 
 use super::super::modules::*;
@@ -43,7 +43,7 @@ pub fn check_import_from_same_module_is_fine() {
     "#,
     );
 
-    assert!(check_and_gather_symbols_mappings(&wp).is_ok());
+    assert!(check_and_gather_symbols_info(&wp).is_ok());
 
     let funcs_mapping: SemanticResult<SymbolOriginsMapping> = Ok(HashMap::from([(
         "somefun".into(),
@@ -72,7 +72,7 @@ pub fn check_import_of_same_function_are_not_allowed() {
     "#,
     );
 
-    assert!(check_and_gather_symbols_mappings(&wp).is_err());
+    assert!(check_and_gather_symbols_info(&wp).is_err());
 }
 
 #[test]
@@ -88,7 +88,7 @@ pub fn check_import_function_name_collision() {
     "#,
     );
 
-    assert!(check_and_gather_symbols_mappings(&wp).is_err());
+    assert!(check_and_gather_symbols_info(&wp).is_err());
 }
 
 #[test]
@@ -104,7 +104,7 @@ pub fn check_import_active_type_name_collision() {
     "#,
     );
 
-    assert!(check_and_gather_symbols_mappings(&wp).is_err());
+    assert!(check_and_gather_symbols_info(&wp).is_err());
 }
 
 #[test]
@@ -117,7 +117,7 @@ pub fn check_active_and_class_name_collision() {
     "#,
     );
 
-    assert!(check_and_gather_symbols_mappings(&wp).is_err());
+    assert!(check_and_gather_symbols_info(&wp).is_err());
 }
 
 #[test]
@@ -132,7 +132,7 @@ pub fn check_method_name_collisions() {
     "#,
     );
 
-    assert!(check_and_gather_symbols_mappings(&wp).is_err());
+    assert!(check_and_gather_symbols_info(&wp).is_err());
 }
 
 #[test]
@@ -151,7 +151,7 @@ pub fn check_same_function_names_are_fine() {
     "#,
     );
 
-    assert!(check_and_gather_symbols_mappings(&wp).is_ok());
+    assert!(check_and_gather_symbols_info(&wp).is_ok());
 
     assert_eq!(
         get_functions_mapping(get_file(&wp, "main")).unwrap(),
@@ -207,7 +207,7 @@ pub fn check_constructor() {
     "#,
     );
 
-    assert!(check_and_gather_symbols_mappings(&wp).is_ok());
+    assert!(check_and_gather_symbols_info(&wp).is_ok());
 
     let fields = HashMap::from([("name".into(), Type::TypeString), ("age".into(), Type::TypeInt)]);
     let constructor = FunctionSignature {
@@ -240,7 +240,7 @@ pub fn check_default_constructor() {
     "#,
     );
 
-    assert!(check_and_gather_symbols_mappings(&wp).is_ok());
+    assert!(check_and_gather_symbols_info(&wp).is_ok());
 
     let fields = vec![("name".into(), Type::TypeString), ("age".into(), Type::TypeInt)];
     let default_constructor = FunctionSignature {
@@ -270,7 +270,7 @@ pub fn check_self_referrings_for_active_are_allowed() {
     "#,
     );
 
-    assert!(check_and_gather_symbols_mappings(&wp).is_ok());
+    assert!(check_and_gather_symbols_info(&wp).is_ok());
 
     let default_constructor = FunctionSignature {
         rettype: Type::TypeIdentQualified(new_alias("main"), "Type".into()),
@@ -304,7 +304,7 @@ pub fn check_no_self_referrings_for_passive() {
     "#,
     );
 
-    assert!(check_and_gather_symbols_mappings(&wp).is_err());
+    assert!(check_and_gather_symbols_info(&wp).is_err());
 }
 
 #[test]
@@ -316,7 +316,7 @@ pub fn check_no_self_referrings_for_tuple() {
     "#,
     );
 
-    assert!(check_and_gather_symbols_mappings(&wp).is_err());
+    assert!(check_and_gather_symbols_info(&wp).is_err());
 }
 
 #[test]
@@ -328,7 +328,7 @@ pub fn check_no_self_referrings_in_imports() {
     "#,
     );
 
-    assert!(check_and_gather_symbols_mappings(&wp).is_err());
+    assert!(check_and_gather_symbols_info(&wp).is_err());
 }
 
 #[test]
@@ -342,7 +342,7 @@ pub fn check_imported_types_are_existing() {
     "#,
     );
 
-    assert!(check_and_gather_symbols_mappings(&wp).is_err());
+    assert!(check_and_gather_symbols_info(&wp).is_err());
 }
 
 #[test]
@@ -356,5 +356,5 @@ pub fn check_imported_functions_are_existing() {
     "#,
     );
 
-    assert!(check_and_gather_symbols_mappings(&wp).is_err());
+    assert!(check_and_gather_symbols_info(&wp).is_err());
 }

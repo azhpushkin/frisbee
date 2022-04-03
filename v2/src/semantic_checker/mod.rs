@@ -13,11 +13,12 @@ mod modules;
 mod operators;
 mod semantic_error;
 // mod statements;
+mod annotations;
 mod std_definitions;
 mod symbols;
 mod tests;
 
-pub fn check_and_gather_symbols_mappings(wp: &WholeProgram) -> SemanticResult<GlobalSymbolsInfo> {
+pub fn check_and_gather_symbols_info(wp: &WholeProgram) -> SemanticResult<GlobalSymbolsInfo> {
     let mut symbols_per_file: HashMap<ModulePathAlias, SymbolOriginsPerFile> = HashMap::new();
     let mut global_signatures =
         GlobalSignatures { typenames: HashMap::new(), functions: HashMap::new() };
@@ -63,4 +64,15 @@ pub fn check_and_gather_symbols_mappings(wp: &WholeProgram) -> SemanticResult<Gl
     }
 
     Ok(GlobalSymbolsInfo { symbols_per_file, global_signatures })
+}
+
+pub fn annotate_whole_program(
+    wp: &mut WholeProgram,
+    symbols_info: &GlobalSymbolsInfo,
+) -> SemanticResult<()> {
+    for (file_name, file) in wp.files.iter_mut() {
+        annotations::check_and_annotate_ast_in_place(&mut file.ast, file_name, symbols_info)?;
+    }
+
+    Ok(())
 }
