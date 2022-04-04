@@ -16,7 +16,7 @@ mod semantic_error;
 mod annotations;
 mod std_definitions;
 mod symbols;
-// mod tests;
+mod tests;
 
 pub fn check_and_annotate_symbols(wp: &mut WholeProgram) -> SemanticResult<GlobalSymbolsInfo> {
     let mut symbols_per_file: HashMap<ModulePathAlias, SymbolOriginsPerFile> = HashMap::new();
@@ -28,7 +28,7 @@ pub fn check_and_annotate_symbols(wp: &mut WholeProgram) -> SemanticResult<Globa
 
         let file_mappings = SymbolOriginsPerFile {
             typenames: modules::get_typenames_origins(file)?,
-            functions: modules::get_functions_mapping(file)?,
+            functions: modules::get_functions_origins(file)?,
         };
 
         for class_decl in file.ast.types.iter_mut() {
@@ -52,18 +52,18 @@ pub fn check_and_annotate_symbols(wp: &mut WholeProgram) -> SemanticResult<Globa
         .find(|f| !global_signatures.functions.contains_key(f));
     let any_missing_type_origin = symbols_per_file
         .values()
-        .flat_map(|s| s.functions.values())
+        .flat_map(|s| s.typenames.values())
         .find(|t| !global_signatures.typenames.contains_key(t));
 
     if any_missing_function_origin.is_some() {
         return sem_err!(
-            "Function {:?} is Code: Error-123",
+            "Function {:?} is not defined!",
             any_missing_function_origin.unwrap()
         );
     }
     if any_missing_type_origin.is_some() {
         return sem_err!(
-            "Type {:?} is Code: Error-123",
+            "Type {:?} is not defined!",
             any_missing_type_origin.unwrap()
         );
     }

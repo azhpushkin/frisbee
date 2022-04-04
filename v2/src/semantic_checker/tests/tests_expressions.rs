@@ -32,10 +32,7 @@ active Worker {
 
 fn setup_maps(use_scope: bool) -> (SymbolOriginsPerFile, GlobalSignatures) {
     let wp = setup_and_load_program(example_program);
-    let file = wp
-        .files
-        .get(&ModulePath(vec!["main".into()]).alias())
-        .unwrap();
+    let file = wp.files.get(&ModulePath(vec!["main".into()]).alias()).unwrap();
     let origins = SymbolOriginsPerFile {
         typenames: get_typenames_mapping(file).unwrap(),
         functions: get_functions_mapping(file).unwrap(),

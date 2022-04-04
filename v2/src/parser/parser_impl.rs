@@ -118,9 +118,7 @@ impl Parser {
                 Token::From => file_ast.imports.push(self.parse_import()?),
                 Token::Active => file_ast.types.push(self.parse_object(true)?),
                 Token::Class => file_ast.types.push(self.parse_object(false)?),
-                Token::Fun => file_ast
-                    .functions
-                    .push(self.parse_function_definition(None)?),
+                Token::Fun => file_ast.functions.push(self.parse_function_definition(None)?),
                 Token::EOF => {
                     break;
                 }

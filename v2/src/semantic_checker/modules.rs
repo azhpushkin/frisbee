@@ -38,7 +38,7 @@ pub fn get_typenames_origins(file: &LoadedFile) -> SemanticResult<SymbolOriginsM
     Ok(mapping)
 }
 
-pub fn get_functions_mapping(file: &LoadedFile) -> SemanticResult<SymbolOriginsMapping> {
+pub fn get_functions_origins(file: &LoadedFile) -> SemanticResult<SymbolOriginsMapping> {
     let file_alias = file.module_path.alias();
     let mut mapping: SymbolOriginsMapping = HashMap::new();
 

@@ -68,9 +68,7 @@ fn split_to_files(s: &str) -> HashMap<String, String> {
         if !group.contains(".frisbee") {
             continue;
         }
-        let (file, contents) = group
-            .split_once("\n")
-            .expect("Error unwrapping test file content");
+        let (file, contents) = group.split_once("\n").expect("Error unwrapping test file content");
         res.insert(file.trim().into(), contents.trim().into());
     }
 

@@ -26,16 +26,19 @@ pub struct FunctionSignature {
 
 pub type SymbolOriginsMapping = HashMap<String, SymbolOrigin>;
 
+#[derive(Debug)]
 pub struct SymbolOriginsPerFile {
     pub typenames: SymbolOriginsMapping,
     pub functions: SymbolOriginsMapping,
 }
 
+#[derive(Debug)]
 pub struct GlobalSignatures {
     pub typenames: HashMap<SymbolOrigin, ClassSignature>,
     pub functions: HashMap<SymbolOrigin, FunctionSignature>,
 }
 
+#[derive(Debug)]
 pub struct GlobalSymbolsInfo {
     pub symbols_per_file: HashMap<ModulePathAlias, SymbolOriginsPerFile>,
     pub global_signatures: GlobalSignatures,

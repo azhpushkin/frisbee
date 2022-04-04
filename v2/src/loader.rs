@@ -82,9 +82,7 @@ pub fn load_program(entry_file_path: &Path) -> Option<WholeProgram> {
 
         let loaded_file = loaded_file.unwrap();
 
-        whole_program
-            .files
-            .insert(module_path.alias().clone(), loaded_file);
+        whole_program.files.insert(module_path.alias().clone(), loaded_file);
 
         let loaded_file = whole_program.files.get(&module_path.alias()).unwrap();
 

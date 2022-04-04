@@ -76,7 +76,7 @@ pub fn annotate_type(t: &Type, typenames_mapping: &SymbolOriginsMapping) -> Sema
                 return sem_err!("Unknown type {}", s);
             }
         }
-        Type::TypeIdentQualified(..) => panic!("Did not expected {:?}", t),
+        Type::TypeIdentQualified(..) => t.clone(),
         Type::TypeAnonymous => panic!("Did not expected {:?}", t),
     };
     Ok(new_t)

@@ -59,10 +59,7 @@ impl Scanner {
 
     fn char_ahead(&self, ahead: usize) -> char {
         // returns char ahead of current position without moving position
-        self.chars
-            .get(self.position + ahead)
-            .unwrap_or(&'\0')
-            .clone()
+        self.chars.get(self.position + ahead).unwrap_or(&'\0').clone()
     }
 
     fn check_ahead(&self, ahead: usize, expected: char) -> bool {
