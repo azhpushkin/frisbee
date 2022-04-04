@@ -9,19 +9,26 @@ use super::symbols::*;
 
 pub struct ExprTypeChecker<'a> {
     symbols_info: &'a GlobalSymbolsInfo,
-    file_name: &'a ModulePathAlias,
+    file_name: ModulePathAlias,
     scope: Option<String>,
-    variables_types: &'a HashMap<String, Type>,
+    variables_types: HashMap<String, Type>,
 }
 
 impl<'a> ExprTypeChecker<'a> {
     pub fn new(
         symbols_info: &'a GlobalSymbolsInfo,
-        file_name: &'a ModulePathAlias,
+        file_name: ModulePathAlias,
         scope: Option<String>,
-        variables_types: &'a HashMap<String, Type>,
     ) -> ExprTypeChecker<'a> {
-        ExprTypeChecker { symbols_info, file_name, scope, variables_types }
+        ExprTypeChecker { symbols_info, file_name, scope, variables_types: HashMap::new() }
+    }
+
+    pub fn add_variable(&mut self, name: String, t: Type) {
+        self.variables_types.insert(name, t);
+    }
+
+    pub fn reset_variables(&mut self) {
+        self.variables_types.clear();
     }
 
     fn err_prefix(&self) -> String {
@@ -35,7 +42,7 @@ impl<'a> ExprTypeChecker<'a> {
     }
 
     fn get_symbols_per_file(&self) -> &SymbolOriginsPerFile {
-        self.symbols_info.symbols_per_file.get(self.file_name).unwrap()
+        self.symbols_info.symbols_per_file.get(&self.file_name).unwrap()
     }
 
     fn get_class_signature(&self, typename: &String) -> SemanticResult<&ClassSignature> {
@@ -188,12 +195,12 @@ impl<'a> ExprTypeChecker<'a> {
             }
             Expr::ExprOwnMethodCall { method, args } => {
                 let method_signature =
-                    self.get_type_method(self.file_name, self.scope.as_ref().unwrap(), method)?;
+                    self.get_type_method(&self.file_name, self.scope.as_ref().unwrap(), method)?;
                 return self.check_function_call(method_signature, args);
             }
             Expr::ExprOwnFieldAccess { field } => {
                 let field_type =
-                    self.get_type_field(self.file_name, &self.scope.as_ref().unwrap(), field)?;
+                    self.get_type_field(&self.file_name, &self.scope.as_ref().unwrap(), field)?;
                 Ok(field_type.clone())
             }
             Expr::ExprThis => match &self.scope {
