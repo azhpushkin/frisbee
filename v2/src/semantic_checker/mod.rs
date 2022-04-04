@@ -8,7 +8,7 @@ use symbols::*;
 use crate::ast::ModulePathAlias;
 use crate::loader::{LoadedFile, WholeProgram};
 
-// mod expressions;
+mod expressions;
 mod modules;
 mod operators;
 mod semantic_error;
@@ -71,7 +71,7 @@ pub fn check_and_annotate_symbols(wp: &mut WholeProgram) -> SemanticResult<Globa
     Ok(GlobalSymbolsInfo { symbols_per_file, global_signatures })
 }
 
-// pub fn annotate_whole_program(
+// pub fn check_and_annotate_statements(
 //     wp: &mut WholeProgram,
 //     symbols_info: &GlobalSymbolsInfo,
 // ) -> SemanticResult<()> {
