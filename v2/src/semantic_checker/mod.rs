@@ -16,63 +16,68 @@ mod semantic_error;
 mod annotations;
 mod std_definitions;
 mod symbols;
-mod tests;
+// mod tests;
 
-pub fn check_and_gather_symbols_info(wp: &WholeProgram) -> SemanticResult<GlobalSymbolsInfo> {
+pub fn check_and_annotate_symbols(wp: &mut WholeProgram) -> SemanticResult<GlobalSymbolsInfo> {
     let mut symbols_per_file: HashMap<ModulePathAlias, SymbolOriginsPerFile> = HashMap::new();
     let mut global_signatures =
         GlobalSignatures { typenames: HashMap::new(), functions: HashMap::new() };
 
-    for (file_name, file) in wp.files.iter() {
+    for (file_name, file) in wp.files.iter_mut() {
         modules::check_module_does_not_import_itself(file)?;
 
         let file_mappings = SymbolOriginsPerFile {
-            typenames: modules::get_typenames_mapping(file)?,
+            typenames: modules::get_typenames_origins(file)?,
             functions: modules::get_functions_mapping(file)?,
         };
-        let file_type_signatures =
-            modules::get_typenames_signatures(file, &file_mappings.typenames)?;
 
-        let file_function_signatures =
-            modules::get_functions_signatures(file, &file_mappings.typenames)?;
+        for class_decl in file.ast.types.iter_mut() {
+            modules::check_class_does_not_contains_itself(class_decl)?;
+            modules::check_class_has_no_duplicated_methods(class_decl)?;
 
-        global_signatures.typenames.extend(file_type_signatures);
-        global_signatures.functions.extend(file_function_signatures);
+            annotations::annotate_class_decl(class_decl, &file_mappings.typenames)?;
+        }
+        for func_decl in file.ast.functions.iter_mut() {
+            annotations::annotate_function_decl(func_decl, &file_mappings.typenames)?;
+        }
+
+        global_signatures.typenames.extend(modules::get_typenames_signatures(file));
+        global_signatures.functions.extend(modules::get_functions_signatures(file));
         symbols_per_file.insert(file_name.clone(), file_mappings);
     }
 
-    for (file_name, file) in wp.files.iter() {
-        let file_mappings = symbols_per_file
-            .get(file_name)
-            .expect("Mappings not found!");
-        let unknown_type = file_mappings
-            .typenames
-            .values()
-            .find(|t| !global_signatures.typenames.contains_key(t));
-        let unknown_func = file_mappings
-            .functions
-            .values()
-            .find(|f| !global_signatures.functions.contains_key(f));
+    let any_missing_function_origin = symbols_per_file
+        .values()
+        .flat_map(|s| s.functions.values())
+        .find(|f| !global_signatures.functions.contains_key(f));
+    let any_missing_type_origin = symbols_per_file
+        .values()
+        .flat_map(|s| s.functions.values())
+        .find(|t| !global_signatures.typenames.contains_key(t));
 
-        // Check that all
-        if let Some(t) = unknown_type {
-            return sem_err!("{:?} type in module {:?} is non-existing", t, file_name);
-        }
-        if let Some(f) = unknown_func {
-            return sem_err!("{:?} function in module {:?} is non-existing", f, file_name);
-        }
+    if any_missing_function_origin.is_some() {
+        return sem_err!(
+            "Function {:?} is Code: Error-123",
+            any_missing_function_origin.unwrap()
+        );
+    }
+    if any_missing_type_origin.is_some() {
+        return sem_err!(
+            "Type {:?} is Code: Error-123",
+            any_missing_type_origin.unwrap()
+        );
     }
 
     Ok(GlobalSymbolsInfo { symbols_per_file, global_signatures })
 }
 
-pub fn annotate_whole_program(
-    wp: &mut WholeProgram,
-    symbols_info: &GlobalSymbolsInfo,
-) -> SemanticResult<()> {
-    for (file_name, file) in wp.files.iter_mut() {
-        annotations::check_and_annotate_ast_in_place(&mut file.ast, file_name, symbols_info)?;
-    }
+// pub fn annotate_whole_program(
+//     wp: &mut WholeProgram,
+//     symbols_info: &GlobalSymbolsInfo,
+// ) -> SemanticResult<()> {
+//     for (file_name, file) in wp.files.iter_mut() {
+//         annotations::check_and_annotate_ast_in_place(&mut file.ast, file_name, symbols_info)?;
+//     }
 
-    Ok(())
-}
+//     Ok(())
+// }

@@ -1,6 +1,7 @@
 pub type SemanticError = String;
 pub type SemanticResult<T> = Result<T, SemanticError>;
 
+// Make sure to `return sem_err` to avoid issues with type inference
 macro_rules! sem_err {
     ($($args : tt)*) => {{
         Err(format!($($args)*))
