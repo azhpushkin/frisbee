@@ -1,12 +1,12 @@
 t:
 	cargo test
 
-f:
+format:
 	cargo fmt -- ./src/*.rs
 	cargo fmt -- ./src/**/*.rs
 	cargo fmt -- ./src/**/**/*.rs
 
-a: f
+a:
 	git add .
 
 r:
