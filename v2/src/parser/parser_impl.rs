@@ -335,11 +335,16 @@ impl Parser {
     pub fn parse_var_declaration_continuation(&mut self, typedecl: Type) -> ParseResult<Statement> {
         let varname = consume_and_check_ident!(self);
         if consume_if_matches_one_of!(self, [Token::Semicolon]) {
-            return Ok(Statement::SVarDecl(typedecl, varname));
+            return perr_with_expected(
+                self.rel_token(0),
+                "Assignment with variable declaration is not implemented yet.",
+                Token::Semicolon,
+            );
+            // return Ok(Statement::SVarDeclE(typedecl, varname));
         } else if consume_if_matches_one_of!(self, [Token::Equal]) {
             let value = self.parse_expr()?;
             consume_and_check!(self, Token::Semicolon);
-            return Ok(Statement::SVarDeclEqual(typedecl, varname, value));
+            return Ok(Statement::SVarDeclWithAssign(typedecl, varname, value));
         } else {
             return perr_with_expected(
                 self.rel_token(0),

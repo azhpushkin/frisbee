@@ -101,8 +101,8 @@ pub enum Statement {
         left: Expr,
         right: Expr,
     },
-    SVarDecl(Type, String),
-    SVarDeclEqual(Type, String, Expr),
+    // SVarDecl(Type, String),
+    SVarDeclWithAssign(Type, String, Expr),
     SSendMessage {
         active: Expr,
         method: String,

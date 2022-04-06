@@ -116,11 +116,13 @@ fn stmt_break_and_continue() {
 fn stmt_var_decl() {
     assert_stmt_invalid("Int a");
     assert_stmt_invalid("Int 1;");
+    assert_stmt_invalid("Actor x;");
+    // uncomment when svardecl will be refactored
 
-    assert_stmt_parses(
-        "Actor x;",
-        Statement::SVarDecl(Type::TypeIdent(String::from("Actor")), String::from("x")),
-    );
+    // assert_stmt_parses(
+    //     "Actor x;",
+    //     Statement::SVarDecl(Type::TypeIdent(String::from("Actor")), String::from("x")),
+    // );
 }
 
 #[test]
@@ -130,7 +132,7 @@ fn stmt_var_decl_equal() {
 
     assert_stmt_parses(
         "Actor x = asd;",
-        Statement::SVarDeclEqual(
+        Statement::SVarDeclWithAssign(
             Type::TypeIdent(String::from("Actor")),
             String::from("x"),
             Expr::ExprIdentifier(String::from("asd")),
