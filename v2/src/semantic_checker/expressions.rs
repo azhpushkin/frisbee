@@ -4,7 +4,7 @@ use crate::ast::*;
 
 use super::operators::{are_types_same_or_maybe, calculate_binaryop_type, calculate_unaryop_type};
 use super::semantic_error::{sem_err, SemanticResult};
-use super::std_definitions::{get_std_method, get_std_methods};
+use super::std_definitions::{get_std_method};
 use super::symbols::*;
 
 pub struct ExprTypeChecker<'a> {
