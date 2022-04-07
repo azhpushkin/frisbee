@@ -1,6 +1,7 @@
 use std::path::Path;
 
 pub mod ast;
+pub mod codegen;
 pub mod errors;
 pub mod loader;
 pub mod parser;
@@ -9,7 +10,6 @@ pub mod semantic_checker;
 pub mod test_utils;
 pub mod utils;
 pub mod vm;
-
 
 // TODO: color output?
 

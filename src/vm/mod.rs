@@ -1,5 +1,14 @@
 const STACK_SIZE: usize = 256;
 
+pub mod Op {
+    pub const LOAD: u8 = 0;
+    pub const LOAD_INT: u8 = 1;
+    pub const ADD_INT: u8 = 2;
+    pub const ADD_FLOAT: u8 = 3;
+    pub const CALL: u8 = 4;
+    pub const RETURN: u8 = 5;
+}
+
 // TODO: nan boxing?
 type Value = u64;
 
@@ -12,15 +21,6 @@ struct Vm {
     stack: [Value; STACK_SIZE],
     stack_pointer: usize,
     frames: Vec<CallFrame>, // TODO: limit size
-}
-
-enum Opcode {
-    Load = 1,
-    Load_Int, // load int from -128 to 127
-    Add_i,
-    Add_f,
-    Call,
-    Return,
 }
 
 impl Vm {
@@ -38,7 +38,7 @@ impl Vm {
         self.stack[self.stack_pointer]
     }
 
-    pub fn read_next(&mut self) -> u8 {
+    pub fn read_opcode(&mut self) -> u8 {
         let byte = self.program[self.stack_pointer];
         self.stack_pointer += 1;
         byte
@@ -47,23 +47,25 @@ impl Vm {
     pub fn run(&mut self) {
         let mut pc = 0;
         while pc < self.program.len() {
-            match self.read_next() {
-                Load_int => {
+            let opcode = self.read_opcode();
+            match opcode {
+                Op::LOAD_INT => {
                     let value = self.program[pc + 1];
-                    self.stack[self.stack_pointer] = value;
+                    self.stack[self.stack_pointer] = value as u64;
                     self.stack_pointer += 1;
                     pc += 2;
                 }
-                Add_i | Add_f => {
-                    let a = self.pop();
-                    let b = self.pop();
-                    let result: Value = match opcode {
-                        Add_i => (a as i64) + (b as i64),
-                        Add_f => (a as f64) + (b as f64),
-                    } as Value;
-                    self.push(result);
-                    pc += 1;
+                Op::ADD_INT => {
+                    let a = self.pop() as i64;
+                    let b = self.pop() as i64;
+                    self.push((a + b) as Value);
                 }
+                Op::ADD_FLOAT => {
+                    let a = self.pop() as i64;
+                    let b = self.pop() as i64;
+                    self.push((a + b) as Value);
+                }
+                _ => panic!("Unknown opcode: {}", opcode),
             }
         }
     }
