@@ -1,4 +1,3 @@
-use crate::ast::ModulePathAlias;
 use crate::{ast::ModulePath, parser, scanner, utils};
 
 fn show_error(contents: &String, module: &ModulePath, pos: i32, error_msg: String) {

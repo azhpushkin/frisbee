@@ -4,7 +4,7 @@ use crate::ast::*;
 
 use super::operators::{are_types_same_or_maybe, calculate_binaryop_type, calculate_unaryop_type};
 use super::semantic_error::{sem_err, SemanticResult};
-use super::std_definitions::{get_std_method};
+use super::std_definitions::get_std_method;
 use super::symbols::*;
 
 pub struct ExprTypeChecker<'a> {
@@ -31,16 +31,12 @@ impl<'a> ExprTypeChecker<'a> {
         Ok(())
     }
 
-    pub fn reset_variables(&mut self) {
-        self.variables_types.clear();
-    }
-
     fn err_prefix(&self) -> String {
         format!("In file {}: ", self.file_name.0)
     }
 
-    fn calculate_vec(&self, items: &Vec<Expr>) -> SemanticResult<Vec<Type>> {
-        let calculated_items = items.iter().map(|item| self.calculate(item));
+    fn calculate_vec(&self, items: &mut Vec<Expr>) -> SemanticResult<Vec<Type>> {
+        let calculated_items = items.iter_mut().map(|item| self.calculate_and_annotate(item));
         let unwrapped_items: SemanticResult<Vec<Type>> = calculated_items.collect();
         Ok(unwrapped_items?)
     }
@@ -102,8 +98,8 @@ impl<'a> ExprTypeChecker<'a> {
         }
     }
 
-    pub fn calculate(&self, expr: &Expr) -> SemanticResult<Type> {
-        match expr {
+    pub fn calculate_and_annotate(&self, expr: &mut Expr) -> SemanticResult<Type> {
+        let type_or_err = match expr {
             // Primitive types, that map to basic types
             Expr::Int(_) => Ok(Type::Int),
             Expr::String(_) => Ok(Type::String),
@@ -136,22 +132,30 @@ impl<'a> ExprTypeChecker<'a> {
             }
 
             Expr::UnaryOp { op, operand } => {
-                calculate_unaryop_type(op, &self.calculate(operand)?)
+                calculate_unaryop_type(op, &self.calculate_and_annotate(operand)?)
             }
-            Expr::BinOp { left, right, op } => {
-                calculate_binaryop_type(op, &self.calculate(left)?, &self.calculate(right)?)
-            }
+            Expr::BinOp { left, right, op } => calculate_binaryop_type(
+                op,
+                &self.calculate_and_annotate(left)?,
+                &self.calculate_and_annotate(right)?,
+            ),
 
             Expr::ListAccess { list, index } => self.calculate_access_by_index(list, index),
 
-            Expr::NewClassInstance { typename, args }
-            | Expr::SpawnActive { typename, args } => {
+            Expr::NewClassInstance { typename, args } => {
+                let class_signature = self.get_class_signature(typename)?;
+                if class_signature.is_active {
+                    return sem_err!("{} You must call spawn for {}", self.err_prefix(), typename);
+                }
+
+                let constuctor =
+                    class_signature.methods.get(typename).expect("Constructor not found");
+                return self.check_function_call(constuctor, args);
+            }
+            Expr::SpawnActive { typename, args } => {
                 let class_signature = self.get_class_signature(typename)?;
 
-                if matches!(expr, Expr::NewClassInstance { .. }) && class_signature.is_active {
-                    return sem_err!("{} You must call spawn for {}", self.err_prefix(), typename);
-                } else if matches!(expr, Expr::SpawnActive { .. }) && !class_signature.is_active
-                {
+                if !class_signature.is_active {
                     return sem_err!("{} Cant spawn passive {}!", self.err_prefix(), typename);
                 }
                 let constuctor =
@@ -165,7 +169,7 @@ impl<'a> ExprTypeChecker<'a> {
 
             Expr::MethodCall { object, method, args } => {
                 // TODO: implement something for built-in types
-                let obj_type = self.calculate(object.as_ref())?;
+                let obj_type = self.calculate_and_annotate(object)?;
                 match &obj_type {
                     Type::IdentQualified(alias, name) => {
                         let method = self.get_type_method(alias, name, method)?;
@@ -182,7 +186,7 @@ impl<'a> ExprTypeChecker<'a> {
 
             Expr::FieldAccess { object, field } => {
                 // TODO: implement something for built-in types
-                let obj_type = self.calculate(object.as_ref())?;
+                let obj_type = self.calculate_and_annotate(object)?;
                 match &obj_type {
                     Type::IdentQualified(alias, name) => {
                         let field_type = self.get_type_field(alias, name, field)?;
@@ -192,9 +196,7 @@ impl<'a> ExprTypeChecker<'a> {
                     _ => sem_err!("Error at {:?} - type {:?} has no fields", object, obj_type),
                 }
             }
-            Expr::OwnMethodCall { .. } | Expr::OwnFieldAccess { .. }
-                if self.scope.is_none() =>
-            {
+            Expr::OwnMethodCall { .. } | Expr::OwnFieldAccess { .. } if self.scope.is_none() => {
                 sem_err!("{} Using @ is not allowed in functions", self.err_prefix())
             }
             Expr::OwnMethodCall { method, args } => {
@@ -209,19 +211,32 @@ impl<'a> ExprTypeChecker<'a> {
             }
             Expr::This => match &self.scope {
                 None => Err("Using 'this' in the functions is not allowed!".into()),
-                Some(o) => Ok(Type::IdentQualified(
+                Some(_) => Ok(Type::IdentQualified(
                     self.file_name.clone(),
                     self.scope.clone().unwrap(),
                 )),
             },
             _ => todo!("asd"),
-        }
+        };
+
+        let calculated_type = type_or_err?;
+
+        let mut temp_box = Expr::Nil;
+        std::mem::swap(expr, &mut temp_box);
+
+        // Now temp box has the original expr, so we can move it to wrapper one
+        let mut new_expr = Expr::TypedExpr { expr: Box::new(temp_box), typename: calculated_type.clone() };
+        std::mem::swap(expr, &mut new_expr);
+
+        // Now boxed Expr::Nil is in the new_expr variable and expr has new correct value
+
+        Ok(calculated_type)
     }
 
     fn check_function_call(
         &self,
         function: &FunctionSignature,
-        args: &Vec<Expr>,
+        args: &mut Vec<Expr>,
     ) -> SemanticResult<Type> {
         if function.args.len() != args.len() {
             return sem_err!(
@@ -232,8 +247,8 @@ impl<'a> ExprTypeChecker<'a> {
             );
         }
 
-        for (expected_arg, arg_expr) in function.args.iter().zip(args.iter()) {
-            let expr_type = self.calculate(arg_expr)?;
+        for (expected_arg, arg_expr) in function.args.iter().zip(args.iter_mut()) {
+            let expr_type = self.calculate_and_annotate(arg_expr)?;
             // TODO: this is wrong check of type correctness, but it works for now
             if !are_types_same_or_maybe(&expected_arg.1, &expr_type) {
                 return sem_err!(
@@ -251,12 +266,12 @@ impl<'a> ExprTypeChecker<'a> {
 
     fn calculate_access_by_index(
         &self,
-        list: &Box<Expr>,
-        index: &Box<Expr>,
+        list: &mut Box<Expr>,
+        index: &mut Box<Expr>,
     ) -> Result<Type, String> {
-        let list_type = self.calculate(list.as_ref())?;
+        let list_type = self.calculate_and_annotate(list.as_mut())?;
         match list_type {
-            Type::List(item) => match self.calculate(index)? {
+            Type::List(item) => match self.calculate_and_annotate(index.as_mut())? {
                 Type::Int => Ok(item.as_ref().clone()),
                 t => sem_err!("List index must be int, but got {:?} in {:?}", t, index),
             },

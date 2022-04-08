@@ -6,13 +6,13 @@ use semantic_error::{sem_err, SemanticResult};
 use symbols::*;
 
 use crate::ast::ModulePathAlias;
-use crate::loader::{LoadedFile, WholeProgram};
+use crate::loader::WholeProgram;
 
 mod expressions;
 mod modules;
 mod operators;
 mod semantic_error;
-// mod statements;
+mod statements;
 mod annotations;
 mod std_definitions;
 mod symbols;

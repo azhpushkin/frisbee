@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::ast::{ModulePath, ModulePathAlias, Type};
+use crate::ast::Type;
 use crate::loader::{LoadedFile, WholeProgram};
 use crate::semantic_checker::check_and_annotate_symbols;
 use crate::test_utils::{new_alias, setup_and_load_program};

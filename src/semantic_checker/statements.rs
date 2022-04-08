@@ -1,54 +1,51 @@
-use std::collections::HashMap;
-
 use crate::ast::*;
-use crate::loader::LoadedFile;
+use crate::semantic_checker::semantic_error::SemanticResult;
 
 use super::expressions::ExprTypeChecker;
-use super::modules::{annotate_type, GlobalSignatures, SymbolOriginsPerFile};
-use super::semantic_error::{sem_err, SemanticResult};
-use super::type_env::TypeEnv;
+use super::semantic_error::sem_err;
+use super::symbols::GlobalSymbolsInfo;
 
-pub fn check_statements_in_file(
-    file: &LoadedFile,
-    symbol_origins: &SymbolOriginsPerFile,
-    signatures: &GlobalSignatures,
+
+
+pub fn annotate_function_statements(
+    func_decl: &mut FunctionDecl,
+    file_module: &ModulePathAlias,
+    scope: Option<String>,
+    info: &GlobalSymbolsInfo,
 ) -> SemanticResult<()> {
-    let mut env = TypeEnv {
-        variables_types: HashMap::new(),
-        symbol_origins: symbol_origins,
-        signatures: signatures,
-        scope: None,
-    };
-    for func in &file.ast.functions {
-        let origin = symbol_origins.functions.get(&func.name).unwrap();
-        let func_signature = signatures.functions.get(&origin).unwrap();
-        env.variables_types = func_signature.args.clone().into_iter().collect();
-        check_statements(&func.statements, &mut env)?;
+    let mut expr_checker = ExprTypeChecker::new(
+        info,
+        file_module.clone(),
+        scope
+    );
+    for arg in func_decl.args.iter() {
+        expr_checker.add_variable(arg.name.clone(), arg.typename.clone())?;
     }
-    Ok(())
-}
 
-// TODO: check assignment to expression
-pub fn check_statements(statements: &Vec<Statement>, env: &mut TypeEnv) -> SemanticResult<()> {
-    for statement in statements.iter() {
-        match statement {
-            Statement::SVarDecl(t, s) => {
-                env.variables_types.insert(s.clone(), t.clone());
+    for stmt in func_decl.statements.iter_mut() {
+        match stmt {
+            Statement::Expr(expr) => { expr_checker.calculate_and_annotate(expr)?; },
+            Statement::Return(_) => {
+                todo!();
             }
-            Statement::SVarDeclEqual(t, s, e) => {
-                let expr_t = ExprTypeChecker::new(env).calculate(e).unwrap();
-                let expected = annotate_type(t, &env.symbol_origins.typenames)?;
-                if expr_t != expected {
-                    panic!(
-                        "Expressions not match at {:?}, expected {:?}, got {:?}",
-                        statement, t, expr_t
+            Statement::VarDecl(typename, varname) => {
+                expr_checker.add_variable(varname.clone(), typename.clone())?;
+            }
+            Statement::VarDeclWithAssign(typename, varname, expr) => {
+                let expr_type = expr_checker.calculate_and_annotate(expr)?;
+                // TODO: [maybe]
+                if expr_type.eq(typename) {
+                    return sem_err!(
+                        "Type mismatch in assignment of {}! Expected {:?}, got {:?}",
+                        varname,
+                        typename,
+                        expr_type
                     );
                 }
-                env.variables_types.insert(s.clone(), t.clone());
+                expr_checker.add_variable(varname.clone(), typename.clone())?;
             }
-            _ => panic!("{:?} not implemented", statement),
+            _ => todo!(),
         }
     }
-
     Ok(())
 }
