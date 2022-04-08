@@ -1,4 +1,5 @@
 mod disassemble;
 mod expressions;
-mod functions;
+// mod functions;
 mod globals;
+

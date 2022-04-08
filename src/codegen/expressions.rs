@@ -4,6 +4,16 @@ use crate::vm::Op;
 use crate::ast::*;
 use super::globals::*;
 
+macro_rules! accept_typed_expr {
+    ($self:ident) => {
+        match $self {
+            Expr::TypedExpr{expr, typename} => (expr, typename),
+            _ => { return Err(format!("Not typed expression, got {:?}!", $self)); }
+        }
+    };
+}
+
+
 
 pub struct ExprBytecodeGenerator<'a> {
     globals: &'a Globals,
@@ -20,75 +30,31 @@ impl<'a> ExprBytecodeGenerator<'a> {
         }
     }
     
-    pub fn generate(&mut self, expr: &Expr) {
+    pub fn generate(&mut self, expr: &Expr) -> Result<(), String> {
+        let (inner_expr, typename) = accept_typed_expr!(expr);
         match expr {
             Expr::BinOp { left, right, op } => {
                 self.generate(left.as_ref());
                 self.generate(right.as_ref());
-                self.bytecode.push(Op::ADD_INT) // TODO: use types to understand this, based on TypedExpr
+                match (typename, op) {
+                    (Type::Int, BinaryOp::Plus) => self.bytecode.push(Op::ADD_INT),
+                    (Type::Int, BinaryOp::Minus) => self.bytecode.push(Op::SUB_INT),
+                    (Type::Int, BinaryOp::Multiply) => self.bytecode.push(Op::MUL_INT),
+                    (Type::Int, BinaryOp::Divide) => self.bytecode.push(Op::DIV_INT),
+
+                    (Type::Float, BinaryOp::Plus) => self.bytecode.push(Op::ADD_FLOAT),
+                    (Type::Float, BinaryOp::Minus) => self.bytecode.push(Op::SUB_FLOAT),
+                    (Type::Float, BinaryOp::Multiply) => self.bytecode.push(Op::MUL_FLOAT),
+                    (Type::Float, BinaryOp::Divide) => self.bytecode.push(Op::DIV_FLOAT),
+
+                    _ => panic!("Sorry, no support for {:?} and {:?} now ", typename, op)
+                }
             }
             _ => todo!(),
         }
+        Ok(())
     }
 
 }
 
 
-
-#[cfg(test)]
-mod tests {
-    pub trait ExpressionLike {
-        fn get_expr(&self) -> &ExpressionRaw;
-        fn get_type(&self) -> &i32;
-    }
-
-    enum ExpressionRaw {
-        Foo1,
-        Foo2(Box<dyn ExpressionLike>),
-    }
-
-    struct TypedExpression {
-        t: i32,
-        raw: Box<ExpressionRaw>,
-    }
-
-    enum St<T> where T: ExpressionLike {
-        St1,
-        St2(Box<T>)
-    }
-
-    impl ExpressionLike for TypedExpression {
-        fn get_expr(&self) -> &ExpressionRaw {
-            self.raw.as_ref()
-        }
-        fn get_type(&self) -> &i32 {
-            &self.t
-        }
-    }
-
-    impl ExpressionLike for ExpressionRaw {
-        fn get_expr(&self) -> &ExpressionRaw {
-            &self
-        }
-        fn get_type(&self) -> &i32 {
-            &42
-        }
-    }
-
-    fn calculate(foo: &ExpressionRaw) -> TypedExpression {
-        match foo.as_ref() {
-            Foo::Foo1 => Box::new(TypedFoo(foo, 1)),
-            Foo::Foo2(inner_foo) => {
-                let inner_foo = convert(inner_foo);
-                Box::new(TypedFoo(inner_foo, 2))
-            },
-            Foo::TypedFoo(..) => unreachable!()
-        }
-    }
-    
-    fn test() {
-        let stmt: St<Expression = St::St2(Box::new(ExpressionRaw::Foo1));
-
-        let vec: Vec<St> = vec![];
-    }
-}

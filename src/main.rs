@@ -1,7 +1,7 @@
 use std::path::Path;
 
 pub mod ast;
-// pub mod codegen;
+pub mod codegen;
 pub mod errors;
 pub mod loader;
 pub mod parser;
