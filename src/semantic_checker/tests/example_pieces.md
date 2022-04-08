@@ -21,3 +21,24 @@ fun Nil hello() {
 FAILS: variable a not defined;
 
 ---
+fun Int hello() {}
+
+FAILS: Int value not returned!
+
+---
+fun Int hello() {
+    return 2.2;
+}
+
+FAILS: float value returned, instead of Int
+
+---
+fun Nil hello() {}
+
+OK: implicit return;
+
+---
+fun Nil hello() { return; }
+
+OK: implicit nil return
+

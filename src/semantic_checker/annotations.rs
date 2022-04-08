@@ -41,7 +41,23 @@ pub fn annotate_function_statements(
     for stmt in func_decl.statements.iter_mut() {
         match stmt {
             Statement::Expr(expr) => { expr_checker.calculate(expr)?; },
+            Statement::Return(expr) => {
+                todo!();
+            }
             Statement::VarDecl(typename, varname) => {
+                expr_checker.add_variable(varname.clone(), typename.clone())?;
+            }
+            Statement::VarDeclWithAssign(typename, varname, expr) => {
+                let expr_type = expr_checker.calculate(expr)?;
+                // TODO: [maybe]
+                if expr_type.eq(typename) {
+                    return sem_err!(
+                        "Type mismatch in assignment of {}! Expected {:?}, got {:?}",
+                        varname,
+                        typename,
+                        expr_type
+                    );
+                }
                 expr_checker.add_variable(varname.clone(), typename.clone())?;
             }
             _ => todo!(),
