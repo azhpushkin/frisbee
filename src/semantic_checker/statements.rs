@@ -21,8 +21,15 @@ pub fn annotate_function_statements(
             Statement::Expr(expr) => {
                 expr_checker.calculate_and_annotate(expr)?;
             }
-            Statement::Return(_) => {
-                todo!()
+            Statement::Return(expr) => {
+                let rettype = expr_checker.calculate_and_annotate(expr)?;
+                if func_decl.rettype != rettype {
+                    return sem_err!(
+                        "Type mismatch in return! Expected {:?}, got {:?}",
+                        func_decl,
+                        rettype
+                    );
+                }
             }
             Statement::VarDecl(typename, varname) => {
                 expr_checker.add_variable(varname.clone(), typename.clone())?;

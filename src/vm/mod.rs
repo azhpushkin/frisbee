@@ -12,22 +12,22 @@ macro_rules! next_opcode {
 pub mod Op {
     pub type Opcode = u8;
 
-    pub const LOAD: u8 = 0;
-    pub const LOAD_INT: u8 = 1;
+    pub const LOAD_CONST: u8 = 0;  // 1 arg - const index
+    pub const LOAD_INT: u8 = 1;  // 1 arg - small int
     
-    pub const ADD_INT: u8 = 2;
-    pub const SUB_INT: u8 = 3;
-    pub const MUL_INT: u8 = 4;
-    pub const DIV_INT: u8 = 5;
+    pub const ADD_INT: u8 = 2;  // 0 args
+    pub const SUB_INT: u8 = 3;  // 0 args
+    pub const MUL_INT: u8 = 4;  // 0 args
+    pub const DIV_INT: u8 = 5;  // 0 args
 
-    pub const ADD_FLOAT: u8 = 6;
-    pub const SUB_FLOAT: u8 = 7;
-    pub const MUL_FLOAT: u8 = 8;
-    pub const DIV_FLOAT: u8 = 9;
+    pub const ADD_FLOAT: u8 = 6;  // 0 args
+    pub const SUB_FLOAT: u8 = 7;  // 0 args
+    pub const MUL_FLOAT: u8 = 8;  // 0 args
+    pub const DIV_FLOAT: u8 = 9;  // 0 args
 
-    pub const CALL: u8 = 10;
-    pub const RETURN: u8 = 11;
-    pub const POP: u8 = 12;
+    pub const CALL: u8 = 10;  // 1 arg - args amount
+    pub const RETURN: u8 = 11;  // 0 args
+    pub const POP: u8 = 12;  // 0 args
 }
 
 // TODO: nan boxing?

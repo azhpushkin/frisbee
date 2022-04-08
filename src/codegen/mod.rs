@@ -11,7 +11,8 @@ pub fn generate_program(wp: &WholeProgram) {
     for (_, file) in wp.files.iter() {
 
         for function in file.ast.functions.iter() {
-            functions::generate_function_bytecode(function, &mut globals);
+            let x = functions::generate_function_bytecode(function, &mut globals).unwrap();
+            println!("{} bytes: {}", function.name, disassemble::disassemble_bytes(&x))
         }
     }
 }

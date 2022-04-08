@@ -24,5 +24,7 @@ fn main() {
     let symbols_info = semantic_checker::check_and_annotate_symbols(&mut wp).expect("Type error");
     semantic_checker::check_and_annotate_statements(&mut wp, &symbols_info)
         .expect("Expr type error");
-    println!("{:#?}", wp.files);
+
+    codegen::generate_program(&wp);
+    
 }

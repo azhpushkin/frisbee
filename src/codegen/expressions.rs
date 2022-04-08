@@ -43,12 +43,12 @@ impl<'a> ExprBytecodeGenerator<'a> {
         match inner_expr.as_ref() {
             Expr::Int(i) => {
                 let const_pos = self.globals.constants.get_constant(Constant::Int(*i as i64));
-                self.bytecode.push(Op::LOAD);
+                self.bytecode.push(Op::LOAD_CONST);
                 self.bytecode.push(const_pos);
             }
             Expr::Float(f) => {
                 let const_pos = self.globals.constants.get_constant(Constant::Float(*f as f64));
-                self.bytecode.push(Op::LOAD);
+                self.bytecode.push(Op::LOAD_CONST);
                 self.bytecode.push(const_pos);
             }
             Expr::BinOp { left, right, op } => {
