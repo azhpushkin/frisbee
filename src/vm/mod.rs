@@ -1,6 +1,8 @@
 const STACK_SIZE: usize = 256;
 
 pub mod Op {
+    pub type Opcode = u8;
+    
     pub const LOAD: u8 = 0;
     pub const LOAD_INT: u8 = 1;
     pub const ADD_INT: u8 = 2;
