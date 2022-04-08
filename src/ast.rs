@@ -87,7 +87,7 @@ pub enum Statement {
     SContinue,
     SReturn(ExprRaw),
     SAssign { left: ExprRaw, right: ExprRaw },
-    // SVarDecl(Type, String),
+    SVarDecl(Type, String),
     SVarDeclWithAssign(Type, String, ExprRaw),
     SSendMessage { active: ExprRaw, method: String, args: Vec<ExprRaw> },
     // TODO: SWaitMessage

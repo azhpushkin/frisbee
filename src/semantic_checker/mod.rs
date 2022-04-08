@@ -71,13 +71,13 @@ pub fn check_and_annotate_symbols(wp: &mut WholeProgram) -> SemanticResult<Globa
     Ok(GlobalSymbolsInfo { symbols_per_file, global_signatures })
 }
 
-// pub fn check_and_annotate_statements(
-//     wp: &mut WholeProgram,
-//     symbols_info: &GlobalSymbolsInfo,
-// ) -> SemanticResult<()> {
-//     for (file_name, file) in wp.files.iter_mut() {
-//         annotations::check_and_annotate_ast_in_place(&mut file.ast, file_name, symbols_info)?;
-//     }
+pub fn check_and_annotate_statements(
+    wp: &mut WholeProgram,
+    symbols_info: &GlobalSymbolsInfo,
+) -> SemanticResult<()> {
+    for (file_name, file) in wp.files.iter_mut() {
+        annotations::check_and_annotate_ast_in_place(&mut file.ast, file_name, symbols_info)?;
+    }
 
-//     Ok(())
-// }
+    Ok(())
+}

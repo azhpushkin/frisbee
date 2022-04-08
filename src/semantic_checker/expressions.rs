@@ -23,8 +23,12 @@ impl<'a> ExprTypeChecker<'a> {
         ExprTypeChecker { symbols_info, file_name, scope, variables_types: HashMap::new() }
     }
 
-    pub fn add_variable(&mut self, name: String, t: Type) {
-        self.variables_types.insert(name, t);
+    pub fn add_variable(&mut self, name: String, t: Type) -> SemanticResult<()> {
+        let prev = self.variables_types.insert(name, t);
+        match prev {
+            Some(_) => sem_err!("Variable {} already declared", name),
+            None => Ok(()),
+        }
     }
 
     pub fn reset_variables(&mut self) {

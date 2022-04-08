@@ -1,17 +1,54 @@
+use std::collections::HashMap;
+
 use crate::ast::*;
 use crate::semantic_checker::semantic_error::SemanticResult;
 
+use super::expressions::ExprTypeChecker;
 use super::semantic_error::sem_err;
-use super::symbols::SymbolOriginsMapping;
+use super::symbols::{GlobalSymbolsInfo, SymbolOriginsMapping};
 
-// pub fn check_and_annotate_ast_in_place(
-//     file_ast: &mut FileAst,
-//     file_module: &ModulePathAlias,
-//     info: &GlobalSymbolsInfo,
-// ) -> SemanticResult<()> {
-//     let types_per_file = &info.symbols_per_file[&file_module].typenames;
+pub fn check_and_annotate_ast_in_place(
+    file_ast: &mut FileAst,
+    file_module: &ModulePathAlias,
+    info: &GlobalSymbolsInfo,
+) -> SemanticResult<()> {
+    for class_decl in file_ast.types.iter_mut() {
+        for method in class_decl.methods.iter_mut() {
+            annotate_function_statements(method, file_module, Some(class_decl.name), info)?;
+        }
+    }
+    for func_decl in file_ast.functions.iter_mut() {
+        annotate_function_statements(func_decl, file_module, None, info)?;
+    }
+    Ok(())
+}
 
-// }
+pub fn annotate_function_statements(
+    func_decl: &mut FunctionDecl,
+    file_module: &ModulePathAlias,
+    scope: Option<String>,
+    info: &GlobalSymbolsInfo,
+) -> SemanticResult<()> {
+    let mut expr_checker = ExprTypeChecker::new(
+        info,
+        file_module.clone(),
+        scope
+    );
+    for arg in func_decl.args.iter() {
+        expr_checker.add_variable(arg.name.clone(), arg.typename.clone())?;
+    }
+
+    for stmt in func_decl.statements.iter_mut() {
+        match stmt {
+            Statement::SExpr(expr) => { expr_checker.calculate(expr)?; },
+            Statement::SVarDecl(typename, varname) => {
+                expr_checker.add_variable(varname.clone(), typename.clone())?;
+            }
+            _ => todo!(),
+        }
+    }
+    Ok(())
+}
 
 pub fn annotate_class_decl(
     class_decl: &mut ClassDecl,
