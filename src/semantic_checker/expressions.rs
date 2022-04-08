@@ -24,11 +24,11 @@ impl<'a> ExprTypeChecker<'a> {
     }
 
     pub fn add_variable(&mut self, name: String, t: Type) -> SemanticResult<()> {
-        let prev = self.variables_types.insert(name, t);
-        match prev {
-            Some(_) => sem_err!("Variable {} already declared", name),
-            None => Ok(()),
+        if self.variables_types.contains_key(&name) {
+            return sem_err!("Variable {} already declared", name);
         }
+        self.variables_types.insert(name, t);
+        Ok(())
     }
 
     pub fn reset_variables(&mut self) {
@@ -39,7 +39,7 @@ impl<'a> ExprTypeChecker<'a> {
         format!("In file {}: ", self.file_name.0)
     }
 
-    fn calculate_vec(&self, items: &Vec<ExprRaw>) -> SemanticResult<Vec<Type>> {
+    fn calculate_vec(&self, items: &Vec<Expr>) -> SemanticResult<Vec<Type>> {
         let calculated_items = items.iter().map(|item| self.calculate(item));
         let unwrapped_items: SemanticResult<Vec<Type>> = calculated_items.collect();
         Ok(unwrapped_items?)
@@ -102,26 +102,26 @@ impl<'a> ExprTypeChecker<'a> {
         }
     }
 
-    pub fn calculate(&self, expr: &ExprRaw) -> SemanticResult<Type> {
+    pub fn calculate(&self, expr: &Expr) -> SemanticResult<Type> {
         match expr {
             // Primitive types, that map to basic types
-            ExprRaw::Int(_) => Ok(Type::TypeInt),
-            ExprRaw::String(_) => Ok(Type::TypeString),
-            ExprRaw::Bool(_) => Ok(Type::TypeBool),
-            ExprRaw::Nil => Ok(Type::TypeNil),
-            ExprRaw::Float(_) => Ok(Type::TypeFloat),
+            Expr::Int(_) => Ok(Type::Int),
+            Expr::String(_) => Ok(Type::String),
+            Expr::Bool(_) => Ok(Type::Bool),
+            Expr::Nil => Ok(Type::Nil),
+            Expr::Float(_) => Ok(Type::Float),
 
             // Simple lookup is enough for this
-            ExprRaw::Identifier(identifier) => match self.variables_types.get(identifier) {
+            Expr::Identifier(identifier) => match self.variables_types.get(identifier) {
                 Some(t) => Ok(t.clone()),
                 None => sem_err!("{} unknown variable {}", self.err_prefix(), identifier),
             },
 
-            ExprRaw::TupleValue(items) => Ok(Type::TypeTuple(self.calculate_vec(items)?)),
-            ExprRaw::ListValue(items) => {
+            Expr::TupleValue(items) => Ok(Type::Tuple(self.calculate_vec(items)?)),
+            Expr::ListValue(items) => {
                 if items.len() == 0 {
                     // TODO: tests for anonymous type (in let and in methods)
-                    return Ok(Type::TypeList(Box::new(Type::TypeAnonymous)));
+                    return Ok(Type::List(Box::new(Type::Anonymous)));
                 }
                 let calculated_items = self.calculate_vec(items)?;
                 // Check for maybe types required, but this is not for now
@@ -132,25 +132,25 @@ impl<'a> ExprTypeChecker<'a> {
                         calculated_items
                     );
                 }
-                Ok(Type::TypeList(Box::new(calculated_items[0].clone())))
+                Ok(Type::List(Box::new(calculated_items[0].clone())))
             }
 
-            ExprRaw::UnaryOp { op, operand } => {
+            Expr::UnaryOp { op, operand } => {
                 calculate_unaryop_type(op, &self.calculate(operand)?)
             }
-            ExprRaw::BinOp { left, right, op } => {
+            Expr::BinOp { left, right, op } => {
                 calculate_binaryop_type(op, &self.calculate(left)?, &self.calculate(right)?)
             }
 
-            ExprRaw::ListAccess { list, index } => self.calculate_access_by_index(list, index),
+            Expr::ListAccess { list, index } => self.calculate_access_by_index(list, index),
 
-            ExprRaw::NewClassInstance { typename, args }
-            | ExprRaw::SpawnActive { typename, args } => {
+            Expr::NewClassInstance { typename, args }
+            | Expr::SpawnActive { typename, args } => {
                 let class_signature = self.get_class_signature(typename)?;
 
-                if matches!(expr, ExprRaw::NewClassInstance { .. }) && class_signature.is_active {
+                if matches!(expr, Expr::NewClassInstance { .. }) && class_signature.is_active {
                     return sem_err!("{} You must call spawn for {}", self.err_prefix(), typename);
-                } else if matches!(expr, ExprRaw::SpawnActive { .. }) && !class_signature.is_active
+                } else if matches!(expr, Expr::SpawnActive { .. }) && !class_signature.is_active
                 {
                     return sem_err!("{} Cant spawn passive {}!", self.err_prefix(), typename);
                 }
@@ -158,21 +158,21 @@ impl<'a> ExprTypeChecker<'a> {
                     class_signature.methods.get(typename).expect("Constructor not found");
                 return self.check_function_call(constuctor, args);
             }
-            ExprRaw::FunctionCall { function, args } => {
+            Expr::FunctionCall { function, args } => {
                 let function_signature = self.get_function_signature(function)?;
                 return self.check_function_call(function_signature, args);
             }
 
-            ExprRaw::MethodCall { object, method, args } => {
+            Expr::MethodCall { object, method, args } => {
                 // TODO: implement something for built-in types
                 let obj_type = self.calculate(object.as_ref())?;
                 match &obj_type {
-                    Type::TypeIdentQualified(alias, name) => {
+                    Type::IdentQualified(alias, name) => {
                         let method = self.get_type_method(alias, name, method)?;
                         return self.check_function_call(method, args);
                     }
-                    Type::TypeIdent(..) => panic!("TypeIdent should not be present here!"),
-                    Type::TypeMaybe(_) => panic!("Not implemented for maybe yet!"), // implement ?.
+                    Type::Ident(..) => panic!("TypeIdent should not be present here!"),
+                    Type::Maybe(_) => panic!("Not implemented for maybe yet!"), // implement ?.
                     t => {
                         let method = get_std_method(t, method)?;
                         return self.check_function_call(&method, args);
@@ -180,36 +180,36 @@ impl<'a> ExprTypeChecker<'a> {
                 }
             }
 
-            ExprRaw::FieldAccess { object, field } => {
+            Expr::FieldAccess { object, field } => {
                 // TODO: implement something for built-in types
                 let obj_type = self.calculate(object.as_ref())?;
                 match &obj_type {
-                    Type::TypeIdentQualified(alias, name) => {
+                    Type::IdentQualified(alias, name) => {
                         let field_type = self.get_type_field(alias, name, field)?;
                         Ok(field_type.clone())
                     }
-                    Type::TypeIdent(..) => panic!("TypeIdent should not be present here!"),
+                    Type::Ident(..) => panic!("TypeIdent should not be present here!"),
                     _ => sem_err!("Error at {:?} - type {:?} has no fields", object, obj_type),
                 }
             }
-            ExprRaw::OwnMethodCall { .. } | ExprRaw::OwnFieldAccess { .. }
+            Expr::OwnMethodCall { .. } | Expr::OwnFieldAccess { .. }
                 if self.scope.is_none() =>
             {
                 sem_err!("{} Using @ is not allowed in functions", self.err_prefix())
             }
-            ExprRaw::OwnMethodCall { method, args } => {
+            Expr::OwnMethodCall { method, args } => {
                 let method_signature =
                     self.get_type_method(&self.file_name, self.scope.as_ref().unwrap(), method)?;
                 return self.check_function_call(method_signature, args);
             }
-            ExprRaw::OwnFieldAccess { field } => {
+            Expr::OwnFieldAccess { field } => {
                 let field_type =
                     self.get_type_field(&self.file_name, &self.scope.as_ref().unwrap(), field)?;
                 Ok(field_type.clone())
             }
-            ExprRaw::This => match &self.scope {
+            Expr::This => match &self.scope {
                 None => Err("Using 'this' in the functions is not allowed!".into()),
-                Some(o) => Ok(Type::TypeIdentQualified(
+                Some(o) => Ok(Type::IdentQualified(
                     self.file_name.clone(),
                     self.scope.clone().unwrap(),
                 )),
@@ -221,7 +221,7 @@ impl<'a> ExprTypeChecker<'a> {
     fn check_function_call(
         &self,
         function: &FunctionSignature,
-        args: &Vec<ExprRaw>,
+        args: &Vec<Expr>,
     ) -> SemanticResult<Type> {
         if function.args.len() != args.len() {
             return sem_err!(
@@ -251,17 +251,17 @@ impl<'a> ExprTypeChecker<'a> {
 
     fn calculate_access_by_index(
         &self,
-        list: &Box<ExprRaw>,
-        index: &Box<ExprRaw>,
+        list: &Box<Expr>,
+        index: &Box<Expr>,
     ) -> Result<Type, String> {
         let list_type = self.calculate(list.as_ref())?;
         match list_type {
-            Type::TypeList(item) => match self.calculate(index)? {
-                Type::TypeInt => Ok(item.as_ref().clone()),
+            Type::List(item) => match self.calculate(index)? {
+                Type::Int => Ok(item.as_ref().clone()),
                 t => sem_err!("List index must be int, but got {:?} in {:?}", t, index),
             },
-            Type::TypeTuple(items) => match index.as_ref() {
-                ExprRaw::Int(i) => {
+            Type::Tuple(items) => match index.as_ref() {
+                Expr::Int(i) => {
                     let item = items.get(*i as usize);
                     if item.is_some() {
                         Ok(item.unwrap().clone())

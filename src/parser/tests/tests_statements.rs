@@ -17,9 +17,9 @@ fn stmt_expr() {
 
     assert_stmt_parses(
         "(nil) == asd;",
-        Statement::SExpr(ExprRaw::BinOp {
-            left: Box::new(ExprRaw::Nil),
-            right: Box::new(ExprRaw::Identifier(String::from("asd"))),
+        Statement::Expr(Expr::BinOp {
+            left: Box::new(Expr::Nil),
+            right: Box::new(Expr::Identifier(String::from("asd"))),
             op: BinaryOp::IsEqual,
         }),
     );
@@ -32,7 +32,7 @@ fn stmt_return() {
     assert_stmt_invalid("return 1");
     assert_stmt_invalid("return 2+;");
 
-    assert_stmt_parses("return 1;", Statement::SReturn(ExprRaw::Int(1)));
+    assert_stmt_parses("return 1;", Statement::Return(Expr::Int(1)));
 }
 
 #[test]
@@ -42,9 +42,9 @@ fn stmt_if() {
 
     assert_stmt_parses(
         "if 1 {2;}",
-        Statement::SIfElse {
-            condition: ExprRaw::Int(1),
-            ifbody: vec![Statement::SExpr(ExprRaw::Int(2))],
+        Statement::IfElse {
+            condition: Expr::Int(1),
+            ifbody: vec![Statement::Expr(Expr::Int(2))],
             elsebody: vec![],
         },
     );
@@ -58,10 +58,10 @@ fn stmt_if_else() {
 
     assert_stmt_parses(
         "if 1 {2;} else {3;}",
-        Statement::SIfElse {
-            condition: ExprRaw::Int(1),
-            ifbody: vec![Statement::SExpr(ExprRaw::Int(2))],
-            elsebody: vec![Statement::SExpr(ExprRaw::Int(3))],
+        Statement::IfElse {
+            condition: Expr::Int(1),
+            ifbody: vec![Statement::Expr(Expr::Int(2))],
+            elsebody: vec![Statement::Expr(Expr::Int(3))],
         },
     );
 }
@@ -73,9 +73,9 @@ fn stmt_while() {
 
     assert_stmt_parses(
         "while 1 {2;}",
-        Statement::SWhile {
-            condition: ExprRaw::Int(1),
-            body: vec![Statement::SExpr(ExprRaw::Int(2))],
+        Statement::While {
+            condition: Expr::Int(1),
+            body: vec![Statement::Expr(Expr::Int(2))],
         },
     );
 }
@@ -84,9 +84,9 @@ fn stmt_while() {
 fn stmt_foreach() {
     assert_stmt_parses(
         "foreach obj in (objects) {}",
-        Statement::SForeach {
+        Statement::Foreach {
             itemname: String::from("obj"),
-            iterable: ExprRaw::Identifier("objects".into()),
+            iterable: Expr::Identifier("objects".into()),
             body: vec![],
         },
     );
@@ -101,9 +101,9 @@ fn stmt_foreach() {
 fn stmt_break_and_continue() {
     assert_stmt_parses(
         "while 1 {continue; break;}",
-        Statement::SWhile {
-            condition: ExprRaw::Int(1),
-            body: vec![Statement::SContinue, Statement::SBreak],
+        Statement::While {
+            condition: Expr::Int(1),
+            body: vec![Statement::Continue, Statement::Break],
         },
     );
 
@@ -119,7 +119,7 @@ fn stmt_var_decl() {
 
     assert_stmt_parses(
         "Actor x;",
-        Statement::SVarDecl(Type::TypeIdent(String::from("Actor")), String::from("x")),
+        Statement::VarDecl(Type::Ident(String::from("Actor")), String::from("x")),
     );
 }
 
@@ -130,10 +130,10 @@ fn stmt_var_decl_equal() {
 
     assert_stmt_parses(
         "Actor x = asd;",
-        Statement::SVarDeclWithAssign(
-            Type::TypeIdent(String::from("Actor")),
+        Statement::VarDeclWithAssign(
+            Type::Ident(String::from("Actor")),
             String::from("x"),
-            ExprRaw::Identifier(String::from("asd")),
+            Expr::Identifier(String::from("asd")),
         ),
     );
 }
@@ -145,9 +145,9 @@ fn stmt_equal() {
 
     assert_stmt_parses(
         "var = 2;",
-        Statement::SAssign {
-            left: ExprRaw::Identifier(String::from("var")),
-            right: ExprRaw::Int(2),
+        Statement::Assign {
+            left: Expr::Identifier(String::from("var")),
+            right: Expr::Int(2),
         },
     );
 }
@@ -156,12 +156,12 @@ fn stmt_equal() {
 fn stmt_equal_to_list_item() {
     assert_stmt_parses(
         "var[1] = 2;",
-        Statement::SAssign {
-            left: ExprRaw::ListAccess {
-                list: Box::new(ExprRaw::Identifier(String::from("var"))),
-                index: Box::new(ExprRaw::Int(1)),
+        Statement::Assign {
+            left: Expr::ListAccess {
+                list: Box::new(Expr::Identifier(String::from("var"))),
+                index: Box::new(Expr::Int(1)),
             },
-            right: ExprRaw::Int(2),
+            right: Expr::Int(2),
         },
     );
 }
@@ -174,9 +174,9 @@ fn stmt_send_message() {
 
     assert_stmt_parses(
         "a.x ! method();",
-        Statement::SSendMessage {
-            active: ExprRaw::FieldAccess {
-                object: Box::new(ExprRaw::Identifier("a".into())),
+        Statement::SendMessage {
+            active: Expr::FieldAccess {
+                object: Box::new(Expr::Identifier("a".into())),
                 field: String::from("x"),
             },
             method: String::from("method"),

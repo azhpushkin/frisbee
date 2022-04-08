@@ -150,8 +150,8 @@ pub fn check_class_has_no_duplicated_methods(class_decl: &ClassDecl) -> Semantic
 
 fn does_type_contain_itself(field_type: &Type, type_name: &String) -> bool {
     match field_type {
-        Type::TypeIdent(s) if s == type_name => true,
-        Type::TypeTuple(v) => v.iter().any(|t| does_type_contain_itself(t, type_name)),
+        Type::Ident(s) if s == type_name => true,
+        Type::Tuple(v) => v.iter().any(|t| does_type_contain_itself(t, type_name)),
         _ => false,
     }
 }

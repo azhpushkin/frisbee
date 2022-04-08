@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::ast::{ExprRaw, ModulePath, Type};
+use crate::ast::{Expr, ModulePath, Type};
 use crate::parser::parser_impl::Parser;
 use crate::scanner::scan_tokens;
 use crate::semantic_checker::check_and_annotate_symbols;
@@ -36,22 +36,22 @@ fun String say_hello(Person p) {}
 fn setup_checker<'a>(use_scope: bool, symbols_info: &'a GlobalSymbolsInfo) -> ExprTypeChecker<'a> {
     let mut checker = ExprTypeChecker::new(symbols_info, new_alias("main"), Some("Person".into()));
 
-    let person_type = Type::TypeIdentQualified(new_alias("main"), "Person".into());
+    let person_type = Type::IdentQualified(new_alias("main"), "Person".into());
 
     checker.add_variable("alice".into(), person_type.clone());
-    checker.add_variable("bob".into(), Type::TypeMaybe(Box::new(person_type)));
+    checker.add_variable("bob".into(), Type::Maybe(Box::new(person_type)));
     checker.add_variable(
         "cli_args".into(),
-        Type::TypeList(Box::new(Type::TypeString)),
+        Type::List(Box::new(Type::String)),
     );
     checker.add_variable(
         "worker".into(),
-        Type::TypeIdentQualified(new_alias("main"), "Worker".into()),
+        Type::IdentQualified(new_alias("main"), "Worker".into()),
     );
     checker
 }
 
-fn parse_expr(expr_string: &str) -> ExprRaw {
+fn parse_expr(expr_string: &str) -> Expr {
     let tokens = scan_tokens(&expr_string.into());
     let mut parser = Parser::create(tokens.expect("Scanning failed!"));
     parser.parse_expr().expect("Parsing failed!")
@@ -84,8 +84,8 @@ fn assert_expr_fails(expr_str: &str, use_scope: bool) {
 
 #[test]
 fn test_simple_operator() {
-    assert_expr_ok("1 + 1", false, Type::TypeInt);
-    assert_expr_ok("2.0 + 0.0", false, Type::TypeFloat);
+    assert_expr_ok("1 + 1", false, Type::Int);
+    assert_expr_ok("2.0 + 0.0", false, Type::Float);
 
     assert_expr_fails("2.0 + \"hello\" ", false);
 }

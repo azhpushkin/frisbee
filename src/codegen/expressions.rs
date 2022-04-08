@@ -20,9 +20,9 @@ impl<'a> ExprBytecodeGenerator<'a> {
         }
     }
     
-    pub fn generate(&mut self, expr: &ExprRaw) {
+    pub fn generate(&mut self, expr: &Expr) {
         match expr {
-            ExprRaw::BinOp { left, right, op } => {
+            Expr::BinOp { left, right, op } => {
                 self.generate(left.as_ref());
                 self.generate(right.as_ref());
                 self.bytecode.push(Op::ADD_INT) // TODO: use types to understand this, based on TypedExpr

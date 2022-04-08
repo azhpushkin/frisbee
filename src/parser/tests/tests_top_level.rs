@@ -77,23 +77,23 @@ fn parse_function_definition() {
             imports: vec![],
             types: vec![],
             functions: vec![FunctionDecl {
-                rettype: Type::TypeBool,
+                rettype: Type::Bool,
                 name: String::from("get_person"),
                 args: vec![
-                    TypedNamedObject { typename: Type::TypeInt, name: "age".into() },
-                    TypedNamedObject { typename: Type::TypeString, name: "name".into() }
+                    TypedNamedObject { typename: Type::Int, name: "age".into() },
+                    TypedNamedObject { typename: Type::String, name: "name".into() }
                 ],
                 statements: vec![
-                    Statement::SExpr(ExprRaw::BinOp {
-                        left: Box::new(ExprRaw::Int(1)),
-                        right: Box::new(ExprRaw::MethodCall {
-                            object: Box::new(ExprRaw::Identifier(String::from("asd"))),
+                    Statement::Expr(Expr::BinOp {
+                        left: Box::new(Expr::Int(1)),
+                        right: Box::new(Expr::MethodCall {
+                            object: Box::new(Expr::Identifier(String::from("asd"))),
                             method: String::from("call"),
                             args: vec![]
                         }),
                         op: BinaryOp::Divide
                     }),
-                    Statement::SExpr(ExprRaw::This)
+                    Statement::Expr(Expr::This)
                 ],
             }]
         }
@@ -111,9 +111,9 @@ fn active_object_and_fields() {
             is_active: true,
             name: String::from("Actor"),
             fields: vec![
-                TypedNamedObject { typename: Type::TypeString, name: "name".into() },
+                TypedNamedObject { typename: Type::String, name: "name".into() },
                 TypedNamedObject {
-                    typename: Type::TypeIdent(String::from("Actor")),
+                    typename: Type::Ident(String::from("Actor")),
                     name: "lol".into()
                 },
             ],
@@ -134,23 +134,23 @@ fn class_object_and_methods() {
             name: String::from("Data"),
             fields: vec![],
             methods: vec![FunctionDecl {
-                rettype: Type::TypeBool,
+                rettype: Type::Bool,
                 name: String::from("get_person"),
                 args: vec![
-                    TypedNamedObject { typename: Type::TypeInt, name: "age".into() },
-                    TypedNamedObject { typename: Type::TypeString, name: "name".into() },
+                    TypedNamedObject { typename: Type::Int, name: "age".into() },
+                    TypedNamedObject { typename: Type::String, name: "name".into() },
                 ],
                 statements: vec![
-                    Statement::SExpr(ExprRaw::BinOp {
-                        left: Box::new(ExprRaw::Int(1)),
-                        right: Box::new(ExprRaw::MethodCall {
-                            object: Box::new(ExprRaw::Identifier(String::from("asd"))),
+                    Statement::Expr(Expr::BinOp {
+                        left: Box::new(Expr::Int(1)),
+                        right: Box::new(Expr::MethodCall {
+                            object: Box::new(Expr::Identifier(String::from("asd"))),
                             method: String::from("call"),
                             args: vec![]
                         }),
                         op: BinaryOp::Divide
                     }),
-                    Statement::SExpr(ExprRaw::This)
+                    Statement::Expr(Expr::This)
                 ],
             }]
         }
@@ -169,7 +169,7 @@ fn class_object_constructor_method() {
             name: String::from("Data"),
             fields: vec![],
             methods: vec![FunctionDecl {
-                rettype: Type::TypeIdent(String::from("Data")),
+                rettype: Type::Ident(String::from("Data")),
                 name: String::from("Data"),
                 args: vec![],
                 statements: vec![],
@@ -200,7 +200,7 @@ fn active_object_constructor_method() {
             name: String::from("Actor"),
             fields: vec![],
             methods: vec![FunctionDecl {
-                rettype: Type::TypeIdent(String::from("Actor")),
+                rettype: Type::Ident(String::from("Actor")),
                 name: String::from("Actor"),
                 args: vec![],
                 statements: vec![],

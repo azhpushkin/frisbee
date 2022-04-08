@@ -160,17 +160,17 @@ pub fn check_same_function_names_are_fine() {
     );
 
     let samename_main = FunctionSignature {
-        rettype: Type::TypeNil,
+        rettype: Type::Nil,
         args: vec![(
             "someone".into(),
-            Type::TypeIdentQualified(new_alias("mod"), "Person".into()),
+            Type::IdentQualified(new_alias("mod"), "Person".into()),
         )],
     };
     let samename_mod = FunctionSignature {
-        rettype: Type::TypeIdentQualified(new_alias("mod"), "Person".into()),
+        rettype: Type::IdentQualified(new_alias("mod"), "Person".into()),
         args: vec![],
     };
-    let hello_mod = FunctionSignature { rettype: Type::TypeNil, args: vec![] };
+    let hello_mod = FunctionSignature { rettype: Type::Nil, args: vec![] };
     assert_eq!(
         modules::get_functions_signatures(get_file(&wp, "main")),
         HashMap::from([(new_symbol("main", "samename"), samename_main)])
@@ -200,9 +200,9 @@ pub fn check_constructor() {
 
     assert!(check_and_annotate_symbols(&mut wp).is_ok());
 
-    let fields = HashMap::from([("name".into(), Type::TypeString), ("age".into(), Type::TypeInt)]);
+    let fields = HashMap::from([("name".into(), Type::String), ("age".into(), Type::Int)]);
     let constructor = FunctionSignature {
-        rettype: Type::TypeIdentQualified(new_alias("main"), "Person".into()),
+        rettype: Type::IdentQualified(new_alias("main"), "Person".into()),
         args: vec![],
     };
 
@@ -233,9 +233,9 @@ pub fn check_default_constructor() {
 
     assert!(check_and_annotate_symbols(&mut wp).is_ok());
 
-    let fields = vec![("name".into(), Type::TypeString), ("age".into(), Type::TypeInt)];
+    let fields = vec![("name".into(), Type::String), ("age".into(), Type::Int)];
     let default_constructor = FunctionSignature {
-        rettype: Type::TypeIdentQualified(new_alias("main"), "Person".into()),
+        rettype: Type::IdentQualified(new_alias("main"), "Person".into()),
         args: fields.clone(),
     };
 
@@ -264,10 +264,10 @@ pub fn check_self_referrings_for_active_are_allowed() {
     assert!(check_and_annotate_symbols(&mut wp).is_ok());
 
     let default_constructor = FunctionSignature {
-        rettype: Type::TypeIdentQualified(new_alias("main"), "Type".into()),
+        rettype: Type::IdentQualified(new_alias("main"), "Type".into()),
         args: vec![(
             "type".into(),
-            Type::TypeIdentQualified(new_alias("main"), "Type".into()),
+            Type::IdentQualified(new_alias("main"), "Type".into()),
         )],
     };
     let type_signature = ClassSignature {
@@ -276,7 +276,7 @@ pub fn check_self_referrings_for_active_are_allowed() {
         is_active: true,
         fields: HashMap::from([(
             "type".into(),
-            Type::TypeIdentQualified(new_alias("main"), "Type".into()),
+            Type::IdentQualified(new_alias("main"), "Type".into()),
         )]),
         methods: HashMap::from([("Type".into(), default_constructor)]),
     };

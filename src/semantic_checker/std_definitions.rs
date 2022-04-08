@@ -10,12 +10,12 @@ fn get_list_methods(inside: &Type) -> HashMap<String, FunctionSignature> {
     HashMap::from([
         (
             "size".into(),
-            FunctionSignature { rettype: Type::TypeInt, args: vec![] },
+            FunctionSignature { rettype: Type::Int, args: vec![] },
         ),
         (
             "push".into(),
             FunctionSignature {
-                rettype: Type::TypeNil,
+                rettype: Type::Nil,
                 args: vec![("item".into(), inside.clone())],
             },
         ),
@@ -46,12 +46,12 @@ fn get_string_methods() -> HashMap<String, FunctionSignature> {
 
 fn get_std_methods(t: &Type) -> HashMap<String, FunctionSignature> {
     match t {
-        Type::TypeInt => get_int_methods(),
-        Type::TypeFloat => get_float_methods(),
-        Type::TypeNil => get_nil_methods(),
-        Type::TypeBool => get_bool_methods(),
-        Type::TypeString => get_string_methods(),
-        Type::TypeList(inside) => get_list_methods(inside.as_ref()),
+        Type::Int => get_int_methods(),
+        Type::Float => get_float_methods(),
+        Type::Nil => get_nil_methods(),
+        Type::Bool => get_bool_methods(),
+        Type::String => get_string_methods(),
+        Type::List(inside) => get_list_methods(inside.as_ref()),
         _ => panic!("Not implemented std for {:?}", t)
     }
 }

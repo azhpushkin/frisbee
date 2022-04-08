@@ -14,7 +14,7 @@ pub fn check_and_annotate_ast_in_place(
 ) -> SemanticResult<()> {
     for class_decl in file_ast.types.iter_mut() {
         for method in class_decl.methods.iter_mut() {
-            annotate_function_statements(method, file_module, Some(class_decl.name), info)?;
+            annotate_function_statements(method, file_module, Some(class_decl.name.clone()), info)?;
         }
     }
     for func_decl in file_ast.functions.iter_mut() {
@@ -40,8 +40,8 @@ pub fn annotate_function_statements(
 
     for stmt in func_decl.statements.iter_mut() {
         match stmt {
-            Statement::SExpr(expr) => { expr_checker.calculate(expr)?; },
-            Statement::SVarDecl(typename, varname) => {
+            Statement::Expr(expr) => { expr_checker.calculate(expr)?; },
+            Statement::VarDecl(typename, varname) => {
                 expr_checker.add_variable(varname.clone(), typename.clone())?;
             }
             _ => todo!(),
@@ -65,7 +65,7 @@ pub fn annotate_class_decl(
     if !class_decl.methods.iter().any(|m| class_decl.name == m.name) {
         class_decl.methods.push(FunctionDecl {
             name: class_decl.name.clone(),
-            rettype: annotate_type(&Type::TypeIdent(class_decl.name.clone()), typenames_origins)?,
+            rettype: annotate_type(&Type::Ident(class_decl.name.clone()), typenames_origins)?,
             args: class_decl.fields.clone(),
             statements: vec![], // TODO: fill will with required AST
         });
@@ -87,34 +87,34 @@ pub fn annotate_function_decl(
 
 pub fn annotate_type(t: &Type, typenames_mapping: &SymbolOriginsMapping) -> SemanticResult<Type> {
     let new_t = match t {
-        Type::TypeInt => Type::TypeInt,
-        Type::TypeFloat => Type::TypeFloat,
-        Type::TypeNil => Type::TypeNil,
-        Type::TypeBool => Type::TypeBool,
-        Type::TypeString => Type::TypeString,
+        Type::Int => Type::Int,
+        Type::Float => Type::Float,
+        Type::Nil => Type::Nil,
+        Type::Bool => Type::Bool,
+        Type::String => Type::String,
 
-        Type::TypeList(t) => {
-            Type::TypeList(Box::new(annotate_type(t.as_ref(), typenames_mapping)?))
+        Type::List(t) => {
+            Type::List(Box::new(annotate_type(t.as_ref(), typenames_mapping)?))
         }
-        Type::TypeMaybe(t) => {
-            Type::TypeMaybe(Box::new(annotate_type(t.as_ref(), typenames_mapping)?))
+        Type::Maybe(t) => {
+            Type::Maybe(Box::new(annotate_type(t.as_ref(), typenames_mapping)?))
         }
-        Type::TypeTuple(ts) => {
+        Type::Tuple(ts) => {
             let ts_annotated: SemanticResult<Vec<Type>> =
                 ts.iter().map(|t| annotate_type(t, typenames_mapping)).collect();
-            Type::TypeTuple(ts_annotated?)
+            Type::Tuple(ts_annotated?)
         }
 
-        Type::TypeIdent(s) => {
+        Type::Ident(s) => {
             let symbol_origin = typenames_mapping.get(s);
             if let Some(symbol_origin) = symbol_origin {
-                Type::TypeIdentQualified(symbol_origin.module.clone(), symbol_origin.name.clone())
+                Type::IdentQualified(symbol_origin.module.clone(), symbol_origin.name.clone())
             } else {
                 return sem_err!("Unknown type {}", s);
             }
         }
-        Type::TypeIdentQualified(..) => t.clone(),
-        Type::TypeAnonymous => panic!("Did not expected {:?}", t),
+        Type::IdentQualified(..) => t.clone(),
+        Type::Anonymous => panic!("Did not expected {:?}", t),
     };
     Ok(new_t)
 }

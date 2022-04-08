@@ -9,14 +9,14 @@ fn assert_type_parses(s: &str, t: Type) {
 
 #[test]
 fn simple_types() {
-    assert_type_parses("String", Type::TypeString);
-    assert_type_parses("Int", Type::TypeInt);
-    assert_type_parses("Float", Type::TypeFloat);
-    assert_type_parses("Nil", Type::TypeNil);
-    assert_type_parses("Bool", Type::TypeBool);
+    assert_type_parses("String", Type::String);
+    assert_type_parses("Int", Type::Int);
+    assert_type_parses("Float", Type::Float);
+    assert_type_parses("Nil", Type::Nil);
+    assert_type_parses("Bool", Type::Bool);
 
-    assert_type_parses("StriNG", Type::TypeIdent(String::from("StriNG")));
-    assert_type_parses("SomeClass", Type::TypeIdent(String::from("SomeClass")));
+    assert_type_parses("StriNG", Type::Ident(String::from("StriNG")));
+    assert_type_parses("SomeClass", Type::Ident(String::from("SomeClass")));
 }
 
 #[test]
@@ -35,10 +35,10 @@ fn types_parsing_errors() {
 
 #[test]
 fn list_types() {
-    assert_type_parses("[String]", Type::TypeList(Box::new(Type::TypeString)));
+    assert_type_parses("[String]", Type::List(Box::new(Type::String)));
     assert_type_parses(
         "[[Actor]]",
-        Type::TypeList(Box::new(Type::TypeList(Box::new(Type::TypeIdent(
+        Type::List(Box::new(Type::List(Box::new(Type::Ident(
             String::from("Actor"),
         ))))),
     );
@@ -50,11 +50,11 @@ fn list_types() {
 
 #[test]
 fn maybe_types() {
-    assert_type_parses("String?", Type::TypeMaybe(Box::new(Type::TypeString)));
+    assert_type_parses("String?", Type::Maybe(Box::new(Type::String)));
     assert_type_parses(
         "[Actor?]?",
-        Type::TypeMaybe(Box::new(Type::TypeList(Box::new(Type::TypeMaybe(
-            Box::new(Type::TypeIdent("Actor".into())),
+        Type::Maybe(Box::new(Type::List(Box::new(Type::Maybe(
+            Box::new(Type::Ident("Actor".into())),
         ))))),
     );
 }
@@ -63,31 +63,31 @@ fn maybe_types() {
 fn tuple_types() {
     assert_type_parses(
         "(String, Int)",
-        Type::TypeTuple(vec![Type::TypeString, Type::TypeInt]),
+        Type::Tuple(vec![Type::String, Type::Int]),
     );
     assert_type_parses(
         "(Actor, (Nil, Bool, Class, Passive), Int)",
-        Type::TypeTuple(vec![
-            Type::TypeIdent(String::from("Actor")),
-            Type::TypeTuple(vec![
-                Type::TypeNil,
-                Type::TypeBool,
-                Type::TypeIdent(String::from("Class")),
-                Type::TypeIdent(String::from("Passive")),
+        Type::Tuple(vec![
+            Type::Ident(String::from("Actor")),
+            Type::Tuple(vec![
+                Type::Nil,
+                Type::Bool,
+                Type::Ident(String::from("Class")),
+                Type::Ident(String::from("Passive")),
             ]),
-            Type::TypeInt,
+            Type::Int,
         ]),
     );
 
     // Allow trailing commas here
     assert_type_parses(
         "(String, Int, )",
-        Type::TypeTuple(vec![Type::TypeString, Type::TypeInt]),
+        Type::Tuple(vec![Type::String, Type::Int]),
     );
 
     // Single element tuple is shrinked to just that element
-    assert_type_parses("(String)", Type::TypeString);
-    assert_type_parses("(Actor, )", Type::TypeIdent(String::from("Actor")));
+    assert_type_parses("(String)", Type::String);
+    assert_type_parses("(Actor, )", Type::Ident(String::from("Actor")));
 
     // Empty tuple is not allowed
     assert_parsing_fails(Parser::parse_type, "()");
@@ -97,12 +97,12 @@ fn tuple_types() {
 fn complex_types_maybe_and_list_order() {
     assert_type_parses(
         "[Int]?",
-        Type::TypeMaybe(Box::new(Type::TypeList(Box::new(Type::TypeInt)))),
+        Type::Maybe(Box::new(Type::List(Box::new(Type::Int)))),
     );
 
     assert_type_parses(
         "[Int?]",
-        Type::TypeList(Box::new(Type::TypeMaybe(Box::new(Type::TypeInt)))),
+        Type::List(Box::new(Type::Maybe(Box::new(Type::Int)))),
     );
 }
 
@@ -110,9 +110,9 @@ fn complex_types_maybe_and_list_order() {
 fn complex_types() {
     assert_type_parses(
         "(Actor?, [Bool])",
-        Type::TypeTuple(vec![
-            Type::TypeMaybe(Box::new(Type::TypeIdent(String::from("Actor")))),
-            Type::TypeList(Box::new(Type::TypeBool)),
+        Type::Tuple(vec![
+            Type::Maybe(Box::new(Type::Ident(String::from("Actor")))),
+            Type::List(Box::new(Type::Bool)),
         ]),
     );
 }
@@ -121,12 +121,12 @@ fn complex_types() {
 fn very_complex_types() {
     assert_type_parses(
         "[( [(Bool, Int?)]?, String )]",
-        Type::TypeList(Box::new(Type::TypeTuple(vec![
-            Type::TypeMaybe(Box::new(Type::TypeList(Box::new(Type::TypeTuple(vec![
-                Type::TypeBool,
-                Type::TypeMaybe(Box::new(Type::TypeInt)),
+        Type::List(Box::new(Type::Tuple(vec![
+            Type::Maybe(Box::new(Type::List(Box::new(Type::Tuple(vec![
+                Type::Bool,
+                Type::Maybe(Box::new(Type::Int)),
             ]))))),
-            Type::TypeString,
+            Type::String,
         ]))),
     );
 }

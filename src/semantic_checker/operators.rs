@@ -4,11 +4,11 @@ type T = Type;
 
 pub fn calculate_unaryop_type(operator: &UnaryOp, operand: &Type) -> Result<Type, String> {
     return match (operator, operand) {
-        (UnaryOp::Negate, Type::TypeInt) => Ok(Type::TypeInt),
-        (UnaryOp::Negate, Type::TypeFloat) => Ok(Type::TypeFloat),
+        (UnaryOp::Negate, Type::Int) => Ok(Type::Int),
+        (UnaryOp::Negate, Type::Float) => Ok(Type::Float),
         (UnaryOp::Negate, t) => Err(format!("Cant apply Negate to {:?} type", t)),
 
-        (UnaryOp::Not, Type::TypeBool) => Ok(Type::TypeBool),
+        (UnaryOp::Not, Type::Bool) => Ok(Type::Bool),
         (UnaryOp::Not, t) => Err(format!("Cant apply NOT to {:?} type", t)),
     };
 }
@@ -25,7 +25,7 @@ pub fn calculate_binaryop_type(
         BinaryOp::Plus if left == right => get_res(
             matches!(
                 left,
-                T::TypeInt | T::TypeFloat | T::TypeString | T::TypeList(..)
+                T::Int | T::Float | T::String | T::List(..)
             ),
             left.clone(),
         ),
@@ -38,24 +38,24 @@ pub fn calculate_binaryop_type(
         | BinaryOp::GreaterEqual
         | BinaryOp::Less
         | BinaryOp::LessEqual => get_res(
-            left == right && matches!(left, T::TypeInt | T::TypeFloat),
+            left == right && matches!(left, T::Int | T::Float),
             left.clone(),
         ),
 
         BinaryOp::IsEqual | BinaryOp::IsNotEqual => {
-            get_res(are_types_same_or_maybe(left, right), Type::TypeBool)
+            get_res(are_types_same_or_maybe(left, right), Type::Bool)
         }
 
         BinaryOp::And | BinaryOp::Or => {
-            get_res(left == right && matches!(left, T::TypeBool), T::TypeBool)
+            get_res(left == right && matches!(left, T::Bool), T::Bool)
         }
     }
 }
 
 pub fn are_types_same_or_maybe(left: &Type, right: &Type) -> bool {
     match (left, right) {
-        (T::TypeMaybe(t1), t2) => t1.as_ref() == t2 || t2 == &T::TypeNil,
-        (t1, T::TypeMaybe(t2)) => t1 == t2.as_ref() || t1 == &T::TypeNil,
+        (T::Maybe(t1), t2) => t1.as_ref() == t2 || t2 == &T::Nil,
+        (t1, T::Maybe(t2)) => t1 == t2.as_ref() || t1 == &T::Nil,
         _ => left == right,
     }
 }
@@ -66,11 +66,11 @@ pub mod tests {
 
     #[test]
     pub fn check_binary_plus() {
-        let t = T::TypeList(Box::new(T::TypeBool));
+        let t = T::List(Box::new(T::Bool));
         assert_eq!(calculate_binaryop_type(&BinaryOp::Plus, &t, &t).unwrap(), t);
 
         assert!(
-            calculate_binaryop_type(&BinaryOp::Plus, &t, &T::TypeList(Box::new(T::TypeInt)),)
+            calculate_binaryop_type(&BinaryOp::Plus, &t, &T::List(Box::new(T::Int)),)
                 .is_err()
         );
     }
@@ -80,27 +80,27 @@ pub mod tests {
         assert_eq!(
             calculate_binaryop_type(
                 &BinaryOp::IsEqual,
-                &T::TypeMaybe(Box::new(T::TypeBool)),
-                &T::TypeNil
+                &T::Maybe(Box::new(T::Bool)),
+                &T::Nil
             )
             .unwrap(),
-            T::TypeBool
+            T::Bool
         );
 
         assert_eq!(
             calculate_binaryop_type(
                 &BinaryOp::IsEqual,
-                &T::TypeBool,
-                &T::TypeMaybe(Box::new(T::TypeBool)),
+                &T::Bool,
+                &T::Maybe(Box::new(T::Bool)),
             )
             .unwrap(),
-            T::TypeBool
+            T::Bool
         );
 
         assert!(calculate_binaryop_type(
             &BinaryOp::IsEqual,
-            &T::TypeBool,
-            &T::TypeMaybe(Box::new(T::TypeString)),
+            &T::Bool,
+            &T::Maybe(Box::new(T::String)),
         )
         .is_err());
     }

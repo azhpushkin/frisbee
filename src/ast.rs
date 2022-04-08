@@ -58,40 +58,40 @@ pub struct FunctionDecl {
 #[derive(Debug, PartialEq, Clone)]
 pub enum Type {
     // Primitive types
-    TypeInt,
-    TypeFloat,
-    TypeNil,
-    TypeBool,
-    TypeString,
+    Int,
+    Float,
+    Nil,
+    Bool,
+    String,
 
     // Type wrappers
-    TypeList(Box<Type>),
-    TypeTuple(Vec<Type>),
-    TypeMaybe(Box<Type>),
+    List(Box<Type>),
+    Tuple(Vec<Type>),
+    Maybe(Box<Type>),
 
     // User-defined type
-    TypeIdent(String),
+    Ident(String),
 
     // Used for empty arrays, nil values and future `let` expression
-    TypeAnonymous,
+    Anonymous,
 
-    TypeIdentQualified(ModulePathAlias, String),
+    IdentQualified(ModulePathAlias, String),
 }
 
 #[derive(Debug, PartialEq)]
 pub enum Statement {
-    SIfElse { condition: ExprRaw, ifbody: Vec<Statement>, elsebody: Vec<Statement> },
-    SWhile { condition: ExprRaw, body: Vec<Statement> },
-    SForeach { itemname: String, iterable: ExprRaw, body: Vec<Statement> },
-    SBreak,
-    SContinue,
-    SReturn(ExprRaw),
-    SAssign { left: ExprRaw, right: ExprRaw },
-    SVarDecl(Type, String),
-    SVarDeclWithAssign(Type, String, ExprRaw),
-    SSendMessage { active: ExprRaw, method: String, args: Vec<ExprRaw> },
+    IfElse { condition: Expr, ifbody: Vec<Statement>, elsebody: Vec<Statement> },
+    While { condition: Expr, body: Vec<Statement> },
+    Foreach { itemname: String, iterable: Expr, body: Vec<Statement> },
+    Break,
+    Continue,
+    Return(Expr),
+    Assign { left: Expr, right: Expr },
+    VarDecl(Type, String),
+    VarDeclWithAssign(Type, String, Expr),
+    SendMessage { active: Expr, method: String, args: Vec<Expr> },
     // TODO: SWaitMessage
-    SExpr(ExprRaw),
+    Expr(Expr),
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -130,21 +130,21 @@ pub enum UnaryOp {
 // maybe save state of the actor before running it? (2x memory for this)
 
 pub trait ExprWithType {
-    fn get_raw(&self) -> &ExprRaw;
+    fn get_raw(&self) -> &Expr;
     fn get_type(&self) -> &Type;
 }
 
 #[derive(Debug, PartialEq)]
-pub enum ExprRaw {
-    UnaryOp { op: UnaryOp, operand: Box<ExprRaw> },
-    BinOp { left: Box<ExprRaw>, right: Box<ExprRaw>, op: BinaryOp },
-    ListAccess { list: Box<ExprRaw>, index: Box<ExprRaw> },
-    ListValue(Vec<ExprRaw>),
-    TupleValue(Vec<ExprRaw>),
-    FunctionCall { function: String, args: Vec<ExprRaw> },
-    MethodCall { object: Box<ExprRaw>, method: String, args: Vec<ExprRaw> },
-    FieldAccess { object: Box<ExprRaw>, field: String },
-    OwnMethodCall { method: String, args: Vec<ExprRaw> },
+pub enum Expr {
+    UnaryOp { op: UnaryOp, operand: Box<Expr> },
+    BinOp { left: Box<Expr>, right: Box<Expr>, op: BinaryOp },
+    ListAccess { list: Box<Expr>, index: Box<Expr> },
+    ListValue(Vec<Expr>),
+    TupleValue(Vec<Expr>),
+    FunctionCall { function: String, args: Vec<Expr> },
+    MethodCall { object: Box<Expr>, method: String, args: Vec<Expr> },
+    FieldAccess { object: Box<Expr>, field: String },
+    OwnMethodCall { method: String, args: Vec<Expr> },
     OwnFieldAccess { field: String },
     Int(i32),
     String(String),
@@ -152,8 +152,10 @@ pub enum ExprRaw {
     Nil,
     Float(f32),
     Identifier(String),
-    NewClassInstance { typename: String, args: Vec<ExprRaw> },
-    SpawnActive { typename: String, args: Vec<ExprRaw> },
+    NewClassInstance { typename: String, args: Vec<Expr> },
+    SpawnActive { typename: String, args: Vec<Expr> },
     This,
+
+    TypedExpr{expr: Box<Expr>, typename: Type},
 }
 

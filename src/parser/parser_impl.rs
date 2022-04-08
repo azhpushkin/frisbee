@@ -168,7 +168,7 @@ impl Parser {
             Token::LeftSquareBrackets => {
                 let item_type = self.parse_type()?;
                 consume_and_check!(self, Token::RightSquareBrackets);
-                Type::TypeList(Box::new(item_type))
+                Type::List(Box::new(item_type))
             }
             Token::LeftParenthesis => {
                 let mut tuple_items: Vec<Type> = vec![];
@@ -183,16 +183,16 @@ impl Parser {
                 match tuple_items.len() {
                     0 => return perr(self.rel_token(0), "Empty tuple is not allowed"),
                     1 => tuple_items.pop().unwrap(),
-                    _ => Type::TypeTuple(tuple_items),
+                    _ => Type::Tuple(tuple_items),
                 }
             }
             Token::TypeIdentifier(s) => match s.as_str() {
-                "Int" => Type::TypeInt,
-                "Float" => Type::TypeFloat,
-                "Nil" => Type::TypeNil,
-                "Bool" => Type::TypeBool,
-                "String" => Type::TypeString,
-                _ => Type::TypeIdent(s.clone()),
+                "Int" => Type::Int,
+                "Float" => Type::Float,
+                "Nil" => Type::Nil,
+                "Bool" => Type::Bool,
+                "String" => Type::String,
+                _ => Type::Ident(s.clone()),
             },
             _ => {
                 return perr(self.rel_token(-1), "Wrong token for type definition");
@@ -201,7 +201,7 @@ impl Parser {
 
         while self.rel_token_check(0, Token::Question) {
             self.consume_token();
-            result_type = Type::TypeMaybe(Box::new(result_type));
+            result_type = Type::Maybe(Box::new(result_type));
         }
 
         Ok(result_type)
@@ -219,13 +219,13 @@ impl Parser {
             // LeftParenthesis means that this is a constuctor
             // So check if the constructor name is correct and return error if not
             name = match &rettype {
-                Type::TypeIdent(s) if s != member_of.unwrap() => {
+                Type::Ident(s) if s != member_of.unwrap() => {
                     return perr(
                         self.rel_token(0),
                         "Wrong typename is used for constructor-like method",
                     )
                 }
-                Type::TypeIdent(s) => s.clone(),
+                Type::Ident(s) => s.clone(),
                 _ => return perr(self.rel_token(0), "Expected method name"),
             };
         } else {
@@ -313,14 +313,14 @@ impl Parser {
         } else {
             elsebody = vec![];
         };
-        Ok(Statement::SIfElse { condition, ifbody, elsebody })
+        Ok(Statement::IfElse { condition, ifbody, elsebody })
     }
 
     pub fn parse_while_loop_stmt(&mut self) -> ParseResult<Statement> {
         consume_and_check!(self, Token::While);
         let condition = self.parse_expr()?;
         let body = self.parse_statements_in_curly_block(true)?;
-        Ok(Statement::SWhile { condition, body })
+        Ok(Statement::While { condition, body })
     }
 
     pub fn parse_foreach_loop_stmt(&mut self) -> ParseResult<Statement> {
@@ -329,17 +329,17 @@ impl Parser {
         consume_and_check!(self, Token::In);
         let iterable = self.parse_expr()?;
         let body = self.parse_statements_in_curly_block(true)?;
-        Ok(Statement::SForeach { itemname, iterable, body })
+        Ok(Statement::Foreach { itemname, iterable, body })
     }
 
     pub fn parse_var_declaration_continuation(&mut self, typedecl: Type) -> ParseResult<Statement> {
         let varname = consume_and_check_ident!(self);
         if consume_if_matches_one_of!(self, [Token::Semicolon]) {
-            return Ok(Statement::SVarDecl(typedecl, varname));
+            return Ok(Statement::VarDecl(typedecl, varname));
         } else if consume_if_matches_one_of!(self, [Token::Equal]) {
             let value = self.parse_expr()?;
             consume_and_check!(self, Token::Semicolon);
-            return Ok(Statement::SVarDeclWithAssign(typedecl, varname, value));
+            return Ok(Statement::VarDeclWithAssign(typedecl, varname, value));
         } else {
             return perr_with_expected(
                 self.rel_token(0),
@@ -351,8 +351,8 @@ impl Parser {
 
     pub fn parse_statement_inside_loop(&mut self) -> ParseResult<Statement> {
         let stmt = match self.rel_token(0).0 {
-            Token::Break => Statement::SBreak,
-            Token::Continue => Statement::SContinue,
+            Token::Break => Statement::Break,
+            Token::Continue => Statement::Continue,
             _ => return self.parse_statement(),
         };
         self.consume_token();
@@ -370,7 +370,7 @@ impl Parser {
                 self.consume_token();
                 let expr = self.parse_expr()?;
                 consume_and_check!(self, Token::Semicolon);
-                return Ok(Statement::SReturn(expr));
+                return Ok(Statement::Return(expr));
             }
             _ => (),
         }
@@ -396,16 +396,16 @@ impl Parser {
             // entirely as they have no effect.
             // However, in frisbee this is not true, as this is more OOP-like language
             // and expression like object method call might change its state
-            return Ok(Statement::SExpr(expr));
+            return Ok(Statement::Expr(expr));
         } else if consume_if_matches_one_of!(self, [Token::Equal]) {
             let value = self.parse_expr()?;
             consume_and_check!(self, Token::Semicolon);
-            return Ok(Statement::SAssign { left: expr, right: value });
+            return Ok(Statement::Assign { left: expr, right: value });
         } else if consume_if_matches_one_of!(self, [Token::Bang]) {
             let method = consume_and_check_ident!(self);
             let args = self.parse_function_call_args()?;
             consume_and_check!(self, Token::Semicolon);
-            return Ok(Statement::SSendMessage { active: expr, method, args });
+            return Ok(Statement::SendMessage { active: expr, method, args });
         } else {
             return perr_with_expected(
                 self.rel_token(0),
@@ -415,11 +415,11 @@ impl Parser {
         }
     }
 
-    pub fn parse_expr(&mut self) -> ParseResult<ExprRaw> {
+    pub fn parse_expr(&mut self) -> ParseResult<Expr> {
         return self.parse_expr_equality();
     }
 
-    pub fn parse_expr_comparison(&mut self) -> ParseResult<ExprRaw> {
+    pub fn parse_expr_comparison(&mut self) -> ParseResult<Expr> {
         let mut res_expr = self.parse_expr_term()?;
         while consume_if_matches_one_of!(
             self,
@@ -428,7 +428,7 @@ impl Parser {
             let (op, _) = &self.rel_token(-1).clone();
             let right = self.parse_expr_term()?;
 
-            res_expr = ExprRaw::BinOp {
+            res_expr = Expr::BinOp {
                 left: Box::new(res_expr),
                 right: Box::new(right),
                 op: bin_op_from_token(op),
@@ -438,13 +438,13 @@ impl Parser {
         Ok(res_expr)
     }
 
-    pub fn parse_expr_term(&mut self) -> ParseResult<ExprRaw> {
+    pub fn parse_expr_term(&mut self) -> ParseResult<Expr> {
         let mut res_expr = self.parse_expr_factor()?;
         while consume_if_matches_one_of!(self, [Token::Minus, Token::Plus]) {
             let (op, _) = &self.rel_token(-1).clone();
             let right = self.parse_expr_factor()?;
 
-            res_expr = ExprRaw::BinOp {
+            res_expr = Expr::BinOp {
                 left: Box::new(res_expr),
                 right: Box::new(right),
                 op: bin_op_from_token(op),
@@ -454,13 +454,13 @@ impl Parser {
         Ok(res_expr)
     }
 
-    pub fn parse_expr_factor(&mut self) -> ParseResult<ExprRaw> {
+    pub fn parse_expr_factor(&mut self) -> ParseResult<Expr> {
         let mut res_expr = self.parse_expr_unary()?;
         while consume_if_matches_one_of!(self, [Token::Star, Token::Slash]) {
             let (op, _) = &self.rel_token(-1).clone();
             let right = self.parse_expr_unary()?;
 
-            res_expr = ExprRaw::BinOp {
+            res_expr = Expr::BinOp {
                 left: Box::new(res_expr),
                 right: Box::new(right),
                 op: bin_op_from_token(op),
@@ -470,13 +470,13 @@ impl Parser {
         Ok(res_expr)
     }
 
-    pub fn parse_expr_equality(&mut self) -> ParseResult<ExprRaw> {
+    pub fn parse_expr_equality(&mut self) -> ParseResult<Expr> {
         let mut res_expr = self.parse_expr_comparison()?;
         while consume_if_matches_one_of!(self, [Token::EqualEqual, Token::BangEqual]) {
             let (op, _) = &self.rel_token(-1).clone();
             let right = self.parse_expr_comparison()?;
 
-            res_expr = ExprRaw::BinOp {
+            res_expr = Expr::BinOp {
                 left: Box::new(res_expr),
                 right: Box::new(right),
                 op: bin_op_from_token(op),
@@ -486,20 +486,20 @@ impl Parser {
         Ok(res_expr)
     }
 
-    pub fn parse_expr_unary(&mut self) -> ParseResult<ExprRaw> {
+    pub fn parse_expr_unary(&mut self) -> ParseResult<Expr> {
         if consume_if_matches_one_of!(self, [Token::Minus, Token::Not]) {
             let (t, _) = &self.rel_token(-1).clone();
             let operand = self.parse_method_or_field_access()?;
 
-            let e = ExprRaw::UnaryOp { operand: Box::new(operand), op: unary_op_from_token(t) };
+            let e = Expr::UnaryOp { operand: Box::new(operand), op: unary_op_from_token(t) };
             return Ok(e);
         }
 
         return self.parse_method_or_field_access();
     }
 
-    pub fn parse_function_call_args(&mut self) -> ParseResult<Vec<ExprRaw>> {
-        let args: Vec<ExprRaw>;
+    pub fn parse_function_call_args(&mut self) -> ParseResult<Vec<Expr>> {
+        let args: Vec<Expr>;
         if self.rel_token_check(1, Token::RightParenthesis) {
             // Consume both left and right parenthesis
             self.consume_token();
@@ -508,14 +508,14 @@ impl Parser {
         } else {
             let args_expr = self.parse_group_or_tuple()?;
             args = match args_expr {
-                ExprRaw::TupleValue(a) => a,
+                Expr::TupleValue(a) => a,
                 e => vec![e],
             }
         }
         Ok(args)
     }
 
-    pub fn parse_method_or_field_access(&mut self) -> ParseResult<ExprRaw> {
+    pub fn parse_method_or_field_access(&mut self) -> ParseResult<Expr> {
         let mut res_expr = self.parse_expr_primary()?;
 
         while consume_if_matches_one_of!(
@@ -526,13 +526,13 @@ impl Parser {
             if self.rel_token_check(-1, Token::Dot) {
                 let field_or_method = consume_and_check_ident!(self);
                 if self.rel_token_check(0, Token::LeftParenthesis) {
-                    res_expr = ExprRaw::MethodCall {
+                    res_expr = Expr::MethodCall {
                         object: Box::new(res_expr),
                         method: field_or_method,
                         args: self.parse_function_call_args()?,
                     };
                 } else {
-                    res_expr = ExprRaw::FieldAccess {
+                    res_expr = Expr::FieldAccess {
                         object: Box::new(res_expr),
                         field: field_or_method,
                     };
@@ -541,15 +541,15 @@ impl Parser {
                 // otherwise - left square brackets, meaning this is list access
                 let index = self.parse_expr()?;
                 consume_and_check!(self, Token::RightSquareBrackets);
-                res_expr = ExprRaw::ListAccess { list: Box::new(res_expr), index: Box::new(index) }
+                res_expr = Expr::ListAccess { list: Box::new(res_expr), index: Box::new(index) }
             } else {
                 let mut is_own_method = false;
-                if matches!(res_expr, ExprRaw::OwnFieldAccess { .. }) {
+                if matches!(res_expr, Expr::OwnFieldAccess { .. }) {
                     is_own_method = true;
                 }
                 let cloned_identifier = match res_expr {
-                    ExprRaw::Identifier(ident) => ident.clone(),
-                    ExprRaw::OwnFieldAccess { field } => field.clone(),
+                    Expr::Identifier(ident) => ident.clone(),
+                    Expr::OwnFieldAccess { field } => field.clone(),
                     _ => return perr(self.rel_token(0), "Function call of non-function expr"),
                 };
                 self.position -= 1;
@@ -561,9 +561,9 @@ impl Parser {
                     );
                 }
                 if is_own_method {
-                    res_expr = ExprRaw::OwnMethodCall { method: cloned_identifier, args };
+                    res_expr = Expr::OwnMethodCall { method: cloned_identifier, args };
                 } else {
-                    res_expr = ExprRaw::FunctionCall { function: cloned_identifier, args };
+                    res_expr = Expr::FunctionCall { function: cloned_identifier, args };
                 }
             }
         }
@@ -571,13 +571,13 @@ impl Parser {
         Ok(res_expr)
     }
 
-    pub fn parse_group_or_tuple(&mut self) -> ParseResult<ExprRaw> {
+    pub fn parse_group_or_tuple(&mut self) -> ParseResult<Expr> {
         consume_and_check!(self, Token::LeftParenthesis);
         let mut result_expr = self.parse_expr()?;
 
         // If comma - then this is not just grouping, but a tuple
         if self.rel_token_check(0, Token::Comma) {
-            let mut tuple_exprs: Vec<ExprRaw> = vec![result_expr];
+            let mut tuple_exprs: Vec<Expr> = vec![result_expr];
 
             // For the next items, trailing comma is allowed, so expr after comma is optional
             while consume_if_matches_one_of!(self, [Token::Comma]) {
@@ -590,7 +590,7 @@ impl Parser {
             if tuple_exprs.len() == 1 {
                 result_expr = tuple_exprs.pop().unwrap();
             } else {
-                result_expr = ExprRaw::TupleValue(tuple_exprs);
+                result_expr = Expr::TupleValue(tuple_exprs);
             }
         }
 
@@ -598,42 +598,42 @@ impl Parser {
         Ok(result_expr)
     }
 
-    pub fn parse_list_literal(&mut self) -> ParseResult<ExprRaw> {
+    pub fn parse_list_literal(&mut self) -> ParseResult<Expr> {
         consume_and_check!(self, Token::LeftSquareBrackets);
-        let mut list_items: Vec<ExprRaw> = vec![];
+        let mut list_items: Vec<Expr> = vec![];
 
         until_closes!(self, Token::RightSquareBrackets, {
             list_items.push(self.parse_expr()?);
             consume_if_matches_one_of!(self, [Token::Comma]);
         });
 
-        return Ok(ExprRaw::ListValue(list_items));
+        return Ok(Expr::ListValue(list_items));
     }
 
-    fn parse_new_class_instance_expr(&mut self) -> ParseResult<ExprRaw> {
+    fn parse_new_class_instance_expr(&mut self) -> ParseResult<Expr> {
         let typename = consume_and_check_type_ident!(self);
         let args = self.parse_function_call_args()?;
-        Ok(ExprRaw::NewClassInstance { typename, args })
+        Ok(Expr::NewClassInstance { typename, args })
     }
 
-    fn parse_spawn_active_expr(&mut self) -> ParseResult<ExprRaw> {
+    fn parse_spawn_active_expr(&mut self) -> ParseResult<Expr> {
         consume_and_check!(self, Token::Spawn);
         let typename = consume_and_check_type_ident!(self);
         let args = self.parse_function_call_args()?;
-        Ok(ExprRaw::SpawnActive { typename, args })
+        Ok(Expr::SpawnActive { typename, args })
     }
 
-    pub fn parse_expr_primary(&mut self) -> ParseResult<ExprRaw> {
+    pub fn parse_expr_primary(&mut self) -> ParseResult<Expr> {
         let expr = match &self.rel_token(0).0 {
-            Token::This => ExprRaw::This,
-            Token::Float(f) => ExprRaw::Float(f.clone()),
-            Token::Integer(i) => ExprRaw::Int(i.clone()),
-            Token::String(s) => ExprRaw::String(s.clone()),
-            Token::Nil => ExprRaw::Nil,
-            Token::True => ExprRaw::Bool(true),
-            Token::False => ExprRaw::Bool(false),
-            Token::Identifier(i) => ExprRaw::Identifier(i.clone()),
-            Token::OwnIdentifier(f) => ExprRaw::OwnFieldAccess { field: f.clone() },
+            Token::This => Expr::This,
+            Token::Float(f) => Expr::Float(f.clone()),
+            Token::Integer(i) => Expr::Int(i.clone()),
+            Token::String(s) => Expr::String(s.clone()),
+            Token::Nil => Expr::Nil,
+            Token::True => Expr::Bool(true),
+            Token::False => Expr::Bool(false),
+            Token::Identifier(i) => Expr::Identifier(i.clone()),
+            Token::OwnIdentifier(f) => Expr::OwnFieldAccess { field: f.clone() },
             Token::LeftParenthesis => return self.parse_group_or_tuple(),
             Token::LeftSquareBrackets => return self.parse_list_literal(),
             Token::TypeIdentifier(_) => return self.parse_new_class_instance_expr(),
