@@ -28,6 +28,9 @@ pub mod Op {
     pub const CALL: u8 = 10;  // 1 arg - args amount
     pub const RETURN: u8 = 11;  // 0 args
     pub const POP: u8 = 12;  // 0 args
+
+    pub const SET_VAR: u8 = 13;  // 1 arg - offset which to load
+    pub const GET_VAR: u8 = 14;  // 1 arg - offset where to save
 }
 
 // TODO: nan boxing?

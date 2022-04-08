@@ -18,7 +18,7 @@ macro_rules! accept_typed_expr {
 pub struct ExprBytecodeGenerator<'a> {
     globals: &'a mut Globals,
     locals: HashMap<&'a String, u8>,
-    bytecode: Vec<u8>
+    pub bytecode: Vec<u8>
 }
 
 impl<'a> ExprBytecodeGenerator<'a> {
@@ -30,12 +30,20 @@ impl<'a> ExprBytecodeGenerator<'a> {
         }
     }
 
-    pub fn add_local(&mut self, varname: &'a String) {
-        self.locals.insert(varname, self.locals.len() as u8);
+    pub fn add_local(&mut self, varname: &'a String) -> u8{
+        let pos = self.locals.len() as u8;
+        self.locals.insert(varname, pos);
+        pos
     }
 
     pub fn get_local(&self, varname: & String) -> u8 {
         *self.locals.get(varname).expect("No way variable is not defined here")
+    }
+    
+    pub fn generate_and_flush(&mut self, expr: &Expr, target: &mut Vec<u8>) -> Result<(), String> {
+        self.generate(expr)?;
+        target.extend(&self.bytecode);
+        Ok(())
     }
     
     pub fn generate(&mut self, expr: &Expr) -> Result<(), String> {
@@ -68,7 +76,10 @@ impl<'a> ExprBytecodeGenerator<'a> {
                     _ => panic!("Sorry, no support for {:?} and {:?} now ", typename, op)
                 }
             }
-            _ => todo!(),
+            Expr::Identifier(i) => {
+                self.bytecode.push(self.get_local(i));
+            }
+            f => panic!("Not done yet {:?}", f),
         }
         Ok(())
     }

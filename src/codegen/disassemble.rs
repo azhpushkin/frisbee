@@ -1,6 +1,5 @@
 use crate::vm::Op;
 
-
 pub fn opcode_to_s(c: u8) -> &'static str {
     match c {
         Op::LOAD_CONST => "load_const",
@@ -16,7 +15,9 @@ pub fn opcode_to_s(c: u8) -> &'static str {
         Op::CALL => "call",
         Op::RETURN => "return",
         Op::POP => "pop",
-        _ => "<UNKNOWN>"
+        Op::SET_VAR => "set_var",
+        Op::GET_VAR => "get_var",
+        _ => panic!("DIS: unknown opcode {}", c),
     }
 }
 
@@ -31,15 +32,17 @@ pub fn disassemble_bytes(program: &Vec<u8>) -> String {
             Op::ADD_INT | Op::SUB_INT | Op::MUL_INT | Op::DIV_INT => 0,
             Op::ADD_FLOAT | Op::SUB_FLOAT | Op::MUL_FLOAT | Op::DIV_FLOAT => 0,
             Op::CALL => 1,
-
-            _ => panic!("Unknown lol {}", opcode),
+            Op::RETURN => 0,
+            Op::POP => 0,
+            Op::SET_VAR | Op::GET_VAR => 1,
+            _ => panic!("DIS: Unknown lol {}", opcode),
         };
         let mut args: Vec<u8> = vec![];
         while args_num > 0 {
             args.push(*program_iter.next().unwrap());
             args_num -= 1;
         }
-        let op_text = format!("{:?} {:?}", opcode, args);
+        let op_text = format!("\t{} {:?}\n", opcode_to_s(*opcode), args);
         text_repr.push_str(op_text.as_str());
     }
     text_repr
