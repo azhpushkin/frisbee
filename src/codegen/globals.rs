@@ -32,13 +32,15 @@ impl Globals {
 }
 
 impl ConstantTable {
-    pub fn get_constant(&mut self, constant: Constant) -> usize {
+    pub fn get_constant(&mut self, constant: Constant) -> u8 {
         self.constants.push(constant);
-        self.constants.len() - 1
+        (self.constants.len() - 1) as u8
     }
 }
 
 impl FunctionsTable {
+    // TODO: this join by ~ is strange, should rework I guess
+
     pub fn get_function_placeholder(&mut self, module: ModulePathAlias, name: String) -> usize {
         self.get_placeholder(vec![module.0, name].join("~"))
     }
