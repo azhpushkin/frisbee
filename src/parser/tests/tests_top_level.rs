@@ -84,16 +84,16 @@ fn parse_function_definition() {
                     TypedNamedObject { typename: Type::TypeString, name: "name".into() }
                 ],
                 statements: vec![
-                    Statement::SExpr(Expr::ExprBinOp {
-                        left: Box::new(Expr::ExprInt(1)),
-                        right: Box::new(Expr::ExprMethodCall {
-                            object: Box::new(Expr::ExprIdentifier(String::from("asd"))),
+                    Statement::SExpr(ExprRaw::BinOp {
+                        left: Box::new(ExprRaw::Int(1)),
+                        right: Box::new(ExprRaw::MethodCall {
+                            object: Box::new(ExprRaw::Identifier(String::from("asd"))),
                             method: String::from("call"),
                             args: vec![]
                         }),
                         op: BinaryOp::Divide
                     }),
-                    Statement::SExpr(Expr::ExprThis)
+                    Statement::SExpr(ExprRaw::This)
                 ],
             }]
         }
@@ -141,16 +141,16 @@ fn class_object_and_methods() {
                     TypedNamedObject { typename: Type::TypeString, name: "name".into() },
                 ],
                 statements: vec![
-                    Statement::SExpr(Expr::ExprBinOp {
-                        left: Box::new(Expr::ExprInt(1)),
-                        right: Box::new(Expr::ExprMethodCall {
-                            object: Box::new(Expr::ExprIdentifier(String::from("asd"))),
+                    Statement::SExpr(ExprRaw::BinOp {
+                        left: Box::new(ExprRaw::Int(1)),
+                        right: Box::new(ExprRaw::MethodCall {
+                            object: Box::new(ExprRaw::Identifier(String::from("asd"))),
                             method: String::from("call"),
                             args: vec![]
                         }),
                         op: BinaryOp::Divide
                     }),
-                    Statement::SExpr(Expr::ExprThis)
+                    Statement::SExpr(ExprRaw::This)
                 ],
             }]
         }

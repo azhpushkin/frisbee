@@ -3,7 +3,7 @@ use crate::ast::*;
 use super::super::parser_impl::*;
 use super::tests_helpers::*;
 
-fn assert_expr_parses(s: &str, t: Expr) {
+fn assert_expr_parses(s: &str, t: ExprRaw) {
     assert_eq!(parse_and_unwrap(Parser::parse_expr, s), t);
 }
 
@@ -13,17 +13,17 @@ fn assert_expr_invalid(s: &str) {
 
 #[test]
 fn string_single_and_double_quotes() {
-    assert_expr_parses(r#" 'asd' "#, Expr::ExprString(String::from("asd")));
-    assert_expr_parses(r#" "asd" "#, Expr::ExprString(String::from("asd")));
+    assert_expr_parses(r#" 'asd' "#, ExprRaw::String(String::from("asd")));
+    assert_expr_parses(r#" "asd" "#, ExprRaw::String(String::from("asd")));
 }
 
 #[test]
 fn operator_simple_equality() {
     assert_expr_parses(
         "(nil) == asd",
-        Expr::ExprBinOp {
-            left: Box::new(Expr::ExprNil),
-            right: Box::new(Expr::ExprIdentifier(String::from("asd"))),
+        ExprRaw::BinOp {
+            left: Box::new(ExprRaw::Nil),
+            right: Box::new(ExprRaw::Identifier(String::from("asd"))),
             op: BinaryOp::IsEqual,
         },
     );
@@ -33,26 +33,26 @@ fn operator_simple_equality() {
 fn operator_expression() {
     assert_expr_parses(
         "1 + asd",
-        Expr::ExprBinOp {
-            left: Box::new(Expr::ExprInt(1)),
-            right: Box::new(Expr::ExprIdentifier(String::from("asd"))),
+        ExprRaw::BinOp {
+            left: Box::new(ExprRaw::Int(1)),
+            right: Box::new(ExprRaw::Identifier(String::from("asd"))),
             op: BinaryOp::Plus,
         },
     );
 
     assert_expr_parses(
         r#"- "hello""#,
-        Expr::ExprUnaryOp {
-            operand: Box::new(Expr::ExprString(String::from("hello"))),
+        ExprRaw::UnaryOp {
+            operand: Box::new(ExprRaw::String(String::from("hello"))),
             op: UnaryOp::Negate,
         },
     );
 
     assert_expr_parses(
         "true / 23.2",
-        Expr::ExprBinOp {
-            left: Box::new(Expr::ExprBool(true)),
-            right: Box::new(Expr::ExprFloat(23.2)),
+        ExprRaw::BinOp {
+            left: Box::new(ExprRaw::Bool(true)),
+            right: Box::new(ExprRaw::Float(23.2)),
             op: BinaryOp::Divide,
         },
     )
@@ -62,14 +62,14 @@ fn operator_expression() {
 fn expr_minus_minus() {
     assert_expr_parses(
         "-1.0- - 2",
-        Expr::ExprBinOp {
-            left: Box::new(Expr::ExprUnaryOp {
+        ExprRaw::BinOp {
+            left: Box::new(ExprRaw::UnaryOp {
                 op: UnaryOp::Negate,
-                operand: Box::new(Expr::ExprFloat(1.0)),
+                operand: Box::new(ExprRaw::Float(1.0)),
             }),
-            right: Box::new(Expr::ExprUnaryOp {
+            right: Box::new(ExprRaw::UnaryOp {
                 op: UnaryOp::Negate,
-                operand: Box::new(Expr::ExprInt(2)),
+                operand: Box::new(ExprRaw::Int(2)),
             }),
             op: BinaryOp::Minus,
         },
@@ -80,11 +80,11 @@ fn expr_minus_minus() {
 fn expr_operator_order() {
     assert_expr_parses(
         "1 + 2 * qw2",
-        Expr::ExprBinOp {
-            left: Box::new(Expr::ExprInt(1)),
-            right: Box::new(Expr::ExprBinOp {
-                left: Box::new(Expr::ExprInt(2)),
-                right: Box::new(Expr::ExprIdentifier(String::from("qw2"))),
+        ExprRaw::BinOp {
+            left: Box::new(ExprRaw::Int(1)),
+            right: Box::new(ExprRaw::BinOp {
+                left: Box::new(ExprRaw::Int(2)),
+                right: Box::new(ExprRaw::Identifier(String::from("qw2"))),
                 op: BinaryOp::Multiply,
             }),
             op: BinaryOp::Plus,
@@ -94,14 +94,14 @@ fn expr_operator_order() {
 
 #[test]
 fn expr_simple_groups() {
-    assert_expr_parses("(1)", Expr::ExprInt(1));
+    assert_expr_parses("(1)", ExprRaw::Int(1));
     assert_expr_parses(
         "(-(-3))",
-        Expr::ExprUnaryOp {
+        ExprRaw::UnaryOp {
             op: UnaryOp::Negate,
-            operand: Box::new(Expr::ExprUnaryOp {
+            operand: Box::new(ExprRaw::UnaryOp {
                 op: UnaryOp::Negate,
-                operand: Box::new(Expr::ExprInt(3)),
+                operand: Box::new(ExprRaw::Int(3)),
             }),
         },
     );
@@ -111,11 +111,11 @@ fn expr_simple_groups() {
 fn expr_operator_order_with_grouping() {
     assert_expr_parses(
         "2 * (1 + qw2)",
-        Expr::ExprBinOp {
-            left: Box::new(Expr::ExprInt(2)),
-            right: Box::new(Expr::ExprBinOp {
-                left: Box::new(Expr::ExprInt(1)),
-                right: Box::new(Expr::ExprIdentifier(String::from("qw2"))),
+        ExprRaw::BinOp {
+            left: Box::new(ExprRaw::Int(2)),
+            right: Box::new(ExprRaw::BinOp {
+                left: Box::new(ExprRaw::Int(1)),
+                right: Box::new(ExprRaw::Identifier(String::from("qw2"))),
                 op: BinaryOp::Plus,
             }),
             op: BinaryOp::Multiply,
@@ -124,13 +124,13 @@ fn expr_operator_order_with_grouping() {
 
     assert_expr_parses(
         "(1 + qw2) * 2",
-        Expr::ExprBinOp {
-            left: Box::new(Expr::ExprBinOp {
-                left: Box::new(Expr::ExprInt(1)),
-                right: Box::new(Expr::ExprIdentifier(String::from("qw2"))),
+        ExprRaw::BinOp {
+            left: Box::new(ExprRaw::BinOp {
+                left: Box::new(ExprRaw::Int(1)),
+                right: Box::new(ExprRaw::Identifier(String::from("qw2"))),
                 op: BinaryOp::Plus,
             }),
-            right: Box::new(Expr::ExprInt(2)),
+            right: Box::new(ExprRaw::Int(2)),
             op: BinaryOp::Multiply,
         },
     );
@@ -140,37 +140,37 @@ fn expr_operator_order_with_grouping() {
 fn expr_tuple() {
     assert_expr_parses(
         "(1, 2.0, ad)",
-        Expr::ExprTupleValue(vec![
-            Expr::ExprInt(1),
-            Expr::ExprFloat(2.0),
-            Expr::ExprIdentifier(String::from("ad")),
+        ExprRaw::TupleValue(vec![
+            ExprRaw::Int(1),
+            ExprRaw::Float(2.0),
+            ExprRaw::Identifier(String::from("ad")),
         ]),
     );
 
     assert_expr_parses(
         "((1, 2), (3, 4))",
-        Expr::ExprTupleValue(vec![
-            Expr::ExprTupleValue(vec![Expr::ExprInt(1), Expr::ExprInt(2)]),
-            Expr::ExprTupleValue(vec![Expr::ExprInt(3), Expr::ExprInt(4)]),
+        ExprRaw::TupleValue(vec![
+            ExprRaw::TupleValue(vec![ExprRaw::Int(1), ExprRaw::Int(2)]),
+            ExprRaw::TupleValue(vec![ExprRaw::Int(3), ExprRaw::Int(4)]),
         ]),
     );
 
     // single-element tuple is simplified to just an element
-    assert_expr_parses("(1, )", Expr::ExprInt(1));
+    assert_expr_parses("(1, )", ExprRaw::Int(1));
 }
 
 #[test]
 fn expr_group_and_tuple_mixed() {
     assert_expr_parses(
         "((1, 2) + (3, 4))",
-        Expr::ExprBinOp {
-            left: Box::new(Expr::ExprTupleValue(vec![
-                Expr::ExprInt(1),
-                Expr::ExprInt(2),
+        ExprRaw::BinOp {
+            left: Box::new(ExprRaw::TupleValue(vec![
+                ExprRaw::Int(1),
+                ExprRaw::Int(2),
             ])),
-            right: Box::new(Expr::ExprTupleValue(vec![
-                Expr::ExprInt(3),
-                Expr::ExprInt(4),
+            right: Box::new(ExprRaw::TupleValue(vec![
+                ExprRaw::Int(3),
+                ExprRaw::Int(4),
             ])),
             op: BinaryOp::Plus,
         },
@@ -186,20 +186,20 @@ fn expr_bad_parenthesis_usage() {
 
 #[test]
 fn expr_list_value() {
-    assert_expr_parses("[]", Expr::ExprListValue(vec![]));
+    assert_expr_parses("[]", ExprRaw::ListValue(vec![]));
 
     assert_expr_parses(
         "[1, new]",
-        Expr::ExprListValue(vec![
-            Expr::ExprInt(1),
-            Expr::ExprIdentifier(String::from("new")),
+        ExprRaw::ListValue(vec![
+            ExprRaw::Int(1),
+            ExprRaw::Identifier(String::from("new")),
         ]),
     );
 
     // trailing comma is allowed
     assert_expr_parses(
         "[nil, 2.0,]",
-        Expr::ExprListValue(vec![Expr::ExprNil, Expr::ExprFloat(2.0)]),
+        ExprRaw::ListValue(vec![ExprRaw::Nil, ExprRaw::Float(2.0)]),
     );
 
     assert_expr_invalid("[, ]");
@@ -209,9 +209,9 @@ fn expr_list_value() {
 fn expr_list_access() {
     assert_expr_parses(
         "asd[2]",
-        Expr::ExprListAccess {
-            list: Box::new(Expr::ExprIdentifier(String::from("asd"))),
-            index: Box::new(Expr::ExprInt(2)),
+        ExprRaw::ListAccess {
+            list: Box::new(ExprRaw::Identifier(String::from("asd"))),
+            index: Box::new(ExprRaw::Int(2)),
         },
     );
 }
@@ -220,12 +220,12 @@ fn expr_list_access() {
 fn expr_list_access_chained() {
     assert_expr_parses(
         "asd[2][0]",
-        Expr::ExprListAccess {
-            list: Box::new(Expr::ExprListAccess {
-                list: Box::new(Expr::ExprIdentifier(String::from("asd"))),
-                index: Box::new(Expr::ExprInt(2)),
+        ExprRaw::ListAccess {
+            list: Box::new(ExprRaw::ListAccess {
+                list: Box::new(ExprRaw::Identifier(String::from("asd"))),
+                index: Box::new(ExprRaw::Int(2)),
             }),
-            index: Box::new(Expr::ExprInt(0)),
+            index: Box::new(ExprRaw::Int(0)),
         },
     );
 }
@@ -234,7 +234,7 @@ fn expr_list_access_chained() {
 fn expr_field_access() {
     assert_expr_parses(
         "(1).qwe",
-        Expr::ExprFieldAccess { object: Box::new(Expr::ExprInt(1)), field: String::from("qwe") },
+        ExprRaw::FieldAccess { object: Box::new(ExprRaw::Int(1)), field: String::from("qwe") },
     );
 
     assert_expr_invalid("obj.(field)");
@@ -244,7 +244,7 @@ fn expr_field_access() {
 fn expr_own_field_access() {
     assert_expr_parses(
         "@qwe",
-        Expr::ExprOwnFieldAccess { field: String::from("qwe") },
+        ExprRaw::OwnFieldAccess { field: String::from("qwe") },
     );
 }
 
@@ -252,7 +252,7 @@ fn expr_own_field_access() {
 fn expr_func() {
     assert_expr_parses(
         "(function) (1, )",
-        Expr::ExprFunctionCall { function: String::from("function"), args: vec![Expr::ExprInt(1)] },
+        ExprRaw::FunctionCall { function: String::from("function"), args: vec![ExprRaw::Int(1)] },
     );
 
     assert_expr_invalid("function.()");
@@ -263,9 +263,9 @@ fn expr_func() {
 fn expr_field_access_chained_with_method_call() {
     assert_expr_parses(
         "obj.field.method()",
-        Expr::ExprMethodCall {
-            object: Box::new(Expr::ExprFieldAccess {
-                object: Box::new(Expr::ExprIdentifier(String::from("obj"))),
+        ExprRaw::MethodCall {
+            object: Box::new(ExprRaw::FieldAccess {
+                object: Box::new(ExprRaw::Identifier(String::from("obj"))),
                 field: String::from("field"),
             }),
             method: String::from("method"),
@@ -282,8 +282,8 @@ fn expr_field_access_chained_with_method_call() {
 fn expr_method_call() {
     assert_expr_parses(
         "1.qwe()",
-        Expr::ExprMethodCall {
-            object: Box::new(Expr::ExprInt(1)),
+        ExprRaw::MethodCall {
+            object: Box::new(ExprRaw::Int(1)),
             method: String::from("qwe"),
             args: vec![],
         },
@@ -294,7 +294,7 @@ fn expr_method_call() {
 fn expr_own_method_call() {
     assert_expr_parses(
         "(@qwe())",
-        Expr::ExprOwnMethodCall { method: String::from("qwe"), args: vec![] },
+        ExprRaw::OwnMethodCall { method: String::from("qwe"), args: vec![] },
     );
 }
 
@@ -302,19 +302,19 @@ fn expr_own_method_call() {
 fn expr_method_call_with_args() {
     assert_expr_parses(
         "asd.qwe(1, )",
-        Expr::ExprMethodCall {
-            object: Box::new(Expr::ExprIdentifier(String::from("asd"))),
+        ExprRaw::MethodCall {
+            object: Box::new(ExprRaw::Identifier(String::from("asd"))),
             method: String::from("qwe"),
-            args: vec![Expr::ExprInt(1)],
+            args: vec![ExprRaw::Int(1)],
         },
     );
 
     assert_expr_parses(
         "asd.qwe(1, true, this)",
-        Expr::ExprMethodCall {
-            object: Box::new(Expr::ExprIdentifier(String::from("asd"))),
+        ExprRaw::MethodCall {
+            object: Box::new(ExprRaw::Identifier(String::from("asd"))),
             method: String::from("qwe"),
-            args: vec![Expr::ExprInt(1), Expr::ExprBool(true), Expr::ExprThis],
+            args: vec![ExprRaw::Int(1), ExprRaw::Bool(true), ExprRaw::This],
         },
     );
 }
@@ -323,10 +323,10 @@ fn expr_method_call_with_args() {
 fn expr_own_method_call_and_field_access() {
     assert_expr_parses(
         "@qwe().next(@field)",
-        Expr::ExprMethodCall {
-            object: Box::new(Expr::ExprOwnMethodCall { method: String::from("qwe"), args: vec![] }),
+        ExprRaw::MethodCall {
+            object: Box::new(ExprRaw::OwnMethodCall { method: String::from("qwe"), args: vec![] }),
             method: String::from("next"),
-            args: vec![Expr::ExprOwnFieldAccess { field: "field".into() }],
+            args: vec![ExprRaw::OwnFieldAccess { field: "field".into() }],
         },
     );
 }
@@ -335,11 +335,11 @@ fn expr_own_method_call_and_field_access() {
 fn expr_method_call_chained() {
     assert_expr_parses(
         "(1, 2).qwe().asd()",
-        Expr::ExprMethodCall {
-            object: Box::new(Expr::ExprMethodCall {
-                object: Box::new(Expr::ExprTupleValue(vec![
-                    Expr::ExprInt(1),
-                    Expr::ExprInt(2),
+        ExprRaw::MethodCall {
+            object: Box::new(ExprRaw::MethodCall {
+                object: Box::new(ExprRaw::TupleValue(vec![
+                    ExprRaw::Int(1),
+                    ExprRaw::Int(2),
                 ])),
                 method: String::from("qwe"),
                 args: vec![],
@@ -352,13 +352,13 @@ fn expr_method_call_chained() {
 
 #[test]
 fn expr_call_method_on_list_literal() {
-    let expected = Expr::ExprMethodCall {
-        object: Box::new(Expr::ExprListValue(vec![
-            Expr::ExprIdentifier(String::from("asd")),
-            Expr::ExprInt(2),
+    let expected = ExprRaw::MethodCall {
+        object: Box::new(ExprRaw::ListValue(vec![
+            ExprRaw::Identifier(String::from("asd")),
+            ExprRaw::Int(2),
         ])),
         method: String::from("qwe"),
-        args: vec![Expr::ExprThis],
+        args: vec![ExprRaw::This],
     };
 
     assert_expr_parses("([asd, 2]).qwe(this)", expected);
@@ -368,16 +368,16 @@ fn expr_call_method_on_list_literal() {
 fn expr_call_method_on_list_access() {
     assert_expr_parses(
         "[asd, 2][0].qwe(this)",
-        Expr::ExprMethodCall {
-            object: Box::new(Expr::ExprListAccess {
-                list: Box::new(Expr::ExprListValue(vec![
-                    Expr::ExprIdentifier(String::from("asd")),
-                    Expr::ExprInt(2),
+        ExprRaw::MethodCall {
+            object: Box::new(ExprRaw::ListAccess {
+                list: Box::new(ExprRaw::ListValue(vec![
+                    ExprRaw::Identifier(String::from("asd")),
+                    ExprRaw::Int(2),
                 ])),
-                index: Box::new(Expr::ExprInt(0)),
+                index: Box::new(ExprRaw::Int(0)),
             }),
             method: String::from("qwe"),
-            args: vec![Expr::ExprThis],
+            args: vec![ExprRaw::This],
         },
     );
 }
@@ -386,13 +386,13 @@ fn expr_call_method_on_list_access() {
 fn expr_function_call_with_method_call() {
     assert_expr_parses(
         "function()[0].method()",
-        Expr::ExprMethodCall {
-            object: Box::new(Expr::ExprListAccess {
-                list: Box::new(Expr::ExprFunctionCall {
+        ExprRaw::MethodCall {
+            object: Box::new(ExprRaw::ListAccess {
+                list: Box::new(ExprRaw::FunctionCall {
                     function: String::from("function"),
                     args: vec![],
                 }),
-                index: Box::new(Expr::ExprInt(0)),
+                index: Box::new(ExprRaw::Int(0)),
             }),
             method: String::from("method"),
             args: vec![],
@@ -407,13 +407,13 @@ fn expr_function_call_with_method_call() {
 fn expr_list_access_on_method_call() {
     assert_expr_parses(
         "1.qwe()[0]",
-        Expr::ExprListAccess {
-            list: Box::new(Expr::ExprMethodCall {
-                object: Box::new(Expr::ExprInt(1)),
+        ExprRaw::ListAccess {
+            list: Box::new(ExprRaw::MethodCall {
+                object: Box::new(ExprRaw::Int(1)),
                 method: String::from("qwe"),
                 args: vec![],
             }),
-            index: Box::new(Expr::ExprInt(0)),
+            index: Box::new(ExprRaw::Int(0)),
         },
     );
 }
@@ -422,7 +422,7 @@ fn expr_list_access_on_method_call() {
 fn expr_new_class_instance() {
     assert_expr_parses(
         "Object()",
-        Expr::ExprNewClassInstance { typename: String::from("Object"), args: vec![] },
+        ExprRaw::NewClassInstance { typename: String::from("Object"), args: vec![] },
     );
 }
 
@@ -430,6 +430,6 @@ fn expr_new_class_instance() {
 fn expr_spawn_active() {
     assert_expr_parses(
         "spawn Object()",
-        Expr::ExprSpawnActive { typename: String::from("Object"), args: vec![] },
+        ExprRaw::SpawnActive { typename: String::from("Object"), args: vec![] },
     );
 }

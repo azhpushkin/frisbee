@@ -80,36 +80,18 @@ pub enum Type {
 
 #[derive(Debug, PartialEq)]
 pub enum Statement {
-    SIfElse {
-        condition: Expr,
-        ifbody: Vec<Statement>,
-        elsebody: Vec<Statement>,
-    },
-    SWhile {
-        condition: Expr,
-        body: Vec<Statement>,
-    },
-    SForeach {
-        itemname: String,
-        iterable: Expr,
-        body: Vec<Statement>,
-    },
+    SIfElse { condition: ExprRaw, ifbody: Vec<Statement>, elsebody: Vec<Statement> },
+    SWhile { condition: ExprRaw, body: Vec<Statement> },
+    SForeach { itemname: String, iterable: ExprRaw, body: Vec<Statement> },
     SBreak,
     SContinue,
-    SReturn(Expr),
-    SAssign {
-        left: Expr,
-        right: Expr,
-    },
+    SReturn(ExprRaw),
+    SAssign { left: ExprRaw, right: ExprRaw },
     // SVarDecl(Type, String),
-    SVarDeclWithAssign(Type, String, Expr),
-    SSendMessage {
-        active: Expr,
-        method: String,
-        args: Vec<Expr>,
-    },
+    SVarDeclWithAssign(Type, String, ExprRaw),
+    SSendMessage { active: ExprRaw, method: String, args: Vec<ExprRaw> },
     // TODO: SWaitMessage
-    SExpr(Expr),
+    SExpr(ExprRaw),
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -147,28 +129,31 @@ pub enum UnaryOp {
 // This means that if we do something like array[-1], we do not handle it, lol
 // maybe save state of the actor before running it? (2x memory for this)
 
-#[derive(Debug, PartialEq)]
-pub enum Expr {
-    ExprUnaryOp { op: UnaryOp, operand: Box<Expr> },
-    ExprBinOp { left: Box<Expr>, right: Box<Expr>, op: BinaryOp },
-    ExprListAccess { list: Box<Expr>, index: Box<Expr> },
-    ExprListValue(Vec<Expr>),
-    ExprTupleValue(Vec<Expr>),
-    ExprFunctionCall { function: String, args: Vec<Expr> },
-    ExprMethodCall { object: Box<Expr>, method: String, args: Vec<Expr> },
-    ExprFieldAccess { object: Box<Expr>, field: String },
-    ExprOwnMethodCall { method: String, args: Vec<Expr> },
-    ExprOwnFieldAccess { field: String },
-    ExprInt(i32),
-    ExprString(String),
-    ExprBool(bool),
-    ExprNil,
-    ExprFloat(f32),
-    ExprIdentifier(String),
-    ExprNewClassInstance { typename: String, args: Vec<Expr> },
-    ExprSpawnActive { typename: String, args: Vec<Expr> },
-    ExprThis,
-
-    ExprNewClassInstanceQualified { module: ModulePathAlias, typename: String, args: Vec<Expr> },
-    ExprSpawnActiveQualified { module: ModulePathAlias, typename: String, args: Vec<Expr> },
+pub trait ExprWithType {
+    fn get_raw(&self) -> &ExprRaw;
+    fn get_type(&self) -> &Type;
 }
+
+#[derive(Debug, PartialEq)]
+pub enum ExprRaw {
+    UnaryOp { op: UnaryOp, operand: Box<ExprRaw> },
+    BinOp { left: Box<ExprRaw>, right: Box<ExprRaw>, op: BinaryOp },
+    ListAccess { list: Box<ExprRaw>, index: Box<ExprRaw> },
+    ListValue(Vec<ExprRaw>),
+    TupleValue(Vec<ExprRaw>),
+    FunctionCall { function: String, args: Vec<ExprRaw> },
+    MethodCall { object: Box<ExprRaw>, method: String, args: Vec<ExprRaw> },
+    FieldAccess { object: Box<ExprRaw>, field: String },
+    OwnMethodCall { method: String, args: Vec<ExprRaw> },
+    OwnFieldAccess { field: String },
+    Int(i32),
+    String(String),
+    Bool(bool),
+    Nil,
+    Float(f32),
+    Identifier(String),
+    NewClassInstance { typename: String, args: Vec<ExprRaw> },
+    SpawnActive { typename: String, args: Vec<ExprRaw> },
+    This,
+}
+

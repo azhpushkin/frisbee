@@ -420,11 +420,11 @@ impl Parser {
         }
     }
 
-    pub fn parse_expr(&mut self) -> ParseResult<Expr> {
+    pub fn parse_expr(&mut self) -> ParseResult<ExprRaw> {
         return self.parse_expr_equality();
     }
 
-    pub fn parse_expr_comparison(&mut self) -> ParseResult<Expr> {
+    pub fn parse_expr_comparison(&mut self) -> ParseResult<ExprRaw> {
         let mut res_expr = self.parse_expr_term()?;
         while consume_if_matches_one_of!(
             self,
@@ -433,7 +433,7 @@ impl Parser {
             let (op, _) = &self.rel_token(-1).clone();
             let right = self.parse_expr_term()?;
 
-            res_expr = Expr::ExprBinOp {
+            res_expr = ExprRaw::BinOp {
                 left: Box::new(res_expr),
                 right: Box::new(right),
                 op: bin_op_from_token(op),
@@ -443,13 +443,13 @@ impl Parser {
         Ok(res_expr)
     }
 
-    pub fn parse_expr_term(&mut self) -> ParseResult<Expr> {
+    pub fn parse_expr_term(&mut self) -> ParseResult<ExprRaw> {
         let mut res_expr = self.parse_expr_factor()?;
         while consume_if_matches_one_of!(self, [Token::Minus, Token::Plus]) {
             let (op, _) = &self.rel_token(-1).clone();
             let right = self.parse_expr_factor()?;
 
-            res_expr = Expr::ExprBinOp {
+            res_expr = ExprRaw::BinOp {
                 left: Box::new(res_expr),
                 right: Box::new(right),
                 op: bin_op_from_token(op),
@@ -459,13 +459,13 @@ impl Parser {
         Ok(res_expr)
     }
 
-    pub fn parse_expr_factor(&mut self) -> ParseResult<Expr> {
+    pub fn parse_expr_factor(&mut self) -> ParseResult<ExprRaw> {
         let mut res_expr = self.parse_expr_unary()?;
         while consume_if_matches_one_of!(self, [Token::Star, Token::Slash]) {
             let (op, _) = &self.rel_token(-1).clone();
             let right = self.parse_expr_unary()?;
 
-            res_expr = Expr::ExprBinOp {
+            res_expr = ExprRaw::BinOp {
                 left: Box::new(res_expr),
                 right: Box::new(right),
                 op: bin_op_from_token(op),
@@ -475,13 +475,13 @@ impl Parser {
         Ok(res_expr)
     }
 
-    pub fn parse_expr_equality(&mut self) -> ParseResult<Expr> {
+    pub fn parse_expr_equality(&mut self) -> ParseResult<ExprRaw> {
         let mut res_expr = self.parse_expr_comparison()?;
         while consume_if_matches_one_of!(self, [Token::EqualEqual, Token::BangEqual]) {
             let (op, _) = &self.rel_token(-1).clone();
             let right = self.parse_expr_comparison()?;
 
-            res_expr = Expr::ExprBinOp {
+            res_expr = ExprRaw::BinOp {
                 left: Box::new(res_expr),
                 right: Box::new(right),
                 op: bin_op_from_token(op),
@@ -491,20 +491,20 @@ impl Parser {
         Ok(res_expr)
     }
 
-    pub fn parse_expr_unary(&mut self) -> ParseResult<Expr> {
+    pub fn parse_expr_unary(&mut self) -> ParseResult<ExprRaw> {
         if consume_if_matches_one_of!(self, [Token::Minus, Token::Not]) {
             let (t, _) = &self.rel_token(-1).clone();
             let operand = self.parse_method_or_field_access()?;
 
-            let e = Expr::ExprUnaryOp { operand: Box::new(operand), op: unary_op_from_token(t) };
+            let e = ExprRaw::UnaryOp { operand: Box::new(operand), op: unary_op_from_token(t) };
             return Ok(e);
         }
 
         return self.parse_method_or_field_access();
     }
 
-    pub fn parse_function_call_args(&mut self) -> ParseResult<Vec<Expr>> {
-        let args: Vec<Expr>;
+    pub fn parse_function_call_args(&mut self) -> ParseResult<Vec<ExprRaw>> {
+        let args: Vec<ExprRaw>;
         if self.rel_token_check(1, Token::RightParenthesis) {
             // Consume both left and right parenthesis
             self.consume_token();
@@ -513,14 +513,14 @@ impl Parser {
         } else {
             let args_expr = self.parse_group_or_tuple()?;
             args = match args_expr {
-                Expr::ExprTupleValue(a) => a,
+                ExprRaw::TupleValue(a) => a,
                 e => vec![e],
             }
         }
         Ok(args)
     }
 
-    pub fn parse_method_or_field_access(&mut self) -> ParseResult<Expr> {
+    pub fn parse_method_or_field_access(&mut self) -> ParseResult<ExprRaw> {
         let mut res_expr = self.parse_expr_primary()?;
 
         while consume_if_matches_one_of!(
@@ -531,13 +531,13 @@ impl Parser {
             if self.rel_token_check(-1, Token::Dot) {
                 let field_or_method = consume_and_check_ident!(self);
                 if self.rel_token_check(0, Token::LeftParenthesis) {
-                    res_expr = Expr::ExprMethodCall {
+                    res_expr = ExprRaw::MethodCall {
                         object: Box::new(res_expr),
                         method: field_or_method,
                         args: self.parse_function_call_args()?,
                     };
                 } else {
-                    res_expr = Expr::ExprFieldAccess {
+                    res_expr = ExprRaw::FieldAccess {
                         object: Box::new(res_expr),
                         field: field_or_method,
                     };
@@ -546,15 +546,15 @@ impl Parser {
                 // otherwise - left square brackets, meaning this is list access
                 let index = self.parse_expr()?;
                 consume_and_check!(self, Token::RightSquareBrackets);
-                res_expr = Expr::ExprListAccess { list: Box::new(res_expr), index: Box::new(index) }
+                res_expr = ExprRaw::ListAccess { list: Box::new(res_expr), index: Box::new(index) }
             } else {
                 let mut is_own_method = false;
-                if matches!(res_expr, Expr::ExprOwnFieldAccess { .. }) {
+                if matches!(res_expr, ExprRaw::OwnFieldAccess { .. }) {
                     is_own_method = true;
                 }
                 let cloned_identifier = match res_expr {
-                    Expr::ExprIdentifier(ident) => ident.clone(),
-                    Expr::ExprOwnFieldAccess { field } => field.clone(),
+                    ExprRaw::Identifier(ident) => ident.clone(),
+                    ExprRaw::OwnFieldAccess { field } => field.clone(),
                     _ => return perr(self.rel_token(0), "Function call of non-function expr"),
                 };
                 self.position -= 1;
@@ -566,9 +566,9 @@ impl Parser {
                     );
                 }
                 if is_own_method {
-                    res_expr = Expr::ExprOwnMethodCall { method: cloned_identifier, args };
+                    res_expr = ExprRaw::OwnMethodCall { method: cloned_identifier, args };
                 } else {
-                    res_expr = Expr::ExprFunctionCall { function: cloned_identifier, args };
+                    res_expr = ExprRaw::FunctionCall { function: cloned_identifier, args };
                 }
             }
         }
@@ -576,13 +576,13 @@ impl Parser {
         Ok(res_expr)
     }
 
-    pub fn parse_group_or_tuple(&mut self) -> ParseResult<Expr> {
+    pub fn parse_group_or_tuple(&mut self) -> ParseResult<ExprRaw> {
         consume_and_check!(self, Token::LeftParenthesis);
         let mut result_expr = self.parse_expr()?;
 
         // If comma - then this is not just grouping, but a tuple
         if self.rel_token_check(0, Token::Comma) {
-            let mut tuple_exprs: Vec<Expr> = vec![result_expr];
+            let mut tuple_exprs: Vec<ExprRaw> = vec![result_expr];
 
             // For the next items, trailing comma is allowed, so expr after comma is optional
             while consume_if_matches_one_of!(self, [Token::Comma]) {
@@ -595,7 +595,7 @@ impl Parser {
             if tuple_exprs.len() == 1 {
                 result_expr = tuple_exprs.pop().unwrap();
             } else {
-                result_expr = Expr::ExprTupleValue(tuple_exprs);
+                result_expr = ExprRaw::TupleValue(tuple_exprs);
             }
         }
 
@@ -603,42 +603,42 @@ impl Parser {
         Ok(result_expr)
     }
 
-    pub fn parse_list_literal(&mut self) -> ParseResult<Expr> {
+    pub fn parse_list_literal(&mut self) -> ParseResult<ExprRaw> {
         consume_and_check!(self, Token::LeftSquareBrackets);
-        let mut list_items: Vec<Expr> = vec![];
+        let mut list_items: Vec<ExprRaw> = vec![];
 
         until_closes!(self, Token::RightSquareBrackets, {
             list_items.push(self.parse_expr()?);
             consume_if_matches_one_of!(self, [Token::Comma]);
         });
 
-        return Ok(Expr::ExprListValue(list_items));
+        return Ok(ExprRaw::ListValue(list_items));
     }
 
-    fn parse_new_class_instance_expr(&mut self) -> ParseResult<Expr> {
+    fn parse_new_class_instance_expr(&mut self) -> ParseResult<ExprRaw> {
         let typename = consume_and_check_type_ident!(self);
         let args = self.parse_function_call_args()?;
-        Ok(Expr::ExprNewClassInstance { typename, args })
+        Ok(ExprRaw::NewClassInstance { typename, args })
     }
 
-    fn parse_spawn_active_expr(&mut self) -> ParseResult<Expr> {
+    fn parse_spawn_active_expr(&mut self) -> ParseResult<ExprRaw> {
         consume_and_check!(self, Token::Spawn);
         let typename = consume_and_check_type_ident!(self);
         let args = self.parse_function_call_args()?;
-        Ok(Expr::ExprSpawnActive { typename, args })
+        Ok(ExprRaw::SpawnActive { typename, args })
     }
 
-    pub fn parse_expr_primary(&mut self) -> ParseResult<Expr> {
+    pub fn parse_expr_primary(&mut self) -> ParseResult<ExprRaw> {
         let expr = match &self.rel_token(0).0 {
-            Token::This => Expr::ExprThis,
-            Token::Float(f) => Expr::ExprFloat(f.clone()),
-            Token::Integer(i) => Expr::ExprInt(i.clone()),
-            Token::String(s) => Expr::ExprString(s.clone()),
-            Token::Nil => Expr::ExprNil,
-            Token::True => Expr::ExprBool(true),
-            Token::False => Expr::ExprBool(false),
-            Token::Identifier(i) => Expr::ExprIdentifier(i.clone()),
-            Token::OwnIdentifier(f) => Expr::ExprOwnFieldAccess { field: f.clone() },
+            Token::This => ExprRaw::This,
+            Token::Float(f) => ExprRaw::Float(f.clone()),
+            Token::Integer(i) => ExprRaw::Int(i.clone()),
+            Token::String(s) => ExprRaw::String(s.clone()),
+            Token::Nil => ExprRaw::Nil,
+            Token::True => ExprRaw::Bool(true),
+            Token::False => ExprRaw::Bool(false),
+            Token::Identifier(i) => ExprRaw::Identifier(i.clone()),
+            Token::OwnIdentifier(f) => ExprRaw::OwnFieldAccess { field: f.clone() },
             Token::LeftParenthesis => return self.parse_group_or_tuple(),
             Token::LeftSquareBrackets => return self.parse_list_literal(),
             Token::TypeIdentifier(_) => return self.parse_new_class_instance_expr(),

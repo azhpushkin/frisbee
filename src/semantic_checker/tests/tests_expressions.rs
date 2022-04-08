@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::ast::{Expr, ModulePath, Type};
+use crate::ast::{ExprRaw, ModulePath, Type};
 use crate::parser::parser_impl::Parser;
 use crate::scanner::scan_tokens;
 use crate::semantic_checker::check_and_annotate_symbols;
@@ -51,7 +51,7 @@ fn setup_checker<'a>(use_scope: bool, symbols_info: &'a GlobalSymbolsInfo) -> Ex
     checker
 }
 
-fn parse_expr(expr_string: &str) -> Expr {
+fn parse_expr(expr_string: &str) -> ExprRaw {
     let tokens = scan_tokens(&expr_string.into());
     let mut parser = Parser::create(tokens.expect("Scanning failed!"));
     parser.parse_expr().expect("Parsing failed!")
