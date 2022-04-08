@@ -20,7 +20,9 @@ fn main() {
         println!("{} is not a file!", file_path_s);
     }
 
-    let wp = loader::load_program(file_path).expect("Error loading!");
-    // let x = semantic_checker::check_and_gather_symbols_mappings(&wp);
-    // assert!(x.is_ok(), "{}", x.unwrap_err());
+    let mut wp = loader::load_program(file_path).expect("Error loading!");
+    let symbols_info = semantic_checker::check_and_annotate_symbols(&mut wp).expect("Type error");
+    semantic_checker::check_and_annotate_statements(&mut wp, &symbols_info)
+        .expect("Expr type error");
+    println!("{:#?}", wp.files);
 }

@@ -4,10 +4,10 @@ fun Int add_squares(Int a, Int b) {
     return a_s + (b * b);
 }
 
-fun main() {
+fun Nil main() {
     1 + 2;
 
-    let a = 2;
-    let b = 3;
-    let res = add_squares(a, b);
+    Int a = 2;
+    Int b = 3;
+    Int res = add_squares(a, b);
 }
