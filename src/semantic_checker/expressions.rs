@@ -150,7 +150,7 @@ impl<'a> ExprTypeChecker<'a> {
 
                 let constuctor =
                     class_signature.methods.get(typename).expect("Constructor not found");
-                return self.check_function_call(constuctor, args);
+                self.check_function_call(constuctor, args)
             }
             Expr::SpawnActive { typename, args } => {
                 let class_signature = self.get_class_signature(typename)?;
@@ -160,11 +160,11 @@ impl<'a> ExprTypeChecker<'a> {
                 }
                 let constuctor =
                     class_signature.methods.get(typename).expect("Constructor not found");
-                return self.check_function_call(constuctor, args);
+                self.check_function_call(constuctor, args)
             }
             Expr::FunctionCall { function, args } => {
                 let function_signature = self.get_function_signature(function)?;
-                return self.check_function_call(function_signature, args);
+                self.check_function_call(function_signature, args)
             }
 
             Expr::MethodCall { object, method, args } => {
@@ -173,13 +173,13 @@ impl<'a> ExprTypeChecker<'a> {
                 match &obj_type {
                     Type::IdentQualified(alias, name) => {
                         let method = self.get_type_method(alias, name, method)?;
-                        return self.check_function_call(method, args);
+                        self.check_function_call(method, args)
                     }
                     Type::Ident(..) => panic!("TypeIdent should not be present here!"),
                     Type::Maybe(_) => panic!("Not implemented for maybe yet!"), // implement ?.
                     t => {
                         let method = get_std_method(t, method)?;
-                        return self.check_function_call(&method, args);
+                        self.check_function_call(&method, args)
                     }
                 }
             }
@@ -202,7 +202,7 @@ impl<'a> ExprTypeChecker<'a> {
             Expr::OwnMethodCall { method, args } => {
                 let method_signature =
                     self.get_type_method(&self.file_name, self.scope.as_ref().unwrap(), method)?;
-                return self.check_function_call(method_signature, args);
+                self.check_function_call(method_signature, args)
             }
             Expr::OwnFieldAccess { field } => {
                 let field_type =
