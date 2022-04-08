@@ -1,0 +1,13 @@
+
+fun Int add_squares(Int a, Int b) {
+    Int a_s = a * a;
+    return a_s + (b * b);
+}
+
+fun main() {
+    1 + 2;
+
+    let a = 2;
+    let b = 3;
+    let res = add_squares(a, b);
+}
