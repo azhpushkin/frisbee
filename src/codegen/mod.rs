@@ -1,7 +1,7 @@
 use crate::loader::WholeProgram;
 
 mod constants;
-mod disassemble;
+pub mod disassemble;
 mod expressions;
 mod functions;
 mod generator;
@@ -13,11 +13,6 @@ pub fn generate_program(wp: &WholeProgram) -> Vec<u8> {
     for (_, file) in wp.files.iter() {
         for function in file.ast.functions.iter() {
             let x = functions::generate_function_bytecode(function, &mut globals).unwrap();
-            println!(
-                "{}: \n{}",
-                function.name,
-                disassemble::disassemble_bytes(&x)
-            )
         }
     }
 

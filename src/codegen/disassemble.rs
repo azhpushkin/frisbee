@@ -1,3 +1,5 @@
+use std::slice::Iter;
+
 use crate::vm::Op;
 
 pub fn opcode_to_s(c: u8) -> &'static str {
@@ -21,10 +23,45 @@ pub fn opcode_to_s(c: u8) -> &'static str {
     }
 }
 
-pub fn disassemble_bytes(program: &Vec<u8>) -> String {
-    let mut text_repr: String = String::new();
+pub fn get_str(i: &mut Iter<u8>, n: usize) -> String {
+    let mut s = String::new();
+    for _ in 0..n {
+        s.push(*i.next().unwrap() as char);
+    }
+    s
+}
+pub fn get_bytes<const N: usize>(i: &mut Iter<u8>) -> [u8; N] {
+    let mut bytes = [0; N];
+    for j in 0..N {
+        bytes[j] = *i.next().unwrap();
+    }
+    bytes
+}
 
+pub fn disassemble_bytes(program: &Vec<u8>) -> String {
+    let mut text_repr: String = String::from("Constants:\n");
     let mut program_iter = program.iter();
+
+    loop {
+        let mut i: usize = 0;
+        // println!("{:?} {:?}", text_repr, *program_iter.next().unwrap());
+        let const_text: String = match *program_iter.next().unwrap() {
+            Op::CONST_INT_FLAG => i64::from_be_bytes(get_bytes::<8>(&mut program_iter)).to_string(),
+            Op::CONST_FLOAT_FLAG => {
+                f64::from_be_bytes(get_bytes::<8>(&mut program_iter)).to_string()
+            }
+            Op::CONST_STRING_FLAG => {
+                let n = u16::from_be_bytes(get_bytes::<2>(&mut program_iter));
+                get_str(&mut program_iter, n as usize)
+            }
+            Op::CONST_END_FLAG => break,
+            c => panic!("Unknown const flag: {:02x}", c),
+        };
+        text_repr.push_str(&format!("\t{}: {}\n", i, const_text));
+        i += 1;
+    }
+    return text_repr;
+
     while let Some(opcode) = program_iter.next() {
         let mut args_num: usize = match *opcode {
             Op::LOAD_INT => 1,
@@ -42,7 +79,7 @@ pub fn disassemble_bytes(program: &Vec<u8>) -> String {
             args.push(*program_iter.next().unwrap());
             args_num -= 1;
         }
-        let op_text = format!("\t{} {:?}\n", opcode_to_s(*opcode), args);
+        let op_text = format!("\t{} {:02x?}\n", opcode_to_s(*opcode), args);
         text_repr.push_str(op_text.as_str());
     }
     text_repr

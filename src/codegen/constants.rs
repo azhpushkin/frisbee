@@ -1,11 +1,11 @@
 use crate::vm::Op;
 
+#[derive(Debug)]
 pub enum Constant {
     Int(i64),
     Float(f64),
     String(String),
 }
-
 
 pub fn constants_to_bytecode(data: &Vec<Constant>) -> Vec<u8> {
     let mut res = vec![];

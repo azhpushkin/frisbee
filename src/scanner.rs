@@ -17,8 +17,8 @@ pub enum Token {
     OwnIdentifier(String),
     TypeIdentifier(String),
     String(String),
-    Float(f32),
-    Integer(i32),
+    Float(f64),
+    Integer(i64),
 
     // Keywords
     Active, Class, Spawn,

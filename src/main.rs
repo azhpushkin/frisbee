@@ -25,6 +25,6 @@ fn main() {
     semantic_checker::check_and_annotate_statements(&mut wp, &symbols_info)
         .expect("Expr type error");
 
-    codegen::generate_program(&wp);
-    
+    let bytecode = codegen::generate_program(&wp);
+    println!("{}", codegen::disassemble::disassemble_bytes(&bytecode));
 }

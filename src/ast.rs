@@ -146,18 +146,17 @@ pub enum Expr {
     FieldAccess { object: Box<Expr>, field: String },
     OwnMethodCall { method: String, args: Vec<Expr> },
     OwnFieldAccess { field: String },
-    Int(i32),
+    Int(i64),
     String(String),
     Bool(bool),
     Nil,
-    Float(f32),
+    Float(f64),
     Identifier(String),
     NewClassInstance { typename: String, args: Vec<Expr> },
     SpawnActive { typename: String, args: Vec<Expr> },
     This,
 
     // These nodes are created after semantic check
-    TypedExpr{expr: Box<Expr>, typename: Type},
+    TypedExpr { expr: Box<Expr>, typename: Type },
     FunctionCallQualified { module: ModulePathAlias, function: String, args: Vec<Expr> },
 }
-
