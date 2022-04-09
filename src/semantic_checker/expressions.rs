@@ -51,7 +51,21 @@ impl<'a> ExprTypeChecker<'a> {
             None => return sem_err!("{} Type {} not found", self.err_prefix(), typename),
         };
         // Unwrap here as during global_signatures creation we checked that the type exists
-        Ok(self.symbols_info.global_signatures.typenames.get(class_origin).unwrap())
+        Ok(self
+            .symbols_info
+            .global_signatures
+            .typenames
+            .get(class_origin)
+            .unwrap())
+    }
+
+    fn get_function_file(&self, function_name: &String) -> ModulePathAlias {
+        self.get_symbols_per_file()
+            .functions
+            .get(function_name)
+            .unwrap()
+            .module
+            .clone()
     }
 
     fn get_function_signature(&self, function_name: &String) -> SemanticResult<&FunctionSignature> {
@@ -60,7 +74,12 @@ impl<'a> ExprTypeChecker<'a> {
             None => return sem_err!("{} Function {} not found", self.err_prefix(), function_name),
         };
         // Unwrap here as during global_signatures creation we checked that the function exists
-        Ok(self.symbols_info.global_signatures.functions.get(function_origin).unwrap())
+        Ok(self
+            .symbols_info
+            .global_signatures
+            .functions
+            .get(function_origin)
+            .unwrap())
     }
 
     fn get_type_method(
@@ -70,8 +89,12 @@ impl<'a> ExprTypeChecker<'a> {
         method: &String,
     ) -> SemanticResult<&FunctionSignature> {
         let symbol_origin = SymbolOrigin { module: alias.clone(), name: name.clone() };
-        let class_signature =
-            self.symbols_info.global_signatures.typenames.get(&symbol_origin).unwrap();
+        let class_signature = self
+            .symbols_info
+            .global_signatures
+            .typenames
+            .get(&symbol_origin)
+            .unwrap();
         self.get_from_class_signature(&class_signature.methods, method)
     }
 
@@ -82,8 +105,12 @@ impl<'a> ExprTypeChecker<'a> {
         field: &String,
     ) -> SemanticResult<&Type> {
         let symbol_origin = SymbolOrigin { module: alias.clone(), name: name.clone() };
-        let class_signature =
-            self.symbols_info.global_signatures.typenames.get(&symbol_origin).unwrap();
+        let class_signature = self
+            .symbols_info
+            .global_signatures
+            .typenames
+            .get(&symbol_origin)
+            .unwrap();
         self.get_from_class_signature(&class_signature.fields, field)
     }
 
@@ -99,48 +126,49 @@ impl<'a> ExprTypeChecker<'a> {
     }
 
     pub fn calculate_and_annotate(&self, expr: &mut Expr) -> SemanticResult<Type> {
-        let type_or_err = match expr {
+        let calculated_type = match expr {
             // Primitive types, that map to basic types
-            Expr::Int(_) => Ok(Type::Int),
-            Expr::String(_) => Ok(Type::String),
-            Expr::Bool(_) => Ok(Type::Bool),
-            Expr::Nil => Ok(Type::Nil),
-            Expr::Float(_) => Ok(Type::Float),
+            Expr::Int(_) => Type::Int,
+            Expr::String(_) => Type::String,
+            Expr::Bool(_) => Type::Bool,
+            Expr::Nil => Type::Nil,
+            Expr::Float(_) => Type::Float,
 
             // Simple lookup is enough for this
             Expr::Identifier(identifier) => match self.variables_types.get(identifier) {
-                Some(t) => Ok(t.clone()),
-                None => sem_err!("{} unknown variable {}", self.err_prefix(), identifier),
+                Some(t) => t.clone(),
+                None => return sem_err!("{} unknown variable {}", self.err_prefix(), identifier),
             },
 
-            Expr::TupleValue(items) => Ok(Type::Tuple(self.calculate_vec(items)?)),
+            Expr::TupleValue(items) => Type::Tuple(self.calculate_vec(items)?),
             Expr::ListValue(items) => {
                 if items.len() == 0 {
                     // TODO: tests for anonymous type (in let and in methods)
-                    return Ok(Type::List(Box::new(Type::Anonymous)));
+                    Type::List(Box::new(Type::Anonymous))
+                } else {
+                    let calculated_items = self.calculate_vec(items)?;
+                    // Check for maybe types required, but this is not for now
+                    if calculated_items.windows(2).any(|pair| pair[0] != pair[1]) {
+                        return sem_err!(
+                            "{} list items have different types: {:?}",
+                            self.err_prefix(),
+                            calculated_items
+                        );
+                    }
+                    Type::List(Box::new(calculated_items[0].clone()))
                 }
-                let calculated_items = self.calculate_vec(items)?;
-                // Check for maybe types required, but this is not for now
-                if calculated_items.windows(2).any(|pair| pair[0] != pair[1]) {
-                    return sem_err!(
-                        "{} list items have different types: {:?}",
-                        self.err_prefix(),
-                        calculated_items
-                    );
-                }
-                Ok(Type::List(Box::new(calculated_items[0].clone())))
             }
 
             Expr::UnaryOp { op, operand } => {
-                calculate_unaryop_type(op, &self.calculate_and_annotate(operand)?)
+                calculate_unaryop_type(op, &self.calculate_and_annotate(operand)?)?
             }
             Expr::BinOp { left, right, op } => calculate_binaryop_type(
                 op,
                 &self.calculate_and_annotate(left)?,
                 &self.calculate_and_annotate(right)?,
-            ),
+            )?,
 
-            Expr::ListAccess { list, index } => self.calculate_access_by_index(list, index),
+            Expr::ListAccess { list, index } => self.calculate_access_by_index(list, index)?,
 
             Expr::NewClassInstance { typename, args } => {
                 let class_signature = self.get_class_signature(typename)?;
@@ -150,7 +178,7 @@ impl<'a> ExprTypeChecker<'a> {
 
                 let constuctor =
                     class_signature.methods.get(typename).expect("Constructor not found");
-                self.check_function_call(constuctor, args)
+                self.check_function_call(constuctor, args)?
             }
             Expr::SpawnActive { typename, args } => {
                 let class_signature = self.get_class_signature(typename)?;
@@ -160,11 +188,17 @@ impl<'a> ExprTypeChecker<'a> {
                 }
                 let constuctor =
                     class_signature.methods.get(typename).expect("Constructor not found");
-                self.check_function_call(constuctor, args)
+                self.check_function_call(constuctor, args)?
             }
             Expr::FunctionCall { function, args } => {
                 let function_signature = self.get_function_signature(function)?;
-                self.check_function_call(function_signature, args)
+                let rettype = self.check_function_call(function_signature, args)?;
+                *expr = Expr::FunctionCallQualified {
+                    module: self.get_function_file(function),
+                    function: std::mem::take(function),
+                    args: std::mem::take(args),
+                };
+                rettype
             }
 
             Expr::MethodCall { object, method, args } => {
@@ -173,13 +207,13 @@ impl<'a> ExprTypeChecker<'a> {
                 match &obj_type {
                     Type::IdentQualified(alias, name) => {
                         let method = self.get_type_method(alias, name, method)?;
-                        self.check_function_call(method, args)
+                        self.check_function_call(method, args)?
                     }
                     Type::Ident(..) => panic!("TypeIdent should not be present here!"),
                     Type::Maybe(_) => panic!("Not implemented for maybe yet!"), // implement ?.
                     t => {
                         let method = get_std_method(t, method)?;
-                        self.check_function_call(&method, args)
+                        self.check_function_call(&method, args)?
                     }
                 }
             }
@@ -190,42 +224,46 @@ impl<'a> ExprTypeChecker<'a> {
                 match &obj_type {
                     Type::IdentQualified(alias, name) => {
                         let field_type = self.get_type_field(alias, name, field)?;
-                        Ok(field_type.clone())
+                        field_type.clone()
                     }
                     Type::Ident(..) => panic!("TypeIdent should not be present here!"),
-                    _ => sem_err!("Error at {:?} - type {:?} has no fields", object, obj_type),
+                    _ => {
+                        return sem_err!(
+                            "Error at {:?} - type {:?} has no fields",
+                            object,
+                            obj_type
+                        )
+                    }
                 }
             }
             Expr::OwnMethodCall { .. } | Expr::OwnFieldAccess { .. } if self.scope.is_none() => {
-                sem_err!("{} Using @ is not allowed in functions", self.err_prefix())
+                return sem_err!("{} Using @ is not allowed in functions", self.err_prefix())
             }
             Expr::OwnMethodCall { method, args } => {
                 let method_signature =
                     self.get_type_method(&self.file_name, self.scope.as_ref().unwrap(), method)?;
-                self.check_function_call(method_signature, args)
+                self.check_function_call(method_signature, args)?
             }
             Expr::OwnFieldAccess { field } => {
                 let field_type =
                     self.get_type_field(&self.file_name, &self.scope.as_ref().unwrap(), field)?;
-                Ok(field_type.clone())
+                field_type.clone()
             }
             Expr::This => match &self.scope {
-                None => Err("Using 'this' in the functions is not allowed!".into()),
-                Some(_) => Ok(Type::IdentQualified(
-                    self.file_name.clone(),
-                    self.scope.clone().unwrap(),
-                )),
+                None => return sem_err!("Using 'this' in the functions is not allowed!"),
+                Some(_) => {
+                    Type::IdentQualified(self.file_name.clone(), self.scope.clone().unwrap())
+                }
             },
             _ => todo!("asd"),
         };
-
-        let calculated_type = type_or_err?;
 
         let mut temp_box = Expr::Nil;
         std::mem::swap(expr, &mut temp_box);
 
         // Now temp box has the original expr, so we can move it to wrapper one
-        let mut new_expr = Expr::TypedExpr { expr: Box::new(temp_box), typename: calculated_type.clone() };
+        let mut new_expr =
+            Expr::TypedExpr { expr: Box::new(temp_box), typename: calculated_type.clone() };
         std::mem::swap(expr, &mut new_expr);
 
         // Now boxed Expr::Nil is in the new_expr variable and expr has new correct value

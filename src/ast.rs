@@ -156,6 +156,8 @@ pub enum Expr {
     SpawnActive { typename: String, args: Vec<Expr> },
     This,
 
+    // These nodes are created after semantic check
     TypedExpr{expr: Box<Expr>, typename: Type},
+    FunctionCallQualified { module: ModulePathAlias, function: String, args: Vec<Expr> },
 }
 

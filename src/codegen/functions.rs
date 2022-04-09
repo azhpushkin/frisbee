@@ -22,6 +22,7 @@ pub fn generate_function_bytecode(
                 generator.push(Op::POP);
             }
             Statement::VarDecl(_, varname) => {
+                // TODO: this should reserve the space for the variable
                 generator.push(Op::LOAD_INT);
                 generator.push(0);
                 generator.add_local(varname);
