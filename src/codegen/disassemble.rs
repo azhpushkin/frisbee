@@ -23,7 +23,8 @@ pub fn opcode_to_s(c: u8) -> &'static str {
     }
 }
 
-pub fn get_str(i: &mut Iter<u8>, n: usize) -> String {
+pub fn get_str(i: &mut Iter<u8>) -> String {
+    let n = u16::from_be_bytes(get_bytes::<2>(i));
     let mut s = String::new();
     for _ in 0..n {
         s.push(*i.next().unwrap() as char);
@@ -50,10 +51,7 @@ pub fn disassemble_bytes(program: &Vec<u8>) -> String {
             op::CONST_FLOAT_FLAG => {
                 f64::from_be_bytes(get_bytes::<8>(&mut program_iter)).to_string()
             }
-            op::CONST_STRING_FLAG => {
-                let n = u16::from_be_bytes(get_bytes::<2>(&mut program_iter));
-                get_str(&mut program_iter, n as usize)
-            }
+            op::CONST_STRING_FLAG => get_str(&mut program_iter),
             op::CONST_END_FLAG => break,
             c => panic!("Unknown const flag: {:02x}", c),
         };
