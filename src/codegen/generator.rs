@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::ast::ModulePathAlias;
 use crate::vm::Op;
 
 use super::globals::*;
@@ -34,6 +35,10 @@ impl<'a> BytecodeGenerator<'a> {
     pub fn push_constant(&mut self, constant: Constant) {
         let constant_pos = self.globals.constants.get_constant(constant);
         self.push(constant_pos);
+    }
+
+    pub fn get_function(&mut self, module: &ModulePathAlias, function: &String) -> usize {
+        self.globals.functions.get_function_placeholder(module.clone(), function.clone())
     }
 
     pub fn push(&mut self, opcode: u8) {

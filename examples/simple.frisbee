@@ -1,6 +1,6 @@
 
 fun Int add_squares(Int a, Int b) {
-    Int a_s = a * a;
+    Int a_s = a * a * 1;
     return a_s + (b * b);
 }
 

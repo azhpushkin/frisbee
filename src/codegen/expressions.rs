@@ -48,6 +48,20 @@ impl<'a> BytecodeGenerator<'a> {
             Expr::Identifier(varname) => {
                 self.push_get_var(varname);
             }
+            Expr::FunctionCall { .. } => {
+                panic!("FunctionCall should not be here: {:?}", inner_expr)
+            }
+            Expr::FunctionCallQualified { module, function, args } => {
+                for arg in args.iter() {
+                    self.push_expr(&arg);
+                }
+                let function_id = self.get_function(module, function) as u8;
+                self.push(Op::CALL);
+                self.push(function_id);
+                for _ in args.iter() {
+                    self.push(Op::POP);
+                }
+            }
             // /////// Expr::FunctionCall { function: (), args: () }
             // TODO: function call to qualified function call
             // TODO: method call to qualified function call
