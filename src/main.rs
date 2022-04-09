@@ -27,4 +27,9 @@ fn main() {
 
     let bytecode = codegen::generate_program(&wp);
     println!("{}", codegen::disassemble::disassemble_bytes(&bytecode));
+
+    if false {
+        let mut vm = vm::Vm::new(bytecode);
+        vm.run();
+    }
 }

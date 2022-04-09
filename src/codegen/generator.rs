@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::ast::ModulePathAlias;
-use crate::vm::Op;
+use crate::vm::op;
 
 use super::constants::Constant;
 use super::globals::Globals;
@@ -23,13 +23,13 @@ impl<'a> BytecodeGenerator<'a> {
 
     pub fn push_get_var(&mut self, varname: &String) {
         let var_pos = self.locals.get(varname).unwrap().clone();
-        self.push(Op::GET_VAR);
+        self.push(op::GET_VAR);
         self.push(var_pos);
     }
 
     pub fn push_set_var(&mut self, varname: &String) {
         let var_pos = self.locals.get(varname).unwrap().clone();
-        self.push(Op::SET_VAR);
+        self.push(op::SET_VAR);
         self.push(var_pos);
     }
 

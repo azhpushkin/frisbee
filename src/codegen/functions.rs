@@ -1,5 +1,5 @@
 use crate::ast::*;
-use crate::vm::Op;
+use crate::vm::op;
 
 use super::generator::BytecodeGenerator;
 use super::globals::Globals;
@@ -19,11 +19,11 @@ pub fn generate_function_bytecode(
         match statement {
             Statement::Expr(expr) => {
                 generator.push_expr(expr);
-                generator.push(Op::POP);
+                generator.push(op::POP);
             }
             Statement::VarDecl(_, varname) => {
                 // TODO: this should reserve the space for the variable
-                generator.push(Op::LOAD_INT);
+                generator.push(op::LOAD_INT);
                 generator.push(0);
                 generator.add_local(varname);
             }
@@ -33,7 +33,7 @@ pub fn generate_function_bytecode(
             }
             Statement::Return(expr) => {
                 generator.push_expr(expr);
-                generator.push(Op::RETURN);
+                generator.push(op::RETURN);
             }
             _ => todo!(),
         }

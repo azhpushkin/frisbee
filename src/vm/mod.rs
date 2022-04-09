@@ -11,7 +11,7 @@ macro_rules! opcodes_list {
 }
 
 #[rustfmt::skip]
-pub mod Op {
+pub mod op {
     opcodes_list!(
         0,
         LOAD_CONST,
@@ -44,7 +44,7 @@ struct CallFrame {
     return_ip: usize,
 }
 
-struct Vm {
+pub struct Vm {
     program: Vec<u8>,
     stack: [u64; STACK_SIZE],
     stack_pointer: usize,
@@ -66,7 +66,7 @@ impl Vm {
         self.stack[self.stack_pointer]
     }
 
-    pub fn read_opcode(&mut self) -> u8 {
+    fn read_opcode(&mut self) -> u8 {
         let byte = self.program[self.stack_pointer];
         self.stack_pointer += 1;
         byte
@@ -77,18 +77,18 @@ impl Vm {
         while pc < self.program.len() {
             let opcode = self.read_opcode();
             match opcode {
-                Op::LOAD_INT => {
+                op::LOAD_INT => {
                     let value = self.program[pc + 1];
                     self.stack[self.stack_pointer] = value as u64;
                     self.stack_pointer += 1;
                     pc += 2;
                 }
-                Op::ADD_INT => {
+                op::ADD_INT => {
                     let a = self.pop() as i64;
                     let b = self.pop() as i64;
                     self.push((a + b) as u64);
                 }
-                Op::ADD_FLOAT => {
+                op::ADD_FLOAT => {
                     let a = self.pop() as i64;
                     let b = self.pop() as i64;
                     self.push((a + b) as u64);

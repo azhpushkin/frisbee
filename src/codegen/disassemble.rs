@@ -1,24 +1,24 @@
 use std::slice::Iter;
 
-use crate::vm::Op;
+use crate::vm::op;
 
 pub fn opcode_to_s(c: u8) -> &'static str {
     match c {
-        Op::LOAD_CONST => "load_const",
-        Op::LOAD_INT => "load_int",
-        Op::ADD_INT => "add_int",
-        Op::SUB_INT => "sub_int",
-        Op::MUL_INT => "mul_int",
-        Op::DIV_INT => "div_int",
-        Op::ADD_FLOAT => "add_float",
-        Op::SUB_FLOAT => "sub_float",
-        Op::MUL_FLOAT => "mul_float",
-        Op::DIV_FLOAT => "div_float",
-        Op::CALL => "call",
-        Op::RETURN => "return",
-        Op::POP => "pop",
-        Op::SET_VAR => "set_var",
-        Op::GET_VAR => "get_var",
+        op::LOAD_CONST => "load_const",
+        op::LOAD_INT => "load_int",
+        op::ADD_INT => "add_int",
+        op::SUB_INT => "sub_int",
+        op::MUL_INT => "mul_int",
+        op::DIV_INT => "div_int",
+        op::ADD_FLOAT => "add_float",
+        op::SUB_FLOAT => "sub_float",
+        op::MUL_FLOAT => "mul_float",
+        op::DIV_FLOAT => "div_float",
+        op::CALL => "call",
+        op::RETURN => "return",
+        op::POP => "pop",
+        op::SET_VAR => "set_var",
+        op::GET_VAR => "get_var",
         _ => panic!("DIS: unknown opcode {}", c),
     }
 }
@@ -42,19 +42,19 @@ pub fn disassemble_bytes(program: &Vec<u8>) -> String {
     let mut text_repr: String = String::from("Constants:\n");
     let mut program_iter = program.iter();
 
+    let mut i: usize = 0;
     loop {
-        let mut i: usize = 0;
         // println!("{:?} {:?}", text_repr, *program_iter.next().unwrap());
         let const_text: String = match *program_iter.next().unwrap() {
-            Op::CONST_INT_FLAG => i64::from_be_bytes(get_bytes::<8>(&mut program_iter)).to_string(),
-            Op::CONST_FLOAT_FLAG => {
+            op::CONST_INT_FLAG => i64::from_be_bytes(get_bytes::<8>(&mut program_iter)).to_string(),
+            op::CONST_FLOAT_FLAG => {
                 f64::from_be_bytes(get_bytes::<8>(&mut program_iter)).to_string()
             }
-            Op::CONST_STRING_FLAG => {
+            op::CONST_STRING_FLAG => {
                 let n = u16::from_be_bytes(get_bytes::<2>(&mut program_iter));
                 get_str(&mut program_iter, n as usize)
             }
-            Op::CONST_END_FLAG => break,
+            op::CONST_END_FLAG => break,
             c => panic!("Unknown const flag: {:02x}", c),
         };
         text_repr.push_str(&format!("\t{}: {}\n", i, const_text));
@@ -64,14 +64,14 @@ pub fn disassemble_bytes(program: &Vec<u8>) -> String {
 
     while let Some(opcode) = program_iter.next() {
         let mut args_num: usize = match *opcode {
-            Op::LOAD_INT => 1,
-            Op::LOAD_CONST => 1,
-            Op::ADD_INT | Op::SUB_INT | Op::MUL_INT | Op::DIV_INT => 0,
-            Op::ADD_FLOAT | Op::SUB_FLOAT | Op::MUL_FLOAT | Op::DIV_FLOAT => 0,
-            Op::CALL => 1,
-            Op::RETURN => 0,
-            Op::POP => 0,
-            Op::SET_VAR | Op::GET_VAR => 1,
+            op::LOAD_INT => 1,
+            op::LOAD_CONST => 1,
+            op::ADD_INT | op::SUB_INT | op::MUL_INT | op::DIV_INT => 0,
+            op::ADD_FLOAT | op::SUB_FLOAT | op::MUL_FLOAT | op::DIV_FLOAT => 0,
+            op::CALL => 1,
+            op::RETURN => 0,
+            op::POP => 0,
+            op::SET_VAR | op::GET_VAR => 1,
             _ => panic!("DIS: Unknown lol {}", opcode),
         };
         let mut args: Vec<u8> = vec![];

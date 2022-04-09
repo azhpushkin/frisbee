@@ -1,7 +1,7 @@
 use super::constants::Constant;
 use super::generator::BytecodeGenerator;
 use crate::ast::*;
-use crate::vm::Op;
+use crate::vm::op;
 
 macro_rules! accept_typed_expr {
     ($self:ident) => {
@@ -19,26 +19,26 @@ impl<'a> BytecodeGenerator<'a> {
         let (inner_expr, typename) = accept_typed_expr!(expr);
         match inner_expr.as_ref() {
             Expr::Int(i) => {
-                self.push(Op::LOAD_CONST);
+                self.push(op::LOAD_CONST);
                 self.push_constant(Constant::Int(*i as i64));
             }
             Expr::Float(f) => {
-                self.push(Op::LOAD_CONST);
+                self.push(op::LOAD_CONST);
                 self.push_constant(Constant::Float(*f as f64));
             }
             Expr::BinOp { left, right, op } => {
                 self.push_expr(left.as_ref());
                 self.push_expr(right.as_ref());
                 match (typename, op) {
-                    (Type::Int, BinaryOp::Plus) => self.push(Op::ADD_INT),
-                    (Type::Int, BinaryOp::Minus) => self.push(Op::SUB_INT),
-                    (Type::Int, BinaryOp::Multiply) => self.push(Op::MUL_INT),
-                    (Type::Int, BinaryOp::Divide) => self.push(Op::DIV_INT),
+                    (Type::Int, BinaryOp::Plus) => self.push(op::ADD_INT),
+                    (Type::Int, BinaryOp::Minus) => self.push(op::SUB_INT),
+                    (Type::Int, BinaryOp::Multiply) => self.push(op::MUL_INT),
+                    (Type::Int, BinaryOp::Divide) => self.push(op::DIV_INT),
 
-                    (Type::Float, BinaryOp::Plus) => self.push(Op::ADD_FLOAT),
-                    (Type::Float, BinaryOp::Minus) => self.push(Op::SUB_FLOAT),
-                    (Type::Float, BinaryOp::Multiply) => self.push(Op::MUL_FLOAT),
-                    (Type::Float, BinaryOp::Divide) => self.push(Op::DIV_FLOAT),
+                    (Type::Float, BinaryOp::Plus) => self.push(op::ADD_FLOAT),
+                    (Type::Float, BinaryOp::Minus) => self.push(op::SUB_FLOAT),
+                    (Type::Float, BinaryOp::Multiply) => self.push(op::MUL_FLOAT),
+                    (Type::Float, BinaryOp::Divide) => self.push(op::DIV_FLOAT),
 
                     _ => panic!("Sorry, no support for {:?} and {:?} now ", typename, op),
                 }
@@ -54,10 +54,10 @@ impl<'a> BytecodeGenerator<'a> {
                     self.push_expr(&arg);
                 }
                 let function_id = self.get_function(module, function) as u8;
-                self.push(Op::CALL);
+                self.push(op::CALL);
                 self.push(function_id);
                 for _ in args.iter() {
-                    self.push(Op::POP);
+                    self.push(op::POP);
                 }
             }
             // /////// Expr::FunctionCall { function: (), args: () }
