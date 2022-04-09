@@ -21,7 +21,6 @@ pub struct WholeProgram {
 
 fn load_file(workdir: &PathBuf, module_path: &ModulePath) -> Option<LoadedFile> {
     // TODO: implement logging system for this
-    println!(" ... Loading {}", module_path.alias_str());
     let mut file_path = workdir.to_owned();
     for subpath in module_path.0.iter() {
         file_path.push(subpath);
@@ -42,7 +41,6 @@ fn load_file(workdir: &PathBuf, module_path: &ModulePath) -> Option<LoadedFile> 
         errors::show_parse_error(&contents, &module_path, ast.unwrap_err());
         return None;
     }
-    println!(" ... {} loaded!", module_path.alias().0);
 
     Some(LoadedFile {
         path: file_path,

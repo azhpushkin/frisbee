@@ -45,7 +45,12 @@ impl FunctionsTable {
         self.get_placeholder(vec![module.0, name].join("~"))
     }
 
-    pub fn get_method_placeholder(&mut self, module: ModulePathAlias, typename: String, method: String) -> usize {
+    pub fn get_method_placeholder(
+        &mut self,
+        module: ModulePathAlias,
+        typename: String,
+        method: String,
+    ) -> usize {
         self.get_placeholder(vec![module.0, typename, method].join("~"))
     }
 

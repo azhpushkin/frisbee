@@ -1,5 +1,5 @@
 array_width = 80
-chain_width = 75
+chain_width = 70
 max_width = 100
 struct_lit_width = 70
 struct_variant_width = 70

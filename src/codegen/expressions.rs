@@ -1,89 +1,57 @@
 use std::collections::HashMap;
 
-use crate::vm::Op;
-use crate::ast::*;
+use super::generator::BytecodeGenerator;
 use super::globals::*;
+use crate::ast::*;
+use crate::vm::Op;
 
 macro_rules! accept_typed_expr {
     ($self:ident) => {
         match $self {
-            Expr::TypedExpr{expr, typename} => (expr, typename),
-            _ => { return Err(format!("Not typed expression, got {:?}!", $self)); }
+            Expr::TypedExpr { expr, typename } => (expr, typename),
+            _ => {
+                panic!("Not typed expression, got {:?}!", $self);
+            }
         }
     };
 }
 
-
-
-pub struct ExprBytecodeGenerator<'a> {
-    globals: &'a mut Globals,
-    locals: HashMap<&'a String, u8>,
-    pub bytecode: Vec<u8>
-}
-
-impl<'a> ExprBytecodeGenerator<'a> {
-    pub fn new(globals: &'a mut Globals, locals: HashMap<&'a String, u8>) -> Self {
-        ExprBytecodeGenerator {
-            globals,
-            locals,
-            bytecode: vec![]
-        }
-    }
-
-    pub fn add_local(&mut self, varname: &'a String) -> u8{
-        let pos = self.locals.len() as u8;
-        self.locals.insert(varname, pos);
-        pos
-    }
-
-    pub fn get_local(&self, varname: & String) -> u8 {
-        *self.locals.get(varname).expect("No way variable is not defined here")
-    }
-    
-    pub fn generate_and_flush(&mut self, expr: &Expr, target: &mut Vec<u8>) -> Result<(), String> {
-        self.generate(expr)?;
-        target.extend(&self.bytecode);
-        Ok(())
-    }
-    
-    pub fn generate(&mut self, expr: &Expr) -> Result<(), String> {
+impl<'a> BytecodeGenerator<'a> {
+    pub fn push_expr(&mut self, expr: &Expr) {
         let (inner_expr, typename) = accept_typed_expr!(expr);
         match inner_expr.as_ref() {
             Expr::Int(i) => {
-                let const_pos = self.globals.constants.get_constant(Constant::Int(*i as i64));
-                self.bytecode.push(Op::LOAD_CONST);
-                self.bytecode.push(const_pos);
+                self.push(Op::LOAD_CONST);
+                self.push_constant(Constant::Int(*i as i64));
             }
             Expr::Float(f) => {
-                let const_pos = self.globals.constants.get_constant(Constant::Float(*f as f64));
-                self.bytecode.push(Op::LOAD_CONST);
-                self.bytecode.push(const_pos);
+                self.push(Op::LOAD_CONST);
+                self.push_constant(Constant::Float(*f as f64));
             }
             Expr::BinOp { left, right, op } => {
-                self.generate(left.as_ref())?;
-                self.generate(right.as_ref())?;
+                self.push_expr(left.as_ref());
+                self.push_expr(right.as_ref());
                 match (typename, op) {
-                    (Type::Int, BinaryOp::Plus) => self.bytecode.push(Op::ADD_INT),
-                    (Type::Int, BinaryOp::Minus) => self.bytecode.push(Op::SUB_INT),
-                    (Type::Int, BinaryOp::Multiply) => self.bytecode.push(Op::MUL_INT),
-                    (Type::Int, BinaryOp::Divide) => self.bytecode.push(Op::DIV_INT),
+                    (Type::Int, BinaryOp::Plus) => self.push(Op::ADD_INT),
+                    (Type::Int, BinaryOp::Minus) => self.push(Op::SUB_INT),
+                    (Type::Int, BinaryOp::Multiply) => self.push(Op::MUL_INT),
+                    (Type::Int, BinaryOp::Divide) => self.push(Op::DIV_INT),
 
-                    (Type::Float, BinaryOp::Plus) => self.bytecode.push(Op::ADD_FLOAT),
-                    (Type::Float, BinaryOp::Minus) => self.bytecode.push(Op::SUB_FLOAT),
-                    (Type::Float, BinaryOp::Multiply) => self.bytecode.push(Op::MUL_FLOAT),
-                    (Type::Float, BinaryOp::Divide) => self.bytecode.push(Op::DIV_FLOAT),
+                    (Type::Float, BinaryOp::Plus) => self.push(Op::ADD_FLOAT),
+                    (Type::Float, BinaryOp::Minus) => self.push(Op::SUB_FLOAT),
+                    (Type::Float, BinaryOp::Multiply) => self.push(Op::MUL_FLOAT),
+                    (Type::Float, BinaryOp::Divide) => self.push(Op::DIV_FLOAT),
 
-                    _ => panic!("Sorry, no support for {:?} and {:?} now ", typename, op)
+                    _ => panic!("Sorry, no support for {:?} and {:?} now ", typename, op),
                 }
             }
-            Expr::Identifier(i) => {
-                self.bytecode.push(self.get_local(i));
+            Expr::Identifier(varname) => {
+                self.push_get_var(varname);
             }
+            // /////// Expr::FunctionCall { function: (), args: () }
+            // TODO: function call to qualified function call
+            // TODO: method call to qualified function call
             f => panic!("Not done yet {:?}", f),
         }
-        Ok(())
     }
-
 }
-
-

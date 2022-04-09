@@ -1,42 +1,42 @@
-use std::collections::HashMap;
-
 use crate::ast::*;
 use crate::vm::Op;
 
-use super::expressions::ExprBytecodeGenerator;
+use super::generator::BytecodeGenerator;
 use super::globals::Globals;
 
 pub fn generate_function_bytecode(
     func: &FunctionDecl,
     globals: &mut Globals,
 ) -> Result<Vec<u8>, String> {
-    let mut function_bytecode: Vec<u8> = vec![];
+    let arg_vars = func.args.iter().map(|arg| &arg.name);
 
-    let mut genexpr = ExprBytecodeGenerator::new(
+    let mut generator = BytecodeGenerator::new(
         globals,
-        func.args.iter().enumerate().map(|(i, arg)| (&arg.name, i as u8)).collect(),
+        arg_vars.enumerate().map(|(i, var)| (var, i as u8)).collect(),
     );
 
     for statement in func.statements.iter() {
         match statement {
             Statement::Expr(expr) => {
-                genexpr.generate_and_flush(&expr, &mut function_bytecode)?;
-                function_bytecode.push(Op::POP);
+                generator.push_expr(expr);
+                generator.push(Op::POP);
             }
             Statement::VarDecl(_, varname) => {
-                genexpr.add_local(varname);
+                generator.push(Op::LOAD_INT);
+                generator.push(0);
+                generator.add_local(varname);
             }
             Statement::VarDeclWithAssign(_, varname, expr) => {
-                genexpr.generate_and_flush(&expr, &mut function_bytecode)?;
-                function_bytecode.push(Op::SET_VAR);
-                function_bytecode.push(genexpr.add_local(varname));
+                generator.push_expr(expr);
+                generator.add_local(varname);
             }
             Statement::Return(expr) => {
-                genexpr.generate_and_flush(&expr, &mut function_bytecode)?;
-                function_bytecode.push(Op::RETURN);
+                generator.push_expr(expr);
+                generator.push(Op::RETURN);
             }
             _ => todo!(),
         }
     }
-    Ok(function_bytecode)
+
+    Ok(generator.get_bytecode())
 }

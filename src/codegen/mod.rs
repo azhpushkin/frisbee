@@ -4,6 +4,7 @@ mod disassemble;
 mod expressions;
 mod functions;
 mod globals;
+mod generator;
 
 pub fn generate_program(wp: &WholeProgram) {
     let mut globals = globals::Globals::new();
