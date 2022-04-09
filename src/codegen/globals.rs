@@ -2,45 +2,24 @@ use std::collections::HashMap;
 
 use crate::ast::ModulePathAlias;
 
-pub enum Constant {
-    Int(i64),
-    Float(f64),
-    String(String),
-}
-
-pub struct ConstantTable {
-    // TODO: this might be a good place to use a hashmap
-    constants: Vec<Constant>,
-}
-
-pub struct FunctionsTable {
-    functions: HashMap<String, usize>,
-}
+use super::constants::Constant;
 
 pub struct Globals {
-    pub constants: ConstantTable,
-    pub functions: FunctionsTable,
+    pub constants: Vec<Constant>,
+    pub functions: HashMap<String, usize>,
 }
 
 impl Globals {
     pub fn new() -> Self {
-        Globals {
-            constants: ConstantTable { constants: vec![] },
-            functions: FunctionsTable { functions: HashMap::new() },
-        }
+        Globals { constants: vec![], functions: HashMap::new() }
     }
-}
 
-impl ConstantTable {
     pub fn get_constant(&mut self, constant: Constant) -> u8 {
         self.constants.push(constant);
         (self.constants.len() - 1) as u8
     }
-}
 
-impl FunctionsTable {
     // TODO: this join by ~ is strange, should rework I guess
-
     pub fn get_function_placeholder(&mut self, module: ModulePathAlias, name: String) -> usize {
         self.get_placeholder(vec![module.0, name].join("~"))
     }

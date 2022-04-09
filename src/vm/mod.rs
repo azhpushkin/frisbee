@@ -33,6 +33,11 @@ pub mod Op {
         SET_VAR,
         GET_VAR
     );
+
+    pub const CONST_END_FLAG: u8 = 0;
+    pub const CONST_INT_FLAG: u8 = 1;    
+    pub const CONST_FLOAT_FLAG: u8 = 2;
+    pub const CONST_STRING_FLAG: u8 = 3;
 }
 
 struct CallFrame {

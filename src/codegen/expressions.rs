@@ -1,7 +1,5 @@
-use std::collections::HashMap;
-
+use super::constants::Constant;
 use super::generator::BytecodeGenerator;
-use super::globals::*;
 use crate::ast::*;
 use crate::vm::Op;
 

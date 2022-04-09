@@ -1,12 +1,13 @@
 use crate::loader::WholeProgram;
 
+mod constants;
 mod disassemble;
 mod expressions;
 mod functions;
-mod globals;
 mod generator;
+mod globals;
 
-pub fn generate_program(wp: &WholeProgram) {
+pub fn generate_program(wp: &WholeProgram) -> Vec<u8> {
     let mut globals = globals::Globals::new();
 
     for (_, file) in wp.files.iter() {
@@ -19,4 +20,8 @@ pub fn generate_program(wp: &WholeProgram) {
             )
         }
     }
+
+    let const_bytecode = constants::constants_to_bytecode(&globals.constants);
+
+    const_bytecode
 }
