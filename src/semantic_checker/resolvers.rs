@@ -3,8 +3,10 @@ use std::collections::HashMap;
 use crate::ast::ModulePathAlias;
 use crate::loader::{LoadedFile, WholeProgram};
 
-type SymbolLookupMapping = HashMap<(ModulePathAlias, String), String>;
+type SymbolLookupMapping = HashMap<ModulePathAlias, HashMap<String, String>>;
 type SingleFileMapping = Result<HashMap<String, String>, String>;
+
+pub type SymbolResolver<'a> = dyn (Fn(&String) -> &'a String) + 'a;
 
 pub struct NameResolver {
     // key is where the symbol lookup occures, value is target
@@ -21,31 +23,35 @@ pub fn compile_method(alias: &ModulePathAlias, typename: &String, method: &Strin
 
 impl NameResolver {
     pub fn create(wp: &WholeProgram) -> NameResolver {
-        let resolver = NameResolver { typenames: HashMap::new(), functions: HashMap::new() };
+        let mut resolver = NameResolver { typenames: HashMap::new(), functions: HashMap::new() };
 
         for (file_name, file) in wp.files.iter() {
             check_module_does_not_import_itself(file);
 
             let file_functions_mapping = get_functions_origins(file)
                 .unwrap_or_else(|x| panic!("Function {} defined twice in {}", x, file_name.0));
-            let file_typenamess_mapping = get_typenames_origins(file)
+            let file_typenames_mapping = get_typenames_origins(file)
                 .unwrap_or_else(|x| panic!("Type {} defined twice in {}", x, file_name.0));
 
-            resolver.functions.extend::<SymbolLookupMapping>(
-                file_functions_mapping
-                    .into_iter()
-                    .map(|(k, v)| ((file_name.clone(), k), v))
-                    .collect(),
-            );
-            resolver.typenames.extend::<SymbolLookupMapping>(
-                file_functions_mapping
-                    .into_iter()
-                    .map(|(k, v)| ((file_name.clone(), k), v))
-                    .collect(),
-            );
+            resolver.functions.insert(file_name.clone(), file_functions_mapping);
+            resolver.typenames.insert(file_name.clone(), file_typenames_mapping);
         }
 
         resolver
+    }
+
+    pub fn get_typenames_resolver<'a>(
+        &'a self,
+        alias: &'a ModulePathAlias,
+    ) -> Box<SymbolResolver<'a>> {
+        Box::new(move |name: &String| self.typenames[alias].get(name).unwrap())
+    }
+
+    pub fn get_functions_resolver<'a>(
+        &'a self,
+        alias: &'a ModulePathAlias,
+    ) -> Box<SymbolResolver<'a>> {
+        Box::new(move |name: &String| self.functions[alias].get(name).unwrap())
     }
 }
 
@@ -97,12 +103,10 @@ fn get_functions_origins(file: &LoadedFile) -> SingleFileMapping {
     get_origins(defined_types.chain(imported_types))
 }
 
-
-
 #[cfg(test)]
 mod test {
-    use crate::test_utils::setup_and_load_program;
     use super::*;
+    use crate::test_utils::{new_alias, setup_and_load_program};
 
     pub fn check_resolver_mappings() {
         let wp = setup_and_load_program(
@@ -117,6 +121,25 @@ mod test {
         );
 
         let resolver = NameResolver::create(&wp);
-        
+
+        let main_alias = new_alias("main");
+        let mod_alias = new_alias("main");
+
+        let main_types_resolver = resolver.get_typenames_resolver(&main_alias);
+        assert_eq!(
+            main_types_resolver(&String::from("SomeType")),
+            "main::SomeType"
+        );
+
+        let main_functions_resolver = resolver.get_functions_resolver(&main_alias);
+        let mod_functions_resolver = resolver.get_functions_resolver(&mod_alias);
+        assert_eq!(
+            main_functions_resolver(&String::from("somefun")),
+            "mod::somefun"
+        );
+        assert_eq!(
+            mod_functions_resolver(&String::from("somefun")),
+            "mod::somefun"
+        );
     }
 }

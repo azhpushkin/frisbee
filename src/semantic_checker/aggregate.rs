@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use crate::ast::ModulePathAlias;
 use crate::loader::WholeProgram;
 
-use super::compile_name;
 use super::real_ast::RStatement;
 use super::real_type::{CustomType, RType, TypedFields, type_vec_to_typed_fields};
 
@@ -28,12 +27,12 @@ pub fn create_basic_aggregate(wp: &WholeProgram) -> ProgramAggregate {
         ProgramAggregate { types: HashMap::new(), functions: HashMap::new() };
 
     for (file_alias, file) in wp.files.iter() {
-        for class_decl in file.ast.types {
-            let full_name = compile_name(file_alias, &class_decl.name);
-            aggregate.types.insert(
-                full_name,
-                CustomType { name: full_name, is_active: class_decl.is_active, fields: type_vec_to_typed_fields(&class_decl.fields) }
-            );
+        for class_decl in file.ast.types.iter() {
+            // let full_name = compile_name(file_alias, &class_decl.name);
+            // aggregate.types.insert(
+            //     full_name,
+            //     CustomType { name: full_name, is_active: class_decl.is_active, fields: type_vec_to_typed_fields(&class_decl.fields) }
+            // );
         }
     }
 
