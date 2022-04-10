@@ -11,60 +11,6 @@ fn typed_named_to_vec(items: &Vec<TypedNamedObject>) -> Vec<(String, Type)> {
     items.iter().map(|o| (o.name.clone(), o.typename.clone())).collect()
 }
 
-pub fn get_typenames_origins(file: &LoadedFile) -> SemanticResult<SymbolOriginsMapping> {
-    let file_alias = file.module_path.alias();
-    let mut mapping: SymbolOriginsMapping = HashMap::new();
-
-    let defined_types = file.ast.types.iter().map(|d| (file.module_path.alias(), d.name.clone()));
-
-    let imported_types = file.ast.imports.iter().flat_map(|i| {
-        i.typenames.iter().map(move |typename| (i.module_path.alias(), typename.clone()))
-    });
-
-    for (module_alias, typename) in defined_types.chain(imported_types) {
-        if mapping.contains_key(&typename) {
-            return sem_err!(
-                "Type {} introduced several times in module {:?}",
-                typename,
-                file_alias
-            );
-        }
-        mapping.insert(
-            typename.clone(),
-            SymbolOrigin { module: module_alias, name: typename },
-        );
-    }
-
-    Ok(mapping)
-}
-
-pub fn get_functions_origins(file: &LoadedFile) -> SemanticResult<SymbolOriginsMapping> {
-    let file_alias = file.module_path.alias();
-    let mut mapping: SymbolOriginsMapping = HashMap::new();
-
-    let defined_types =
-        file.ast.functions.iter().map(|f| (file.module_path.alias(), f.name.clone()));
-
-    let imported_types = file.ast.imports.iter().flat_map(|i| {
-        i.functions.iter().map(move |funcname| (i.module_path.alias(), funcname.clone()))
-    });
-
-    for (module_alias, funcname) in defined_types.chain(imported_types) {
-        if mapping.contains_key(&funcname) {
-            return sem_err!(
-                "Function {} introduced several times in module {:?}",
-                funcname,
-                file_alias
-            );
-        }
-        mapping.insert(
-            funcname.clone(),
-            SymbolOrigin { module: module_alias, name: funcname },
-        );
-    }
-
-    Ok(mapping)
-}
 
 pub fn get_typenames_signatures(file: &LoadedFile) -> HashMap<SymbolOrigin, ClassSignature> {
     let mut signatures: HashMap<SymbolOrigin, ClassSignature> = HashMap::new();
@@ -107,15 +53,6 @@ pub fn get_functions_signatures(file: &LoadedFile) -> HashMap<SymbolOrigin, Func
         signatures.insert(symbol_origin, signature);
     }
     signatures
-}
-
-pub fn check_module_does_not_import_itself(file: &LoadedFile) -> SemanticResult<()> {
-    for import in &file.ast.imports {
-        if import.module_path == file.module_path {
-            return sem_err!("Module {:?} is importing itself!", file.module_path.alias());
-        }
-    }
-    Ok(())
 }
 
 pub fn check_class_does_not_contains_itself(class_decl: &ClassDecl) -> SemanticResult<()> {

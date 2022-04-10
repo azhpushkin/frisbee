@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::ast::ModulePathAlias;
 use crate::loader::WholeProgram;
 
+use super::compile_name;
 use super::real_ast::RStatement;
 use super::real_type::{CustomType, RType, TypedFields, type_vec_to_typed_fields};
 
@@ -21,13 +22,6 @@ pub struct RFunction {
 }
 
 
-pub fn compile_name(alias: &ModulePathAlias, name: &String) -> String {
-    format!("{}::{}", alias.0, name)
-}
-pub fn compile_method(alias: &ModulePathAlias, typename: &String, method: &String) -> String {
-    format!("{}::{}::{}", alias.0, typename, method)
-}
-
 
 pub fn create_basic_aggregate(wp: &WholeProgram) -> ProgramAggregate {
     let mut aggregate: ProgramAggregate =
@@ -45,3 +39,20 @@ pub fn create_basic_aggregate(wp: &WholeProgram) -> ProgramAggregate {
 
     aggregate
 }
+
+
+
+
+// pub fn check_class_does_not_contains_itself(class_decl: &ClassDecl) -> SemanticResult<()> {
+//     if class_decl.is_active {
+//         // Active Type is in fact reference, so it is fine to have active refer to itself
+//         return Ok(());
+//     }
+//     let check_field =
+//         |field: &TypedNamedObject| does_type_contain_itself(&field.typename, &class_decl.name);
+//     if class_decl.fields.iter().any(check_field) {
+//         return sem_err!("Type {} in contains itself, not allowed!", class_decl.name,);
+//     } else {
+//         Ok(())
+//     }
+// }
