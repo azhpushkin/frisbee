@@ -253,64 +253,6 @@ pub fn check_default_constructor() {
 }
 
 #[test]
-pub fn check_self_referrings_for_active_are_allowed() {
-    let mut wp = setup_and_load_program(
-        r#"
-        ===== file: main.frisbee
-        active Type { Type type; }
-    "#,
-    );
-
-    assert!(check_and_annotate_symbols(&mut wp).is_ok());
-
-    let default_constructor = FunctionSignature {
-        rettype: Type::IdentQualified(new_alias("main"), "Type".into()),
-        args: vec![(
-            "type".into(),
-            Type::IdentQualified(new_alias("main"), "Type".into()),
-        )],
-    };
-    let type_signature = ClassSignature {
-        module_path_alias: new_alias("main"),
-        name: "Type".into(),
-        is_active: true,
-        fields: HashMap::from([(
-            "type".into(),
-            Type::IdentQualified(new_alias("main"), "Type".into()),
-        )]),
-        methods: HashMap::from([("Type".into(), default_constructor)]),
-    };
-    assert_eq!(
-        modules::get_typenames_signatures(get_file(&wp, "main")),
-        HashMap::from([(new_symbol("main", "Type"), type_signature)])
-    );
-}
-
-#[test]
-pub fn check_no_self_referrings_for_passive() {
-    let mut wp = setup_and_load_program(
-        r#"
-        ===== file: main.frisbee
-        class Type { Type type; }
-    "#,
-    );
-
-    assert!(check_and_annotate_symbols(&mut wp).is_err());
-}
-
-#[test]
-pub fn check_no_self_referrings_for_tuple() {
-    let mut wp = setup_and_load_program(
-        r#"
-        ===== file: main.frisbee
-        class Type { (Type, Int) type; }
-    "#,
-    );
-
-    assert!(check_and_annotate_symbols(&mut wp).is_err());
-}
-
-#[test]
 pub fn check_no_self_referrings_in_imports() {
     let mut wp = setup_and_load_program(
         r#"

@@ -4,8 +4,8 @@ use crate::ast::ModulePathAlias;
 use crate::loader::WholeProgram;
 
 use super::real_ast::RStatement;
-use super::real_type::{type_vec_to_typed_fields, CustomType, RType, TypedFields};
-use super::resolvers::{compile_name, NameResolver};
+use super::real_type::{type_to_real, type_vec_to_typed_fields, CustomType, RType, TypedFields};
+use super::resolvers::{compile_method_name, compile_name, NameResolver};
 
 #[derive(Debug)]
 pub struct ProgramAggregate {
@@ -21,6 +21,12 @@ pub struct RFunction {
     pub body: Vec<RStatement>,
 }
 
+/// Creates basic aggregate, that contains
+/// * all types in final form
+/// * all functions, with empty bodies
+///
+/// After this step we have to perform statements
+/// analysis and fill in bodies of this functions
 pub fn create_basic_aggregate(wp: &WholeProgram, resolver: &NameResolver) -> ProgramAggregate {
     let mut aggregate: ProgramAggregate =
         ProgramAggregate { types: HashMap::new(), functions: HashMap::new() };
@@ -38,22 +44,21 @@ pub fn create_basic_aggregate(wp: &WholeProgram, resolver: &NameResolver) -> Pro
                     fields: type_vec_to_typed_fields(&class_decl.fields, &file_resolver),
                 },
             );
+
+            for method in class_decl.methods.iter() {
+                let full_name = compile_method_name(file_alias, &class_decl.name, &method.name);
+                aggregate.functions.insert(
+                    full_name.clone(),
+                    RFunction {
+                        name: full_name,
+                        return_type: type_to_real(&method.rettype, &file_resolver),
+                        args: type_vec_to_typed_fields(&class_decl.fields, &file_resolver),
+                        body: vec![],
+                    },
+                );
+            }
         }
     }
 
     aggregate
 }
-
-// pub fn check_class_does_not_contains_itself(class_decl: &ClassDecl) -> SemanticResult<()> {
-//     if class_decl.is_active {
-//         // Active Type is in fact reference, so it is fine to have active refer to itself
-//         return Ok(());
-//     }
-//     let check_field =
-//         |field: &TypedNamedObject| does_type_contain_itself(&field.typename, &class_decl.name);
-//     if class_decl.fields.iter().any(check_field) {
-//         return sem_err!("Type {} in contains itself, not allowed!", class_decl.name,);
-//     } else {
-//         Ok(())
-//     }
-// }

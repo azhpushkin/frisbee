@@ -17,7 +17,7 @@ pub struct NameResolver {
 pub fn compile_name(alias: &ModulePathAlias, name: &String) -> String {
     format!("{}::{}", alias.0, name)
 }
-pub fn compile_method(alias: &ModulePathAlias, typename: &String, method: &String) -> String {
+pub fn compile_method_name(alias: &ModulePathAlias, typename: &String, method: &String) -> String {
     format!("{}::{}::{}", alias.0, typename, method)
 }
 

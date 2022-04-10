@@ -23,6 +23,8 @@ pub enum RType {
     Custom(String),
 }
 
+/// Simple ordered HashMap for typed and ordered fields
+/// (used by function arguments and class types)
 #[derive(Debug)]
 pub struct TypedFields {
     pub names: HashMap<String, usize>,
