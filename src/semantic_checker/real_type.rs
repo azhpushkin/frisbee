@@ -4,6 +4,7 @@ use std::collections::HashMap;
 #[derive(Debug)]
 pub struct CustomType {
     pub name: String,
+    pub is_active: bool,
     pub fields: TypedFields,
 }
 
