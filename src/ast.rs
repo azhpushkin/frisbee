@@ -71,11 +71,6 @@ pub enum Type {
 
     // User-defined type
     Ident(String),
-
-    // Used for empty arrays, nil values and future `let` expression
-    Anonymous,
-
-    IdentQualified(ModulePathAlias, String),
 }
 
 #[derive(Debug, PartialEq)]
@@ -129,10 +124,6 @@ pub enum UnaryOp {
 // This means that if we do something like array[-1], we do not handle it, lol
 // maybe save state of the actor before running it? (2x memory for this)
 
-pub trait ExprWithType {
-    fn get_raw(&self) -> &Expr;
-    fn get_type(&self) -> &Type;
-}
 
 #[derive(Debug, PartialEq)]
 pub enum Expr {
@@ -155,8 +146,4 @@ pub enum Expr {
     NewClassInstance { typename: String, args: Vec<Expr> },
     SpawnActive { typename: String, args: Vec<Expr> },
     This,
-
-    // These nodes are created after semantic check
-    TypedExpr { expr: Box<Expr>, typename: Type },
-    FunctionCallQualified { module: ModulePathAlias, function: String, args: Vec<Expr> },
 }

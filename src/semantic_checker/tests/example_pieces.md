@@ -1,5 +1,6 @@
 // TODO: should checks have some kind of error codes?
 
+* check that return statement is required
 
 ---
 fun Nil hello(Int a, Int a) {}

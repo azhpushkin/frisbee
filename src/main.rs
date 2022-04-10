@@ -1,7 +1,7 @@
 use std::path::Path;
 
 pub mod ast;
-pub mod codegen;
+// pub mod codegen;
 pub mod errors;
 pub mod loader;
 pub mod parser;
@@ -9,7 +9,7 @@ pub mod scanner;
 pub mod semantic_checker;
 pub mod test_utils;
 pub mod utils;
-pub mod vm;
+// pub mod vm;
 
 // TODO: color output?
 
@@ -21,15 +21,15 @@ fn main() {
     }
 
     let mut wp = loader::load_program(file_path).expect("Error loading!");
-    let symbols_info = semantic_checker::check_and_annotate_symbols(&mut wp).expect("Type error");
-    semantic_checker::check_and_annotate_statements(&mut wp, &symbols_info)
-        .expect("Expr type error");
+    // let symbols_info = semantic_checker::check_and_annotate_symbols(&mut wp).expect("Type error");
+    // semantic_checker::check_and_annotate_statements(&mut wp, &symbols_info)
+    //     .expect("Expr type error");
 
-    let bytecode = codegen::generate_program(&wp);
-    println!("{}", codegen::disassemble::disassemble_bytes(&bytecode));
+    // let bytecode = codegen::generate_program(&wp);
+    // println!("{}", codegen::disassemble::disassemble_bytes(&bytecode));
 
-    if false {
-        let mut vm = vm::Vm::new(bytecode);
-        vm.run();
-    }
+    // if false {
+    //     let mut vm = vm::Vm::new(bytecode);
+    //     vm.run();
+    // }
 }

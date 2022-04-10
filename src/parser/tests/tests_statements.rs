@@ -27,11 +27,10 @@ fn stmt_expr() {
 
 #[test]
 fn stmt_return() {
-    assert_stmt_invalid("return;");
-
     assert_stmt_invalid("return 1");
     assert_stmt_invalid("return 2+;");
 
+    assert_stmt_parses("return;", Statement::Return(Expr::Nil));
     assert_stmt_parses("return 1;", Statement::Return(Expr::Int(1)));
 }
 
