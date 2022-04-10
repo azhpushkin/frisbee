@@ -49,7 +49,7 @@ pub fn type_to_real(source_type: &Type, custom_resolver: &SymbolResolver) -> RTy
             let real_inner = type_to_real(inner.as_ref(), custom_resolver);
             RType::Tuple(vec![RType::Bool, real_inner])
         }
-        Type::Ident(ident) => RType::Custom(custom_resolver(ident.clone()).clone()),
+        Type::Ident(ident) => RType::Custom(custom_resolver(ident).clone()),
     }
 }
 

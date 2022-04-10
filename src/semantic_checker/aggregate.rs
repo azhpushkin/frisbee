@@ -35,7 +35,7 @@ pub fn create_basic_aggregate(wp: &WholeProgram, resolver: &NameResolver) -> Pro
                 CustomType {
                     name: full_name,
                     is_active: class_decl.is_active,
-                    fields: type_vec_to_typed_fields(&class_decl.fields, file_resolver.as_ref()),
+                    fields: type_vec_to_typed_fields(&class_decl.fields, &file_resolver),
                 },
             );
         }
