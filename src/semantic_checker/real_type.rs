@@ -1,6 +1,8 @@
 use crate::ast::{Type, TypedNamedObject};
 use std::collections::HashMap;
 
+use super::resolvers::SymbolResolver;
+
 #[derive(Debug)]
 pub struct CustomType {
     pub name: String,
@@ -27,9 +29,8 @@ pub struct TypedFields {
     pub types: Vec<RType>,
 }
 
-pub type CustomResolver = dyn Fn(&String) -> &String;
 
-pub fn type_to_real(source_type: &Type, custom_resolver: &CustomResolver) -> RType {
+pub fn type_to_real(source_type: &Type, custom_resolver: &SymbolResolver) -> RType {
     match source_type {
         Type::Int => RType::Int,
         Type::Float => RType::Float,
@@ -48,13 +49,13 @@ pub fn type_to_real(source_type: &Type, custom_resolver: &CustomResolver) -> RTy
             let real_inner = type_to_real(inner.as_ref(), custom_resolver);
             RType::Tuple(vec![RType::Bool, real_inner])
         }
-        Type::Ident(ident) => RType::Custom(custom_resolver(ident).clone()),
+        Type::Ident(ident) => RType::Custom(custom_resolver(ident.clone()).clone()),
     }
 }
 
 pub fn type_vec_to_typed_fields(
     v: &Vec<TypedNamedObject>,
-    resolver: &CustomResolver,
+    resolver: &SymbolResolver,
 ) -> TypedFields {
     let mut typed_fields = TypedFields { names: HashMap::new(), types: vec![] };
 

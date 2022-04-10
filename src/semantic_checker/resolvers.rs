@@ -6,7 +6,7 @@ use crate::loader::{LoadedFile, WholeProgram};
 type SymbolLookupMapping = HashMap<ModulePathAlias, HashMap<String, String>>;
 type SingleFileMapping = Result<HashMap<String, String>, String>;
 
-pub type SymbolResolver<'a> = dyn (Fn(&String) -> &'a String) + 'a;
+// pub type SymbolResolver<'a> = dyn (Fn(&String) -> &'a String) + 'a;
 
 pub struct NameResolver {
     // key is where the symbol lookup occures, value is target
@@ -42,18 +42,19 @@ impl NameResolver {
 
     pub fn get_typenames_resolver<'a>(
         &'a self,
-        alias: &'a ModulePathAlias,
-    ) -> Box<SymbolResolver<'a>> {
-        Box::new(move |name: &String| self.typenames[alias].get(name).unwrap())
+        alias: ModulePathAlias,
+    ) -> Box<dyn Fn(String) -> String + 'a> {
+        Box::new(move |name: String| self.typenames[&alias].get(&name).unwrap().clone())
     }
 
-    pub fn get_functions_resolver<'a>(
-        &'a self,
-        alias: &'a ModulePathAlias,
-    ) -> Box<SymbolResolver<'a>> {
-        Box::new(move |name: &String| self.functions[alias].get(name).unwrap())
-    }
+    // pub fn get_functions_resolver<'a>(
+    //     &'a self,
+    //     alias: &'a ModulePathAlias,
+    // ) -> Box<SymbolResolver<'a>> {
+    //     Box::new(move |name: &String| self.functions[alias].get(name).unwrap())
+    // }
 }
+pub type SymbolResolver<'a> = dyn Fn(String) -> String + 'a;
 
 fn check_module_does_not_import_itself(file: &LoadedFile) {
     for import in &file.ast.imports {
@@ -125,21 +126,21 @@ mod test {
         let main_alias = new_alias("main");
         let mod_alias = new_alias("main");
 
-        let main_types_resolver = resolver.get_typenames_resolver(&main_alias);
+        let main_types_resolver = resolver.get_typenames_resolver(main_alias);
         assert_eq!(
-            main_types_resolver(&String::from("SomeType")),
+            main_types_resolver(String::from("SomeType")),
             "main::SomeType"
         );
 
-        let main_functions_resolver = resolver.get_functions_resolver(&main_alias);
-        let mod_functions_resolver = resolver.get_functions_resolver(&mod_alias);
-        assert_eq!(
-            main_functions_resolver(&String::from("somefun")),
-            "mod::somefun"
-        );
-        assert_eq!(
-            mod_functions_resolver(&String::from("somefun")),
-            "mod::somefun"
-        );
+        // let main_functions_resolver = resolver.get_functions_resolver(&main_alias);
+        // let mod_functions_resolver = resolver.get_functions_resolver(&mod_alias);
+        // assert_eq!(
+        //     main_functions_resolver(&String::from("somefun")),
+        //     "mod::somefun"
+        // );
+        // assert_eq!(
+        //     mod_functions_resolver(&String::from("somefun")),
+        //     "mod::somefun"
+        // );
     }
 }
