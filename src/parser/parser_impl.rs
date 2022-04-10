@@ -368,6 +368,9 @@ impl Parser {
             Token::Foreach => return self.parse_foreach_loop_stmt(),
             Token::Return => {
                 self.consume_token();
+                if consume_if_matches_one_of!(self, [Token::Semicolon]) {
+                    return Ok(Statement::Return(Expr::Nil));
+                }
                 let expr = self.parse_expr()?;
                 consume_and_check!(self, Token::Semicolon);
                 return Ok(Statement::Return(expr));
@@ -532,10 +535,8 @@ impl Parser {
                         args: self.parse_function_call_args()?,
                     };
                 } else {
-                    res_expr = Expr::FieldAccess {
-                        object: Box::new(res_expr),
-                        field: field_or_method,
-                    };
+                    res_expr =
+                        Expr::FieldAccess { object: Box::new(res_expr), field: field_or_method };
                 }
             } else if self.rel_token_check(-1, Token::LeftSquareBrackets) {
                 // otherwise - left square brackets, meaning this is list access
