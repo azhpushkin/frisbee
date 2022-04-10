@@ -26,7 +26,7 @@ pub fn create_basic_aggregate(wp: &WholeProgram, resolver: &NameResolver) -> Pro
         ProgramAggregate { types: HashMap::new(), functions: HashMap::new() };
 
     for (file_alias, file) in wp.files.iter() {
-        let file_resolver = resolver.get_typenames_resolver(file_alias.clone());
+        let file_resolver = resolver.get_typenames_resolver(&file_alias);
 
         for class_decl in file.ast.types.iter() {
             let full_name = compile_name(file_alias, &class_decl.name);
