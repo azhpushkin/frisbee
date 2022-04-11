@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::ast::ModulePathAlias;
 use crate::loader::{LoadedFile, WholeProgram};
 
-type SymbolLookupMapping = HashMap<ModulePathAlias, HashMap<String, String>>;
+type SymbolLookupMapping = HashMap<String, HashMap<String, String>>;
 type SingleFileMapping = Result<HashMap<String, String>, String>;
 
 pub type SymbolResolver<'a> = Box<dyn Fn(&String) -> String + 'a>;
@@ -33,9 +33,11 @@ impl NameResolver {
             let file_typenames_mapping = get_typenames_origins(file)
                 .unwrap_or_else(|x| panic!("Type {} defined twice in {}", x, file_name.0));
 
-            resolver.functions.insert(file_name.clone(), file_functions_mapping);
-            resolver.typenames.insert(file_name.clone(), file_typenames_mapping);
+            resolver.functions.insert(file_name.0.clone(), file_functions_mapping);
+            resolver.typenames.insert(file_name.0.clone(), file_typenames_mapping);
         }
+
+        resolver.validate();
 
         resolver
     }
@@ -48,7 +50,7 @@ impl NameResolver {
         'a: 'c,
         'b: 'c,
     {
-        Box::new(move |name: &String| self.typenames[alias].get(name).unwrap().clone())
+        Box::new(move |name: &String| self.typenames[&alias.0].get(name).unwrap().clone())
     }
 
     pub fn get_functions_resolver<'a, 'b, 'c>(
@@ -59,7 +61,26 @@ impl NameResolver {
         'a: 'c,
         'b: 'c,
     {
-        Box::new(move |name: &String| self.functions[&alias].get(name).unwrap().clone())
+        Box::new(move |name: &String| self.functions[&alias.0].get(name).unwrap().clone())
+    }
+
+    fn validate(&self) {
+        let all_typenames = self.typenames.iter().flat_map(|(_, v)| v.values());
+        let all_functions = self.functions.iter().flat_map(|(_, v)| v.values());
+        
+        for typename in all_typenames {
+            let (module, name) = typename.split_once("::").unwrap();
+            if !self.typenames[module].contains_key(name) {
+                panic!("Expected type {} to be defined in module {}!", name, module);
+            }
+        }
+
+        for function in all_functions {
+            let (module, name) = function.split_once("::").unwrap();
+            if !self.functions[module].contains_key(name) {
+                panic!("Expected type {} to be defined in module {}!", name, module);
+            }
+        }
     }
 }
 

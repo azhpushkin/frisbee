@@ -57,6 +57,8 @@ pub fn create_basic_aggregate(wp: &WholeProgram, resolver: &NameResolver) -> Pro
                     },
                 );
             }
+
+            // Check if constructor exist, and if not - add one
         }
     }
 
