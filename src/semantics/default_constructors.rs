@@ -1,5 +1,4 @@
 use crate::ast::{ClassDecl, Expr, FunctionDecl, Statement, Type};
-use crate::loader::WholeProgram;
 
 
 pub fn add_default_constructor(class: &mut ClassDecl) {
@@ -8,7 +7,7 @@ pub fn add_default_constructor(class: &mut ClassDecl) {
         return;
     }
 
-    let statements: Vec<Statement> = vec![];
+    let mut statements: Vec<Statement> = vec![];
     for field in class.fields.iter() {
         statements.push(Statement::Assign {
             left: Expr::OwnFieldAccess { field: field.name.clone() },
