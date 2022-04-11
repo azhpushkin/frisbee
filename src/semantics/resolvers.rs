@@ -3,10 +3,13 @@ use std::collections::HashMap;
 use crate::ast::ModulePathAlias;
 use crate::loader::{LoadedFile, WholeProgram};
 
-type SymbolLookupMapping = HashMap<String, HashMap<String, String>>;
-type SingleFileMapping = Result<HashMap<String, String>, String>;
+type SymbolLookupMapping = HashMap<String, HashMap<String, Symbol>>;
+type SingleFileMapping = HashMap<String, Symbol>;
 
-pub type SymbolResolver<'a> = Box<dyn Fn(&String) -> String + 'a>;
+pub type SymbolResolver<'a> = Box<dyn Fn(&String) -> Symbol + 'a>;
+
+#[derive(Debug, PartialEq, Clone, Eq, Hash)]
+pub struct Symbol(pub String);
 
 pub struct NameResolver {
     // key is where the symbol lookup occures, value is target
@@ -14,12 +17,21 @@ pub struct NameResolver {
     functions: SymbolLookupMapping,
 }
 
-pub fn compile_name(alias: &ModulePathAlias, name: &String) -> String {
-    format!("{}::{}", alias.0, name)
+pub fn compile_name(alias: &ModulePathAlias, name: &String) -> Symbol {
+    Symbol(format!("{}::{}", alias.0, name))
 }
-pub fn compile_method_name(alias: &ModulePathAlias, typename: &String, method: &String) -> String {
-    format!("{}::{}::{}", alias.0, typename, method)
+pub fn compile_method_name(alias: &ModulePathAlias, typename: &String, method: &String) -> Symbol {
+    Symbol(format!("{}::{}::{}", alias.0, typename, method))
 }
+// pub fn decompile_name(s: &Symbol) -> (&str, Option<&str>, &str) {
+//     let (defined_at, name) = s.0.rsplit_once("::").expect("Not-compiled name found");
+//     if defined_at.contains("::") {
+//         let (module, typename) = defined_at.rsplit_once("::").unwrap();
+//         (module, Some(typename), name)
+//     } else {
+//         (defined_at, None, name)
+//     }
+// }
 
 impl NameResolver {
     pub fn create(wp: &WholeProgram) -> NameResolver {
@@ -70,16 +82,16 @@ impl NameResolver {
     fn validate(&self) {
         let all_typenames = self.typenames.iter().flat_map(|(_, v)| v.values());
         let all_functions = self.functions.iter().flat_map(|(_, v)| v.values());
-        
+
         for typename in all_typenames {
-            let (module, name) = typename.split_once("::").unwrap();
+            let (module, name) = typename.0.split_once("::").unwrap();
             if !self.typenames[module].contains_key(name) {
                 panic!("Expected type {} to be defined in module {}!", name, module);
             }
         }
 
         for function in all_functions {
-            let (module, name) = function.split_once("::").unwrap();
+            let (module, name) = function.0.split_once("::").unwrap();
             if !self.functions[module].contains_key(name) {
                 panic!("Expected type {} to be defined in module {}!", name, module);
             }
@@ -95,11 +107,11 @@ fn check_module_does_not_import_itself(file: &LoadedFile) {
     }
 }
 
-fn get_origins<'a, I>(symbols_origins: I) -> SingleFileMapping
+fn get_origins<'a, I>(symbols_origins: I) -> Result<SingleFileMapping, String>
 where
     I: Iterator<Item = (ModulePathAlias, &'a String)>,
 {
-    let mut mapping: HashMap<String, String> = HashMap::new();
+    let mut mapping: HashMap<String, Symbol> = HashMap::new();
 
     for (module_alias, symbol) in symbols_origins {
         if mapping.contains_key(symbol) {
@@ -111,7 +123,7 @@ where
     Ok(mapping)
 }
 
-fn get_typenames_origins(file: &LoadedFile) -> SingleFileMapping {
+fn get_typenames_origins(file: &LoadedFile) -> Result<SingleFileMapping, String> {
     let defined_types = file.ast.types.iter().map(|d| (file.module_path.alias(), &d.name));
 
     let imported_types = file.ast.imports.iter().flat_map(|i| {
@@ -123,7 +135,7 @@ fn get_typenames_origins(file: &LoadedFile) -> SingleFileMapping {
     get_origins(defined_types.chain(imported_types))
 }
 
-fn get_functions_origins(file: &LoadedFile) -> SingleFileMapping {
+fn get_functions_origins(file: &LoadedFile) -> Result<SingleFileMapping, String> {
     let defined_types = file.ast.functions.iter().map(|f| (file.module_path.alias(), &f.name));
 
     let imported_types = file.ast.imports.iter().flat_map(|i| {
@@ -160,18 +172,18 @@ mod test {
         let main_types_resolver = resolver.get_typenames_resolver(&main_alias);
         assert_eq!(
             main_types_resolver(&String::from("SomeType")),
-            "main::SomeType"
+            Symbol("main::SomeType".into())
         );
 
         let main_functions_resolver = resolver.get_functions_resolver(&main_alias);
         let mod_functions_resolver = resolver.get_functions_resolver(&mod_alias);
         assert_eq!(
             main_functions_resolver(&String::from("somefun")),
-            "mod::somefun"
+            Symbol("mod::somefun".into())
         );
         assert_eq!(
             mod_functions_resolver(&String::from("somefun")),
-            "mod::somefun"
+            Symbol("mod::somefun".into())
         );
     }
 }

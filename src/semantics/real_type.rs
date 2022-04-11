@@ -1,11 +1,11 @@
 use crate::ast::{Type, TypedNamedObject};
 use std::collections::HashMap;
 
-use super::resolvers::SymbolResolver;
+use super::resolvers::{SymbolResolver, Symbol};
 
 #[derive(Debug)]
 pub struct CustomType {
-    pub name: String,
+    pub name: Symbol,
     pub is_active: bool,
     pub fields: TypedFields,
 }
@@ -19,7 +19,7 @@ pub enum RType {
 
     List(Box<Self>),
     Tuple(Vec<Self>),
-    Custom(String),
+    Custom(Symbol),
 }
 
 /// Simple ordered HashMap for typed and ordered fields
