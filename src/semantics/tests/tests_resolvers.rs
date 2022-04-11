@@ -1,4 +1,4 @@
-use crate::semantic_checker::resolvers::NameResolver;
+use crate::semantics::resolvers::NameResolver;
 use crate::test_utils::setup_and_load_program;
 
 #[test]

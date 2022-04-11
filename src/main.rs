@@ -6,7 +6,7 @@ pub mod errors;
 pub mod loader;
 pub mod parser;
 pub mod scanner;
-pub mod semantic_checker;
+pub mod semantics;
 pub mod test_utils;
 pub mod utils;
 // pub mod vm;
@@ -21,6 +21,9 @@ fn main() {
     }
 
     let mut wp = loader::load_program(file_path).expect("Error loading!");
+
+    let aggregate = semantics::perform_semantic_analysis(&wp);
+    println!("{:?}", aggregate);
     // let symbols_info = semantic_checker::check_and_annotate_symbols(&mut wp).expect("Type error");
     // semantic_checker::check_and_annotate_statements(&mut wp, &symbols_info)
     //     .expect("Expr type error");

@@ -1,12 +1,10 @@
 use crate::loader::WholeProgram;
 
-mod real_type;
-mod real_ast;
 mod aggregate;
+mod real_ast;
+mod real_type;
 mod resolvers;
 mod tests;
-
-
 
 pub fn perform_semantic_analysis(wp: &WholeProgram) -> aggregate::ProgramAggregate {
     let names_resolver = resolvers::NameResolver::create(wp);
