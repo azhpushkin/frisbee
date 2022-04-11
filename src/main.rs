@@ -21,6 +21,8 @@ fn main() {
 
     let mut wp = loader::load_program(file_path).expect("Error loading!");
 
+    semantics::add_default_constructors(&mut wp);
+    
     let aggregate = semantics::perform_semantic_analysis(&wp);
     println!("{:?}", aggregate);
     // let symbols_info = semantic_checker::check_and_annotate_symbols(&mut wp).expect("Type error");
