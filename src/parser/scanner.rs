@@ -27,7 +27,7 @@ pub enum Token {
     Fun,
     From, Import,  // TODO: add "import as" -> as keyword
     True, False, Nil, And, Or, Not,
-    This, Return,
+    Void, This, Return,
     // Let // TODO: implement when type inference is there, should be easy?
 
     EOF
@@ -108,6 +108,7 @@ fn identifier_to_token(s: String) -> Token {
         "true" => Token::True,
         "false" => Token::False,
         "nil" => Token::Nil,
+        "void" => Token::Void,
         "and" => Token::And,
         "or" => Token::Or,
         "not" => Token::Not,
@@ -492,8 +493,15 @@ mod tests {
     #[test]
     fn test_loop_keywords() {
         assert_eq!(
-            scan_tokens_helper("while foreach break continue in"),
-            vec![Token::While, Token::Foreach, Token::Break, Token::Continue, Token::In]
+            scan_tokens_helper("while foreach break continue in void"),
+            vec![
+                Token::While,
+                Token::Foreach,
+                Token::Break,
+                Token::Continue,
+                Token::In,
+                Token::Void
+            ]
         );
     }
 

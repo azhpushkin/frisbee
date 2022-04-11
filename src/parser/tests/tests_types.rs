@@ -12,7 +12,7 @@ fn simple_types() {
     assert_type_parses("String", Type::String);
     assert_type_parses("Int", Type::Int);
     assert_type_parses("Float", Type::Float);
-    assert_type_parses("Nil", Type::Nil);
+
     assert_type_parses("Bool", Type::Bool);
 
     assert_type_parses("StriNG", Type::Ident(String::from("StriNG")));
@@ -66,11 +66,10 @@ fn tuple_types() {
         Type::Tuple(vec![Type::String, Type::Int]),
     );
     assert_type_parses(
-        "(Actor, (Nil, Bool, Class, Passive), Int)",
+        "(Actor, (Bool, Class, Passive), Int)",
         Type::Tuple(vec![
             Type::Ident(String::from("Actor")),
             Type::Tuple(vec![
-                Type::Nil,
                 Type::Bool,
                 Type::Ident(String::from("Class")),
                 Type::Ident(String::from("Passive")),

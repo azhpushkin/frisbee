@@ -1,4 +1,4 @@
-use crate::{ast::ModulePath, parser, scanner, utils};
+use crate::{ast::ModulePath, parser, utils};
 
 fn show_error(contents: &String, module: &ModulePath, pos: i32, error_msg: String) {
     let (line, row) = utils::get_position_coordinates(&contents, pos);
@@ -22,7 +22,11 @@ fn show_error(contents: &String, module: &ModulePath, pos: i32, error_msg: Strin
     println!("{}^\n{}{}", spaces, spaces, error_msg);
 }
 
-pub fn show_scan_error(contents: &String, module: &ModulePath, error: scanner::ScanningError) {
+pub fn show_scan_error(
+    contents: &String,
+    module: &ModulePath,
+    error: parser::scanner::ScanningError,
+) {
     show_error(contents, module, error.1, error.0.into());
 }
 

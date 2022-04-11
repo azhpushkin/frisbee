@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use crate::ast::*;
-use crate::{errors, parser, scanner};
+use crate::{errors, parser};
 
 #[derive(Debug)]
 pub struct LoadedFile {
@@ -29,7 +29,7 @@ fn load_file(workdir: &PathBuf, module_path: &ModulePath) -> Option<LoadedFile> 
 
     let contents = std::fs::read_to_string(&file_path).expect("Cant read file");
 
-    let tokens = scanner::scan_tokens(&contents);
+    let tokens = parser::scanner::scan_tokens(&contents);
     if tokens.is_err() {
         errors::show_scan_error(&contents, &module_path, tokens.unwrap_err());
         return None;

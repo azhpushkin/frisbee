@@ -71,13 +71,13 @@ fn parse_function_definition() {
     assert_eq!(
         parse_and_unwrap(
             Parser::parse_top_level,
-            "fun Bool get_person(Int age, String name) { 1 / asd.call(); this; } "
+            "fun void get_person(Int age, String name) { 1 / asd.call(); this; } "
         ),
         FileAst {
             imports: vec![],
             types: vec![],
             functions: vec![FunctionDecl {
-                rettype: Type::Bool,
+                rettype: None,
                 name: String::from("get_person"),
                 args: vec![
                     TypedNamedObject { typename: Type::Int, name: "age".into() },
@@ -134,7 +134,7 @@ fn class_object_and_methods() {
             name: String::from("Data"),
             fields: vec![],
             methods: vec![FunctionDecl {
-                rettype: Type::Bool,
+                rettype: Some(Type::Bool),
                 name: String::from("get_person"),
                 args: vec![
                     TypedNamedObject { typename: Type::Int, name: "age".into() },
@@ -169,7 +169,7 @@ fn class_object_constructor_method() {
             name: String::from("Data"),
             fields: vec![],
             methods: vec![FunctionDecl {
-                rettype: Type::Ident(String::from("Data")),
+                rettype: Some(Type::Ident(String::from("Data"))),
                 name: String::from("Data"),
                 args: vec![],
                 statements: vec![],
@@ -200,7 +200,7 @@ fn active_object_constructor_method() {
             name: String::from("Actor"),
             fields: vec![],
             methods: vec![FunctionDecl {
-                rettype: Type::Ident(String::from("Actor")),
+                rettype: Some(Type::Ident(String::from("Actor"))),
                 name: String::from("Actor"),
                 args: vec![],
                 statements: vec![],

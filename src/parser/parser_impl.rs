@@ -1,5 +1,5 @@
+use super::scanner::*;
 use crate::ast::*;
-use crate::scanner::*;
 
 use super::helpers::{bin_op_from_token, unary_op_from_token};
 
@@ -189,7 +189,6 @@ impl Parser {
             Token::TypeIdentifier(s) => match s.as_str() {
                 "Int" => Type::Int,
                 "Float" => Type::Float,
-                "Nil" => Type::Nil,
                 "Bool" => Type::Bool,
                 "String" => Type::String,
                 _ => Type::Ident(s.clone()),
@@ -212,20 +211,26 @@ impl Parser {
         member_of: Option<&String>,
     ) -> ParseResult<FunctionDecl> {
         consume_and_check!(self, Token::Fun);
-        let rettype = self.parse_type()?;
+        let rettype = match self.rel_token(0).0 {
+            Token::Void => {
+                self.consume_token();
+                None
+            }
+            _ => Some(self.parse_type()?),
+        };
 
         let name: String;
         if member_of.is_some() && self.rel_token_check(0, Token::LeftParenthesis) {
             // LeftParenthesis means that this is a constuctor
             // So check if the constructor name is correct and return error if not
             name = match &rettype {
-                Type::Ident(s) if s != member_of.unwrap() => {
+                Some(Type::Ident(s)) if s != member_of.unwrap() => {
                     return perr(
                         self.rel_token(0),
                         "Wrong typename is used for constructor-like method",
                     )
                 }
-                Type::Ident(s) => s.clone(),
+                Some(Type::Ident(s)) => s.clone(),
                 _ => return perr(self.rel_token(0), "Expected method name"),
             };
         } else {

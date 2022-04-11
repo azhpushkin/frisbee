@@ -49,7 +49,7 @@ pub struct ClassDecl {
 
 #[derive(Debug, PartialEq)]
 pub struct FunctionDecl {
-    pub rettype: Type,
+    pub rettype: Option<Type>,
     pub name: String,
     pub args: Vec<TypedNamedObject>,
     pub statements: Vec<Statement>,
