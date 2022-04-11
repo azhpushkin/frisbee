@@ -8,7 +8,6 @@ use super::resolvers::{Symbol, NameResolver};
 
 pub fn generate_light_statements(
     original_function: &FunctionDecl,
-    new_function: &mut RawFunction,
     aggregate: &ProgramAggregate,
     resolver: &NameResolver,
 ) -> Vec<LStatement> {

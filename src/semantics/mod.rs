@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::loader::WholeProgram;
 
 mod aggregate;
@@ -19,9 +21,25 @@ pub fn add_default_constructors(wp: &mut WholeProgram) {
 pub fn perform_semantic_analysis(wp: &WholeProgram) -> aggregate::ProgramAggregate {
     let names_resolver = resolvers::NameResolver::create(wp);
     let mut aggregate = aggregate::create_basic_aggregate(wp, &names_resolver);
+
     let functions_mapping =
         aggregate::fill_aggregate_with_funcs(wp, &mut aggregate, &names_resolver);
-        
+
+    let mut ls_mapping: HashMap<resolvers::Symbol, Vec<light_ast::LStatement>> = HashMap::new();
+
+    for name in aggregate.functions.keys() {
+        let light_statements = statements::generate_light_statements(
+            &functions_mapping[name],
+            &aggregate,
+            &names_resolver,
+        );
+        ls_mapping.insert(name.clone(), light_statements);
+    }
+
+    for (name, raw_function) in aggregate.functions.iter_mut() {
+        let light_statements = ls_mapping.remove(name).unwrap();
+        raw_function.body = light_statements;
+    }
 
     aggregate
 }
