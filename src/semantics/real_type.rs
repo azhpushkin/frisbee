@@ -16,7 +16,6 @@ pub enum RType {
     Float,
     String,
     Bool,
-    Nil,
 
     List(Box<Self>),
     Tuple(Vec<Self>),
@@ -37,7 +36,6 @@ pub fn type_to_real(source_type: &Type, custom_resolver: &SymbolResolver) -> RTy
         Type::Int => RType::Int,
         Type::Float => RType::Float,
         Type::Bool => RType::Bool,
-        Type::Nil => RType::Nil,
         Type::String => RType::String,
 
         Type::List(inner) => {

@@ -60,7 +60,6 @@ pub enum Type {
     // Primitive types
     Int,
     Float,
-    Nil,
     Bool,
     String,
 
