@@ -47,6 +47,13 @@ pub fn create_basic_aggregate(wp: &WholeProgram, resolver: &NameResolver) -> Pro
 
             for method in class_decl.methods.iter() {
                 let full_name = compile_method_name(file_alias, &class_decl.name, &method.name);
+                if aggregate.functions.contains_key(&full_name) {
+                    panic!(
+                        "Method {} defined twice in {}.{}",
+                        full_name, file_alias.0, class_decl.name
+                    );
+                }
+
                 aggregate.functions.insert(
                     full_name.clone(),
                     RFunction {
@@ -57,8 +64,6 @@ pub fn create_basic_aggregate(wp: &WholeProgram, resolver: &NameResolver) -> Pro
                     },
                 );
             }
-
-            // Check if constructor exist, and if not - add one
         }
     }
 
