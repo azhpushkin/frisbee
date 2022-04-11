@@ -50,7 +50,10 @@ impl NameResolver {
         'a: 'c,
         'b: 'c,
     {
-        Box::new(move |name: &String| self.typenames[&alias.0].get(name).unwrap().clone())
+        Box::new(move |name: &String| {
+            println!("== {} {}", &alias.0, &name);
+            self.typenames[&alias.0].get(name).unwrap().clone()
+        })
     }
 
     pub fn get_functions_resolver<'a, 'b, 'c>(

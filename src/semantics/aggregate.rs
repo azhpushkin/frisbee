@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::ast::ModulePathAlias;
 use crate::loader::WholeProgram;
 
-use super::real_ast::RStatement;
+use super::light_ast::LStatement;
 use super::real_type::{type_to_real, type_vec_to_typed_fields, CustomType, RType, TypedFields};
 use super::resolvers::{compile_method_name, compile_name, NameResolver};
 
@@ -18,7 +18,7 @@ pub struct RFunction {
     pub name: String,
     pub return_type: RType,
     pub args: TypedFields,
-    pub body: Vec<RStatement>,
+    pub body: Vec<LStatement>,
 }
 
 /// Creates basic aggregate, that contains

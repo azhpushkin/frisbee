@@ -1,15 +1,15 @@
 use super::real_type::RType;
 
 #[derive(Debug)]
-pub enum RStatement {
-    IfElse { condition: RExpr, ifbody: Vec<RStatement>, elsebody: Vec<RStatement> },
-    While { condition: RExpr, body: Vec<RStatement> },
+pub enum LStatement {
+    IfElse { condition: LExpr, ifbody: Vec<LStatement>, elsebody: Vec<LStatement> },
+    While { condition: LExpr, body: Vec<LStatement> },
     Break,
     Continue,
-    Return(RExpr),
+    Return(LExpr),
     DeclareVar { ttype: RType, name: String },
-    AssignVar { name: String, value: RExpr },
-    Expression(RExpr),
+    AssignVar { name: String, value: LExpr },
+    Expression(LExpr),
     // TODO: send message
 }
 
@@ -32,7 +32,7 @@ pub enum Operator {
 }
 
 #[derive(Debug)]
-pub enum RExpr {
+pub enum LExpr {
     Int(i64),
     String(String),
     Bool(bool),
@@ -41,8 +41,8 @@ pub enum RExpr {
 
     GetVar(String),
 
-    ApplyOp { op: Operator, operands: Vec<RExpr> },
-    CallFunction { name: String, args: Vec<RExpr> },
+    ApplyOp { op: Operator, operands: Vec<LExpr> },
+    CallFunction { name: String, args: Vec<LExpr> },
     // TODO: all others
 
     // TODO: spawn!
