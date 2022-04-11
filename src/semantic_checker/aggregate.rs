@@ -50,7 +50,7 @@ pub fn create_basic_aggregate(wp: &WholeProgram, resolver: &NameResolver) -> Pro
                 if aggregate.functions.contains_key(&full_name) {
                     panic!(
                         "Method {} defined twice in {}.{}",
-                        full_name, file_alias.0, class_decl.name
+                        method.name, file_alias.0, class_decl.name
                     );
                 }
 
@@ -59,11 +59,26 @@ pub fn create_basic_aggregate(wp: &WholeProgram, resolver: &NameResolver) -> Pro
                     RFunction {
                         name: full_name,
                         return_type: type_to_real(&method.rettype, &file_resolver),
-                        args: type_vec_to_typed_fields(&class_decl.fields, &file_resolver),
+                        args: type_vec_to_typed_fields(&method.args, &file_resolver),
                         body: vec![],
                     },
                 );
             }
+        }
+
+        for function_decl in file.ast.functions.iter() {
+            let full_name = compile_name(file_alias, &function_decl.name);
+
+            // No checks for function redefinition here because resolver already does one
+            aggregate.functions.insert(
+                full_name.clone(),
+                RFunction {
+                    name: full_name,
+                    return_type: type_to_real(&function_decl.rettype, &file_resolver),
+                    args: type_vec_to_typed_fields(&function_decl.args, &file_resolver),
+                    body: vec![],
+                },
+            );
         }
     }
 
