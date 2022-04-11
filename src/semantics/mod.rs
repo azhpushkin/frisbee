@@ -27,9 +27,10 @@ pub fn perform_semantic_analysis(wp: &WholeProgram) -> aggregate::ProgramAggrega
 
     let mut ls_mapping: HashMap<resolvers::Symbol, Vec<light_ast::LStatement>> = HashMap::new();
 
-    for name in aggregate.functions.keys() {
+    for (name, raw_function) in aggregate.functions.iter() {
         let light_statements = statements::generate_light_statements(
             &functions_mapping[name],
+            raw_function,
             &aggregate,
             &names_resolver,
         );

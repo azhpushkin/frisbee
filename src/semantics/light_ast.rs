@@ -7,7 +7,7 @@ pub enum LStatement {
     Break,
     Continue,
     Return(LExpr),
-    DeclareVar { ttype: RType, name: String },
+    DeclareVar { rtype: RType, name: String },
     AssignVar { name: String, value: LExpr },
     Expression(LExpr),
     // TODO: send message
