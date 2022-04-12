@@ -27,18 +27,24 @@ pub enum LStatement {
 }
 
 #[derive(Debug)]
-pub enum Operator {
+pub enum RawOperator {
     UnaryNegateInt,
     AddInts,
     SubInts,
     MulInts,
     DivInts,
+    GreaterInts,
+    LessInts,
+    EqualInts,
 
     UnaryNegateFloat,
     AddFloats,
     SubFloats,
     MulFloats,
     DivFloats,
+    GreaterFloats,
+    LessFloats,
+    EqualFloats,
 
     UnaryNegateBool,
     // TODO: think about this a little more
@@ -75,7 +81,7 @@ pub enum LExpr {
 
     GetVar(String),
 
-    ApplyOp { op: Operator, operands: Vec<LExprTyped> },
+    ApplyOp { operator: RawOperator, operands: Vec<LExprTyped> },
     CallFunction { name: String, args: Vec<LExprTyped> },
     // TODO: all others
 

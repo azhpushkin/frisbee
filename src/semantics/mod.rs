@@ -3,12 +3,13 @@ use std::collections::HashMap;
 use crate::loader::WholeProgram;
 
 mod aggregate;
-mod default_constructors;
-mod light_ast;
 mod annotations;
+mod default_constructors;
+mod expressions;
+mod light_ast;
+mod operators;
 mod resolvers;
 mod statements;
-mod expressions;
 mod symbols;
 mod tests;
 
