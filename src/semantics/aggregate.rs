@@ -4,7 +4,7 @@ use crate::ast::{FunctionDecl, ModulePathAlias, Type};
 use crate::loader::WholeProgram;
 
 use super::light_ast::LStatement;
-use super::real_type::{annotate_type, annotate_typednamed_vec, CustomType, TypedFields};
+use super::annotations::{annotate_type, annotate_typednamed_vec, CustomType, TypedFields};
 use super::resolvers::NameResolver;
 use super::symbols::{compile_func, compile_method, compile_typename, SymbolFunc, SymbolType};
 

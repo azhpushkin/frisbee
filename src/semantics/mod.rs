@@ -5,7 +5,7 @@ use crate::loader::WholeProgram;
 mod aggregate;
 mod default_constructors;
 mod light_ast;
-mod real_type;
+mod annotations;
 mod resolvers;
 mod statements;
 mod symbols;

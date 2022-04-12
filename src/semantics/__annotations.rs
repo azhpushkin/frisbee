@@ -56,37 +56,3 @@ pub fn annotate_function_decl(
     }
     Ok(())
 }
-
-pub fn annotate_type(t: &Type, typenames_mapping: &SymbolOriginsMapping) -> SemanticResult<Type> {
-    let new_t = match t {
-        Type::Int => Type::Int,
-        Type::Float => Type::Float,
-        Type::Nil => Type::Nil,
-        Type::Bool => Type::Bool,
-        Type::String => Type::String,
-
-        Type::List(t) => {
-            Type::List(Box::new(annotate_type(t.as_ref(), typenames_mapping)?))
-        }
-        Type::Maybe(t) => {
-            Type::Maybe(Box::new(annotate_type(t.as_ref(), typenames_mapping)?))
-        }
-        Type::Tuple(ts) => {
-            let ts_annotated: SemanticResult<Vec<Type>> =
-                ts.iter().map(|t| annotate_type(t, typenames_mapping)).collect();
-            Type::Tuple(ts_annotated?)
-        }
-
-        Type::Ident(s) => {
-            let symbol_origin = typenames_mapping.get(s);
-            if let Some(symbol_origin) = symbol_origin {
-                Type::IdentQualified(symbol_origin.module.clone(), symbol_origin.name.clone())
-            } else {
-                return sem_err!("Unknown type {}", s);
-            }
-        }
-        Type::IdentQualified(..) => t.clone(),
-        Type::Anonymous => panic!("Did not expected {:?}", t),
-    };
-    Ok(new_t)
-}
