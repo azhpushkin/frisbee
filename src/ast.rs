@@ -126,23 +126,29 @@ pub enum UnaryOp {
 
 #[derive(Debug, PartialEq)]
 pub enum Expr {
-    UnaryOp { op: UnaryOp, operand: Box<Expr> },
-    BinOp { left: Box<Expr>, right: Box<Expr>, op: BinaryOp },
-    ListAccess { list: Box<Expr>, index: Box<Expr> },
-    ListValue(Vec<Expr>),
-    TupleValue(Vec<Expr>),
-    FunctionCall { function: String, args: Vec<Expr> },
-    MethodCall { object: Box<Expr>, method: String, args: Vec<Expr> },
-    FieldAccess { object: Box<Expr>, field: String },
-    OwnMethodCall { method: String, args: Vec<Expr> },
-    OwnFieldAccess { field: String },
     Int(i64),
     String(String),
     Bool(bool),
     Nil,
     Float(f64),
+    
+    This,
     Identifier(String),
+
+    UnaryOp { op: UnaryOp, operand: Box<Expr> },
+    BinOp { left: Box<Expr>, right: Box<Expr>, op: BinaryOp },
+
+    ListAccess { list: Box<Expr>, index: Box<Expr> },
+    ListValue(Vec<Expr>),
+    TupleValue(Vec<Expr>),
+
+    FunctionCall { function: String, args: Vec<Expr> },
+    MethodCall { object: Box<Expr>, method: String, args: Vec<Expr> },
+    FieldAccess { object: Box<Expr>, field: String },
+    OwnMethodCall { method: String, args: Vec<Expr> },
+    OwnFieldAccess { field: String },
+    
     NewClassInstance { typename: String, args: Vec<Expr> },
     SpawnActive { typename: String, args: Vec<Expr> },
-    This,
+    
 }
