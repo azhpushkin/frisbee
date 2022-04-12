@@ -9,6 +9,7 @@ mod real_type;
 mod resolvers;
 mod statements;
 mod tests;
+mod symbols;
 
 pub fn add_default_constructors(wp: &mut WholeProgram) {
     for file in wp.files.values_mut() {
@@ -25,11 +26,11 @@ pub fn perform_semantic_analysis(wp: &WholeProgram) -> aggregate::ProgramAggrega
     let functions_mapping =
         aggregate::fill_aggregate_with_funcs(wp, &mut aggregate, &names_resolver);
 
-    let mut ls_mapping: HashMap<resolvers::Symbol, Vec<light_ast::LStatement>> = HashMap::new();
+    let mut ls_mapping: HashMap<resolvers::SymbolFunc, Vec<light_ast::LStatement>> = HashMap::new();
 
     for (name, raw_function) in aggregate.functions.iter() {
         let light_statements = statements::generate_light_statements(
-            &functions_mapping[name],
+            &functions_mapping[name].statements,
             raw_function,
             &aggregate,
             &names_resolver,

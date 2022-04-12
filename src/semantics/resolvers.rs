@@ -1,37 +1,37 @@
 use std::collections::HashMap;
 
-use crate::ast::ModulePathAlias;
+use crate::ast::{ModulePathAlias, Type};
 use crate::loader::{LoadedFile, WholeProgram};
 
-type SymbolLookupMapping = HashMap<String, HashMap<String, Symbol>>;
-type SingleFileMapping = HashMap<String, Symbol>;
+use super::symbols::{SymbolType, SymbolFunc};
 
-pub type SymbolResolver<'a> = Box<dyn Fn(&String) -> Symbol + 'a>;
+type SymbolOrigin<'a, 'b> = (&'a ModulePathAlias, &'b String);
+type SymbolLookupMapping<T>
+where
+    T: Symbol,
+= HashMap<String, HashMap<String, T>>;
 
-#[derive(Debug, PartialEq, Clone, Eq, Hash)]
-pub struct Symbol(pub String);
+type SingleFileMapping<T>
+where
+    T: Symbol,
+= HashMap<String, T>;
+
+pub type SymbolResolver<'a, T>
+where
+    T: Symbol,
+= Box<dyn Fn(&String) -> T + 'a>;
+
+trait Symbol {}
+
+impl Symbol for SymbolType {}
+impl Symbol for SymbolFunc {}
+
 
 pub struct NameResolver {
     // key is where the symbol lookup occures, value is target
-    typenames: SymbolLookupMapping,
-    functions: SymbolLookupMapping,
+    typenames: SymbolLookupMapping<SymbolType>,
+    functions: SymbolLookupMapping<SymbolFunc>,
 }
-
-pub fn compile_name(alias: &ModulePathAlias, name: &String) -> Symbol {
-    Symbol(format!("{}::{}", alias.0, name))
-}
-pub fn compile_method_name(alias: &ModulePathAlias, typename: &String, method: &String) -> Symbol {
-    Symbol(format!("{}::{}::{}", alias.0, typename, method))
-}
-// pub fn decompile_name(s: &Symbol) -> (&str, Option<&str>, &str) {
-//     let (defined_at, name) = s.0.rsplit_once("::").expect("Not-compiled name found");
-//     if defined_at.contains("::") {
-//         let (module, typename) = defined_at.rsplit_once("::").unwrap();
-//         (module, Some(typename), name)
-//     } else {
-//         (defined_at, None, name)
-//     }
-// }
 
 impl NameResolver {
     pub fn create(wp: &WholeProgram) -> NameResolver {
@@ -57,7 +57,7 @@ impl NameResolver {
     pub fn get_typenames_resolver<'a, 'b, 'c>(
         &'a self,
         alias: &'b ModulePathAlias,
-    ) -> SymbolResolver<'c>
+    ) -> SymbolResolver<'c, SymbolType>
     where
         'a: 'c,
         'b: 'c,
@@ -71,7 +71,7 @@ impl NameResolver {
     pub fn get_functions_resolver<'a, 'b, 'c>(
         &'a self,
         alias: &'b ModulePathAlias,
-    ) -> SymbolResolver<'c>
+    ) -> SymbolResolver<'c, SymbolFunc>
     where
         'a: 'c,
         'b: 'c,
@@ -107,23 +107,26 @@ fn check_module_does_not_import_itself(file: &LoadedFile) {
     }
 }
 
-fn get_origins<'a, I>(symbols_origins: I) -> Result<SingleFileMapping, String>
+fn get_origins<'a, I, T>(
+    symbols_origins: I,
+    compile_symbol: &dyn Fn(&ModulePathAlias, &String) -> T,
+) -> Result<(SingleFileMapping<T>, Vec<I>), String>
 where
     I: Iterator<Item = (ModulePathAlias, &'a String)>,
 {
-    let mut mapping: HashMap<String, Symbol> = HashMap::new();
+    let mut mapping: HashMap<String, T> = HashMap::new();
 
     for (module_alias, symbol) in symbols_origins {
         if mapping.contains_key(symbol) {
             return Err(symbol.clone());
         }
-        mapping.insert(symbol.clone(), compile_name(&module_alias, &symbol));
+        mapping.insert(symbol.clone(), compile_symbol(&module_alias, &symbol));
     }
 
     Ok(mapping)
 }
 
-fn get_typenames_origins(file: &LoadedFile) -> Result<SingleFileMapping, String> {
+fn get_typenames_origins(file: &LoadedFile) -> Result<SingleFileMapping<SymbolType>, String> {
     let defined_types = file.ast.types.iter().map(|d| (file.module_path.alias(), &d.name));
 
     let imported_types = file.ast.imports.iter().flat_map(|i| {
@@ -132,10 +135,10 @@ fn get_typenames_origins(file: &LoadedFile) -> Result<SingleFileMapping, String>
             .map(move |typename| (i.module_path.alias(), typename))
     });
 
-    get_origins(defined_types.chain(imported_types))
+    get_origins(defined_types.chain(imported_types), &compile_typename)
 }
 
-fn get_functions_origins(file: &LoadedFile) -> Result<SingleFileMapping, String> {
+fn get_functions_origins(file: &LoadedFile) -> Result<SingleFileMapping<SymbolFunc>, String> {
     let defined_types = file.ast.functions.iter().map(|f| (file.module_path.alias(), &f.name));
 
     let imported_types = file.ast.imports.iter().flat_map(|i| {
@@ -144,7 +147,7 @@ fn get_functions_origins(file: &LoadedFile) -> Result<SingleFileMapping, String>
             .map(move |funcname| (i.module_path.alias(), funcname))
     });
 
-    get_origins(defined_types.chain(imported_types))
+    get_origins(defined_types.chain(imported_types), &compile_func)
 }
 
 #[cfg(test)]
@@ -172,18 +175,18 @@ mod test {
         let main_types_resolver = resolver.get_typenames_resolver(&main_alias);
         assert_eq!(
             main_types_resolver(&String::from("SomeType")),
-            Symbol("main::SomeType".into())
+            SymbolType("main::SomeType".into())
         );
 
         let main_functions_resolver = resolver.get_functions_resolver(&main_alias);
         let mod_functions_resolver = resolver.get_functions_resolver(&mod_alias);
         assert_eq!(
             main_functions_resolver(&String::from("somefun")),
-            Symbol("mod::somefun".into())
+            SymbolFunc("mod::somefun".into())
         );
         assert_eq!(
             mod_functions_resolver(&String::from("somefun")),
-            Symbol("mod::somefun".into())
+            SymbolFunc("mod::somefun".into())
         );
     }
 }

@@ -1,4 +1,4 @@
-use super::real_type::RType;
+use crate::ast::Type;
 
 #[derive(Debug)]
 pub enum LStatement {
@@ -7,7 +7,7 @@ pub enum LStatement {
     Break,
     Continue,
     Return(LExpr),
-    DeclareVar { rtype: RType, name: String },
+    DeclareVar { var_type: Type, name: String },
     AssignVar { name: String, value: LExpr },
     Expression(LExpr),
     // TODO: send message

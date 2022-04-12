@@ -1,25 +1,14 @@
 use crate::ast::{Type, TypedNamedObject};
 use std::collections::HashMap;
 
-use super::resolvers::{SymbolResolver, Symbol};
+use super::resolvers::{SymbolResolver};
+use super::symbols::SymbolType;
 
 #[derive(Debug)]
 pub struct CustomType {
-    pub name: Symbol,
+    pub name: SymbolType,
     pub is_active: bool,
     pub fields: TypedFields,
-}
-
-#[derive(Debug, Clone)]
-pub enum RType {
-    Int,
-    Float,
-    String,
-    Bool,
-
-    List(Box<Self>),
-    Tuple(Vec<Self>),
-    Custom(Symbol),
 }
 
 /// Simple ordered HashMap for typed and ordered fields
@@ -27,40 +16,40 @@ pub enum RType {
 #[derive(Debug)]
 pub struct TypedFields {
     pub names: HashMap<String, usize>,
-    pub types: Vec<RType>,
+    pub types: Vec<Type>,
 }
 
 
-pub fn type_to_real(source_type: &Type, custom_resolver: &SymbolResolver) -> RType {
+pub fn annotate_type(source_type: &Type, custom_resolver: &SymbolResolver<SymbolType>) -> Type {
     match source_type {
-        Type::Int => RType::Int,
-        Type::Float => RType::Float,
-        Type::Bool => RType::Bool,
-        Type::String => RType::String,
+        Type::Int => Type::Int,
+        Type::Float => Type::Float,
+        Type::Bool => Type::Bool,
+        Type::String => Type::String,
 
         Type::List(inner) => {
-            RType::List(Box::new(type_to_real(inner.as_ref(), custom_resolver)))
+            Type::List(Box::new(annotate_type(inner.as_ref(), custom_resolver)))
         }
         Type::Tuple(items) => {
-            let real_items = items.iter().map(|t| type_to_real(t, custom_resolver));
-            RType::Tuple(real_items.collect())
+            let real_items = items.iter().map(|t| annotate_type(t, custom_resolver));
+            Type::Tuple(real_items.collect())
         }
         Type::Maybe(inner) => {
-            let real_inner = type_to_real(inner.as_ref(), custom_resolver);
-            RType::Tuple(vec![RType::Bool, real_inner])
+            let real_inner = annotate_type(inner.as_ref(), custom_resolver);
+            Type::Tuple(vec![Type::Bool, real_inner])
         }
-        Type::Ident(ident) => RType::Custom(custom_resolver(ident).clone()),
+        Type::Ident(ident) => custom_resolver(ident).into(),
     }
 }
 
-pub fn type_vec_to_typed_fields(
+pub fn annotate_typednamed_vec(
     v: &Vec<TypedNamedObject>,
-    resolver: &SymbolResolver,
+    resolver: &SymbolResolver<SymbolType>,
 ) -> TypedFields {
     let mut typed_fields = TypedFields { names: HashMap::new(), types: vec![] };
 
     for (i, old_type) in v.iter().enumerate() {
-        let real_type = type_to_real(&old_type.typename, resolver);
+        let real_type = annotate_type(&old_type.typename, resolver);
 
         typed_fields.names.insert(old_type.name.clone(), i);
         typed_fields.types.push(real_type);

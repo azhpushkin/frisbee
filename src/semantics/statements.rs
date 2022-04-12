@@ -1,9 +1,8 @@
 use crate::ast::*;
-use crate::semantics::real_type::RType;
 
 use super::aggregate::{ProgramAggregate, RawFunction};
 use super::light_ast::{LExpr, LStatement};
-use super::resolvers::{NameResolver, Symbol};
+use super::resolvers::{NameResolver, SymbolFunc, SymbolType};
 
 pub fn expr_to_lexpr(e: &Expr) -> LExpr {
     todo!()
@@ -53,13 +52,13 @@ impl<'a, 'b, 'c> LightStatementsGenerator<'a, 'b, 'c> {
             }
             Statement::Foreach { itemname, iterable, body } => {
                 // TODO: check that iterable is of type [List]
-                let rtype: RType = todo!();
+                let var_type: Type = todo!();
                 // TODO: proper random index name generation
                 let index_name = format!("{}__{}__index", self.scope.short_name, itemname.clone());
 
-                let add_item_var = LStatement::DeclareVar { rtype, name: itemname.clone() };
+                let add_item_var = LStatement::DeclareVar { var_type, name: itemname.clone() };
                 let add_index_var =
-                    LStatement::DeclareVar { rtype: RType::Int, name: index_name.clone() };
+                    LStatement::DeclareVar { var_type: Type::Int, name: index_name.clone() };
                 let set_index_value =
                     LStatement::AssignVar { name: index_name.clone(), value: LExpr::Int(0) };
 
