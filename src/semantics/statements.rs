@@ -1,10 +1,10 @@
 use crate::ast::*;
 
 use super::aggregate::{ProgramAggregate, RawFunction};
-use super::light_ast::{LExpr, LStatement};
+use super::light_ast::{LExpr, LStatement, LExprTyped};
 use super::resolvers::NameResolver;
 
-pub fn expr_to_lexpr(e: &Expr) -> LExpr {
+pub fn expr_to_lexpr(e: &Expr) -> LExprTyped {
     todo!()
 }
 
@@ -60,7 +60,7 @@ impl<'a, 'b, 'c> LightStatementsGenerator<'a, 'b, 'c> {
                 let add_index_var =
                     LStatement::DeclareVar { var_type: Type::Int, name: index_name.clone() };
                 let set_index_value =
-                    LStatement::AssignVar { name: index_name.clone(), value: LExpr::Int(0) };
+                    LStatement::AssignVar { name: index_name.clone(), value: LExprTyped::int(0) };
 
                 // and so on
                 return vec![add_item_var, add_index_var, set_index_value];
