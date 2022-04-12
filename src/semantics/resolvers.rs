@@ -3,9 +3,8 @@ use std::collections::HashMap;
 use crate::ast::{ModulePathAlias, Type};
 use crate::loader::{LoadedFile, WholeProgram};
 
-use super::symbols::{SymbolType, SymbolFunc};
+use super::symbols::{compile_func, compile_typename, SymbolFunc, SymbolType};
 
-type SymbolOrigin<'a, 'b> = (&'a ModulePathAlias, &'b String);
 type SymbolLookupMapping<T>
 where
     T: Symbol,
@@ -26,7 +25,6 @@ trait Symbol {}
 impl Symbol for SymbolType {}
 impl Symbol for SymbolFunc {}
 
-
 pub struct NameResolver {
     // key is where the symbol lookup occures, value is target
     typenames: SymbolLookupMapping<SymbolType>,
@@ -40,16 +38,19 @@ impl NameResolver {
         for (file_name, file) in wp.files.iter() {
             check_module_does_not_import_itself(file);
 
-            let file_functions_mapping = get_functions_origins(file)
+            let function_origins = get_functions_origins(file);
+            let functions_mapping = get_origins(function_origins, &compile_func)
                 .unwrap_or_else(|x| panic!("Function {} defined twice in {}", x, file_name.0));
-            let file_typenames_mapping = get_typenames_origins(file)
+
+            let typename_origins = get_typenames_origins(file);
+            let typenames_mapping = get_origins(typename_origins, &compile_typename)
                 .unwrap_or_else(|x| panic!("Type {} defined twice in {}", x, file_name.0));
 
-            resolver.functions.insert(file_name.0.clone(), file_functions_mapping);
-            resolver.typenames.insert(file_name.0.clone(), file_typenames_mapping);
+            resolver.functions.insert(file_name.0.clone(), functions_mapping);
+            resolver.typenames.insert(file_name.0.clone(), typenames_mapping);
         }
 
-        resolver.validate();
+        resolver.validate(&wp);
 
         resolver
     }
@@ -79,21 +80,25 @@ impl NameResolver {
         Box::new(move |name: &String| self.functions[&alias.0].get(name).unwrap().clone())
     }
 
-    fn validate(&self) {
-        let all_typenames = self.typenames.iter().flat_map(|(_, v)| v.values());
-        let all_functions = self.functions.iter().flat_map(|(_, v)| v.values());
+    fn validate(&self, wp: &WholeProgram) {
+        for (_, file) in wp.files.iter() {
+            check_module_does_not_import_itself(file);
 
-        for typename in all_typenames {
-            let (module, name) = typename.0.split_once("::").unwrap();
-            if !self.typenames[module].contains_key(name) {
-                panic!("Expected type {} to be defined in module {}!", name, module);
+            for (module, name) in get_functions_origins(file) {
+                if !self.functions[&module.0].contains_key(name) {
+                    panic!(
+                        "Expected function {} to be defined in module {:?}!",
+                        name, module
+                    );
+                }
             }
-        }
-
-        for function in all_functions {
-            let (module, name) = function.0.split_once("::").unwrap();
-            if !self.functions[module].contains_key(name) {
-                panic!("Expected type {} to be defined in module {}!", name, module);
+            for (module, typename) in get_typenames_origins(file) {
+                if !self.typenames[&module.0].contains_key(typename) {
+                    panic!(
+                        "Expected type {} to be defined in module {:?}!",
+                        typename, module
+                    );
+                }
             }
         }
     }
@@ -110,7 +115,7 @@ fn check_module_does_not_import_itself(file: &LoadedFile) {
 fn get_origins<'a, I, T>(
     symbols_origins: I,
     compile_symbol: &dyn Fn(&ModulePathAlias, &String) -> T,
-) -> Result<(SingleFileMapping<T>, Vec<I>), String>
+) -> Result<SingleFileMapping<T>, String>
 where
     I: Iterator<Item = (ModulePathAlias, &'a String)>,
 {
@@ -126,8 +131,14 @@ where
     Ok(mapping)
 }
 
-fn get_typenames_origins(file: &LoadedFile) -> Result<SingleFileMapping<SymbolType>, String> {
-    let defined_types = file.ast.types.iter().map(|d| (file.module_path.alias(), &d.name));
+fn get_typenames_origins<'a>(
+    file: &'a LoadedFile,
+) -> Box<dyn Iterator<Item = (ModulePathAlias, &'a String)> + 'a> {
+    let defined_types = file
+        .ast
+        .types
+        .iter()
+        .map(move |d| (file.module_path.alias(), &d.name));
 
     let imported_types = file.ast.imports.iter().flat_map(|i| {
         i.typenames
@@ -135,11 +146,17 @@ fn get_typenames_origins(file: &LoadedFile) -> Result<SingleFileMapping<SymbolTy
             .map(move |typename| (i.module_path.alias(), typename))
     });
 
-    get_origins(defined_types.chain(imported_types), &compile_typename)
+    Box::new(defined_types.chain(imported_types))
 }
 
-fn get_functions_origins(file: &LoadedFile) -> Result<SingleFileMapping<SymbolFunc>, String> {
-    let defined_types = file.ast.functions.iter().map(|f| (file.module_path.alias(), &f.name));
+fn get_functions_origins<'a>(
+    file: &'a LoadedFile,
+) -> Box<dyn Iterator<Item = (ModulePathAlias, &'a String)> + 'a> {
+    let defined_types = file
+        .ast
+        .functions
+        .iter()
+        .map(move |f| (file.module_path.alias(), &f.name));
 
     let imported_types = file.ast.imports.iter().flat_map(|i| {
         i.functions
@@ -147,7 +164,7 @@ fn get_functions_origins(file: &LoadedFile) -> Result<SingleFileMapping<SymbolFu
             .map(move |funcname| (i.module_path.alias(), funcname))
     });
 
-    get_origins(defined_types.chain(imported_types), &compile_func)
+    Box::new(defined_types.chain(imported_types))
 }
 
 #[cfg(test)]
@@ -155,13 +172,14 @@ mod test {
     use super::*;
     use crate::test_utils::{new_alias, setup_and_load_program};
 
+    #[test]
     pub fn check_resolver_mappings() {
         let wp = setup_and_load_program(
             r#"
             ===== file: main.frisbee
             from mod import somefun;
     
-            class SomeType()
+            class SomeType {}
             ===== file: mod.frisbee
             fun Nil somefun() {}
         "#,
@@ -170,23 +188,37 @@ mod test {
         let resolver = NameResolver::create(&wp);
 
         let main_alias = new_alias("main");
-        let mod_alias = new_alias("main");
+        let mod_alias = new_alias("mod");
 
         let main_types_resolver = resolver.get_typenames_resolver(&main_alias);
         assert_eq!(
             main_types_resolver(&String::from("SomeType")),
-            SymbolType("main::SomeType".into())
+            compile_typename(&main_alias, &String::from("SomeType"))
         );
 
         let main_functions_resolver = resolver.get_functions_resolver(&main_alias);
         let mod_functions_resolver = resolver.get_functions_resolver(&mod_alias);
         assert_eq!(
             main_functions_resolver(&String::from("somefun")),
-            SymbolFunc("mod::somefun".into())
+            compile_func(&mod_alias, &String::from("somefun"))
         );
         assert_eq!(
             mod_functions_resolver(&String::from("somefun")),
-            SymbolFunc("mod::somefun".into())
+            compile_func(&mod_alias, &String::from("somefun"))
         );
+    }
+
+    #[test]
+    #[should_panic]
+    pub fn check_validate() {
+        let wp = setup_and_load_program(
+            r#"
+            ===== file: main.frisbee
+            from mod import somefun_not_existing;
+            ===== file: mod.frisbee
+            fun Nil somefun() {}
+        "#,
+        );
+        NameResolver::create(&wp);
     }
 }

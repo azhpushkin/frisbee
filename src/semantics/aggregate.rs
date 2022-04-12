@@ -5,7 +5,8 @@ use crate::loader::WholeProgram;
 
 use super::light_ast::LStatement;
 use super::real_type::{annotate_type, annotate_typednamed_vec, CustomType, TypedFields};
-use super::resolvers::{compile_method, compile_func, NameResolver, SymbolType, SymbolFunc, compile_typename};
+use super::resolvers::NameResolver;
+use super::symbols::{compile_func, compile_method, compile_typename, SymbolFunc, SymbolType};
 
 #[derive(Debug)]
 pub struct ProgramAggregate {
@@ -68,8 +69,7 @@ pub fn fill_aggregate_with_funcs<'a>(
             let type_full_name = compile_typename(file_alias, &class_decl.name);
 
             for method in class_decl.methods.iter() {
-                let method_full_name =
-                    compile_method(file_alias, &class_decl.name, &method.name);
+                let method_full_name = compile_method(file_alias, &class_decl.name, &method.name);
                 if aggregate.functions.contains_key(&method_full_name) {
                     panic!(
                         "Method {} defined twice in {}.{}",

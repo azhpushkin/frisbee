@@ -2,7 +2,7 @@ use crate::ast::*;
 
 use super::aggregate::{ProgramAggregate, RawFunction};
 use super::light_ast::{LExpr, LStatement};
-use super::resolvers::{NameResolver, SymbolFunc, SymbolType};
+use super::resolvers::NameResolver;
 
 pub fn expr_to_lexpr(e: &Expr) -> LExpr {
     todo!()
@@ -24,7 +24,7 @@ impl<'a, 'b, 'c> LightStatementsGenerator<'a, 'b, 'c> {
     }
 
     pub fn generate_light_statements(&self, statements: &[Statement]) -> Vec<LStatement> {
-        let res = vec![];
+        let mut res = vec![];
         for statement in statements {
             res.extend(self.generate_light_statement(statement));
         }
@@ -81,4 +81,3 @@ pub fn generate_light_statements(
     let x = LightStatementsGenerator::new(scope, aggregate, resolver);
     x.generate_light_statements(og_statements)
 }
-    
