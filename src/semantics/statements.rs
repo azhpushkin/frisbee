@@ -1,6 +1,7 @@
 use crate::ast::*;
 
 use super::aggregate::{ProgramAggregate, RawFunction};
+use super::expressions::LightExpressionsGenerator;
 use super::light_ast::{LExpr, LStatement, LExprTyped};
 use super::resolvers::NameResolver;
 
@@ -12,7 +13,7 @@ struct LightStatementsGenerator<'a, 'b, 'c> {
     scope: &'a RawFunction,
     aggregate: &'b ProgramAggregate,
     resolver: &'c NameResolver,
-    lexpr_generator: &'c LightExpressionsGenerator<'a, 'b, 'c>,
+    lexpr_generator: LightExpressionsGenerator<'a, 'b, 'c>,
 }
 
 impl<'a, 'b, 'c> LightStatementsGenerator<'a, 'b, 'c> {
@@ -21,7 +22,8 @@ impl<'a, 'b, 'c> LightStatementsGenerator<'a, 'b, 'c> {
         aggregate: &'b ProgramAggregate,
         resolver: &'c NameResolver,
     ) -> Self {
-        Self { scope, aggregate, resolver }
+        Self { scope, aggregate, resolver, lexpr_generator: LightExpressionsGenerator::new(scope, aggregate, resolver) }
+        todo!("Add variables to scope right away!")
     }
 
     pub fn generate_light_statements(&self, statements: &[Statement]) -> Vec<LStatement> {
