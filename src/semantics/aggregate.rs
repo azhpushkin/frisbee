@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::ast::{FunctionDecl, ModulePathAlias, Type};
+use crate::ast::{FunctionDecl, ModulePathAlias, Type, TypedNamedObject};
 use crate::loader::WholeProgram;
 
 use super::light_ast::LStatement;
@@ -24,6 +24,12 @@ pub struct RawFunction {
     pub short_name: String,
     pub method_of: Option<SymbolType>,
     pub defined_at: ModulePathAlias,
+}
+
+impl RawFunction {
+    pub fn is_constructor(&self) -> bool {
+        return self.short_name.chars().next().unwrap().is_ascii_uppercase()
+    }
 }
 
 /// Creates basic aggregate, that contains only types
@@ -77,6 +83,13 @@ pub fn fill_aggregate_with_funcs<'a>(
                     );
                 }
 
+                let args = method.args.clone();
+                if method.name == class_decl.name {
+                    args.insert(0, TypedNamedObject {
+                        name: "this".to_string(),
+                        typename: Type::Ident(class_decl.name.clone()),
+                    });
+                };
                 aggregate.functions.insert(
                     method_full_name.clone(),
                     RawFunction {
