@@ -12,6 +12,7 @@ struct LightStatementsGenerator<'a, 'b, 'c> {
     scope: &'a RawFunction,
     aggregate: &'b ProgramAggregate,
     resolver: &'c NameResolver,
+    lexpr_generator: &'c LightExpressionsGenerator<'a, 'b, 'c>,
 }
 
 impl<'a, 'b, 'c> LightStatementsGenerator<'a, 'b, 'c> {

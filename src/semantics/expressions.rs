@@ -2,37 +2,54 @@ use std::collections::HashMap;
 
 use crate::ast::*;
 
-use super::operators::{are_types_same_or_maybe, calculate_binaryop_type, calculate_unaryop_type};
-use super::semantic_error::{sem_err, SemanticResult};
-use super::std_definitions::get_std_method;
-use super::symbols::*;
+use super::aggregate::{ProgramAggregate, RawFunction};
+use super::annotations::CustomType;
+use super::resolvers::{NameResolver, SymbolResolver};
+use super::symbols::{SymbolFunc, SymbolType};
 
-pub struct ExprTypeChecker<'a> {
-    symbols_info: &'a GlobalSymbolsInfo,
-    file_name: ModulePathAlias,
-    scope: Option<String>,
+pub struct LightExpressionsGenerator<'a, 'b, 'c> {
+    module: ModulePathAlias,
+    scope: &'a RawFunction,
+    aggregate: &'b ProgramAggregate,
     variables_types: HashMap<String, Type>,
+    func_resolver: SymbolResolver<'c, SymbolFunc>,
+    type_resolver: SymbolResolver<'c, SymbolType>,
 }
 
-impl<'a> ExprTypeChecker<'a> {
+impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
     pub fn new(
-        symbols_info: &'a GlobalSymbolsInfo,
-        file_name: ModulePathAlias,
-        scope: Option<String>,
-    ) -> ExprTypeChecker<'a> {
-        ExprTypeChecker { symbols_info, file_name, scope, variables_types: HashMap::new() }
+        scope: &'a RawFunction,
+        aggregate: &'b ProgramAggregate,
+        resolver: &'c NameResolver,
+    ) -> LightExpressionsGenerator<'a, 'b, 'c> {
+        let module = scope.defined_at.clone();
+        LightExpressionsGenerator {
+            module,
+            scope,
+            aggregate,
+            variables_types: HashMap::new(),
+            func_resolver: resolver.get_functions_resolver(&module),
+            type_resolver: resolver.get_typenames_resolver(&module),
+        }
     }
 
-    pub fn add_variable(&mut self, name: String, t: Type) -> SemanticResult<()> {
+    pub fn add_variable(&mut self, name: String, t: Type) {
         if self.variables_types.contains_key(&name) {
-            return sem_err!("Variable {} already declared", name);
+            panic!("Variable {} already declared", name);
         }
         self.variables_types.insert(name, t);
-        Ok(())
+    }
+
+    pub fn resolve_type(&self, name: &String) -> &'b CustomType {
+        self.aggregate.types.get(&(self.type_resolver)(name)).unwrap()
+    }
+
+    pub fn resolve_func(&self, name: &String) -> &'b RawFunction {
+        self.aggregate.functions.get(&(self.func_resolver)(name)).unwrap()
     }
 
     fn err_prefix(&self) -> String {
-        format!("In file {}: ", self.file_name.0)
+        format!("In file {}: ", self.module.0)
     }
 
     fn calculate_vec(&self, items: &mut Vec<Expr>) -> SemanticResult<Vec<Type>> {
@@ -41,91 +58,7 @@ impl<'a> ExprTypeChecker<'a> {
         Ok(unwrapped_items?)
     }
 
-    fn get_symbols_per_file(&self) -> &SymbolOriginsPerFile {
-        self.symbols_info.symbols_per_file.get(&self.file_name).unwrap()
-    }
-
-    fn get_class_signature(&self, typename: &String) -> SemanticResult<&ClassSignature> {
-        let class_origin = match self.get_symbols_per_file().typenames.get(typename) {
-            Some(origin) => origin,
-            None => return sem_err!("{} Type {} not found", self.err_prefix(), typename),
-        };
-        // Unwrap here as during global_signatures creation we checked that the type exists
-        Ok(self
-            .symbols_info
-            .global_signatures
-            .typenames
-            .get(class_origin)
-            .unwrap())
-    }
-
-    fn get_function_file(&self, function_name: &String) -> ModulePathAlias {
-        self.get_symbols_per_file()
-            .functions
-            .get(function_name)
-            .unwrap()
-            .module
-            .clone()
-    }
-
-    fn get_function_signature(&self, function_name: &String) -> SemanticResult<&FunctionSignature> {
-        let function_origin = match self.get_symbols_per_file().functions.get(function_name) {
-            Some(origin) => origin,
-            None => return sem_err!("{} Function {} not found", self.err_prefix(), function_name),
-        };
-        // Unwrap here as during global_signatures creation we checked that the function exists
-        Ok(self
-            .symbols_info
-            .global_signatures
-            .functions
-            .get(function_origin)
-            .unwrap())
-    }
-
-    fn get_type_method(
-        &self,
-        alias: &ModulePathAlias,
-        name: &String,
-        method: &String,
-    ) -> SemanticResult<&FunctionSignature> {
-        let symbol_origin = SymbolOrigin { module: alias.clone(), name: name.clone() };
-        let class_signature = self
-            .symbols_info
-            .global_signatures
-            .typenames
-            .get(&symbol_origin)
-            .unwrap();
-        self.get_from_class_signature(&class_signature.methods, method)
-    }
-
-    fn get_type_field(
-        &self,
-        alias: &ModulePathAlias,
-        name: &String,
-        field: &String,
-    ) -> SemanticResult<&Type> {
-        let symbol_origin = SymbolOrigin { module: alias.clone(), name: name.clone() };
-        let class_signature = self
-            .symbols_info
-            .global_signatures
-            .typenames
-            .get(&symbol_origin)
-            .unwrap();
-        self.get_from_class_signature(&class_signature.fields, field)
-    }
-
-    fn get_from_class_signature<'q, T>(
-        &self,
-        mapping: &'q HashMap<String, T>,
-        name: &String,
-    ) -> SemanticResult<&'q T> {
-        match mapping.get(name) {
-            Some(value) => Ok(value),
-            None => sem_err!("{} {} not found", self.err_prefix(), name),
-        }
-    }
-
-    pub fn calculate_and_annotate(&self, expr: &mut Expr) -> SemanticResult<Type> {
+    pub fn calculate_and_annotate(&self, expr: &mut Expr) -> Type {
         let calculated_type = match expr {
             // Primitive types, that map to basic types
             Expr::Int(_) => Type::Int,
@@ -137,7 +70,7 @@ impl<'a> ExprTypeChecker<'a> {
             // Simple lookup is enough for this
             Expr::Identifier(identifier) => match self.variables_types.get(identifier) {
                 Some(t) => t.clone(),
-                None => return sem_err!("{} unknown variable {}", self.err_prefix(), identifier),
+                None => panic!("{} unknown variable {}", self.err_prefix(), identifier),
             },
 
             Expr::TupleValue(items) => Type::Tuple(self.calculate_vec(items)?),
@@ -149,7 +82,7 @@ impl<'a> ExprTypeChecker<'a> {
                     let calculated_items = self.calculate_vec(items)?;
                     // Check for maybe types required, but this is not for now
                     if calculated_items.windows(2).any(|pair| pair[0] != pair[1]) {
-                        return sem_err!(
+                        panic!(
                             "{} list items have different types: {:?}",
                             self.err_prefix(),
                             calculated_items
@@ -173,7 +106,7 @@ impl<'a> ExprTypeChecker<'a> {
             Expr::NewClassInstance { typename, args } => {
                 let class_signature = self.get_class_signature(typename)?;
                 if class_signature.is_active {
-                    return sem_err!("{} You must call spawn for {}", self.err_prefix(), typename);
+                    panic!("{} You must call spawn for {}", self.err_prefix(), typename);
                 }
 
                 let constuctor =
@@ -184,7 +117,7 @@ impl<'a> ExprTypeChecker<'a> {
                 let class_signature = self.get_class_signature(typename)?;
 
                 if !class_signature.is_active {
-                    return sem_err!("{} Cant spawn passive {}!", self.err_prefix(), typename);
+                    panic!("{} Cant spawn passive {}!", self.err_prefix(), typename);
                 }
                 let constuctor =
                     class_signature.methods.get(typename).expect("Constructor not found");
@@ -228,16 +161,12 @@ impl<'a> ExprTypeChecker<'a> {
                     }
                     Type::Ident(..) => panic!("TypeIdent should not be present here!"),
                     _ => {
-                        return sem_err!(
-                            "Error at {:?} - type {:?} has no fields",
-                            object,
-                            obj_type
-                        )
+                        panic!("Error at {:?} - type {:?} has no fields", object, obj_type)
                     }
                 }
             }
             Expr::OwnMethodCall { .. } | Expr::OwnFieldAccess { .. } if self.scope.is_none() => {
-                return sem_err!("{} Using @ is not allowed in functions", self.err_prefix())
+                panic!("{} Using @ is not allowed in functions", self.err_prefix())
             }
             Expr::OwnMethodCall { method, args } => {
                 let method_signature =
@@ -250,7 +179,7 @@ impl<'a> ExprTypeChecker<'a> {
                 field_type.clone()
             }
             Expr::This => match &self.scope {
-                None => return sem_err!("Using 'this' in the functions is not allowed!"),
+                None => panic!("Using 'this' in the functions is not allowed!"),
                 Some(_) => {
                     Type::IdentQualified(self.file_name.clone(), self.scope.clone().unwrap())
                 }
@@ -277,7 +206,7 @@ impl<'a> ExprTypeChecker<'a> {
         args: &mut Vec<Expr>,
     ) -> SemanticResult<Type> {
         if function.args.len() != args.len() {
-            return sem_err!(
+            panic!(
                 "{} Wrong amount of arguments at {:?}, expected {}",
                 self.err_prefix(),
                 args,
@@ -289,12 +218,9 @@ impl<'a> ExprTypeChecker<'a> {
             let expr_type = self.calculate_and_annotate(arg_expr)?;
             // TODO: this is wrong check of type correctness, but it works for now
             if !are_types_same_or_maybe(&expected_arg.1, &expr_type) {
-                return sem_err!(
+                panic!(
                     "Wrong type for argument {}, expected {:?}, got {:?} ({:?})",
-                    expected_arg.0,
-                    expected_arg.1,
-                    expr_type,
-                    arg_expr
+                    expected_arg.0, expected_arg.1, expr_type, arg_expr
                 );
             }
         }

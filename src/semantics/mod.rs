@@ -8,6 +8,7 @@ mod light_ast;
 mod annotations;
 mod resolvers;
 mod statements;
+mod expressions;
 mod symbols;
 mod tests;
 
