@@ -1,5 +1,7 @@
 use crate::ast::Type;
 
+use super::symbols::SymbolFunc;
+
 #[derive(Debug)]
 pub enum LStatement {
     IfElse {
@@ -82,7 +84,7 @@ pub enum LExpr {
     GetVar(String),
 
     ApplyOp { operator: RawOperator, operands: Vec<LExprTyped> },
-    CallFunction { name: String, args: Vec<LExprTyped> },
+    CallFunction { name: SymbolFunc, args: Vec<LExprTyped> },
     // TODO: all others
 
     // TODO: spawn!

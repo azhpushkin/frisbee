@@ -5,7 +5,7 @@ use crate::ast::*;
 use super::aggregate::{ProgramAggregate, RawFunction};
 use super::annotations::CustomType;
 use super::light_ast::{LExpr, LExprTyped};
-use super::operators::{calculate_unaryop, calculate_binaryop};
+use super::operators::{calculate_binaryop, calculate_unaryop};
 use super::resolvers::{NameResolver, SymbolResolver};
 use super::symbols::{SymbolFunc, SymbolType};
 
@@ -103,18 +103,33 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                 self.calculate(&right, None),
             ),
 
-            // Expr::FunctionCall { function, args } => {
-            //     let function_signature = self.get_function_signature(function)?;
-            //     let rettype = self.check_function_call(function_signature, args)?;
-            //     *expr = Expr::FunctionCallQualified {
-            //         module: self.get_function_file(function),
-            //         function: std::mem::take(function),
-            //         args: std::mem::take(args),
-            //     };
-            //     rettype
-            // }
+            Expr::FunctionCall { function, args } => {
+                let raw_called = self.resolve_func(&function);
 
-            
+                let processed_args = args
+                    .iter()
+                    .zip(raw_called.args.types.iter())
+                    .map(|(arg, expected_type)| self.calculate(arg, Some(expected_type)))
+                    .collect::<Vec<LExprTyped>>();
+                let lexpr_call =
+                    LExpr::CallFunction { name: raw_called.name.clone(), args: processed_args };
+                if raw_called.return_type.is_none() {
+                    if expected.is_some() {
+                        panic!(
+                            "Function {:?} does not return anything, expected {:?}",
+                            raw_called.name, expected
+                        );
+                    }
+                    
+                    return LExprTyped {
+                        expr: lexpr_call,
+                        expr_type: Type::Tuple(vec![]),  // TODO: this is smart, but need to revise this
+                    }
+                }
+
+                if_as_expected(expected, &raw_called.return_type.unwrap(), lexpr_call)
+            }
+
             // Expr::TupleValue(items) => Type::Tuple(self.calculate_vec(items)?),
             // Expr::ListValue(items) => {
             //     if items.len() == 0 {
@@ -156,7 +171,6 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
             //         class_signature.methods.get(typename).expect("Constructor not found");
             //     self.check_function_call(constuctor, args)?
             // }
-            
 
             // Expr::MethodCall { object, method, args } => {
             //     // TODO: implement something for built-in types
