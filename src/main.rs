@@ -25,8 +25,10 @@ fn main() {
     
     let aggregate = semantics::perform_semantic_analysis(&wp);
 
-    let bytecode = codegen::generate_program(&aggregate);
-    println!("{}", codegen::disassemble::disassemble_bytes(&bytecode));
+    let bytecode = codegen::generate(&aggregate);
+    let aux = codegen::disassemble::get_auxilary_functions_positions(&aggregate);
+
+    println!("{}", codegen::disassemble::disassemble_bytes(&bytecode, Some(&aux)));
 
     if false {
         let mut vm = vm::Vm::new(bytecode);

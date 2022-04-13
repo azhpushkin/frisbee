@@ -4,7 +4,7 @@ use crate::ast::{Type, ModulePathAlias};
 #[derive(Debug, PartialEq, Clone, Eq, Hash)]
 pub struct SymbolType(String);
 
-#[derive(Debug, PartialEq, Clone, Eq, Hash)]
+#[derive(Debug, PartialEq, Clone, Eq, Hash, PartialOrd, Ord)]
 pub struct SymbolFunc(String);
 
 impl SymbolFunc {

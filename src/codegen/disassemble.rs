@@ -1,7 +1,12 @@
+use std::collections::HashMap;
 use std::iter::Enumerate;
 use std::slice::Iter;
 
+use crate::semantics::aggregate::ProgramAggregate;
+use crate::semantics::symbols::SymbolFunc;
 use crate::vm::opcodes::{get_args_num, op};
+
+use super::generate_chunks;
 
 pub fn opcode_to_s(c: u8) -> &'static str {
     match c {
@@ -42,9 +47,7 @@ pub fn get_bytes<const N: usize>(i: &mut Enumerate<Iter<u8>>) -> [u8; N] {
     bytes
 }
 
-pub fn disassemble_bytes(program: &Vec<u8>) -> String {
-    println!("Program is of total len: {}", program.len());
-
+pub fn disassemble_bytes(program: &Vec<u8>, aux: Option<&AuxData>) -> String {
     let mut text_repr: String = String::from("Constants:\n");
     let mut program_iter = program.iter().enumerate();
 
@@ -65,6 +68,11 @@ pub fn disassemble_bytes(program: &Vec<u8>) -> String {
     text_repr.push_str("\nFunctions:\n");
 
     while let Some((i, opcode)) = program_iter.next() {
+        if aux.is_some() && aux.unwrap().get(&i).is_some() {
+            let func = aux.unwrap().get(&i).unwrap();
+            text_repr.push_str(&format!("\n# {:?}:\n", func));
+        }
+
         let mut number_of_args = get_args_num(*opcode);
         let mut args: Vec<u8> = vec![];
         while number_of_args > 0 {
@@ -75,4 +83,23 @@ pub fn disassemble_bytes(program: &Vec<u8>) -> String {
         text_repr.push_str(op_text.as_str());
     }
     text_repr
+}
+
+type AuxData = HashMap<usize, SymbolFunc>;
+
+pub fn get_auxilary_functions_positions(prog: &ProgramAggregate) -> AuxData {
+    let (c, f) = generate_chunks(prog);
+
+    let mut functions_vec: Vec<SymbolFunc> = f.keys().map(|x| x.clone()).collect();
+    functions_vec.sort();
+
+    let mut functions_start: AuxData = HashMap::new();
+
+    let mut current_shift = c.len();
+    for name in functions_vec.iter() {
+        let bytecode = &f[name].bytecode;
+        functions_start.insert(current_shift, name.clone());
+        current_shift += bytecode.len();
+    }
+    functions_start
 }

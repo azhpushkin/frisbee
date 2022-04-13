@@ -9,7 +9,9 @@ pub fn assemble_chunks(
     mut constants: Vec<u8>,
     mut functions: HashMap<SymbolFunc, FunctionBytecode>,
 ) -> Vec<u8> {
-    let functions_vec: Vec<SymbolFunc> = functions.keys().map(|x|x.clone()).collect();
+    let mut functions_vec: Vec<SymbolFunc> = functions.keys().map(|x| x.clone()).collect();
+    functions_vec.sort();
+
     let mut functions_start: HashMap<&SymbolFunc, usize> = HashMap::new();
 
     let mut current_shift = constants.len();
@@ -26,8 +28,8 @@ pub fn assemble_chunks(
         }
     }
 
-    for function in functions.values() {
-        constants.extend(function.bytecode.clone());
+    for funcname in functions_vec.iter() {
+        constants.extend(functions[funcname].bytecode.clone());
     }
 
     return constants;

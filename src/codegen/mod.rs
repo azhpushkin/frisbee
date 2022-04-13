@@ -13,7 +13,7 @@ mod functions;
 mod generator;
 mod globals;
 
-pub fn generate_program(prog: &ProgramAggregate) -> Vec<u8> {
+fn generate_chunks(prog: &ProgramAggregate) -> (Vec<u8>, HashMap<SymbolFunc, FunctionBytecode>) {
     let mut globals = globals::Globals::new();
 
     let mut functions_bytecode: HashMap<SymbolFunc, FunctionBytecode> = HashMap::new();
@@ -23,6 +23,10 @@ pub fn generate_program(prog: &ProgramAggregate) -> Vec<u8> {
     }
 
     let const_bytecode = constants::constants_to_bytecode(&globals.constants);
+    (const_bytecode, functions_bytecode)
+}
 
-    assemble::assemble_chunks(const_bytecode, functions_bytecode)
+pub fn generate(prog: &ProgramAggregate) -> Vec<u8> {
+    let (c, f) = generate_chunks(prog);
+    assemble::assemble_chunks(c, f)
 }
