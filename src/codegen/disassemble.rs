@@ -1,11 +1,13 @@
 use std::slice::Iter;
 
-use crate::vm::op;
+use crate::vm::opcodes::op;
 
 pub fn opcode_to_s(c: u8) -> &'static str {
     match c {
         op::LOAD_CONST => "load_const",
         op::LOAD_INT => "load_int",
+        op::LOAD_TRUE => "load_true",
+        op::LOAD_FALSE => "load_false",
         op::ADD_INT => "add_int",
         op::SUB_INT => "sub_int",
         op::MUL_INT => "mul_int",

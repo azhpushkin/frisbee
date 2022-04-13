@@ -3,7 +3,7 @@ use super::generator::BytecodeGenerator;
 use crate::ast::Type;
 use crate::semantics::light_ast::{LExprTyped, LExpr, RawOperator};
 use crate::semantics::symbols::SymbolFunc;
-use crate::vm::op;
+use crate::vm::opcodes::op;
 
 
 fn match_operator(raw_op: &RawOperator) -> u8 {
@@ -62,20 +62,9 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                     self.push_expr(&arg);
                 }
                 self.push(op::CALL);
-                self.push(args.);
-                self.push
-                
+                self.push(args.len() as u8);
 
-
-            }
-            Expr::FunctionCallQualified { module, function, args } => {
                 
-                let function_id = self.get_function(module, function) as u8;
-                
-                self.push(function_id);
-                for _ in args.iter() {
-                    self.push(op::POP);
-                }
             }
             LExpr::Allocate { .. } => todo!("Allocate is not here yet!"),
         }

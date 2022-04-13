@@ -1,46 +1,9 @@
+pub mod opcodes;
+
+use opcodes::op;
+
 const STACK_SIZE: usize = 256;
 
-macro_rules! opcodes_list {
-    ($s:expr, $c:ident ) => {
-        pub const $c: u8 = $s;
-    };
-    ($s:expr, $c:ident, $ ( $more:ident ),+ ) => {
-        pub const $c: u8 = $s;
-        opcodes_list!($s+1, $(  $more ),+ );
-    };
-}
-
-#[rustfmt::skip]
-pub mod op {
-    opcodes_list!(
-        0,
-        LOAD_CONST,
-        LOAD_INT,
-        LOAD_TRUE,
-        LOAD_FALSE,
-
-        ADD_INT,
-        SUB_INT,
-        MUL_INT,
-        DIV_INT,
-
-        ADD_FLOAT,
-        SUB_FLOAT,
-        MUL_FLOAT,
-        DIV_FLOAT,
-
-        CALL,
-        RETURN,
-        POP,
-        SET_VAR,
-        GET_VAR
-    );
-
-    pub const CONST_END_FLAG: u8 = 0;
-    pub const CONST_INT_FLAG: u8 = 1;    
-    pub const CONST_FLOAT_FLAG: u8 = 2;
-    pub const CONST_STRING_FLAG: u8 = 3;
-}
 
 struct CallFrame {
     return_ip: usize,

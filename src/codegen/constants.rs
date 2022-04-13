@@ -1,4 +1,4 @@
-use crate::vm::op;
+use crate::vm::opcodes::op;
 
 #[derive(Debug)]
 pub enum Constant {

@@ -2,19 +2,24 @@ use std::collections::HashMap;
 
 use crate::semantics::aggregate::ProgramAggregate;
 use crate::semantics::symbols::SymbolFunc;
-use crate::vm::op;
+use crate::vm::opcodes::op;
 
 use super::constants::Constant;
 use super::globals::Globals;
 
 pub type CallPlaceholders = (usize, SymbolFunc);
 
+pub struct FunctionBytecode {
+    pub bytecode: Vec<u8>,
+    pub call_placeholders: Vec<CallPlaceholders>,
+}
+
+
 pub struct BytecodeGenerator<'a, 'b> {
     aggregate: &'a ProgramAggregate,
     globals: &'b mut Globals,
     locals: HashMap<&'a String, u8>,
-    bytecode: Vec<u8>,
-    pub call_placeholders: Vec<CallPlaceholders>,
+    bytecode: FunctionBytecode,
 }
 
 impl<'a, 'b> BytecodeGenerator<'a, 'b> {
@@ -27,12 +32,15 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
             aggregate,
             globals,
             locals,
-            bytecode: vec![],
-            call_placeholders: vec![],
+            bytecode: FunctionBytecode {
+                bytecode: vec![],
+                call_placeholders: vec![],
+            }   
         }
     }
 
     pub fn add_local(&mut self, varname: &'a String) {
+        // TODO: add type info for offsets
         self.locals.insert(varname, self.locals.len() as u8);
     }
 
@@ -53,16 +61,21 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
         self.push(constant_pos);
     }
 
-    pub fn get_function(&mut self, module: &ModulePathAlias, function: &String) -> usize {
-        self.globals
-            .get_function_placeholder(module.clone(), function.clone())
-    }
-
     pub fn push(&mut self, opcode: u8) {
-        self.bytecode.push(opcode);
+        self.bytecode.bytecode.push(opcode);
     }
 
-    pub fn get_bytecode(&mut self) -> Vec<u8> {
-        std::mem::take(&mut self.bytecode)
+    pub fn push_function_placeholder(&mut self, func: &SymbolFunc) {
+        self.bytecode.call_placeholders.push((self.bytecode.bytecode.len(), func.clone()));
+        self.push(0);
+    }
+
+    pub fn get_bytecode(&mut self) -> FunctionBytecode {
+        let mut temp = FunctionBytecode {
+            bytecode: vec![],
+            call_placeholders: vec![],
+        };
+        std::mem::swap(&mut self.bytecode, &mut temp);
+        temp
     }
 }

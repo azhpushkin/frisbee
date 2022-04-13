@@ -1,9 +1,9 @@
 use crate::semantics::aggregate::{RawFunction, ProgramAggregate};
 use crate::semantics::light_ast::LStatement;
-use crate::vm::op;
+use crate::vm::opcodes::op;
 use crate::ast::Type;
 
-use super::generator::BytecodeGenerator;
+use super::generator::{BytecodeGenerator, FunctionBytecode};
 use super::globals::Globals;
 
 
@@ -12,18 +12,18 @@ pub fn generate_function_bytecode(
     func: &RawFunction,
     aggregate: &ProgramAggregate,
     globals: &mut Globals,
-) -> Result<Vec<u8>, String> {
-    let arg_vars = func.args.iter().map(|arg| &arg.name);
+) -> Result<FunctionBytecode, String> {
+    let arg_vars = func.args.iter().map(|arg| arg.0);
 
     let mut generator = BytecodeGenerator::new(
         aggregate,
-        &mut globals,
+        globals,
         arg_vars.enumerate().map(|(i, var)| (var, i as u8)).collect(),
     );
 
     for statement in func.body.iter() {
         match statement {
-            LStatement::Expr(expr) => {
+            LStatement::Expression(expr) => {
                 generator.push_expr(expr);
                 generator.push(op::POP);
             }
@@ -34,10 +34,10 @@ pub fn generate_function_bytecode(
                 generator.add_local(name);
             }
             LStatement::AssignVar{name, value} => {
-                generator.push_expr(expr);
-                generator.add_local(varname);
+                generator.push_expr(value);
+                generator.add_local(name);
             }
-            Statement::Return(expr) => {
+            LStatement::Return(expr) => {
                 generator.push_expr(expr);
                 generator.push(op::RETURN);
             }
