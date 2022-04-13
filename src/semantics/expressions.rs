@@ -17,16 +17,6 @@ fn if_as_expected(e: Option<&Type>, t: &Type, le: LExpr) -> LExprTyped {
     }
 }
 
-fn add_this_to_args(args: &mut TypedFields, this_type: SymbolType) {
-    for arg_index in args.names.values_mut() {
-        *arg_index += 1;
-    }
-    args.names.insert("this".into(), 0);
-    args.types.insert(0, this_type.into());
-}
-
-
-
 pub struct LightExpressionsGenerator<'a, 'b, 'c> {
     module: ModulePathAlias,
     scope: &'a RawFunction,
@@ -121,34 +111,15 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
             Expr::FunctionCall { function, args } => {
                 let raw_called = self.resolve_func(&function);
 
-                let processed_args = args
-                    .iter()
-                    .zip(raw_called.args.types.iter())
-                    .map(|(arg, expected_type)| self.calculate(arg, Some(expected_type)))
-                    .collect::<Vec<LExprTyped>>();
-                let lexpr_call =
-                    LExpr::CallFunction { name: raw_called.name.clone(), args: processed_args };
-                if raw_called.return_type.is_none() {
-                    if expected.is_some() {
-                        panic!(
-                            "Function {:?} does not return anything, expected {:?}",
-                            raw_called.name, expected
-                        );
-                    }
-                    
-                    return LExprTyped {
-                        expr: lexpr_call,
-                        expr_type: Type::Tuple(vec![]),  // TODO: this is smart, but need to revise this
-                    }
-                }
-
-                if_as_expected(expected, &raw_called.return_type.unwrap(), lexpr_call)
+                self.calculate_function_call(&raw_called, expected, &args, None)
             }
             Expr::MethodCall { object, method, args } => {
-                let le_object = self.calculate(object, expected);
-                let object_type = le_object.expr_type;
+                let object = self.calculate(object, expected);
+                let object_type = object.expr_type;
                 match object_type {
-                    Type::Int | Type::Float | Type::String | Type::List(..) => todo!("No std methods yet!"),
+                    Type::Int | Type::Float | Type::String | Type::List(..) => {
+                        todo!("No std methods yet!")
+                    }
                     _ => (),
                 }
                 // TODO: check if maybe type
@@ -156,13 +127,15 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
 
                 let object_symbol: SymbolType = object_type.into();
                 let raw_method = self.resolve_method(&object_symbol, method);
-                let processed_args = args
-                    .iter()
-                    .zip(raw_method.args.types.iter())
-                    .map(|(arg, expected_type)| self.calculate(arg, Some(expected_type)))
-                    .collect::<Vec<LExprTyped>>();
-                add_this_to_args(&mut processed_args, object_symbol);
+                self.calculate_function_call(&raw_method, expected, &args, Some(object))
+            }
+            Expr::OwnMethodCall { method, args } => {
+                if self.scope.method_of.is_none() {
+                    panic!("Calling own method outside of method scope!");
                 }
+                let this_object = self.calculate(&Expr::This, expected);
+                let raw_method = self.resolve_method(&self.scope.method_of.unwrap(), method);
+                self.calculate_function_call(&raw_method, expected, &args, Some(this_object))
             }
 
             // Expr::TupleValue(items) => Type::Tuple(self.calculate_vec(items)?),
@@ -207,8 +180,6 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
             //     self.check_function_call(constuctor, args)?
             // }
 
-            
-
             // Expr::FieldAccess { object, field } => {
             //     // TODO: implement something for built-in types
             //     let obj_type = self.calculate_and_annotate(object)?;
@@ -223,14 +194,6 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
             //         }
             //     }
             // }
-            // Expr::OwnMethodCall { .. } | Expr::OwnFieldAccess { .. } if self.scope.is_none() => {
-            //     panic!("{} Using @ is not allowed in functions", self.err_prefix())
-            // }
-            // Expr::OwnMethodCall { method, args } => {
-            //     let method_signature =
-            //         self.get_type_method(&self.file_name, self.scope.as_ref().unwrap(), method)?;
-            //     self.check_function_call(method_signature, args)?
-            // }
             // Expr::OwnFieldAccess { field } => {
             //     let field_type =
             //         self.get_type_field(&self.file_name, &self.scope.as_ref().unwrap(), field)?;
@@ -243,41 +206,56 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
     fn calculate_function_call(
         &self,
         raw_called: &'b RawFunction,
-        args: &Vec<TypedNamedObject>,
-        pass_this: Some(SymbolType)
+        expected_return: Option<&Type>,
+        given_args: &Vec<Expr>,
+        implicit_this: Option<LExprTyped>,
     ) -> LExprTyped {
-        if args.len() != raw_called.args.names.len() {
+        let expected_args: &[Type] = if implicit_this.is_some() {
+            &raw_called.args.types[1..]
+        } else {
+            &raw_called.args.types[..]
+        };
+
+        if given_args.len() != expected_args.len() {
             panic!(
                 "{} Function {:?} expects {} arguments, but {} given",
                 self.err_prefix(),
                 raw_called.name,
-                raw_called.args.names.len(),
-                args.len()
+                expected_args.len(),
+                given_args.len(),
             );
         }
 
-        let processed_args = args
+        let mut processed_args: Vec<LExprTyped> = given_args
             .iter()
-            .zip(raw_called.args.types.iter())
+            .zip(expected_args.iter())
             .map(|(arg, expected_type)| self.calculate(arg, Some(expected_type)))
-            .collect::<Vec<LExprTyped>>();
+            .collect();
+        if let Some(this_object) = implicit_this {
+            processed_args.insert(0, this_object);
+        }
+
         let lexpr_call =
             LExpr::CallFunction { name: raw_called.name.clone(), args: processed_args };
         if raw_called.return_type.is_none() {
-            if expected.is_some() {
+            if expected_return.is_some() {
                 panic!(
                     "Function {:?} does not return anything, expected {:?}",
-                    raw_called.name, expected
+                    raw_called.name, expected_return
                 );
             }
-            
+
             return LExprTyped {
                 expr: lexpr_call,
-                expr_type: Type::Tuple(vec![]),  // TODO: this is smart, but need to revise this
-            }
+                expr_type: Type::Tuple(vec![]), // TODO: this is smart, but need to revise this
+            };
         }
 
-        if_as_expected(expected, &raw_called.return_type.unwrap(), lexpr_call)
+        if_as_expected(
+            expected_return,
+            &raw_called.return_type.unwrap(),
+            lexpr_call,
+        )
     }
 
     // fn calculate_access_by_index(
