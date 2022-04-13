@@ -5,10 +5,6 @@ use super::expressions::LightExpressionsGenerator;
 use super::light_ast::{LExpr, LExprTyped, LStatement};
 use super::resolvers::NameResolver;
 
-pub fn expr_to_lexpr(e: &Expr) -> LExprTyped {
-    todo!()
-}
-
 struct LightStatementsGenerator<'a: 'd, 'b, 'c: 'd, 'd> {
     scope: &'a RawFunction,
     aggregate: &'b ProgramAggregate,
@@ -54,7 +50,7 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
         }
     }
 
-    pub fn generate(&self, statements: &[Statement]) -> Vec<LStatement> {
+    pub fn generate(&mut self, statements: &[Statement]) -> Vec<LStatement> {
         let mut res = vec![];
         self.allocate_object_if_constructor(&mut res);
 
@@ -64,22 +60,50 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
         res
     }
 
-    fn generate_single(&self, statement: &Statement) -> Vec<LStatement> {
-        let light_statement = match statement {
-            Statement::Expr(e) => LStatement::Expression(expr_to_lexpr(e)),
+    fn check_expr(&self, expr: &Expr, expected: Option<&Type>) -> LExprTyped {
+        self.lexpr_generator.calculate(expr, expected)
+    }
 
-            Statement::Return(e) => LStatement::Return(expr_to_lexpr(e)),
+    fn generate_single(&mut self, statement: &Statement) -> Vec<LStatement> {
+        let light_statement = match statement {
+            Statement::Expr(e) => LStatement::Expression(self.check_expr(e, None)),
+            Statement::VarDecl(var_type, name) => {
+                self.lexpr_generator.add_variable(name.clone(), var_type.clone());
+                LStatement::DeclareVar { var_type: var_type.clone(), name: name.clone() }
+            }
+            Statement::Assign { left, right } => {
+                match left {
+                    Expr::Identifier(i) => {
+                        // TODO: check assigned value type
+                        let value = self.check_expr(right, None);
+                        LStatement::AssignVar { name: i.clone(), value }
+                    }
+                    _ => panic!("Only identifiers now!"),
+                }
+            }
+            Statement::VarDeclWithAssign(var_type, name, value) => {
+                let mut res = vec![];
+                res.push(LStatement::DeclareVar { var_type: var_type.clone(), name: name.clone() });
+                let value = self.check_expr(value, None);
+                self.lexpr_generator.add_variable(name.clone(), var_type.clone());
+                res.push(LStatement::AssignVar { name: name.clone(), value });
+                return res;
+            }
+
+            Statement::Return(e) => {
+                LStatement::Return(self.check_expr(e, self.scope.return_type.as_ref()))
+            }
             Statement::Break => LStatement::Break,
             Statement::Continue => LStatement::Continue,
 
             Statement::IfElse { condition, ifbody, elsebody } => {
-                let condition = expr_to_lexpr(condition);
+                let condition = self.check_expr(condition, Some(&Type::Bool));
                 let ifbody = self.generate(ifbody);
                 let elsebody = self.generate(elsebody);
                 LStatement::IfElse { condition, ifbody, elsebody }
             }
             Statement::While { condition, body } => {
-                let condition = expr_to_lexpr(condition);
+                let condition = self.check_expr(condition, Some(&Type::Bool));
                 let body = self.generate(body);
                 LStatement::While { condition, body }
             }
@@ -99,7 +123,7 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
                 return vec![add_item_var, add_index_var, set_index_value];
             }
 
-            _ => todo!(),
+            f => todo!("not implemented {:?}", f),
         };
         vec![light_statement]
     }
@@ -111,6 +135,6 @@ pub fn generate_light_statements(
     aggregate: &ProgramAggregate,
     resolver: &NameResolver,
 ) -> Vec<LStatement> {
-    let gen = LightStatementsGenerator::new(scope, aggregate, resolver);
+    let mut gen = LightStatementsGenerator::new(scope, aggregate, resolver);
     gen.generate(&og_statements)
 }

@@ -37,19 +37,19 @@ pub fn calculate_binaryop(
     let ensure_int_or_float = |int_op: RawOperator, float_op: RawOperator| {
         ensure_same_types();
         match left.expr_type {
-            Type::Int => int_op,
-            Type::Float => float_op,
+            Type::Int => (int_op, Type::Int),
+            Type::Float => (float_op, Type::Float),
             _ => raise_error()
         }
     };
 
-    let exact_operator = match operator {
+    let (exact_operator, result_type) = match operator {
         BinaryOp::Plus => {
             ensure_same_types();
             match left.expr_type {
-                Type::Int => RawOperator::AddInts,
-                Type::Float => RawOperator::AddFloats,
-                Type::String => RawOperator::AddFloats,
+                Type::Int => (RawOperator::AddInts, Type::Int),
+                Type::Float => (RawOperator::AddFloats, Type::Float),
+                Type::String => (RawOperator::AddFloats, Type::Float),
                 Type::List(_) => panic!("WOW i need to implement this to be fair"),
                 _ => raise_error()
             }
@@ -59,6 +59,7 @@ pub fn calculate_binaryop(
         BinaryOp::Divide => ensure_int_or_float(RawOperator::DivInts, RawOperator::DivFloats),
 
         _ => todo!(),
+    };
         // for both bool and numbers
         // | BinaryOp::Greater
 
@@ -78,8 +79,7 @@ pub fn calculate_binaryop(
 
         // // Only for bool
         // BinaryOp::And | BinaryOp::Or => get_res(left == right && matches!(left, T::Bool), T::Bool),
-    };
-    let result_type = todo!();
+    
     LExprTyped {
         expr: LExpr::ApplyOp { operator: exact_operator, operands: vec![left, right] },
         expr_type: result_type,

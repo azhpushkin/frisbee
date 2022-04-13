@@ -20,6 +20,7 @@ pub enum LStatement {
         var_type: Type,
         name: String,
     },
+    // TODO: change to generic assign
     AssignVar {
         name: String,
         value: LExprTyped,
