@@ -64,8 +64,11 @@ impl NameResolver {
         'b: 'c,
     {
         Box::new(move |name: &String| {
-            println!("== {} {}", &alias.0, &name);
-            self.typenames[&alias.0].get(name).unwrap().clone()
+            let typename = self.typenames[&alias.0].get(name);
+            match typename {
+                Some(t) => t.clone(),
+                None => panic!("Type {} not found in {}", name, alias.0),
+            }
         })
     }
 
@@ -77,7 +80,13 @@ impl NameResolver {
         'a: 'c,
         'b: 'c,
     {
-        Box::new(move |name: &String| self.functions[&alias.0].get(name).unwrap().clone())
+        Box::new(move |name: &String| {
+            let function = self.functions[&alias.0].get(name);
+            match function {
+                Some(f) => f.clone(),
+                None => panic!("Function {} not found in {}", name, alias.0),
+            }
+        })
     }
 
     fn validate(&self, wp: &WholeProgram) {

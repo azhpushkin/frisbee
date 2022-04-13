@@ -24,16 +24,12 @@ fn main() {
     semantics::add_default_constructors(&mut wp);
     
     let aggregate = semantics::perform_semantic_analysis(&wp);
-    println!("{:?}", aggregate);
-    // let symbols_info = semantic_checker::check_and_annotate_symbols(&mut wp).expect("Type error");
-    // semantic_checker::check_and_annotate_statements(&mut wp, &symbols_info)
-    //     .expect("Expr type error");
 
-    // let bytecode = codegen::generate_program(&wp);
-    // println!("{}", codegen::disassemble::disassemble_bytes(&bytecode));
+    let bytecode = codegen::generate_program(&aggregate);
+    println!("{}", codegen::disassemble::disassemble_bytes(&bytecode));
 
-    // if false {
-    //     let mut vm = vm::Vm::new(bytecode);
-    //     vm.run();
-    // }
+    if false {
+        let mut vm = vm::Vm::new(bytecode);
+        vm.run();
+    }
 }

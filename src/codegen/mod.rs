@@ -13,10 +13,10 @@ mod globals;
 pub fn generate_program(prog: &ProgramAggregate) -> Vec<u8> {
     let mut globals = globals::Globals::new();
 
-    let mut functions_bytecode: Vec<(&SymbolFunc, FunctionBytecode)> = vec![];
+    let mut functions_bytecode: Vec<FunctionBytecode> = vec![];
     for (name, raw_func) in prog.functions.iter() {
         let bytecode = functions::generate_function_bytecode(raw_func, &prog, &mut globals).unwrap();
-        functions_bytecode.push((name, bytecode))
+        functions_bytecode.push(bytecode)
     }
 
     let const_bytecode = constants::constants_to_bytecode(&globals.constants);

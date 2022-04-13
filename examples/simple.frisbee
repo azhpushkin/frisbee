@@ -4,7 +4,7 @@ fun Int add_squares(Int a, Int b) {
     return a_s + (b * b);
 }
 
-fun Nil main() {
+fun void main() {
     1.2 + 778.8;
 
     Int a = 2;
