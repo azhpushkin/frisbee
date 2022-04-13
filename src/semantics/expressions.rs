@@ -137,6 +137,11 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                 let raw_method = self.resolve_method(&self.scope.method_of.unwrap(), method);
                 self.calculate_function_call(&raw_method, expected, &args, Some(this_object))
             }
+            Expr::NewClassInstance { typename, args } => {
+                let raw_type = self.resolve_type(&typename);
+                let raw_constructor = self.resolve_method(&raw_type.name, typename);
+                self.calculate_function_call(&raw_constructor, expected, &args, None)
+            }
 
             // Expr::TupleValue(items) => Type::Tuple(self.calculate_vec(items)?),
             // Expr::ListValue(items) => {
@@ -159,16 +164,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
 
             // Expr::ListAccess { list, index } => self.calculate_access_by_index(list, index)?,
 
-            // Expr::NewClassInstance { typename, args } => {
-            //     let class_signature = self.get_class_signature(typename)?;
-            //     if class_signature.is_active {
-            //         panic!("{} You must call spawn for {}", self.err_prefix(), typename);
-            //     }
-
-            //     let constuctor =
-            //         class_signature.methods.get(typename).expect("Constructor not found");
-            //     self.check_function_call(constuctor, args)?
-            // }
+            
             // Expr::SpawnActive { typename, args } => {
             //     let class_signature = self.get_class_signature(typename)?;
 
