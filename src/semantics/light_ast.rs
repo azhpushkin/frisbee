@@ -78,7 +78,6 @@ pub enum LExpr {
     Int(i64),
     String(String),
     Bool(bool),
-    Nil,
     Float(f64),
 
     GetVar(String),

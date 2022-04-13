@@ -1,20 +1,35 @@
 use std::collections::HashMap;
 
-use crate::ast::ModulePathAlias;
+use crate::semantics::aggregate::ProgramAggregate;
+use crate::semantics::symbols::SymbolFunc;
 use crate::vm::op;
 
 use super::constants::Constant;
 use super::globals::Globals;
 
-pub struct BytecodeGenerator<'a> {
-    globals: &'a mut Globals,
+pub type CallPlaceholders = (usize, SymbolFunc);
+
+pub struct BytecodeGenerator<'a, 'b> {
+    aggregate: &'a ProgramAggregate,
+    globals: &'b mut Globals,
     locals: HashMap<&'a String, u8>,
     bytecode: Vec<u8>,
+    pub call_placeholders: Vec<CallPlaceholders>,
 }
 
-impl<'a> BytecodeGenerator<'a> {
-    pub fn new(globals: &'a mut Globals, locals: HashMap<&'a String, u8>) -> Self {
-        BytecodeGenerator { globals, locals, bytecode: vec![] }
+impl<'a, 'b> BytecodeGenerator<'a, 'b> {
+    pub fn new(
+        aggregate: &'a ProgramAggregate,
+        globals: &'b mut Globals,
+        locals: HashMap<&'a String, u8>,
+    ) -> Self {
+        BytecodeGenerator {
+            aggregate,
+            globals,
+            locals,
+            bytecode: vec![],
+            call_placeholders: vec![],
+        }
     }
 
     pub fn add_local(&mut self, varname: &'a String) {
@@ -39,7 +54,8 @@ impl<'a> BytecodeGenerator<'a> {
     }
 
     pub fn get_function(&mut self, module: &ModulePathAlias, function: &String) -> usize {
-        self.globals.get_function_placeholder(module.clone(), function.clone())
+        self.globals
+            .get_function_placeholder(module.clone(), function.clone())
     }
 
     pub fn push(&mut self, opcode: u8) {

@@ -2,15 +2,15 @@ use std::collections::HashMap;
 
 use crate::loader::WholeProgram;
 
-mod aggregate;
-mod annotations;
+pub mod aggregate;
+pub mod annotations;
 mod default_constructors;
 mod expressions;
-mod light_ast;
+pub mod light_ast;
 mod operators;
 mod resolvers;
 mod statements;
-mod symbols;
+pub mod symbols;
 mod tests;
 
 pub fn add_default_constructors(wp: &mut WholeProgram) {

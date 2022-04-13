@@ -1,69 +1,83 @@
 use super::constants::Constant;
 use super::generator::BytecodeGenerator;
-use crate::ast::*;
+use crate::ast::Type;
+use crate::semantics::light_ast::{LExprTyped, LExpr, RawOperator};
+use crate::semantics::symbols::SymbolFunc;
 use crate::vm::op;
 
-macro_rules! accept_typed_expr {
-    ($self:ident) => {
-        match $self {
-            Expr::TypedExpr { expr, typename } => (expr, typename),
-            _ => {
-                panic!("Not typed expression, got {:?}!", $self);
-            }
-        }
-    };
+
+fn match_operator(raw_op: &RawOperator) -> u8 {
+    match raw_op {
+        RawOperator::UnaryNegateInt => todo!(),
+        RawOperator::AddInts => op::ADD_INT,
+        RawOperator::SubInts => op::SUB_INT,
+        RawOperator::MulInts => op::MUL_INT,
+        RawOperator::DivInts => op::DIV_INT,
+        RawOperator::GreaterInts => todo!(),
+        RawOperator::LessInts => todo!(),
+        RawOperator::EqualInts => todo!(),
+        
+        RawOperator::UnaryNegateFloat => todo!(),
+        RawOperator::AddFloats => op::ADD_FLOAT,
+        RawOperator::SubFloats => op::SUB_FLOAT,
+        RawOperator::MulFloats => op::MUL_FLOAT,
+        RawOperator::DivFloats => op::DIV_FLOAT,
+        RawOperator::GreaterFloats => todo!(),
+        RawOperator::LessFloats => todo!(),
+        RawOperator::EqualFloats => todo!(),
+
+        RawOperator::UnaryNegateBool => todo!(),
+    }
+    
 }
 
-impl<'a> BytecodeGenerator<'a> {
-    pub fn push_expr(&mut self, expr: &Expr) {
-        let (inner_expr, typename) = accept_typed_expr!(expr);
-        match inner_expr.as_ref() {
-            Expr::Int(i) => {
+
+impl<'a, 'b> BytecodeGenerator<'a, 'b> {
+    pub fn push_expr(&mut self, expr: &LExprTyped) {
+        let LExprTyped {expr, expr_type} = expr;
+        match expr {
+            LExpr::Int(i) => {
                 self.push(op::LOAD_CONST);
                 self.push_constant(Constant::Int(*i as i64));
             }
-            Expr::Float(f) => {
+            LExpr::Float(f) => {
                 self.push(op::LOAD_CONST);
                 self.push_constant(Constant::Float(*f as f64));
             }
-            Expr::BinOp { left, right, op } => {
-                self.push_expr(left.as_ref());
-                self.push_expr(right.as_ref());
-                match (typename, op) {
-                    (Type::Int, BinaryOp::Plus) => self.push(op::ADD_INT),
-                    (Type::Int, BinaryOp::Minus) => self.push(op::SUB_INT),
-                    (Type::Int, BinaryOp::Multiply) => self.push(op::MUL_INT),
-                    (Type::Int, BinaryOp::Divide) => self.push(op::DIV_INT),
-
-                    (Type::Float, BinaryOp::Plus) => self.push(op::ADD_FLOAT),
-                    (Type::Float, BinaryOp::Minus) => self.push(op::SUB_FLOAT),
-                    (Type::Float, BinaryOp::Multiply) => self.push(op::MUL_FLOAT),
-                    (Type::Float, BinaryOp::Divide) => self.push(op::DIV_FLOAT),
-
-                    _ => panic!("Sorry, no support for {:?} and {:?} now ", typename, op),
+            LExpr::String(_) => todo!("load string is not done!"),
+            LExpr::Bool(b) if *b => self.push(op::LOAD_TRUE),
+            LExpr::Bool(_) => self.push(op::LOAD_FALSE),
+                
+            LExpr::ApplyOp { operator, operands } => {
+                for operand in operands.iter() {
+                    self.push_expr(&operand);   
                 }
+                self.push(match_operator(operator));
             }
-            Expr::Identifier(varname) => {
+            LExpr::GetVar(varname) => {
                 self.push_get_var(varname);
             }
-            Expr::FunctionCall { .. } => {
-                panic!("FunctionCall should not be here: {:?}", inner_expr)
-            }
-            Expr::FunctionCallQualified { module, function, args } => {
+            LExpr::CallFunction{name, args} => {
                 for arg in args.iter() {
                     self.push_expr(&arg);
                 }
-                let function_id = self.get_function(module, function) as u8;
                 self.push(op::CALL);
+                self.push(args.);
+                self.push
+                
+
+
+            }
+            Expr::FunctionCallQualified { module, function, args } => {
+                
+                let function_id = self.get_function(module, function) as u8;
+                
                 self.push(function_id);
                 for _ in args.iter() {
                     self.push(op::POP);
                 }
             }
-            // /////// Expr::FunctionCall { function: (), args: () }
-            // TODO: function call to qualified function call
-            // TODO: method call to qualified function call
-            f => panic!("Not done yet {:?}", f),
+            LExpr::Allocate { .. } => todo!("Allocate is not here yet!"),
         }
     }
 }
