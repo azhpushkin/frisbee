@@ -26,12 +26,6 @@ pub struct RawFunction {
     pub defined_at: ModulePathAlias,
 }
 
-impl RawFunction {
-    pub fn is_constructor(&self) -> bool {
-        return self.short_name.chars().next().unwrap().is_ascii_uppercase()
-    }
-}
-
 /// Creates basic aggregate, that contains only types
 pub fn create_basic_aggregate(wp: &WholeProgram, resolver: &NameResolver) -> ProgramAggregate {
     let mut aggregate: ProgramAggregate =
@@ -83,7 +77,7 @@ pub fn fill_aggregate_with_funcs<'a>(
                     );
                 }
 
-                let args = method.args.clone();
+                let mut args = method.args.clone();
                 if method.name != class_decl.name {
                     args.insert(0, TypedNamedObject {
                         name: "this".to_string(),

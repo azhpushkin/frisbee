@@ -5,8 +5,7 @@ use super::light_ast::{LExpr, LExprTyped, RawOperator};
 type T = Type;
 
 pub fn calculate_unaryop(operator: &UnaryOp, operand: LExprTyped) -> LExprTyped {
-    let operands_vec = vec![operand];
-    let exact_operator: RawOperator = match (operator, operand.expr_type) {
+    let exact_operator: RawOperator = match (operator, &operand.expr_type) {
         (UnaryOp::Negate, Type::Int) => RawOperator::UnaryNegateInt,
         (UnaryOp::Negate, Type::Float) => RawOperator::UnaryNegateFloat,
         (UnaryOp::Negate, t) => panic!("Cant apply Negate to {:?} type", t),
@@ -14,9 +13,10 @@ pub fn calculate_unaryop(operator: &UnaryOp, operand: LExprTyped) -> LExprTyped 
         (UnaryOp::Not, Type::Bool) => RawOperator::UnaryNegateBool,
         (UnaryOp::Not, t) => panic!("Cant apply NOT to {:?} type", t),
     };
+    let expr_type = operand.expr_type.clone();
     LExprTyped {
-        expr: LExpr::ApplyOp { operator: exact_operator, operands: operands_vec },
-        expr_type: operand.expr_type,
+        expr: LExpr::ApplyOp { operator: exact_operator, operands: vec![operand] },
+        expr_type
     }
 }
 
@@ -27,12 +27,11 @@ pub fn calculate_binaryop(
     left: LExprTyped,
     right: LExprTyped,
 ) -> LExprTyped {
-    let operands_vec = vec![left, right];
-    let error_msg = format!("Cant apply {:?} to {:?} and {:?}", operator, left, right);
+    let raise_error = || panic!("Cant apply {:?} to {:?} and {:?}", &operator, &left, &right);
 
     let ensure_same_types = || {
         if left.expr_type != right.expr_type {
-            panic!(error_msg)
+            raise_error();
         }
     };
     let ensure_int_or_float = |int_op: RawOperator, float_op: RawOperator| {
@@ -40,7 +39,7 @@ pub fn calculate_binaryop(
         match left.expr_type {
             Type::Int => int_op,
             Type::Float => float_op,
-            _ => panic!(error_msg),
+            _ => raise_error()
         }
     };
 
@@ -52,7 +51,7 @@ pub fn calculate_binaryop(
                 Type::Float => RawOperator::AddFloats,
                 Type::String => RawOperator::AddFloats,
                 Type::List(_) => panic!("WOW i need to implement this to be fair"),
-                _ => panic!("{}", error_msg),
+                _ => raise_error()
             }
         }
         BinaryOp::Minus => ensure_int_or_float(RawOperator::SubInts, RawOperator::SubFloats),
@@ -82,7 +81,7 @@ pub fn calculate_binaryop(
     };
     let result_type = todo!();
     LExprTyped {
-        expr: LExpr::ApplyOp { operator: exact_operator, operands: operands_vec },
+        expr: LExpr::ApplyOp { operator: exact_operator, operands: vec![left, right] },
         expr_type: result_type,
     }
 }

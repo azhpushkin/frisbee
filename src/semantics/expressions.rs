@@ -27,19 +27,22 @@ pub struct LightExpressionsGenerator<'a, 'b, 'c> {
 }
 
 impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
-    pub fn new(
+    pub fn new<'d>(
         scope: &'a RawFunction,
         aggregate: &'b ProgramAggregate,
-        resolver: &'c NameResolver,
-    ) -> LightExpressionsGenerator<'a, 'b, 'c> {
-        let module = scope.defined_at.clone();
+        resolver: &'d NameResolver,
+    ) -> LightExpressionsGenerator<'a, 'b, 'c>
+    where
+        'a: 'c,
+        'd: 'c,
+    {
         LightExpressionsGenerator {
-            module,
+            module: scope.defined_at.clone(),
             scope,
             aggregate,
             variables_types: HashMap::new(),
-            func_resolver: resolver.get_functions_resolver(&module),
-            type_resolver: resolver.get_typenames_resolver(&module),
+            func_resolver: resolver.get_functions_resolver(&scope.defined_at),
+            type_resolver: resolver.get_typenames_resolver(&scope.defined_at),
         }
     }
 
@@ -115,7 +118,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
             }
             Expr::MethodCall { object, method, args } => {
                 let object = self.calculate(object, expected);
-                let object_type = object.expr_type;
+                let object_type = object.expr_type.clone();
                 match object_type {
                     Type::Int | Type::Float | Type::String | Type::List(..) => {
                         todo!("No std methods yet!")
@@ -134,7 +137,8 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                     panic!("Calling own method outside of method scope!");
                 }
                 let this_object = self.calculate(&Expr::This, expected);
-                let raw_method = self.resolve_method(&self.scope.method_of.unwrap(), method);
+                let raw_method =
+                    self.resolve_method(self.scope.method_of.as_ref().unwrap(), method);
                 self.calculate_function_call(&raw_method, expected, &args, Some(this_object))
             }
             Expr::NewClassInstance { typename, args } => {
@@ -164,7 +168,6 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
 
             // Expr::ListAccess { list, index } => self.calculate_access_by_index(list, index)?,
 
-            
             // Expr::SpawnActive { typename, args } => {
             //     let class_signature = self.get_class_signature(typename)?;
 
@@ -249,7 +252,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
 
         if_as_expected(
             expected_return,
-            &raw_called.return_type.unwrap(),
+            raw_called.return_type.as_ref().unwrap(),
             lexpr_call,
         )
     }

@@ -1,7 +1,7 @@
 use crate::ast::{Type, TypedNamedObject};
 use std::collections::HashMap;
 
-use super::resolvers::{SymbolResolver};
+use super::resolvers::SymbolResolver;
 use super::symbols::SymbolType;
 
 #[derive(Debug)]
@@ -16,10 +16,15 @@ pub struct CustomType {
 #[derive(Debug)]
 pub struct TypedFields {
     // TODO: remove pub, add methods for iter(), len() and add_this
-    pub names: HashMap<String, usize>,
     pub types: Vec<Type>,
+    pub names: HashMap<usize, String>,
 }
 
+impl TypedFields {
+    pub fn iter(&self) -> impl Iterator<Item = (&String, &Type)> {
+        self.types.iter().enumerate().map(move |(i, t)| (&self.names[&i], t))
+    }
+}
 
 pub fn annotate_type(source_type: &Type, custom_resolver: &SymbolResolver<SymbolType>) -> Type {
     match source_type {
@@ -28,9 +33,7 @@ pub fn annotate_type(source_type: &Type, custom_resolver: &SymbolResolver<Symbol
         Type::Bool => Type::Bool,
         Type::String => Type::String,
 
-        Type::List(inner) => {
-            Type::List(Box::new(annotate_type(inner.as_ref(), custom_resolver)))
-        }
+        Type::List(inner) => Type::List(Box::new(annotate_type(inner.as_ref(), custom_resolver))),
         Type::Tuple(items) => {
             let real_items = items.iter().map(|t| annotate_type(t, custom_resolver));
             Type::Tuple(real_items.collect())
@@ -39,7 +42,7 @@ pub fn annotate_type(source_type: &Type, custom_resolver: &SymbolResolver<Symbol
             let real_inner = annotate_type(inner.as_ref(), custom_resolver);
             Type::Tuple(vec![Type::Bool, real_inner])
         }
-        Type::Ident(ident) => custom_resolver(ident).into(),
+        Type::Ident(ident) => (&custom_resolver(ident)).into(),
     }
 }
 
@@ -52,7 +55,7 @@ pub fn annotate_typednamed_vec(
     for (i, old_type) in v.iter().enumerate() {
         let real_type = annotate_type(&old_type.typename, resolver);
 
-        typed_fields.names.insert(old_type.name.clone(), i);
+        typed_fields.names.insert(i, old_type.name.clone());
         typed_fields.types.push(real_type);
     }
     typed_fields

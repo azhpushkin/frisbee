@@ -2,40 +2,69 @@ use crate::ast::*;
 
 use super::aggregate::{ProgramAggregate, RawFunction};
 use super::expressions::LightExpressionsGenerator;
-use super::light_ast::{LExpr, LStatement, LExprTyped};
+use super::light_ast::{LExpr, LExprTyped, LStatement};
 use super::resolvers::NameResolver;
 
 pub fn expr_to_lexpr(e: &Expr) -> LExprTyped {
     todo!()
 }
 
-struct LightStatementsGenerator<'a, 'b, 'c> {
+struct LightStatementsGenerator<'a: 'd, 'b, 'c: 'd, 'd> {
     scope: &'a RawFunction,
     aggregate: &'b ProgramAggregate,
     resolver: &'c NameResolver,
-    lexpr_generator: LightExpressionsGenerator<'a, 'b, 'c>,
+    lexpr_generator: LightExpressionsGenerator<'a, 'b, 'd>,
 }
 
-impl<'a, 'b, 'c> LightStatementsGenerator<'a, 'b, 'c> {
+impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
     fn new(
         scope: &'a RawFunction,
         aggregate: &'b ProgramAggregate,
         resolver: &'c NameResolver,
     ) -> Self {
-        todo!("Add variables to scope right away!")
-        Self { scope, aggregate, resolver, lexpr_generator: LightExpressionsGenerator::new(scope, aggregate, resolver) }
-        
+        let mut lexpr_generator = LightExpressionsGenerator::new(scope, aggregate, resolver);
+        for (name, typename) in scope.args.iter() {
+            lexpr_generator.add_variable(name.clone(), typename.clone());
+        }
+
+        Self { scope, aggregate, resolver, lexpr_generator }
     }
 
-    pub fn generate_light_statements(&self, statements: &[Statement]) -> Vec<LStatement> {
+    fn allocate_object_if_constructor(&self, res: &mut Vec<LStatement>) {
+        if let Some(class_name) = &self.scope.method_of {
+            let first_arg = self.scope.args.names.get(&0);
+            // For each method, first argument is "this", which is implicitly passed
+            // So if there is no arguments or first argument is not "this" - then we assume
+            // that this method is a constructor
+
+            if first_arg.is_none() || first_arg.unwrap() != "this" {
+                // Create "this" right at the start of the method
+                res.push(LStatement::DeclareVar {
+                    var_type: class_name.into(),
+                    name: "this".into(),
+                });
+                res.push(LStatement::AssignVar {
+                    name: "this".into(),
+                    value: LExprTyped {
+                        expr: LExpr::Allocate { typename: class_name.clone() },
+                        expr_type: class_name.into(),
+                    },
+                });
+            }
+        }
+    }
+
+    pub fn generate(&self, statements: &[Statement]) -> Vec<LStatement> {
         let mut res = vec![];
+        self.allocate_object_if_constructor(&mut res);
+
         for statement in statements {
-            res.extend(self.generate_light_statement(statement));
+            res.extend(self.generate_single(statement));
         }
         res
     }
 
-    fn generate_light_statement(&self, statement: &Statement) -> Vec<LStatement> {
+    fn generate_single(&self, statement: &Statement) -> Vec<LStatement> {
         let light_statement = match statement {
             Statement::Expr(e) => LStatement::Expression(expr_to_lexpr(e)),
 
@@ -45,13 +74,13 @@ impl<'a, 'b, 'c> LightStatementsGenerator<'a, 'b, 'c> {
 
             Statement::IfElse { condition, ifbody, elsebody } => {
                 let condition = expr_to_lexpr(condition);
-                let ifbody = self.generate_light_statements(ifbody);
-                let elsebody = self.generate_light_statements(elsebody);
+                let ifbody = self.generate(ifbody);
+                let elsebody = self.generate(elsebody);
                 LStatement::IfElse { condition, ifbody, elsebody }
             }
             Statement::While { condition, body } => {
                 let condition = expr_to_lexpr(condition);
-                let body = self.generate_light_statements(body);
+                let body = self.generate(body);
                 LStatement::While { condition, body }
             }
             Statement::Foreach { itemname, iterable, body } => {
@@ -82,6 +111,6 @@ pub fn generate_light_statements(
     aggregate: &ProgramAggregate,
     resolver: &NameResolver,
 ) -> Vec<LStatement> {
-    let x = LightStatementsGenerator::new(scope, aggregate, resolver);
-    x.generate_light_statements(og_statements)
+    let gen = LightStatementsGenerator::new(scope, aggregate, resolver);
+    gen.generate(&og_statements)
 }

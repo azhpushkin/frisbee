@@ -1,6 +1,6 @@
 use crate::ast::Type;
 
-use super::symbols::SymbolFunc;
+use super::symbols::{SymbolFunc, SymbolType};
 
 #[derive(Debug)]
 pub enum LStatement {
@@ -85,6 +85,7 @@ pub enum LExpr {
 
     ApplyOp { operator: RawOperator, operands: Vec<LExprTyped> },
     CallFunction { name: SymbolFunc, args: Vec<LExprTyped> },
+    Allocate { typename: SymbolType },
     // TODO: all others
 
     // TODO: spawn!

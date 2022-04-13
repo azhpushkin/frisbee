@@ -22,7 +22,7 @@ impl SymbolType {
     }
 }
 
-impl Into<Type> for SymbolType {
+impl Into<Type> for &SymbolType {
     fn into(self) -> Type {
         Type::Ident(self.0.clone())
     }
