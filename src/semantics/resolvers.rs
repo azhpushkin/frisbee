@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::ast::{ModulePathAlias, Type};
 use crate::loader::{LoadedFile, WholeProgram};
 
-use super::symbols::{compile_func, compile_typename, SymbolFunc, SymbolType};
+use super::symbols::{SymbolFunc, SymbolType};
 
 type SymbolLookupMapping<T>
 where
@@ -39,11 +39,11 @@ impl NameResolver {
             check_module_does_not_import_itself(file);
 
             let function_origins = get_functions_origins(file);
-            let functions_mapping = get_origins(function_origins, &compile_func)
+            let functions_mapping = get_origins(function_origins, &SymbolFunc::new)
                 .unwrap_or_else(|x| panic!("Function {} defined twice in {}", x, file_name.0));
 
             let typename_origins = get_typenames_origins(file);
-            let typenames_mapping = get_origins(typename_origins, &compile_typename)
+            let typenames_mapping = get_origins(typename_origins, &SymbolType::new)
                 .unwrap_or_else(|x| panic!("Type {} defined twice in {}", x, file_name.0));
 
             resolver.functions.insert(file_name.0.clone(), functions_mapping);
@@ -193,18 +193,18 @@ mod test {
         let main_types_resolver = resolver.get_typenames_resolver(&main_alias);
         assert_eq!(
             main_types_resolver(&String::from("SomeType")),
-            compile_typename(&main_alias, &String::from("SomeType"))
+            SymbolType::new(&main_alias, &String::from("SomeType"))
         );
 
         let main_functions_resolver = resolver.get_functions_resolver(&main_alias);
         let mod_functions_resolver = resolver.get_functions_resolver(&mod_alias);
         assert_eq!(
             main_functions_resolver(&String::from("somefun")),
-            compile_func(&mod_alias, &String::from("somefun"))
+            SymbolFunc::new(&mod_alias, &String::from("somefun"))
         );
         assert_eq!(
             mod_functions_resolver(&String::from("somefun")),
-            compile_func(&mod_alias, &String::from("somefun"))
+            SymbolFunc::new(&mod_alias, &String::from("somefun"))
         );
     }
 

@@ -7,15 +7,19 @@ pub struct SymbolType(String);
 #[derive(Debug, PartialEq, Clone, Eq, Hash)]
 pub struct SymbolFunc(String);
 
-pub fn compile_typename(alias: &ModulePathAlias, name: &String) -> SymbolType {
-    SymbolType(format!("{}::{}", alias.0, name))
+impl SymbolFunc {
+    pub fn new(alias: &ModulePathAlias, name: &String) -> Self {
+        Self(format!("{}::{}", alias.0, name))
+    }
 }
+impl SymbolType {
+    pub fn new(alias: &ModulePathAlias, name: &String) -> Self {
+        Self(format!("{}::{}", alias.0, name))
+    }
 
-pub fn compile_func(alias: &ModulePathAlias, name: &String) -> SymbolFunc {
-    SymbolFunc(format!("{}::{}", alias.0, name))
-}
-pub fn compile_method(alias: &ModulePathAlias, typename: &String, method: &String) -> SymbolFunc {
-    SymbolFunc(format!("{}::{}::{}", alias.0, typename, method))
+    pub fn method(&self, method: &String) -> SymbolFunc {
+        SymbolFunc(format!("{}::{}", self.0, method))
+    }
 }
 
 impl Into<Type> for SymbolType {
@@ -23,8 +27,8 @@ impl Into<Type> for SymbolType {
         Type::Ident(self.0.clone())
     }
 }
-impl From<&Type> for SymbolType {
-    fn from(t: &Type) -> Self {
+impl From<Type> for SymbolType {
+    fn from(t: Type) -> Self {
         if let Type::Ident(name) = t {
             // check that ident is a correct SymbolType
             let (module, typename) = name.rsplit_once("::").expect("Not a SymbolType");

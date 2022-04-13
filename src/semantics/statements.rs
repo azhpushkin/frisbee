@@ -22,8 +22,9 @@ impl<'a, 'b, 'c> LightStatementsGenerator<'a, 'b, 'c> {
         aggregate: &'b ProgramAggregate,
         resolver: &'c NameResolver,
     ) -> Self {
-        Self { scope, aggregate, resolver, lexpr_generator: LightExpressionsGenerator::new(scope, aggregate, resolver) }
         todo!("Add variables to scope right away!")
+        Self { scope, aggregate, resolver, lexpr_generator: LightExpressionsGenerator::new(scope, aggregate, resolver) }
+        
     }
 
     pub fn generate_light_statements(&self, statements: &[Statement]) -> Vec<LStatement> {

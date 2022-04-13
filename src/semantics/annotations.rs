@@ -15,6 +15,7 @@ pub struct CustomType {
 /// (used by function arguments and class types)
 #[derive(Debug)]
 pub struct TypedFields {
+    // TODO: remove pub, add methods for iter(), len() and add_this
     pub names: HashMap<String, usize>,
     pub types: Vec<Type>,
 }

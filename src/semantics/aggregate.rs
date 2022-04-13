@@ -6,7 +6,7 @@ use crate::loader::WholeProgram;
 use super::light_ast::LStatement;
 use super::annotations::{annotate_type, annotate_typednamed_vec, CustomType, TypedFields};
 use super::resolvers::NameResolver;
-use super::symbols::{compile_func, compile_method, compile_typename, SymbolFunc, SymbolType};
+use super::symbols::{SymbolFunc, SymbolType};
 
 #[derive(Debug)]
 pub struct ProgramAggregate {
@@ -41,7 +41,7 @@ pub fn create_basic_aggregate(wp: &WholeProgram, resolver: &NameResolver) -> Pro
         let file_resolver = resolver.get_typenames_resolver(&file_alias);
 
         for class_decl in file.ast.types.iter() {
-            let full_name = compile_typename(file_alias, &class_decl.name);
+            let full_name = SymbolType::new(file_alias, &class_decl.name);
             aggregate.types.insert(
                 full_name.clone(),
                 CustomType {
@@ -72,10 +72,10 @@ pub fn fill_aggregate_with_funcs<'a>(
         };
 
         for class_decl in file.ast.types.iter() {
-            let type_full_name = compile_typename(file_alias, &class_decl.name);
+            let type_full_name = SymbolType::new(file_alias, &class_decl.name);
 
             for method in class_decl.methods.iter() {
-                let method_full_name = compile_method(file_alias, &class_decl.name, &method.name);
+                let method_full_name = type_full_name.method(&method.name);
                 if aggregate.functions.contains_key(&method_full_name) {
                     panic!(
                         "Method {} defined twice in {}.{}",
@@ -84,7 +84,7 @@ pub fn fill_aggregate_with_funcs<'a>(
                 }
 
                 let args = method.args.clone();
-                if method.name == class_decl.name {
+                if method.name != class_decl.name {
                     args.insert(0, TypedNamedObject {
                         name: "this".to_string(),
                         typename: Type::Ident(class_decl.name.clone()),
@@ -107,7 +107,7 @@ pub fn fill_aggregate_with_funcs<'a>(
         }
 
         for function_decl in file.ast.functions.iter() {
-            let full_name = compile_func(file_alias, &function_decl.name);
+            let full_name = SymbolFunc::new(file_alias, &function_decl.name);
 
             // No checks for function redefinition here because resolver already does one
             aggregate.functions.insert(
