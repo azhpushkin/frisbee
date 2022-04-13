@@ -1,10 +1,9 @@
 use super::constants::Constant;
 use super::generator::BytecodeGenerator;
 use crate::ast::Type;
-use crate::semantics::light_ast::{LExprTyped, LExpr, RawOperator};
+use crate::semantics::light_ast::{LExpr, LExprTyped, RawOperator};
 use crate::semantics::symbols::SymbolFunc;
 use crate::vm::opcodes::op;
-
 
 fn match_operator(raw_op: &RawOperator) -> u8 {
     match raw_op {
@@ -16,7 +15,7 @@ fn match_operator(raw_op: &RawOperator) -> u8 {
         RawOperator::GreaterInts => todo!(),
         RawOperator::LessInts => todo!(),
         RawOperator::EqualInts => todo!(),
-        
+
         RawOperator::UnaryNegateFloat => todo!(),
         RawOperator::AddFloats => op::ADD_FLOAT,
         RawOperator::SubFloats => op::SUB_FLOAT,
@@ -28,13 +27,11 @@ fn match_operator(raw_op: &RawOperator) -> u8 {
 
         RawOperator::UnaryNegateBool => todo!(),
     }
-    
 }
-
 
 impl<'a, 'b> BytecodeGenerator<'a, 'b> {
     pub fn push_expr(&mut self, expr: &LExprTyped) {
-        let LExprTyped {expr, expr_type} = expr;
+        let LExprTyped { expr, expr_type } = expr;
         match expr {
             LExpr::Int(i) => {
                 self.push(op::LOAD_CONST);
@@ -47,24 +44,23 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
             LExpr::String(_) => todo!("load string is not done!"),
             LExpr::Bool(b) if *b => self.push(op::LOAD_TRUE),
             LExpr::Bool(_) => self.push(op::LOAD_FALSE),
-                
+
             LExpr::ApplyOp { operator, operands } => {
                 for operand in operands.iter() {
-                    self.push_expr(&operand);   
+                    self.push_expr(&operand);
                 }
                 self.push(match_operator(operator));
             }
             LExpr::GetVar(varname) => {
                 self.push_get_var(varname);
             }
-            LExpr::CallFunction{name, args} => {
+            LExpr::CallFunction { name, args } => {
                 for arg in args.iter() {
                     self.push_expr(&arg);
                 }
                 self.push(op::CALL);
                 self.push(args.len() as u8);
-
-                
+                self.push_function_placeholder(name);
             }
             LExpr::Allocate { .. } => todo!("Allocate is not here yet!"),
         }

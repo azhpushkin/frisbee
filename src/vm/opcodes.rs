@@ -52,7 +52,7 @@ pub mod op {
     pub const CONST_STRING_FLAG: u8 = 3;
 }
 
-pub fn args_num(op: u8) -> usize {
+pub fn get_args_num(op: u8) -> usize {
     if op < ONE_ARGS_OPCODES {
         return 0;
     } else if op < TWO_ARGS_OPCODES {

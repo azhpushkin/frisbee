@@ -1,6 +1,7 @@
+use std::iter::Enumerate;
 use std::slice::Iter;
 
-use crate::vm::opcodes::op;
+use crate::vm::opcodes::{get_args_num, op};
 
 pub fn opcode_to_s(c: u8) -> &'static str {
     match c {
@@ -25,30 +26,31 @@ pub fn opcode_to_s(c: u8) -> &'static str {
     }
 }
 
-pub fn get_str(i: &mut Iter<u8>) -> String {
+pub fn get_str(i: &mut Enumerate<Iter<u8>>) -> String {
     let n = u16::from_be_bytes(get_bytes::<2>(i));
     let mut s = String::new();
     for _ in 0..n {
-        s.push(*i.next().unwrap() as char);
+        s.push(*i.next().unwrap().1 as char);
     }
     s
 }
-pub fn get_bytes<const N: usize>(i: &mut Iter<u8>) -> [u8; N] {
+pub fn get_bytes<const N: usize>(i: &mut Enumerate<Iter<u8>>) -> [u8; N] {
     let mut bytes = [0; N];
     for j in 0..N {
-        bytes[j] = *i.next().unwrap();
+        bytes[j] = *i.next().unwrap().1;
     }
     bytes
 }
 
 pub fn disassemble_bytes(program: &Vec<u8>) -> String {
+    println!("Program is of total len: {}", program.len());
+
     let mut text_repr: String = String::from("Constants:\n");
-    let mut program_iter = program.iter();
+    let mut program_iter = program.iter().enumerate();
 
     let mut i: usize = 0;
     loop {
-        // println!("{:?} {:?}", text_repr, *program_iter.next().unwrap());
-        let const_text: String = match *program_iter.next().unwrap() {
+        let const_text: String = match *program_iter.next().unwrap().1 {
             op::CONST_INT_FLAG => i64::from_be_bytes(get_bytes::<8>(&mut program_iter)).to_string(),
             op::CONST_FLOAT_FLAG => {
                 f64::from_be_bytes(get_bytes::<8>(&mut program_iter)).to_string()
@@ -60,26 +62,16 @@ pub fn disassemble_bytes(program: &Vec<u8>) -> String {
         text_repr.push_str(&format!("\t{}: {}\n", i, const_text));
         i += 1;
     }
-    return text_repr;
+    text_repr.push_str("\nFunctions:\n");
 
-    while let Some(opcode) = program_iter.next() {
-        let mut args_num: usize = match *opcode {
-            op::LOAD_INT => 1,
-            op::LOAD_CONST => 1,
-            op::ADD_INT | op::SUB_INT | op::MUL_INT | op::DIV_INT => 0,
-            op::ADD_FLOAT | op::SUB_FLOAT | op::MUL_FLOAT | op::DIV_FLOAT => 0,
-            op::CALL => 1,
-            op::RETURN => 0,
-            op::POP => 0,
-            op::SET_VAR | op::GET_VAR => 1,
-            _ => panic!("DIS: Unknown lol {}", opcode),
-        };
+    while let Some((i, opcode)) = program_iter.next() {
+        let mut number_of_args = get_args_num(*opcode);
         let mut args: Vec<u8> = vec![];
-        while args_num > 0 {
-            args.push(*program_iter.next().unwrap());
-            args_num -= 1;
+        while number_of_args > 0 {
+            args.push(*program_iter.next().unwrap().1);
+            number_of_args -= 1;
         }
-        let op_text = format!("\t{} {:02x?}\n", opcode_to_s(*opcode), args);
+        let op_text = format!("{:02x?}\t{} {:02x?}\n", i, opcode_to_s(*opcode), args);
         text_repr.push_str(op_text.as_str());
     }
     text_repr
