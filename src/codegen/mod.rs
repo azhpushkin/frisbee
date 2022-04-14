@@ -28,5 +28,5 @@ fn generate_chunks(prog: &ProgramAggregate) -> (Vec<u8>, HashMap<SymbolFunc, Fun
 
 pub fn generate(prog: &ProgramAggregate) -> Vec<u8> {
     let (c, f) = generate_chunks(prog);
-    assemble::assemble_chunks(c, f)
+    assemble::assemble_chunks(c, f, &prog.entry)
 }

@@ -6,8 +6,8 @@ fun Int add_squares(Int a, Int b) {
 
 fun void main() {
     Int a = 2;
-    a = 1;
     Int b = 3;
     Int res = add_squares(a, b);
-    return 9;
+    return 9; //  TODO: empty return is return (None)!!
+    // TODO: why this "return 9" compiles? must be semantic error!
 }

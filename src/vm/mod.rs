@@ -100,10 +100,13 @@ impl Vm {
     pub fn run(&mut self) {
         self.load_consts();
 
-        self.call_op(self.ip, 0);
+        let entry = u16::from_be_bytes(self.read_several::<2>());
+        self.call_op(entry as usize, 0);
+
         while self.ip < self.program.len() {
-            println!(">> pc: {:02x?}", self.ip);
             println!("  stack: {:02x?}", &self.stack[0..self.stack_pointer]);
+            println!(">> exec pc: {:02x?}", self.ip);
+
             let opcode = self.read_opcode();
             match opcode {
                 op::LOAD_CONST => {
@@ -131,12 +134,16 @@ impl Vm {
                 }
                 op::GET_VAR => {
                     let value_pos = self.read_opcode() as usize;
-                    self.push(self.stack[value_pos - self.current_frame().args_num]);
+                    self.push(
+                        self.stack[self.current_frame().stack_start + value_pos
+                            - self.current_frame().args_num],
+                    );
                 }
                 op::SET_VAR => {
                     let value = self.pop();
                     let value_pos = self.read_opcode() as usize;
-                    self.stack[value_pos - self.current_frame().args_num] = value;
+                    self.stack[self.current_frame().stack_start + value_pos
+                        - self.current_frame().args_num] = value;
                 }
                 op::RESERVE_ONE => {
                     // TODO: this seems wrong, function might reserve at the very start tbh

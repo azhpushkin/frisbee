@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use crate::ast::{FunctionDecl, ModulePathAlias, Type, TypedNamedObject};
 use crate::loader::WholeProgram;
 
-use super::light_ast::LStatement;
 use super::annotations::{annotate_type, annotate_typednamed_vec, CustomType, TypedFields};
+use super::light_ast::LStatement;
 use super::resolvers::NameResolver;
 use super::symbols::{SymbolFunc, SymbolType};
 
@@ -12,6 +12,7 @@ use super::symbols::{SymbolFunc, SymbolType};
 pub struct ProgramAggregate {
     pub types: HashMap<SymbolType, CustomType>,
     pub functions: HashMap<SymbolFunc, RawFunction>,
+    pub entry: SymbolFunc,
 }
 
 #[derive(Debug)]
@@ -28,8 +29,11 @@ pub struct RawFunction {
 
 /// Creates basic aggregate, that contains only types
 pub fn create_basic_aggregate(wp: &WholeProgram, resolver: &NameResolver) -> ProgramAggregate {
-    let mut aggregate: ProgramAggregate =
-        ProgramAggregate { types: HashMap::new(), functions: HashMap::new() };
+    let mut aggregate: ProgramAggregate = ProgramAggregate {
+        types: HashMap::new(),
+        functions: HashMap::new(),
+        entry: SymbolFunc::new(&wp.main_module.alias(), &String::from("main")),
+    };
 
     for (file_alias, file) in wp.files.iter() {
         let file_resolver = resolver.get_typenames_resolver(&file_alias);
@@ -79,10 +83,13 @@ pub fn fill_aggregate_with_funcs<'a>(
 
                 let mut args = method.args.clone();
                 if method.name != class_decl.name {
-                    args.insert(0, TypedNamedObject {
-                        name: "this".to_string(),
-                        typename: Type::Ident(class_decl.name.clone()),
-                    });
+                    args.insert(
+                        0,
+                        TypedNamedObject {
+                            name: "this".to_string(),
+                            typename: Type::Ident(class_decl.name.clone()),
+                        },
+                    );
                 };
                 aggregate.functions.insert(
                     method_full_name.clone(),
@@ -118,6 +125,10 @@ pub fn fill_aggregate_with_funcs<'a>(
             );
             mapping_to_og_funcs.insert(full_name.clone(), function_decl);
         }
+    }
+
+    if !aggregate.functions.contains_key(&aggregate.entry) {
+        panic!("Main function {:?} not defined!", aggregate.entry);
     }
 
     mapping_to_og_funcs

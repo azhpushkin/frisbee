@@ -32,7 +32,6 @@ pub fn opcode_to_s(c: u8) -> &'static str {
     }
 }
 
-
 pub fn get_str(i: &mut dyn Iterator<Item = (usize, &u8)>) -> String {
     let n = u16::from_be_bytes(get_bytes::<2>(i));
     let mut s = String::new();
@@ -61,7 +60,11 @@ pub fn disassemble_bytes(program: &Vec<u8>, aux: Option<&AuxData>) -> String {
                 f64::from_be_bytes(get_bytes::<8>(&mut program_iter)).to_string()
             }
             op::CONST_STRING_FLAG => get_str(&mut program_iter),
-            op::CONST_END_FLAG => break,
+            op::CONST_END_FLAG => {
+                let x = u16::from_be_bytes(get_bytes::<2>(&mut program_iter));
+                text_repr.push_str(&format!("Entry: {:02x}", x));
+                break;
+            }
             c => panic!("Unknown const flag: {:02x}", c),
         };
         text_repr.push_str(&format!("\t{}: {}\n", i, const_text));
@@ -97,7 +100,7 @@ pub fn get_auxilary_functions_positions(prog: &ProgramAggregate) -> AuxData {
 
     let mut functions_start: AuxData = HashMap::new();
 
-    let mut current_shift = c.len();
+    let mut current_shift = c.len() + 2;
     for name in functions_vec.iter() {
         let bytecode = &f[name].bytecode;
         functions_start.insert(current_shift, name.clone());
