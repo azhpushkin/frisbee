@@ -16,6 +16,8 @@ pub mod op {
         LOAD_TRUE,
         LOAD_FALSE,
 
+        RESERVE_ONE,
+
         ADD_INT,
         SUB_INT,
         MUL_INT,

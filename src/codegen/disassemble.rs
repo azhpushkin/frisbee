@@ -10,6 +10,7 @@ use super::generate_chunks;
 
 pub fn opcode_to_s(c: u8) -> &'static str {
     match c {
+        op::RESERVE_ONE => "reserve_one",
         op::LOAD_CONST => "load_const",
         op::LOAD_INT => "load_int",
         op::LOAD_TRUE => "load_true",

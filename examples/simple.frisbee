@@ -6,6 +6,7 @@ fun Int add_squares(Int a, Int b) {
 
 fun void main() {
     Int a = 2;
+    a = 1;
     Int b = 3;
     Int res = add_squares(a, b);
 }

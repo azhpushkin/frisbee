@@ -14,7 +14,6 @@ pub struct FunctionBytecode {
     pub call_placeholders: Vec<CallPlaceholders>,
 }
 
-
 pub struct BytecodeGenerator<'a, 'b> {
     aggregate: &'a ProgramAggregate,
     globals: &'b mut Globals,
@@ -32,16 +31,14 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
             aggregate,
             globals,
             locals,
-            bytecode: FunctionBytecode {
-                bytecode: vec![],
-                call_placeholders: vec![],
-            }   
+            bytecode: FunctionBytecode { bytecode: vec![], call_placeholders: vec![] },
         }
     }
 
     pub fn add_local(&mut self, varname: &'a String) {
         // TODO: add type info for offsets
         self.locals.insert(varname, self.locals.len() as u8);
+        self.push(op::RESERVE_ONE);
     }
 
     pub fn push_get_var(&mut self, varname: &String) {
@@ -66,16 +63,15 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
     }
 
     pub fn push_function_placeholder(&mut self, func: &SymbolFunc) {
-        self.bytecode.call_placeholders.push((self.bytecode.bytecode.len(), func.clone()));
+        self.bytecode
+            .call_placeholders
+            .push((self.bytecode.bytecode.len(), func.clone()));
         self.push(0);
         self.push(0);
     }
 
     pub fn get_bytecode(&mut self) -> FunctionBytecode {
-        let mut temp = FunctionBytecode {
-            bytecode: vec![],
-            call_placeholders: vec![],
-        };
+        let mut temp = FunctionBytecode { bytecode: vec![], call_placeholders: vec![] };
         std::mem::swap(&mut self.bytecode, &mut temp);
         temp
     }

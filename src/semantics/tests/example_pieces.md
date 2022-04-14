@@ -4,6 +4,7 @@
 * check that `this` in arguments is not allowed (this will ensure this is only for methods)
 * check if multiline strings are OK
 * check that variable is always assigned before using (all if branches)
+* check divide and minus ordering if chained (just to check everything is fine)
 ---
 fun Nil hello(Int a, Int a) {}
 
