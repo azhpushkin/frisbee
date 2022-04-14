@@ -68,6 +68,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
     pub fn push_function_placeholder(&mut self, func: &SymbolFunc) {
         self.bytecode.call_placeholders.push((self.bytecode.bytecode.len(), func.clone()));
         self.push(0);
+        self.push(0);
     }
 
     pub fn get_bytecode(&mut self) -> FunctionBytecode {

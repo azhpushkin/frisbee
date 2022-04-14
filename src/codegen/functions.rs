@@ -1,12 +1,10 @@
-use crate::semantics::aggregate::{RawFunction, ProgramAggregate};
+use crate::ast::Type;
+use crate::semantics::aggregate::{ProgramAggregate, RawFunction};
 use crate::semantics::light_ast::LStatement;
 use crate::vm::opcodes::op;
-use crate::ast::Type;
 
 use super::generator::{BytecodeGenerator, FunctionBytecode};
 use super::globals::Globals;
-
-
 
 pub fn generate_function_bytecode(
     func: &RawFunction,
@@ -27,13 +25,13 @@ pub fn generate_function_bytecode(
                 generator.push_expr(expr);
                 generator.push(op::POP);
             }
-            LStatement::DeclareVar{var_type, name} => {
+            LStatement::DeclareVar { var_type, name } => {
                 // TODO: this should reserve the space for the variable
                 generator.push(op::LOAD_INT);
                 generator.push(0);
                 generator.add_local(name);
             }
-            LStatement::AssignVar{name, value} => {
+            LStatement::AssignVar { name, value } => {
                 generator.push_expr(value);
                 generator.add_local(name);
             }

@@ -2,6 +2,7 @@
 
 * check that return statement is required
 * check that `this` in arguments is not allowed (this will ensure this is only for methods)
+* check if multiline strings are OK
 
 ---
 fun Nil hello(Int a, Int a) {}

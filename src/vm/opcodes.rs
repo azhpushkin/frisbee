@@ -1,13 +1,10 @@
-const ONE_ARGS_OPCODES: u8 = 100;
-const TWO_ARGS_OPCODES: u8 = 200;
-
 macro_rules! opcodes_list {
     ($s:expr, $c:ident ) => {
         pub const $c: u8 = $s;
     };
     ($s:expr, $c:ident, $ ( $more:ident ),+ ) => {
         pub const $c: u8 = $s;
-        
+
         opcodes_list!($s+1, $(  $more ),+ );
     };
 }
@@ -42,7 +39,11 @@ pub mod op {
     );
 
     // Opcodes with two operands
-    opcodes_list!(200,
+    opcodes_list!(180,
+        TODO_NOTHING_HERE_YET
+    );
+
+    opcodes_list!(220,
         CALL
     );
 
@@ -53,11 +54,13 @@ pub mod op {
 }
 
 pub fn get_args_num(op: u8) -> usize {
-    if op < ONE_ARGS_OPCODES {
+    if op < 100 {
         return 0;
-    } else if op < TWO_ARGS_OPCODES {
+    } else if op < 180 {
         return 1;
-    } else {
+    } else if op < 220 {
         return 2;
+    } else {
+        return 3;
     }
 }

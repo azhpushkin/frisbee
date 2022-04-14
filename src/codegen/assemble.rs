@@ -24,7 +24,9 @@ pub fn assemble_chunks(
         let call_placeholders = function.call_placeholders.clone();
 
         for (pos, called_func) in call_placeholders {
-            function.bytecode[pos] = functions_start[&called_func] as u8;
+            let start = (functions_start[&called_func] as u16).to_be_bytes();
+            function.bytecode[pos] = start[0];
+            function.bytecode[pos+1] = start[1];
         }
     }
 

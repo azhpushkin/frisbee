@@ -31,7 +31,8 @@ pub fn opcode_to_s(c: u8) -> &'static str {
     }
 }
 
-pub fn get_str(i: &mut Enumerate<Iter<u8>>) -> String {
+
+pub fn get_str(i: &mut dyn Iterator<Item = (usize, &u8)>) -> String {
     let n = u16::from_be_bytes(get_bytes::<2>(i));
     let mut s = String::new();
     for _ in 0..n {
@@ -39,7 +40,7 @@ pub fn get_str(i: &mut Enumerate<Iter<u8>>) -> String {
     }
     s
 }
-pub fn get_bytes<const N: usize>(i: &mut Enumerate<Iter<u8>>) -> [u8; N] {
+pub fn get_bytes<const N: usize>(i: &mut dyn Iterator<Item = (usize, &u8)>) -> [u8; N] {
     let mut bytes = [0; N];
     for j in 0..N {
         bytes[j] = *i.next().unwrap().1;
@@ -79,7 +80,7 @@ pub fn disassemble_bytes(program: &Vec<u8>, aux: Option<&AuxData>) -> String {
             args.push(*program_iter.next().unwrap().1);
             number_of_args -= 1;
         }
-        let op_text = format!("{:02x?}\t{} {:02x?}\n", i, opcode_to_s(*opcode), args);
+        let op_text = format!(" {:02x?}   {} {:02x?}\n", i, opcode_to_s(*opcode), args);
         text_repr.push_str(op_text.as_str());
     }
     text_repr
