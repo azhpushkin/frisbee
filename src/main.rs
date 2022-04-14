@@ -22,15 +22,18 @@ fn main() {
     let mut wp = loader::load_program(file_path).expect("Error loading!");
 
     semantics::add_default_constructors(&mut wp);
-    
+
     let aggregate = semantics::perform_semantic_analysis(&wp);
 
     let bytecode = codegen::generate(&aggregate);
     let aux = codegen::disassemble::get_auxilary_functions_positions(&aggregate);
 
-    println!("{}", codegen::disassemble::disassemble_bytes(&bytecode, Some(&aux)));
+    println!(
+        "{}",
+        codegen::disassemble::disassemble_bytes(&bytecode, Some(&aux))
+    );
 
-    if false {
+    if true {
         let mut vm = vm::Vm::new(bytecode);
         vm.run();
     }

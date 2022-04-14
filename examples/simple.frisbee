@@ -9,4 +9,5 @@ fun void main() {
     a = 1;
     Int b = 3;
     Int res = add_squares(a, b);
+    return 9;
 }

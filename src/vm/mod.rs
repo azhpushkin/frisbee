@@ -48,7 +48,11 @@ impl Vm {
     }
 
     fn call_op(&mut self, func_pos: usize, args_num: usize) {
-        self.frames.push(CallFrame { return_ip: self.ip+1, args_num, stack_start: self.stack_pointer });
+        self.frames.push(CallFrame {
+            return_ip: self.ip + 1,
+            args_num,
+            stack_start: self.stack_pointer,
+        });
         self.ip = func_pos;
     }
 
@@ -62,11 +66,43 @@ impl Vm {
         self.frames.last().unwrap()
     }
 
+    fn read_several<const N: usize>(&mut self) -> [u8; N] {
+        let mut bytes = [0; N];
+        for i in 0..N {
+            bytes[i] = self.read_opcode();
+        }
+        bytes
+    }
+
+    fn load_consts(&mut self) {
+        loop {
+            let const_type = self.read_opcode();
+            match const_type {
+                op::CONST_INT_FLAG => {
+                    let i = i64::from_be_bytes(self.read_several::<8>());
+                    self.constants.push(i as u64);
+                }
+                op::CONST_FLOAT_FLAG => {
+                    let f = f64::from_be_bytes(self.read_several::<8>());
+                    self.constants.push(f as u64);
+                }
+                op::CONST_STRING_FLAG => {
+                    let str_len = u16::from_be_bytes(self.read_several::<2>());
+                    panic!("Strings are not implemented yet!");
+                }
+                op::CONST_END_FLAG => break,
+                c => panic!("Unknown const flag: {:02x}", c),
+            };
+        }
+        println!("Loaded constants: {:?}", self.constants);
+    }
+
     pub fn run(&mut self) {
-        
-        let mut pc = 0;
-        while pc < self.program.len() {
-            println!(">> pc: {:02x?}", pc);
+        self.load_consts();
+
+        self.call_op(self.ip, 0);
+        while self.ip < self.program.len() {
+            println!(">> pc: {:02x?}", self.ip);
             println!("  stack: {:02x?}", &self.stack[0..self.stack_pointer]);
             let opcode = self.read_opcode();
             match opcode {
@@ -111,6 +147,16 @@ impl Vm {
                     let args_num = self.read_opcode();
                     let function_pos = u16::from_be_bytes([self.read_opcode(), self.read_opcode()]);
                     self.call_op(function_pos as usize, args_num as usize);
+                }
+                op::RETURN => {
+                    self.return_op();
+                    if self.frames.len() == 0 {
+                        println!(
+                            "VM finished, stack is {:?}",
+                            &self.stack[0..self.stack_pointer]
+                        );
+                        break;
+                    }
                 }
                 _ => panic!("Unknown opcode: {}", opcode),
             }
