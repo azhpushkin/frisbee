@@ -34,6 +34,7 @@ pub fn generate_function_bytecode(
             LStatement::AssignVar { name, value } => {
                 generator.push_expr(value);
                 generator.add_local(name);
+                generator.push_set_var(name);
             }
             LStatement::Return(expr) => {
                 generator.push_expr(expr);

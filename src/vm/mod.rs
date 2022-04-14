@@ -56,10 +56,24 @@ impl Vm {
                     let b = self.pop() as i64;
                     self.push((a + b) as u64);
                 }
+                op::MUL_INT => {
+                    let a = self.pop() as i64;
+                    let b = self.pop() as i64;
+                    self.push((a * b) as u64);
+                }
                 op::ADD_FLOAT => {
                     let a = self.pop() as f64;
                     let b = self.pop() as f64;
                     self.push((a + b) as u64);
+                }
+                op::GET_VAR => {
+                    let value_pos = self.read_opcode() as usize;
+                    self.push(self.stack[value_pos]);
+                }
+                op::SET_VAR => {
+                    let value = self.pop();
+                    let value_pos = self.read_opcode() as usize;
+                    self.stack[value_pos] = value;
                 }
                 _ => panic!("Unknown opcode: {}", opcode),
             }
