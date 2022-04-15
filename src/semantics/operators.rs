@@ -20,7 +20,12 @@ pub fn calculate_unaryop(operator: &UnaryOp, operand: LExprTyped) -> LExprTyped 
     }
 }
 
-fn int_or_float(expr: &LExprTyped, int_op: RawOperator, float_op: RawOperator) {}
+fn wrap_binary(op: RawOperator, operands: Vec<LExprTyped>, res_type: Type) -> LExprTyped {
+    LExprTyped {
+        expr: LExpr::ApplyOp { operator: op, operands },
+        expr_type: res_type,
+    }
+}
 
 pub fn calculate_binaryop(
     operator: &BinaryOp,
@@ -42,6 +47,10 @@ pub fn calculate_binaryop(
             _ => raise_error()
         }
     };
+    let ensure_int_or_float_op_only = |int_op: RawOperator, float_op: RawOperator| {
+        ensure_int_or_float(int_op, float_op).0
+    };
+    // TODO: greater and less and is_equal for all types?
 
     let (exact_operator, result_type) = match operator {
         BinaryOp::Plus => {
@@ -57,9 +66,29 @@ pub fn calculate_binaryop(
         BinaryOp::Minus => ensure_int_or_float(RawOperator::SubInts, RawOperator::SubFloats),
         BinaryOp::Multiply => ensure_int_or_float(RawOperator::MulInts, RawOperator::MulFloats),
         BinaryOp::Divide => ensure_int_or_float(RawOperator::DivInts, RawOperator::DivFloats),
+        
+        BinaryOp::Greater => (
+            ensure_int_or_float_op_only(RawOperator::GreaterInts, RawOperator::GreaterFloats),
+            Type::Bool
+        ),
+        BinaryOp::Less => (
+            ensure_int_or_float_op_only(RawOperator::LessInts, RawOperator::LessFloats),
+            Type::Bool
+        ),
+        BinaryOp::GreaterEqual => {
+            let op = ensure_int_or_float_op_only(RawOperator::LessInts, RawOperator::LessFloats);
+            let inner = wrap_binary(op, vec![left, right], Type::Bool);
+            return calculate_unaryop(&UnaryOp::Not, inner);
+        },
+        BinaryOp::LessEqual => {
+            let op = ensure_int_or_float_op_only(RawOperator::GreaterInts, RawOperator::GreaterFloats);
+            let inner = wrap_binary(op, vec![left, right], Type::Bool);
+            return calculate_unaryop(&UnaryOp::Not, inner);
+        },
 
         _ => todo!(),
     };
+
         // for both bool and numbers
         // | BinaryOp::Greater
 
@@ -80,10 +109,7 @@ pub fn calculate_binaryop(
         // // Only for bool
         // BinaryOp::And | BinaryOp::Or => get_res(left == right && matches!(left, T::Bool), T::Bool),
     
-    LExprTyped {
-        expr: LExpr::ApplyOp { operator: exact_operator, operands: vec![left, right] },
-        expr_type: result_type,
-    }
+    wrap_binary(exact_operator, vec![left, right], result_type)
 }
 
 // #[cfg(test)]

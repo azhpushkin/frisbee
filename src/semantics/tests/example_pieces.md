@@ -6,6 +6,10 @@
 * check if multiline strings are OK
 * check that variable is always assigned before using (all if branches)
 * check divide and minus ordering if chained (just to check everything is fine)
+* check that conditions are bool in if and else
+* check foreach (conflict with other variable)
+* check how everything works when there is multiple values with same name (for i in ...)
+
 ---
 fun Nil hello(Int a, Int a) {}
 
