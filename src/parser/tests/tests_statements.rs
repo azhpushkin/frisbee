@@ -30,8 +30,8 @@ fn stmt_return() {
     assert_stmt_invalid("return 1");
     assert_stmt_invalid("return 2+;");
 
-    assert_stmt_parses("return;", Statement::Return(Expr::Nil));
-    assert_stmt_parses("return 1;", Statement::Return(Expr::Int(1)));
+    assert_stmt_parses("return;", Statement::Return(None));
+    assert_stmt_parses("return 1;", Statement::Return(Some(Expr::Int(1))));
 }
 
 #[test]
@@ -72,10 +72,7 @@ fn stmt_while() {
 
     assert_stmt_parses(
         "while 1 {2;}",
-        Statement::While {
-            condition: Expr::Int(1),
-            body: vec![Statement::Expr(Expr::Int(2))],
-        },
+        Statement::While { condition: Expr::Int(1), body: vec![Statement::Expr(Expr::Int(2))] },
     );
 }
 
@@ -144,10 +141,7 @@ fn stmt_equal() {
 
     assert_stmt_parses(
         "var = 2;",
-        Statement::Assign {
-            left: Expr::Identifier(String::from("var")),
-            right: Expr::Int(2),
-        },
+        Statement::Assign { left: Expr::Identifier(String::from("var")), right: Expr::Int(2) },
     );
 }
 

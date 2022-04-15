@@ -64,7 +64,7 @@ pub enum Statement {
     Foreach { itemname: String, iterable: Expr, body: Vec<Statement> },
     Break,
     Continue,
-    Return(Expr),
+    Return(Option<Expr>),
     Assign { left: Expr, right: Expr },
     VarDecl(Type, String),
     VarDeclWithAssign(Type, String, Expr),

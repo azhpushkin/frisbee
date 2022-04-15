@@ -374,11 +374,11 @@ impl Parser {
             Token::Return => {
                 self.consume_token();
                 if consume_if_matches_one_of!(self, [Token::Semicolon]) {
-                    return Ok(Statement::Return(Expr::Nil));
+                    return Ok(Statement::Return(None));
                 }
                 let expr = self.parse_expr()?;
                 consume_and_check!(self, Token::Semicolon);
-                return Ok(Statement::Return(expr));
+                return Ok(Statement::Return(Some(expr)));
             }
             _ => (),
         }
