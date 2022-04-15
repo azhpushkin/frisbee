@@ -72,6 +72,22 @@ impl Vm {
         bytes
     }
 
+    fn read_two_values<T>(&mut self) -> (T, T)
+    where
+        T: From<u8>,
+    {
+        let values = self.read_several::<2>();
+        (T::from(values[0]), T::from(values[1]))
+    }
+
+    fn exec_binaryop<T>(&mut self, op: fn(T, T) -> u64)
+    where
+        T: From<u8>,
+    {
+        let (a, b) = self.read_two_values::<T>();
+        self.push(op(a, b));
+    }
+
     fn load_consts(&mut self) {
         loop {
             let const_type = self.read_opcode();
@@ -115,21 +131,18 @@ impl Vm {
                     let value = self.read_opcode();
                     self.push(value as u64);
                 }
-                op::ADD_INT => {
-                    let a = self.pop() as i64;
-                    let b = self.pop() as i64;
-                    self.push((a + b) as u64);
-                }
-                op::MUL_INT => {
-                    let a = self.pop() as i64;
-                    let b = self.pop() as i64;
-                    self.push((a * b) as u64);
-                }
-                op::ADD_FLOAT => {
-                    let a = self.pop() as f64;
-                    let b = self.pop() as f64;
-                    self.push((a + b) as u64);
-                }
+                
+                // TODO: test div and sub for float and ints
+                op::ADD_INT => self.exec_binaryop::<i64>(|a, b| (a + b) as u64),
+                op::MUL_INT => self.exec_binaryop::<i64>(|a, b| (a * b) as u64),
+                op::SUB_INT => self.exec_binaryop::<i64>(|a, b| (a - b) as u64),
+                op::DIV_INT => self.exec_binaryop::<i64>(|a, b| (a / b) as u64),
+                
+                op::ADD_FLOAT => self.exec_binaryop::<f64>(|a, b| (a + b) as u64),
+                op::MUL_FLOAT => self.exec_binaryop::<f64>(|a, b| (a * b) as u64),
+                op::SUB_FLOAT => self.exec_binaryop::<f64>(|a, b| (a - b) as u64),
+                op::DIV_FLOAT => self.exec_binaryop::<f64>(|a, b| (a / b) as u64),
+
                 op::GET_VAR => {
                     let value_pos = self.read_opcode() as usize;
                     self.push(
