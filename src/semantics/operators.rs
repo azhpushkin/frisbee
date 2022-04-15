@@ -99,29 +99,18 @@ pub fn calculate_binaryop(operator: &BinaryOp, left: LExprTyped, right: LExprTyp
             return calculate_unaryop(&UnaryOp::Not, inner);
         }
 
-        BinaryOp::A
-
+        BinaryOp::And if matches!(left.expr_type, Type::Bool) => {
+            ensure_same_types();
+            (RawOperator::AndBools, Type::Bool)
+        }
+        BinaryOp::And => raise_error(),
+        BinaryOp::Or if matches!(left.expr_type, Type::Bool) => {
+            ensure_same_types();
+            (RawOperator::OrBools, Type::Bool)
+        }
+        BinaryOp::Or => raise_error(),
     };
 
-    // for both bool and numbers
-    // | BinaryOp::Greater
-
-    // | BinaryOp::Less
-    // |  => get_res(
-    //     left == right && matches!(left, T::Int | T::Float),
-    //     left.clone(),
-    // ),
-
-    // BinaryOp::GreaterEqual => todo!(),  // Greater and equal
-    // BinaryOp::LessEqual => todo!(),  //  Less AND equal
-
-    // // for all types, and also special case for maybe
-    // BinaryOp::IsEqual | BinaryOp::IsNotEqual => {
-    //     get_res(are_types_same_or_maybe(left, right), Type::Bool)
-    // }
-
-    // // Only for bool
-    // BinaryOp::And | BinaryOp::Or => get_res(left == right && matches!(left, T::Bool), T::Bool),
 
     wrap_binary(exact_operator, vec![left, right], result_type)
 }

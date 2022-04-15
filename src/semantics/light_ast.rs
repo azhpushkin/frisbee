@@ -56,6 +56,8 @@ pub enum RawOperator {
 
     UnaryNegateBool,
     EqualBools,
+    AndBools,
+    OrBools,
 
     EqualStrings,
     // TODO: think about this a little more
