@@ -55,22 +55,7 @@ pub struct FunctionDecl {
     pub statements: Vec<Statement>,
 }
 
-#[derive(Debug, PartialEq, Clone)]
-pub enum Type {
-    // Primitive types
-    Int,
-    Float,
-    Bool,
-    String,
-
-    // Type wrappers
-    List(Box<Type>),
-    Tuple(Vec<Type>),
-    Maybe(Box<Type>),
-
-    // User-defined type
-    Ident(String),
-}
+pub type Type = crate::types::Type;
 
 #[derive(Debug, PartialEq)]
 pub enum Statement {
