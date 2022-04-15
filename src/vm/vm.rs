@@ -80,6 +80,14 @@ impl Vm {
         (T::from(values[0]), T::from(values[1]))
     }
 
+    fn exec_unaryop<T>(&mut self, op: fn(T) -> u64)
+    where
+        T: From<u8>,
+    {
+        let value = T::from(self.read_opcode());
+        self.push(op(value));
+    }
+
     fn exec_binaryop<T>(&mut self, op: fn(T, T) -> u64)
     where
         T: From<u8>,
@@ -132,16 +140,30 @@ impl Vm {
                     self.push(value as u64);
                 }
                 
-                // TODO: test div and sub for float and ints
+                // TODO: test div and suband compare for float and ints
+                op::NEGATE_INT => self.exec_unaryop::<i64>(|x| (-x) as u64),
                 op::ADD_INT => self.exec_binaryop::<i64>(|a, b| (a + b) as u64),
                 op::MUL_INT => self.exec_binaryop::<i64>(|a, b| (a * b) as u64),
                 op::SUB_INT => self.exec_binaryop::<i64>(|a, b| (a - b) as u64),
                 op::DIV_INT => self.exec_binaryop::<i64>(|a, b| (a / b) as u64),
-                
+                op::GREATER_INT => self.exec_binaryop::<i64>(|a, b| (a > b) as u64),
+                op::LESS_INT => self.exec_binaryop::<i64>(|a, b| (a < b) as u64),
+                op::EQ_INT => self.exec_binaryop::<i64>(|a, b| (a == b) as u64),
+
+                op::NEGATE_FLOAT => self.exec_unaryop::<f64>(|x| (-x) as u64),
                 op::ADD_FLOAT => self.exec_binaryop::<f64>(|a, b| (a + b) as u64),
                 op::MUL_FLOAT => self.exec_binaryop::<f64>(|a, b| (a * b) as u64),
                 op::SUB_FLOAT => self.exec_binaryop::<f64>(|a, b| (a - b) as u64),
                 op::DIV_FLOAT => self.exec_binaryop::<f64>(|a, b| (a / b) as u64),
+                op::GREATER_FLOAT => self.exec_binaryop::<f64>(|a, b| (a > b) as u64),
+                op::LESS_FLOAT => self.exec_binaryop::<f64>(|a, b| (a < b) as u64),
+                op::EQ_FLOAT => self.exec_binaryop::<f64>(|a, b| (a == b) as u64),
+
+                // TODO: test bool operators
+                op::NEGATE_BOOL => self.exec_unaryop::<u64>(|x| !x),
+                op::AND_BOOL => self.exec_binaryop::<u64>(|a, b| a & b),
+                op::OR_BOOL => self.exec_binaryop::<u64>(|a, b| a | b),
+                op::EQ_BOOL => self.exec_binaryop::<u64>(|a, b| !(a ^ b)),
 
                 op::GET_VAR => {
                     let value_pos = self.read_opcode() as usize;
