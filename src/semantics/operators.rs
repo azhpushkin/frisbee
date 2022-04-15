@@ -16,22 +16,15 @@ pub fn calculate_unaryop(operator: &UnaryOp, operand: LExprTyped) -> LExprTyped 
     let expr_type = operand.expr_type.clone();
     LExprTyped {
         expr: LExpr::ApplyOp { operator: exact_operator, operands: vec![operand] },
-        expr_type
+        expr_type,
     }
 }
 
 fn wrap_binary(op: RawOperator, operands: Vec<LExprTyped>, res_type: Type) -> LExprTyped {
-    LExprTyped {
-        expr: LExpr::ApplyOp { operator: op, operands },
-        expr_type: res_type,
-    }
+    LExprTyped { expr: LExpr::ApplyOp { operator: op, operands }, expr_type: res_type }
 }
 
-pub fn calculate_binaryop(
-    operator: &BinaryOp,
-    left: LExprTyped,
-    right: LExprTyped,
-) -> LExprTyped {
+pub fn calculate_binaryop(operator: &BinaryOp, left: LExprTyped, right: LExprTyped) -> LExprTyped {
     let raise_error = || panic!("Cant apply {:?} to {:?} and {:?}", &operator, &left, &right);
 
     let ensure_same_types = || {
@@ -44,12 +37,11 @@ pub fn calculate_binaryop(
         match left.expr_type {
             Type::Int => (int_op, Type::Int),
             Type::Float => (float_op, Type::Float),
-            _ => raise_error()
+            _ => raise_error(),
         }
     };
-    let ensure_int_or_float_op_only = |int_op: RawOperator, float_op: RawOperator| {
-        ensure_int_or_float(int_op, float_op).0
-    };
+    let ensure_int_or_float_op_only =
+        |int_op: RawOperator, float_op: RawOperator| ensure_int_or_float(int_op, float_op).0;
     // TODO: greater and less and is_equal for all types?
 
     let (exact_operator, result_type) = match operator {
@@ -60,55 +52,77 @@ pub fn calculate_binaryop(
                 Type::Float => (RawOperator::AddFloats, Type::Float),
                 Type::String => (RawOperator::AddFloats, Type::Float),
                 Type::List(_) => panic!("WOW i need to implement this to be fair"),
-                _ => raise_error()
+                _ => raise_error(),
             }
         }
         BinaryOp::Minus => ensure_int_or_float(RawOperator::SubInts, RawOperator::SubFloats),
         BinaryOp::Multiply => ensure_int_or_float(RawOperator::MulInts, RawOperator::MulFloats),
         BinaryOp::Divide => ensure_int_or_float(RawOperator::DivInts, RawOperator::DivFloats),
-        
+
         BinaryOp::Greater => (
             ensure_int_or_float_op_only(RawOperator::GreaterInts, RawOperator::GreaterFloats),
-            Type::Bool
+            Type::Bool,
         ),
         BinaryOp::Less => (
             ensure_int_or_float_op_only(RawOperator::LessInts, RawOperator::LessFloats),
-            Type::Bool
+            Type::Bool,
         ),
         BinaryOp::GreaterEqual => {
             let op = ensure_int_or_float_op_only(RawOperator::LessInts, RawOperator::LessFloats);
             let inner = wrap_binary(op, vec![left, right], Type::Bool);
             return calculate_unaryop(&UnaryOp::Not, inner);
-        },
+        }
         BinaryOp::LessEqual => {
-            let op = ensure_int_or_float_op_only(RawOperator::GreaterInts, RawOperator::GreaterFloats);
+            let op =
+                ensure_int_or_float_op_only(RawOperator::GreaterInts, RawOperator::GreaterFloats);
             let inner = wrap_binary(op, vec![left, right], Type::Bool);
             return calculate_unaryop(&UnaryOp::Not, inner);
-        },
+        }
 
-        _ => todo!(),
+        BinaryOp::IsEqual => {
+            // TODO: handle maybe here
+            ensure_same_types();
+            let op = match left.expr_type {
+                Type::Int => RawOperator::EqualInts,
+                Type::Float => RawOperator::EqualFloats,
+                Type::Bool => RawOperator::EqualBools,
+                Type::String => RawOperator::EqualStrings,
+                _ => {
+                    raise_error();
+                    todo!();
+                }
+            };
+            (op, Type::Bool)
+        }
+        BinaryOp::IsNotEqual => {
+            let inner = calculate_binaryop(&BinaryOp::IsEqual, left, right);
+            return calculate_unaryop(&UnaryOp::Not, inner);
+        }
+
+        BinaryOp::A
+
     };
 
-        // for both bool and numbers
-        // | BinaryOp::Greater
+    // for both bool and numbers
+    // | BinaryOp::Greater
 
-        // | BinaryOp::Less
-        // |  => get_res(
-        //     left == right && matches!(left, T::Int | T::Float),
-        //     left.clone(),
-        // ),
+    // | BinaryOp::Less
+    // |  => get_res(
+    //     left == right && matches!(left, T::Int | T::Float),
+    //     left.clone(),
+    // ),
 
-        // BinaryOp::GreaterEqual => todo!(),  // Greater and equal
-        // BinaryOp::LessEqual => todo!(),  //  Less AND equal
+    // BinaryOp::GreaterEqual => todo!(),  // Greater and equal
+    // BinaryOp::LessEqual => todo!(),  //  Less AND equal
 
-        // // for all types, and also special case for maybe
-        // BinaryOp::IsEqual | BinaryOp::IsNotEqual => {
-        //     get_res(are_types_same_or_maybe(left, right), Type::Bool)
-        // }
+    // // for all types, and also special case for maybe
+    // BinaryOp::IsEqual | BinaryOp::IsNotEqual => {
+    //     get_res(are_types_same_or_maybe(left, right), Type::Bool)
+    // }
 
-        // // Only for bool
-        // BinaryOp::And | BinaryOp::Or => get_res(left == right && matches!(left, T::Bool), T::Bool),
-    
+    // // Only for bool
+    // BinaryOp::And | BinaryOp::Or => get_res(left == right && matches!(left, T::Bool), T::Bool),
+
     wrap_binary(exact_operator, vec![left, right], result_type)
 }
 
