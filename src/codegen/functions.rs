@@ -28,10 +28,15 @@ pub fn generate_function_bytecode(
             LStatement::DeclareVar { var_type, name } => {
                 // TODO: this should reserve the space for the variable
                 generator.add_local(name);
+                generator.push(op::RESERVE_ONE);
             }
             LStatement::AssignVar { name, value } => {
                 generator.push_expr(value);
                 generator.push_set_var(name);
+            }
+            LStatement::DeclareAndAssignVar {var_type, name, value} => {
+                generator.add_local(name);
+                generator.push_expr(value);
             }
             LStatement::Return(expr) => {
                 generator.push_expr(expr);

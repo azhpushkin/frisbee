@@ -38,7 +38,6 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
     pub fn add_local(&mut self, varname: &'a String) {
         // TODO: add type info for offsets
         self.locals.insert(varname, self.locals.len() as u8);
-        self.push(op::RESERVE_ONE);
     }
 
     pub fn push_get_var(&mut self, varname: &String) {

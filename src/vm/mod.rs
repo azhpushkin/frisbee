@@ -2,7 +2,7 @@ pub mod opcodes;
 
 use opcodes::op;
 
-const STACK_SIZE: usize = 256;
+const STACK_SIZE: usize = 1024;
 
 struct CallFrame {
     pub return_ip: usize,

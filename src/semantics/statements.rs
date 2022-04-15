@@ -82,12 +82,9 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
                 }
             }
             Statement::VarDeclWithAssign(var_type, name, value) => {
-                let mut res = vec![];
-                res.push(LStatement::DeclareVar { var_type: var_type.clone(), name: name.clone() });
-                let value = self.check_expr(value, None);
                 self.lexpr_generator.add_variable(name.clone(), var_type.clone());
-                res.push(LStatement::AssignVar { name: name.clone(), value });
-                return res;
+                let value = self.check_expr(value, None);
+                LStatement::DeclareAndAssignVar { var_type: var_type.clone(), name: name.clone(), value }
             }
 
             Statement::Return(Some(e)) => {
