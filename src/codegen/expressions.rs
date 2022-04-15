@@ -7,25 +7,30 @@ use crate::vm::opcodes::op;
 
 fn match_operator(raw_op: &RawOperator) -> u8 {
     match raw_op {
-        RawOperator::UnaryNegateInt => todo!(),
+        RawOperator::UnaryNegateInt => op::NEGATE_INT,
         RawOperator::AddInts => op::ADD_INT,
         RawOperator::SubInts => op::SUB_INT,
         RawOperator::MulInts => op::MUL_INT,
         RawOperator::DivInts => op::DIV_INT,
-        RawOperator::GreaterInts => todo!(),
-        RawOperator::LessInts => todo!(),
-        RawOperator::EqualInts => todo!(),
+        RawOperator::GreaterInts => op::GREATER_INT,
+        RawOperator::LessInts => op::LESS_INT,
+        RawOperator::EqualInts => op::EQ_INT,
 
-        RawOperator::UnaryNegateFloat => todo!(),
+        RawOperator::UnaryNegateFloat => op::NEGATE_FLOAT,
         RawOperator::AddFloats => op::ADD_FLOAT,
         RawOperator::SubFloats => op::SUB_FLOAT,
         RawOperator::MulFloats => op::MUL_FLOAT,
         RawOperator::DivFloats => op::DIV_FLOAT,
-        RawOperator::GreaterFloats => todo!(),
-        RawOperator::LessFloats => todo!(),
-        RawOperator::EqualFloats => todo!(),
+        RawOperator::GreaterFloats => op::GREATER_FLOAT,
+        RawOperator::LessFloats => op::LESS_FLOAT,
+        RawOperator::EqualFloats => op::EQ_FLOAT,
 
-        RawOperator::UnaryNegateBool => todo!(),
+        RawOperator::UnaryNegateBool => op::NEGATE_BOOL,
+        RawOperator::EqualBools => op::EQ_BOOL,
+        RawOperator::AndBools => op::AND_BOOL,
+        RawOperator::OrBools => op::OR_BOOL,
+
+        RawOperator::EqualStrings => todo!(),
     }
 }
 

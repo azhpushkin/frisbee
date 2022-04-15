@@ -18,15 +18,28 @@ pub mod op {
 
         RESERVE_ONE,
 
+        NEGATE_INT,
         ADD_INT,
         SUB_INT,
         MUL_INT,
         DIV_INT,
+        GREATER_INT,
+        LESS_INT,
+        EQ_INT,
 
+        NEGATE_FLOAT,
         ADD_FLOAT,
         SUB_FLOAT,
         MUL_FLOAT,
         DIV_FLOAT,
+        GREATER_FLOAT,
+        LESS_FLOAT,
+        EQ_FLOAT,
+
+        NEGATE_BOOL,
+        EQ_BOOL,
+        AND_BOOL,
+        OR_BOOL,
 
         RETURN,
         POP
