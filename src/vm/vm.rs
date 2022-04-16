@@ -47,7 +47,7 @@ impl Vm {
 
     fn call_op(&mut self, func_pos: usize, args_num: usize) {
         self.frames.push(CallFrame {
-            return_ip: self.ip + 1,
+            return_ip: self.ip,
             args_num,
             stack_start: self.stack_pointer,
         });
@@ -65,35 +65,34 @@ impl Vm {
     }
 
     fn read_several<const N: usize>(&mut self) -> [u8; N] {
-        let mut bytes = [0; N];
+        let mut bytes: [u8; N] = [0; N];
         for i in 0..N {
             bytes[i] = self.read_opcode();
         }
         bytes
     }
 
-    fn read_two_values<T>(&mut self) -> (T, T)
-    where
-        T: From<u8>,
-    {
-        let values = self.read_several::<2>();
-        (T::from(values[0]), T::from(values[1]))
+    fn exec_binaryop_i64(&mut self, op: fn(i64, i64) -> i64) {
+        let a = self.pop() as i64;
+        let b = self.pop() as i64;
+        self.push(op(a, b) as u64);
     }
 
-    fn exec_unaryop<T>(&mut self, op: fn(T) -> u64)
-    where
-        T: From<u8>,
-    {
-        let value = T::from(self.read_opcode());
-        self.push(op(value));
+    fn exec_binaryop_f64(&mut self, op: fn(f64, f64) -> f64) {
+        let a = self.pop() as f64;
+        let b = self.pop() as f64;
+        self.push(op(a, b) as u64);
     }
 
-    fn exec_binaryop<T>(&mut self, op: fn(T, T) -> u64)
-    where
-        T: From<u8>,
-    {
-        let (a, b) = self.read_two_values::<T>();
+    fn exec_binaryop(&mut self, op: fn(u64, u64) -> u64) {
+        let a = self.pop();
+        let b = self.pop();
         self.push(op(a, b));
+    }
+
+    fn exec_unaryop(&mut self, op: fn(u64) -> u64) {
+        let a = self.pop();
+        self.push(op(a));
     }
 
     fn load_consts(&mut self) {
@@ -139,32 +138,31 @@ impl Vm {
                     let value = self.read_opcode();
                     self.push(value as u64);
                 }
-                
-                // TODO: test div and suband compare for float and ints
-                op::NEGATE_INT => self.exec_unaryop::<i64>(|x| (-x) as u64),
-                op::ADD_INT => self.exec_binaryop::<i64>(|a, b| (a + b) as u64),
-                op::MUL_INT => self.exec_binaryop::<i64>(|a, b| (a * b) as u64),
-                op::SUB_INT => self.exec_binaryop::<i64>(|a, b| (a - b) as u64),
-                op::DIV_INT => self.exec_binaryop::<i64>(|a, b| (a / b) as u64),
-                op::GREATER_INT => self.exec_binaryop::<i64>(|a, b| (a > b) as u64),
-                op::LESS_INT => self.exec_binaryop::<i64>(|a, b| (a < b) as u64),
-                op::EQ_INT => self.exec_binaryop::<i64>(|a, b| (a == b) as u64),
 
-                op::NEGATE_FLOAT => self.exec_unaryop::<f64>(|x| (-x) as u64),
-                op::ADD_FLOAT => self.exec_binaryop::<f64>(|a, b| (a + b) as u64),
-                op::MUL_FLOAT => self.exec_binaryop::<f64>(|a, b| (a * b) as u64),
-                op::SUB_FLOAT => self.exec_binaryop::<f64>(|a, b| (a - b) as u64),
-                op::DIV_FLOAT => self.exec_binaryop::<f64>(|a, b| (a / b) as u64),
-                op::GREATER_FLOAT => self.exec_binaryop::<f64>(|a, b| (a > b) as u64),
-                op::LESS_FLOAT => self.exec_binaryop::<f64>(|a, b| (a < b) as u64),
-                op::EQ_FLOAT => self.exec_binaryop::<f64>(|a, b| (a == b) as u64),
+                // TODO: test div and suband compare for float and ints
+                op::NEGATE_INT => self.exec_unaryop(|x| (-(x as i64)) as u64),
+                op::ADD_INT => self.exec_binaryop_i64(|a, b| a + b),
+                op::MUL_INT => self.exec_binaryop_i64(|a, b| a * b),
+                op::SUB_INT => self.exec_binaryop_i64(|a, b| a - b),
+                op::DIV_INT => self.exec_binaryop_i64(|a, b| a / b),
+                op::GREATER_INT => self.exec_binaryop(|a, b| ((a as i64) > (b as i64)) as u64),
+                op::LESS_INT => self.exec_binaryop(|a, b| ((a as i64) < (b as i64)) as u64),
+                op::EQ_INT => self.exec_binaryop(|a, b| ((a as i64) == (b as i64)) as u64),
+
+                op::NEGATE_FLOAT => self.exec_unaryop(|x| (-(x as f64)) as u64),
+                op::ADD_FLOAT => self.exec_binaryop_f64(|a, b| a + b),
+                op::MUL_FLOAT => self.exec_binaryop_f64(|a, b| a * b),
+                op::SUB_FLOAT => self.exec_binaryop_f64(|a, b| a - b),
+                op::DIV_FLOAT => self.exec_binaryop_f64(|a, b| a / b),
+                op::GREATER_FLOAT => self.exec_binaryop(|a, b| ((a as f64) > (b as f64)) as u64),
+                op::LESS_FLOAT => self.exec_binaryop(|a, b| ((a as f64) < (b as f64)) as u64),
+                op::EQ_FLOAT => self.exec_binaryop(|a, b| ((a as f64) == (b as f64)) as u64),
 
                 // TODO: test bool operators
-                op::NEGATE_BOOL => self.exec_unaryop::<u64>(|x| !x),
-                op::AND_BOOL => self.exec_binaryop::<u64>(|a, b| a & b),
-                op::OR_BOOL => self.exec_binaryop::<u64>(|a, b| a | b),
-                op::EQ_BOOL => self.exec_binaryop::<u64>(|a, b| !(a ^ b)),
-
+                op::NEGATE_BOOL => self.exec_unaryop(|x| !x),
+                op::AND_BOOL => self.exec_binaryop(|a, b| a & b),
+                op::OR_BOOL => self.exec_binaryop(|a, b| a | b),
+                op::EQ_BOOL => self.exec_binaryop(|a, b| !(a ^ b)),
                 op::GET_VAR => {
                     let value_pos = self.read_opcode() as usize;
                     self.push(
