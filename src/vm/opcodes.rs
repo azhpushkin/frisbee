@@ -55,7 +55,8 @@ pub mod op {
 
     // Opcodes with two operands
     opcodes_list!(180,
-        TODO_NOTHING_HERE_YET
+        JUMP,
+        JUMP_IF_FALSE
     );
 
     opcodes_list!(220,

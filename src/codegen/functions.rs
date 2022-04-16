@@ -3,7 +3,7 @@ use crate::semantics::aggregate::{ProgramAggregate, RawFunction};
 use crate::semantics::light_ast::LStatement;
 use crate::vm::opcodes::op;
 
-use super::generator::{BytecodeGenerator, FunctionBytecode};
+use super::generator::{BytecodeGenerator, FunctionBytecode, Placeholder};
 use super::globals::Globals;
 
 pub fn generate_function_bytecode(
@@ -20,31 +20,76 @@ pub fn generate_function_bytecode(
     );
 
     for statement in func.body.iter() {
-        match statement {
-            LStatement::Expression(expr) => {
-                generator.push_expr(expr);
-                generator.push(op::POP);
-            }
-            LStatement::DeclareVar { var_type, name } => {
-                // TODO: this should reserve the space for the variable
-                generator.add_local(name);
-                generator.push(op::RESERVE_ONE);
-            }
-            LStatement::AssignVar { name, value } => {
-                generator.push_expr(value);
-                generator.push_set_var(name);
-            }
-            LStatement::DeclareAndAssignVar {var_type, name, value} => {
-                generator.add_local(name);
-                generator.push_expr(value);
-            }
-            LStatement::Return(expr) => {
-                generator.push_expr(expr);
-                generator.push(op::RETURN);
-            }
-            _ => todo!(),
-        }
+        generate_statement_bytecode(statement, &mut generator);
     }
 
     Ok(generator.get_bytecode())
+}
+
+fn generate_statement_bytecode<'a, 'b>(
+    statement: &'a LStatement,
+    generator: &mut BytecodeGenerator<'a, 'b>,
+) {
+    match statement {
+        LStatement::Expression(expr) => {
+            generator.push_expr(expr);
+            generator.push(op::POP);
+        }
+        LStatement::DeclareVar { var_type, name } => {
+            // TODO: this should reserve the space for the variable
+            generator.add_local(name);
+            generator.push(op::RESERVE_ONE);
+        }
+        LStatement::AssignVar { name, value } => {
+            generator.push_expr(value);
+            generator.push_set_var(name);
+        }
+        LStatement::DeclareAndAssignVar { var_type, name, value } => {
+            generator.add_local(name);
+            generator.push_expr(value);
+        }
+        LStatement::Return(expr) => {
+            generator.push_expr(expr);
+            generator.push(op::RETURN);
+        }
+        LStatement::IfElse { condition, ifbody, elsebody } if elsebody.is_empty() => {
+            generator.push_expr(condition);
+            generator.push(op::JUMP_IF_FALSE);
+
+            let placeholder_to_skip_ifbody: Placeholder<2> = generator.push_placeholder::<2>();
+
+            for statement in ifbody.iter() {
+                generate_statement_bytecode(statement, generator);
+            }
+            let end_if_pos = generator.get_position() as u16;
+            generator.fill_placeholder(
+                &placeholder_to_skip_ifbody,
+                (generator.get_position() as u16).to_be_bytes(),
+            );
+        }
+        LStatement::IfElse { condition, ifbody, elsebody } => {
+            generator.push_expr(condition);
+            generator.push(op::JUMP_IF_FALSE);
+
+            let placeholder_to_skip_ifbody = generator.push_placeholder::<2>();
+
+            for statement in ifbody.iter() {
+                generate_statement_bytecode(statement, generator);
+            }
+            let placeholder_to_skip_elsebody = generator.push_placeholder::<2>();
+            generator.fill_placeholder(
+                &placeholder_to_skip_ifbody,
+                (generator.get_position() as u16).to_be_bytes(),
+            );
+
+            for statement in elsebody.iter() {
+                generate_statement_bytecode(statement, generator);
+            }
+            generator.fill_placeholder(
+                &placeholder_to_skip_elsebody,
+                (generator.get_position() as u16).to_be_bytes(),
+            );
+        }
+        _ => todo!(),
+    }
 }
