@@ -13,7 +13,9 @@ pub struct FunctionBytecode {
     pub bytecode: Vec<u8>,
     pub call_placeholders: Vec<CallPlaceholders>,
 }
-pub struct Placeholder<const N: usize>{position: usize}
+pub struct JumpPlaceholder {
+    position: usize,
+}
 
 pub struct BytecodeGenerator<'a, 'b> {
     aggregate: &'a ProgramAggregate,
@@ -75,20 +77,20 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
         self.push(0);
     }
 
-    pub fn push_placeholder<const N: usize>(&mut self) -> Placeholder<N> {
+    pub fn push_placeholder(&mut self) -> JumpPlaceholder {
         let placeholder_pos = self.get_position();
-        self.bytecode.bytecode.resize(placeholder_pos + N, 0);
-        Placeholder::<N>{position: placeholder_pos}
+        self.bytecode.bytecode.resize(placeholder_pos + 2, 0);
+        JumpPlaceholder { position: placeholder_pos }
     }
 
     pub fn get_position(&self) -> usize {
         self.bytecode.bytecode.len()
     }
 
-    pub fn fill_placeholder<const N: usize>(&mut self, placeholder: &Placeholder<N>, value: [u8; N]) {
-        for i in 0..N {
-            self.bytecode.bytecode[placeholder.position + i] = value[i];
-        }
+    pub fn fill_placeholder(&mut self, placeholder: &JumpPlaceholder, pos: usize) {
+        let diff = ((pos - placeholder.position) as u16).to_be_bytes();
+        self.bytecode.bytecode[placeholder.position] = diff[0];
+        self.bytecode.bytecode[placeholder.position + 1] = diff[1];
     }
 
     pub fn get_bytecode(&mut self) -> FunctionBytecode {

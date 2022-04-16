@@ -192,6 +192,17 @@ impl Vm {
                         break;
                     }
                 }
+                op::JUMP => {
+                    let x = u16::from_be_bytes(self.read_several::<2>());
+                    self.ip += x as usize;
+                }
+                op::JUMP_IF_FALSE => {
+                    let c = self.pop();
+                    let x = u16::from_be_bytes(self.read_several::<2>());
+                    if c == 0 {
+                        self.ip += x as usize;
+                    }
+                }
                 _ => panic!("Unknown opcode: {}", opcode),
             }
         }

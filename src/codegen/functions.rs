@@ -3,7 +3,7 @@ use crate::semantics::aggregate::{ProgramAggregate, RawFunction};
 use crate::semantics::light_ast::LStatement;
 use crate::vm::opcodes::op;
 
-use super::generator::{BytecodeGenerator, FunctionBytecode, Placeholder};
+use super::generator::{BytecodeGenerator, FunctionBytecode, JumpPlaceholder};
 use super::globals::Globals;
 
 pub fn generate_function_bytecode(
@@ -57,39 +57,31 @@ fn generate_statement_bytecode<'a, 'b>(
             generator.push_expr(condition);
             generator.push(op::JUMP_IF_FALSE);
 
-            let placeholder_to_skip_ifbody: Placeholder<2> = generator.push_placeholder::<2>();
+            let placeholder_to_skip_ifbody: JumpPlaceholder = generator.push_placeholder();
 
             for statement in ifbody.iter() {
                 generate_statement_bytecode(statement, generator);
             }
             let end_if_pos = generator.get_position() as u16;
-            generator.fill_placeholder(
-                &placeholder_to_skip_ifbody,
-                (generator.get_position() as u16).to_be_bytes(),
-            );
+            generator.fill_placeholder(&placeholder_to_skip_ifbody, generator.get_position());
         }
         LStatement::IfElse { condition, ifbody, elsebody } => {
             generator.push_expr(condition);
             generator.push(op::JUMP_IF_FALSE);
 
-            let placeholder_to_skip_ifbody = generator.push_placeholder::<2>();
+            let placeholder_to_skip_ifbody = generator.push_placeholder();
 
             for statement in ifbody.iter() {
                 generate_statement_bytecode(statement, generator);
             }
-            let placeholder_to_skip_elsebody = generator.push_placeholder::<2>();
-            generator.fill_placeholder(
-                &placeholder_to_skip_ifbody,
-                (generator.get_position() as u16).to_be_bytes(),
-            );
+            generator.push(op::JUMP);
+            let placeholder_to_skip_elsebody = generator.push_placeholder();
+            generator.fill_placeholder(&placeholder_to_skip_ifbody, generator.get_position());
 
             for statement in elsebody.iter() {
                 generate_statement_bytecode(statement, generator);
             }
-            generator.fill_placeholder(
-                &placeholder_to_skip_elsebody,
-                (generator.get_position() as u16).to_be_bytes(),
-            );
+            generator.fill_placeholder(&placeholder_to_skip_elsebody, generator.get_position());
         }
         _ => todo!(),
     }

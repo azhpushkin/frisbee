@@ -10,6 +10,8 @@ fun void main() {
     Int res = add_squares(a, b);
     if a == 2 {
         res = res * 2;
+    } else {
+        res = res + 1;
     }
     return res; //  TODO: empty return is return (None)!!
     // TODO: why this "return 9" compiles? must be semantic error!
