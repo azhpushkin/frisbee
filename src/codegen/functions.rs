@@ -50,6 +50,7 @@ fn generate_statement_bytecode<'a, 'b>(
         }
         LStatement::Return(expr) => {
             generator.push_expr(expr);
+            generator.push_set_return();
             generator.push(op::RETURN);
         }
         LStatement::IfElse { condition, ifbody, elsebody } if elsebody.is_empty() => {

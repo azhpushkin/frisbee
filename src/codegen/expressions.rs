@@ -60,6 +60,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 self.push_get_var(varname);
             }
             LExpr::CallFunction { name, args } => {
+                self.push(op::RESERVE_ONE);
                 for arg in args.iter() {
                     self.push_expr(&arg);
                 }

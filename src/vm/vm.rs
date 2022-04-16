@@ -5,7 +5,6 @@ const STACK_SIZE: usize = 1024;
 struct CallFrame {
     pub return_ip: usize,
     pub stack_start: usize,
-    pub args_num: usize,
 }
 
 pub struct Vm {
@@ -46,18 +45,15 @@ impl Vm {
     }
 
     fn call_op(&mut self, func_pos: usize, args_num: usize) {
-        self.frames.push(CallFrame {
-            return_ip: self.ip,
-            args_num,
-            stack_start: self.stack_pointer,
-        });
+        self.frames
+            .push(CallFrame { return_ip: self.ip, stack_start: self.stack_pointer - args_num - 1 });
         self.ip = func_pos;
     }
 
     fn return_op(&mut self) {
         let frame = self.frames.pop().unwrap();
         self.ip = frame.return_ip;
-        self.stack_pointer = frame.stack_start;
+        self.stack_pointer = frame.stack_start + 1;
     }
 
     fn current_frame(&self) -> &CallFrame {
@@ -122,6 +118,7 @@ impl Vm {
         self.load_consts();
 
         let entry = u16::from_be_bytes(self.read_several::<2>());
+        self.push(0); // return address
         self.call_op(entry as usize, 0);
 
         while self.ip < self.program.len() {
@@ -165,16 +162,12 @@ impl Vm {
                 op::EQ_BOOL => self.exec_binaryop(|a, b| !(a ^ b)),
                 op::GET_VAR => {
                     let value_pos = self.read_opcode() as usize;
-                    self.push(
-                        self.stack[self.current_frame().stack_start + value_pos
-                            - self.current_frame().args_num],
-                    );
+                    self.push(self.stack[self.current_frame().stack_start + value_pos]);
                 }
                 op::SET_VAR => {
                     let value = self.pop();
                     let value_pos = self.read_opcode() as usize;
-                    self.stack[self.current_frame().stack_start + value_pos
-                        - self.current_frame().args_num] = value;
+                    self.stack[self.current_frame().stack_start + value_pos] = value;
                 }
                 op::RESERVE_ONE => {
                     // TODO: this seems wrong, function might reserve at the very start tbh
@@ -185,6 +178,9 @@ impl Vm {
                     let args_num = self.read_opcode();
                     let function_pos = u16::from_be_bytes([self.read_opcode(), self.read_opcode()]);
                     self.call_op(function_pos as usize, args_num as usize);
+                }
+                op::POP => {
+                    self.pop();
                 }
                 op::RETURN => {
                     self.return_op();

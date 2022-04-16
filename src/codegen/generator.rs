@@ -44,13 +44,18 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
     pub fn push_get_var(&mut self, varname: &String) {
         let var_pos = self.locals.get(varname).unwrap().clone();
         self.push(op::GET_VAR);
-        self.push(var_pos);
+        self.push(var_pos + 1);
     }
 
     pub fn push_set_var(&mut self, varname: &String) {
         let var_pos = self.locals.get(varname).unwrap().clone();
         self.push(op::SET_VAR);
-        self.push(var_pos);
+        self.push(var_pos + 1);
+    }
+
+    pub fn push_set_return(&mut self) {
+        self.push(op::SET_VAR);
+        self.push(0);
     }
 
     pub fn push_constant(&mut self, constant: Constant) {

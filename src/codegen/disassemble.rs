@@ -15,10 +15,17 @@ pub fn opcode_to_s(c: u8) -> &'static str {
         op::LOAD_INT => "load_int",
         op::LOAD_TRUE => "load_true",
         op::LOAD_FALSE => "load_false",
+
+        
+        op::NEGATE_INT => "negate_int",
         op::ADD_INT => "add_int",
         op::SUB_INT => "sub_int",
         op::MUL_INT => "mul_int",
         op::DIV_INT => "div_int",
+        op::GREATER_INT => "greater_int",
+        op::LESS_INT => "less_int",
+        op::EQ_INT => "eq_int",
+
         op::ADD_FLOAT => "add_float",
         op::SUB_FLOAT => "sub_float",
         op::MUL_FLOAT => "mul_float",
@@ -28,6 +35,10 @@ pub fn opcode_to_s(c: u8) -> &'static str {
         op::POP => "pop",
         op::SET_VAR => "set_var",
         op::GET_VAR => "get_var",
+
+        op::JUMP => "jump",
+        op::JUMP_IF_FALSE => "jump_if_false",
+        
         _ => panic!("DIS: unknown opcode {}", c),
     }
 }
