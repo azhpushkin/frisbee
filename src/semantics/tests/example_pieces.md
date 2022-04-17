@@ -9,7 +9,8 @@
 * check that conditions are bool in if and else
 * check foreach (conflict with other variable)
 * check how everything works when there is multiple values with same name (for i in ...)
-
+* check break and continue in loop only!
+* 
 ---
 fun Nil hello(Int a, Int a) {}
 
