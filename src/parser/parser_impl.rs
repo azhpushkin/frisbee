@@ -310,15 +310,21 @@ impl Parser {
     pub fn parse_if_else_stmt(&mut self) -> ParseResult<Statement> {
         consume_and_check!(self, Token::If);
         let condition = self.parse_expr()?;
-        let ifbody = self.parse_statements_in_curly_block(false)?;
+        
+        let if_body = self.parse_statements_in_curly_block(false)?;
+        let mut elif_bodies = vec![];
+        let mut else_body = vec![];
 
-        let elsebody: Vec<Statement>;
+        while consume_if_matches_one_of!(self, [Token::Elif]) {
+            let elif_condition = self.parse_expr()?;
+            let elif_body = self.parse_statements_in_curly_block(false)?;
+            elif_bodies.push((elif_condition, elif_body));
+        }
+
         if consume_if_matches_one_of!(self, [Token::Else]) {
-            elsebody = self.parse_statements_in_curly_block(false)?;
-        } else {
-            elsebody = vec![];
-        };
-        Ok(Statement::IfElse { condition, ifbody, elsebody })
+            else_body = self.parse_statements_in_curly_block(false)?;
+        }
+        Ok(Statement::IfElse { condition, if_body, elif_bodies, else_body })
     }
 
     pub fn parse_while_loop_stmt(&mut self) -> ParseResult<Statement> {

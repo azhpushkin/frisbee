@@ -88,7 +88,8 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
     }
 
     pub fn fill_placeholder(&mut self, placeholder: &JumpPlaceholder, pos: usize) {
-        let diff = ((pos - placeholder.position) as u16).to_be_bytes();
+        // -2 as this is length of placeholder in the program
+        let diff = ((pos - placeholder.position - 2) as u16).to_be_bytes();
         self.bytecode.bytecode[placeholder.position] = diff[0];
         self.bytecode.bytecode[placeholder.position + 1] = diff[1];
     }

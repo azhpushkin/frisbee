@@ -53,7 +53,7 @@ fn generate_statement_bytecode<'a, 'b>(
             generator.push_set_return();
             generator.push(op::RETURN);
         }
-        LStatement::IfElse { condition, ifbody, elsebody } if elsebody.is_empty() => {
+        LStatement::IfElse { condition, if_body: ifbody, else_body: elsebody } if elsebody.is_empty() => {
             generator.push_expr(condition);
             generator.push(op::JUMP_IF_FALSE);
 
@@ -65,7 +65,7 @@ fn generate_statement_bytecode<'a, 'b>(
             let end_if_pos = generator.get_position() as u16;
             generator.fill_placeholder(&placeholder_to_skip_ifbody, generator.get_position());
         }
-        LStatement::IfElse { condition, ifbody, elsebody } => {
+        LStatement::IfElse { condition, if_body: ifbody, else_body: elsebody } => {
             generator.push_expr(condition);
             generator.push(op::JUMP_IF_FALSE);
 

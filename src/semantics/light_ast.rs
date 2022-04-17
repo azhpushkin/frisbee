@@ -6,8 +6,8 @@ use super::symbols::{SymbolFunc, SymbolType};
 pub enum LStatement {
     IfElse {
         condition: LExprTyped,
-        ifbody: Vec<LStatement>,
-        elsebody: Vec<LStatement>,
+        if_body: Vec<LStatement>,
+        else_body: Vec<LStatement>,
     },
     While {
         condition: LExprTyped,

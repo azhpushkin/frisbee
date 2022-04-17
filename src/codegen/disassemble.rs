@@ -38,7 +38,7 @@ pub fn opcode_to_s(c: u8) -> &'static str {
 
         op::JUMP => "jump",
         op::JUMP_IF_FALSE => "jump_if_false",
-        
+
         _ => panic!("DIS: unknown opcode {}", c),
     }
 }

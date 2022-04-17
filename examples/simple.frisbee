@@ -1,16 +1,22 @@
 
 fun Int add_squares(Int a, Int b) {
-    Int a_s = a * a * 1;
-    return a_s + (b * b);
+    Int c = a * a;
+    return c + (b * b);
 }
 
 fun void main() {
     Int b = 2;
     Int a = 3;
+    
     Int res = add_squares(a, b);
+
     if a == 2 {
         res = res * 2;
-    } else {
+    } 
+    elif a==1 {
+        return 77;
+    }
+    else {
         res = res + 1;
     }
     return res; //  TODO: empty return is return (None)!!

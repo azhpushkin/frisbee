@@ -59,16 +59,35 @@ pub type Type = crate::types::Type;
 
 #[derive(Debug, PartialEq)]
 pub enum Statement {
-    IfElse { condition: Expr, ifbody: Vec<Statement>, elsebody: Vec<Statement> },
-    While { condition: Expr, body: Vec<Statement> },
-    Foreach { itemname: String, iterable: Expr, body: Vec<Statement> },
+    IfElse {
+        condition: Expr,
+        if_body: Vec<Statement>,
+        elif_bodies: Vec<(Expr, Vec<Statement>)>,
+        else_body: Vec<Statement>,
+    },
+    While {
+        condition: Expr,
+        body: Vec<Statement>,
+    },
+    Foreach {
+        itemname: String,
+        iterable: Expr,
+        body: Vec<Statement>,
+    },
     Break,
     Continue,
     Return(Option<Expr>),
-    Assign { left: Expr, right: Expr },
+    Assign {
+        left: Expr,
+        right: Expr,
+    },
     VarDecl(Type, String),
     VarDeclWithAssign(Type, String, Expr),
-    SendMessage { active: Expr, method: String, args: Vec<Expr> },
+    SendMessage {
+        active: Expr,
+        method: String,
+        args: Vec<Expr>,
+    },
     // TODO: SWaitMessage
     Expr(Expr),
 }
@@ -108,7 +127,6 @@ pub enum UnaryOp {
 // This means that if we do something like array[-1], we do not handle it, lol
 // maybe save state of the actor before running it? (2x memory for this)
 
-
 #[derive(Debug, PartialEq)]
 pub enum Expr {
     Int(i64),
@@ -116,7 +134,7 @@ pub enum Expr {
     Bool(bool),
     Nil,
     Float(f64),
-    
+
     This,
     Identifier(String),
 
@@ -132,8 +150,7 @@ pub enum Expr {
     FieldAccess { object: Box<Expr>, field: String },
     OwnMethodCall { method: String, args: Vec<Expr> },
     OwnFieldAccess { field: String },
-    
+
     NewClassInstance { typename: String, args: Vec<Expr> },
     SpawnActive { typename: String, args: Vec<Expr> },
-    
 }

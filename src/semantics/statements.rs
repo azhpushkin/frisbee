@@ -64,6 +64,33 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
         self.lexpr_generator.calculate(expr, expected)
     }
 
+    fn generate_if_elif_else(
+        &mut self,
+        condition: &Expr,
+        if_body_input: &[Statement],
+        elif_bodies_input: &[(Expr, Vec<Statement>)],
+        else_body_input: &[Statement],
+    ) -> LStatement {
+        let condition = self.check_expr(condition, Some(&Type::Bool));
+        let if_body = self.generate(if_body_input);
+        let else_body;
+
+        if elif_bodies_input.is_empty() {
+            else_body = self.generate(else_body_input);
+        } else {
+            let (first_elif_condition, first_elif_body) = &elif_bodies_input[0];
+            let other_elifs = &elif_bodies_input[1..];
+            else_body = vec![self.generate_if_elif_else(
+                first_elif_condition,
+                first_elif_body,
+                other_elifs,
+                else_body_input,
+            )];
+        }
+
+        LStatement::IfElse { condition, if_body, else_body }
+    }
+
     fn generate_single(&mut self, statement: &Statement) -> Vec<LStatement> {
         let light_statement = match statement {
             Statement::Expr(e) => LStatement::Expression(self.check_expr(e, None)),
@@ -84,7 +111,11 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
             Statement::VarDeclWithAssign(var_type, name, value) => {
                 self.lexpr_generator.add_variable(name.clone(), var_type.clone());
                 let value = self.check_expr(value, None);
-                LStatement::DeclareAndAssignVar { var_type: var_type.clone(), name: name.clone(), value }
+                LStatement::DeclareAndAssignVar {
+                    var_type: var_type.clone(),
+                    name: name.clone(),
+                    value,
+                }
             }
 
             Statement::Return(Some(e)) => {
@@ -96,12 +127,8 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
             }
             Statement::Break => LStatement::Break,
             Statement::Continue => LStatement::Continue,
-
-            Statement::IfElse { condition, ifbody, elsebody } => {
-                let condition = self.check_expr(condition, Some(&Type::Bool));
-                let ifbody = self.generate(ifbody);
-                let elsebody = self.generate(elsebody);
-                LStatement::IfElse { condition, ifbody, elsebody }
+            Statement::IfElse { condition, if_body, elif_bodies, else_body } => {
+                self.generate_if_elif_else(condition, if_body, elif_bodies, else_body)
             }
             Statement::While { condition, body } => {
                 let condition = self.check_expr(condition, Some(&Type::Bool));
