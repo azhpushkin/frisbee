@@ -63,7 +63,7 @@ fn generate_statement_bytecode<'a, 'b>(
                 generate_statement_bytecode(statement, generator);
             }
             let end_if_pos = generator.get_position() as u16;
-            generator.fill_placeholder(&placeholder_to_skip_ifbody, generator.get_position());
+            generator.fill_placeholder(&placeholder_to_skip_ifbody);
         }
         LStatement::IfElse { condition, if_body: ifbody, else_body: elsebody } => {
             generator.push_expr(condition);
@@ -76,13 +76,33 @@ fn generate_statement_bytecode<'a, 'b>(
             }
             generator.push(op::JUMP);
             let placeholder_to_skip_elsebody = generator.push_placeholder();
-            generator.fill_placeholder(&placeholder_to_skip_ifbody, generator.get_position());
+            generator.fill_placeholder(&placeholder_to_skip_ifbody);
 
             for statement in elsebody.iter() {
                 generate_statement_bytecode(statement, generator);
             }
-            generator.fill_placeholder(&placeholder_to_skip_elsebody, generator.get_position());
+            generator.fill_placeholder(&placeholder_to_skip_elsebody);
         }
-        _ => todo!(),
+        LStatement::While { condition, body } => {
+            let start_pos = generator.get_position();
+            generator.push_expr(condition);
+            
+            generator.push(op::JUMP_IF_FALSE);
+            let placeholder_to_skip_loop = generator.push_placeholder();
+
+            for statement in body.iter() {
+                generate_statement_bytecode(statement, generator);
+            }
+            generator.push(op::JUMP_BACK);
+            let placeholder_to_jump_back = generator.push_placeholder();
+
+            let loop_end = generator.get_position();
+            
+            generator.fill_placeholder(&placeholder_to_skip_loop);
+            
+            generator.fill_placeholder_backward(&placeholder_to_jump_back, start_pos);
+        },
+        LStatement::Break => todo!(),
+        LStatement::Continue => todo!(),
     }
 }

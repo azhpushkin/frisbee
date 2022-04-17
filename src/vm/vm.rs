@@ -68,21 +68,24 @@ impl Vm {
         bytes
     }
 
+    // NOTE: items are pushed on stack in-order (from left to right)
+    // which means that they are popped in reverse order (from right to left)
+    // so first pop b, than pop a
     fn exec_binaryop_i64(&mut self, op: fn(i64, i64) -> i64) {
-        let a = self.pop() as i64;
         let b = self.pop() as i64;
+        let a = self.pop() as i64;
         self.push(op(a, b) as u64);
     }
 
     fn exec_binaryop_f64(&mut self, op: fn(f64, f64) -> f64) {
-        let a = self.pop() as f64;
         let b = self.pop() as f64;
+        let a = self.pop() as f64;
         self.push(op(a, b) as u64);
     }
 
     fn exec_binaryop(&mut self, op: fn(u64, u64) -> u64) {
-        let a = self.pop();
         let b = self.pop();
+        let a = self.pop();
         self.push(op(a, b));
     }
 
@@ -202,6 +205,10 @@ impl Vm {
                     if c == 0 {
                         self.ip += x as usize;
                     }
+                }
+                op::JUMP_BACK => {
+                    let x = u16::from_be_bytes(self.read_several::<2>());
+                    self.ip -= x as usize;
                 }
                 _ => panic!("Unknown opcode: {}", opcode),
             }

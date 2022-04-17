@@ -36,6 +36,7 @@ pub fn opcode_to_s(c: u8) -> &'static str {
         op::GET_VAR => "get_var",
 
         op::JUMP => "jump",
+        op::JUMP_BACK => "jump_back",
         op::JUMP_IF_FALSE => "jump_if_false",
 
         _ => panic!("DIS: unknown opcode {}", c),
@@ -95,11 +96,16 @@ pub fn disassemble_bytes(program: &Vec<u8>, aux: Option<&AuxData>) -> String {
             number_of_args -= 1;
         }
         let mut op_text = format!(" {:02x?}   {} {:02x?}", i, opcode_to_s(*opcode), args);
+
+        // + 3 is added, because jump offset is relative to instruction pointer
+        // but `i` var points to jump opcode, which is 3 steps behind
+        // (1 step for jump itself and 2 for address of jump)
         if *opcode == op::JUMP_IF_FALSE || *opcode == op::JUMP {
             let x = u16::from_be_bytes([args[0], args[1]]) as usize;
-            // + 2 to compensate for the jump offset, as i is tied to opcode
-            // but iterator was called afterwards in a while loop
             op_text = format!("{} (jumps to {:02x?}) ", op_text, x + i + 3);
+        } else if *opcode == op::JUMP_BACK {
+            let x = u16::from_be_bytes([args[0], args[1]]) as usize;
+            op_text = format!("{} (jumps to {:02x?}) ", op_text, i - x + 3);
         }
 
         text_repr.push_str(op_text.as_str());
