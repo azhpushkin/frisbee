@@ -16,7 +16,6 @@ pub fn opcode_to_s(c: u8) -> &'static str {
         op::LOAD_TRUE => "load_true",
         op::LOAD_FALSE => "load_false",
 
-        
         op::NEGATE_INT => "negate_int",
         op::ADD_INT => "add_int",
         op::SUB_INT => "sub_int",
@@ -95,8 +94,16 @@ pub fn disassemble_bytes(program: &Vec<u8>, aux: Option<&AuxData>) -> String {
             args.push(*program_iter.next().unwrap().1);
             number_of_args -= 1;
         }
-        let op_text = format!(" {:02x?}   {} {:02x?}\n", i, opcode_to_s(*opcode), args);
+        let mut op_text = format!(" {:02x?}   {} {:02x?}", i, opcode_to_s(*opcode), args);
+        if *opcode == op::JUMP_IF_FALSE || *opcode == op::JUMP {
+            let x = u16::from_be_bytes([args[0], args[1]]) as usize;
+            // + 2 to compensate for the jump offset, as i is tied to opcode
+            // but iterator was called afterwards in a while loop
+            op_text = format!("{} (jumps to {:02x?}) ", op_text, x + i + 3);
+        }
+
         text_repr.push_str(op_text.as_str());
+        text_repr.push_str("\n");
     }
     text_repr
 }

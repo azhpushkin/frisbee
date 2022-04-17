@@ -13,7 +13,7 @@ fun void main() {
     if a == 2 {
         res = res * 2;
     } 
-    elif a==1 {
+    elif 1==1 {
         return 77;
     }
     else {
