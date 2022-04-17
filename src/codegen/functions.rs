@@ -20,7 +20,7 @@ pub fn generate_function_bytecode(
     );
 
     for statement in func.body.iter() {
-        generate_statement_bytecode(statement, &mut generator);
+        generate_statement_bytecode(statement, &mut generator, None);
     }
 
     Ok(generator.get_bytecode())
@@ -29,6 +29,7 @@ pub fn generate_function_bytecode(
 fn generate_statement_bytecode<'a, 'b>(
     statement: &'a LStatement,
     generator: &mut BytecodeGenerator<'a, 'b>,
+    loop_start: Option<usize>,    
 ) {
     match statement {
         LStatement::Expression(expr) => {
@@ -60,7 +61,7 @@ fn generate_statement_bytecode<'a, 'b>(
             let placeholder_to_skip_ifbody: JumpPlaceholder = generator.push_placeholder();
 
             for statement in ifbody.iter() {
-                generate_statement_bytecode(statement, generator);
+                generate_statement_bytecode(statement, generator, loop_start);
             }
             let end_if_pos = generator.get_position() as u16;
             generator.fill_placeholder(&placeholder_to_skip_ifbody);
@@ -72,14 +73,14 @@ fn generate_statement_bytecode<'a, 'b>(
             let placeholder_to_skip_ifbody = generator.push_placeholder();
 
             for statement in ifbody.iter() {
-                generate_statement_bytecode(statement, generator);
+                generate_statement_bytecode(statement, generator, loop_start);
             }
             generator.push(op::JUMP);
             let placeholder_to_skip_elsebody = generator.push_placeholder();
             generator.fill_placeholder(&placeholder_to_skip_ifbody);
 
             for statement in elsebody.iter() {
-                generate_statement_bytecode(statement, generator);
+                generate_statement_bytecode(statement, generator, loop_start);
             }
             generator.fill_placeholder(&placeholder_to_skip_elsebody);
         }
@@ -91,7 +92,7 @@ fn generate_statement_bytecode<'a, 'b>(
             let placeholder_to_skip_loop = generator.push_placeholder();
 
             for statement in body.iter() {
-                generate_statement_bytecode(statement, generator);
+                generate_statement_bytecode(statement, generator, Some(start_pos));
             }
             generator.push(op::JUMP_BACK);
             let placeholder_to_jump_back = generator.push_placeholder();
@@ -103,6 +104,10 @@ fn generate_statement_bytecode<'a, 'b>(
             generator.fill_placeholder_backward(&placeholder_to_jump_back, start_pos);
         },
         LStatement::Break => todo!(),
-        LStatement::Continue => todo!(),
+        LStatement::Continue => {
+            generator.push(op::JUMP_BACK);
+            let placeholder_to_jump_back = generator.push_placeholder();
+            generator.fill_placeholder_backward(&placeholder_to_jump_back, loop_start.unwrap());
+        },
     }
 }
