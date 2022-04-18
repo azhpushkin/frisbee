@@ -71,7 +71,7 @@ fn parse_function_definition() {
     assert_eq!(
         parse_and_unwrap(
             Parser::parse_top_level,
-            "fun void get_person(Int age, String name) { 1 / asd.call(); this; } "
+            r#"fun void get_person(Int age, String name) { Int var = asd("lol"); } "#
         ),
         FileAst {
             imports: vec![],
@@ -84,16 +84,22 @@ fn parse_function_definition() {
                     TypedNamedObject { typename: Type::String, name: "name".into() }
                 ],
                 statements: vec![
-                    Statement::Expr(Expr::BinOp {
-                        left: Box::new(Expr::Int(1)),
-                        right: Box::new(Expr::MethodCall {
-                            object: Box::new(Expr::Identifier(String::from("asd"))),
-                            method: String::from("call"),
-                            args: vec![]
-                        }),
-                        op: BinaryOp::Divide
-                    }),
-                    Statement::Expr(Expr::This)
+                    Statement::VarDeclWithAssign(
+                        Type::Int,
+                        "var".into(),
+                        ExprWithPos {
+                            expr: Expr::FunctionCall {
+                                function: "asd".into(),
+                                args: vec![ExprWithPos {
+                                    expr: Expr::String("lol".into()),
+                                    pos_first: 58,
+                                    pos_last: 62,
+                                }]
+                            },
+                            pos_first: 54,
+                            pos_last: 63
+                        }
+                    ),
                 ],
             }]
         }
@@ -127,7 +133,7 @@ fn class_object_and_methods() {
     assert_eq!(
         parse_and_unwrap(
             |p| Parser::parse_object(p, false),
-            "class Data { fun Bool get_person(Int age, String name) { 1 / asd.call(); this; } }"
+            "class Data { fun Bool get_person(Int age, String name) { this; } }"
         ),
         ClassDecl {
             is_active: false,
@@ -140,18 +146,11 @@ fn class_object_and_methods() {
                     TypedNamedObject { typename: Type::Int, name: "age".into() },
                     TypedNamedObject { typename: Type::String, name: "name".into() },
                 ],
-                statements: vec![
-                    Statement::Expr(Expr::BinOp {
-                        left: Box::new(Expr::Int(1)),
-                        right: Box::new(Expr::MethodCall {
-                            object: Box::new(Expr::Identifier(String::from("asd"))),
-                            method: String::from("call"),
-                            args: vec![]
-                        }),
-                        op: BinaryOp::Divide
-                    }),
-                    Statement::Expr(Expr::This)
-                ],
+                statements: vec![Statement::Expr(ExprWithPos {
+                    expr: Expr::This,
+                    pos_first: 57,
+                    pos_last: 60
+                })],
             }]
         }
     );

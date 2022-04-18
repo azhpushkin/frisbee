@@ -55,7 +55,12 @@ macro_rules! consume_and_check_ident {
     ($self:ident) => {
         match $self.consume_token() {
             Token::Identifier(s) => s.clone(),
-            _ => return perr($self.full_token(-1), "Unexpected token (expected identifier)"),
+            _ => {
+                return perr(
+                    $self.full_token(-1),
+                    "Unexpected token (expected identifier)",
+                )
+            }
         }
     };
 }
@@ -64,7 +69,12 @@ macro_rules! consume_and_check_type_ident {
     ($self:ident) => {
         match $self.consume_token() {
             Token::TypeIdentifier(s) => s.clone(),
-            _ => return perr($self.full_token(-1), "Unexpected token (expected identifier)"),
+            _ => {
+                return perr(
+                    $self.full_token(-1),
+                    "Unexpected token (expected identifier)",
+                )
+            }
         }
     };
 }
@@ -80,7 +90,7 @@ impl Parser {
     pub fn create(tokens: Vec<ScannedToken>) -> Parser {
         Parser { tokens, position: 0 }
     }
-    
+
     fn full_token(&self, rel_pos: isize) -> &ScannedToken {
         let pos = if rel_pos < 0 {
             self.position - (rel_pos.abs() as usize)
@@ -90,14 +100,10 @@ impl Parser {
 
         match self.tokens.get(pos) {
             Some(x) => x,
-            None => &ScannedToken{
-                token: Token::EOF,
-                first: 0,
-                last: 0,
-            }, // 0 here is strange but IDK what else
+            None => &ScannedToken { token: Token::EOF, first: 0, last: 0 }, // 0 here is strange but IDK what else
         }
     }
-    
+
     fn rel_token(&self, rel_pos: isize) -> &Token {
         &self.full_token(rel_pos).token
     }
@@ -163,7 +169,12 @@ impl Parser {
             match self.consume_token() {
                 Token::TypeIdentifier(s) => typenames.push(s.clone()),
                 Token::Identifier(s) => functions.push(s.clone()),
-                _ => return perr(self.full_token(-1), "Unexpected token (expected identifier)"),
+                _ => {
+                    return perr(
+                        self.full_token(-1),
+                        "Unexpected token (expected identifier)",
+                    )
+                }
             }
             if self.rel_token_check(0, Token::Comma) {
                 self.consume_token();
@@ -447,11 +458,7 @@ impl Parser {
             let op = bin_op_from_token(self.rel_token(-1));
             let right = self.parse_expr_plus_minus()?;
 
-            let inner = Expr::BinOp {
-                left: Box::new(res_expr),
-                right: Box::new(right),
-                op,
-            };
+            let inner = Expr::BinOp { left: Box::new(res_expr), right: Box::new(right), op };
             res_expr = self.expr_with_pos(inner, start, self.position - 1)?;
         }
 
@@ -465,11 +472,7 @@ impl Parser {
             let op = bin_op_from_token(self.rel_token(-1));
             let right = self.parse_expr_mul_div()?;
 
-            let inner = Expr::BinOp {
-                left: Box::new(res_expr),
-                right: Box::new(right),
-                op,
-            };
+            let inner = Expr::BinOp { left: Box::new(res_expr), right: Box::new(right), op };
             res_expr = self.expr_with_pos(inner, start, self.position - 1)?;
         }
 
@@ -483,11 +486,7 @@ impl Parser {
             let op = bin_op_from_token(self.rel_token(-1));
             let right = self.parse_expr_unary()?;
 
-            let inner = Expr::BinOp {
-                left: Box::new(res_expr),
-                right: Box::new(right),
-                op,
-            };
+            let inner = Expr::BinOp { left: Box::new(res_expr), right: Box::new(right), op };
             res_expr = self.expr_with_pos(inner, start, self.position - 1)?;
         }
 
@@ -501,11 +500,7 @@ impl Parser {
             let op = bin_op_from_token(self.rel_token(-1));
             let right = self.parse_expr_comparison()?;
 
-            let inner = Expr::BinOp {
-                left: Box::new(res_expr),
-                right: Box::new(right),
-                op
-            };
+            let inner = Expr::BinOp { left: Box::new(res_expr), right: Box::new(right), op };
             res_expr = self.expr_with_pos(inner, start, self.position - 1)?;
         }
 
@@ -563,16 +558,13 @@ impl Parser {
                         args: self.parse_function_call_args()?,
                     };
                 } else {
-                    inner =
-                        Expr::FieldAccess { object: boxed_res, field: field_or_method };
+                    inner = Expr::FieldAccess { object: boxed_res, field: field_or_method };
                 }
-
             } else if self.rel_token_check(-1, Token::LeftSquareBrackets) {
                 // Then, check for left square brackets, which indicates list or tuple access by index
                 let index = self.parse_expr()?;
                 consume_and_check!(self, Token::RightSquareBrackets);
                 inner = Expr::ListAccess { list: boxed_res, index: Box::new(index) };
-
             } else {
                 // Lastly, check if this is a function call
                 //  If called object is Identifier - than this is a usual function call
@@ -583,14 +575,14 @@ impl Parser {
                 match &boxed_res.expr {
                     Expr::Identifier(ident) => {
                         called_identifier = ident.clone();
-                    },
-                    Expr::OwnFieldAccess { field} => {
+                    }
+                    Expr::OwnFieldAccess { field } => {
                         called_identifier = field.clone();
                         is_own_method = true;
-                    },
+                    }
                     _ => return perr(self.full_token(0), "Function call of non-function expr"),
                 }
-                
+
                 // self.parse_function_call_args checks and consumes both left and right parenthesis
                 // As loop condition has already consumed left one, we need to move
                 // position back so that self.parse_function_call_args works correctly
@@ -613,7 +605,7 @@ impl Parser {
                 }
             }
 
-            res_expr = self.expr_with_pos(inner, start, self.position-1)?;
+            res_expr = self.expr_with_pos(inner, start, self.position - 1)?;
         }
 
         Ok(res_expr)
