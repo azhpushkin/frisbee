@@ -8,6 +8,11 @@ fn assert_expr_parses(s: &str, t: Expr) {
     assert_eq!(parse_and_unwrap(Parser::parse_expr, s), with_pos);
 }
 
+fn assert_expr_parses_padded(s: &str, t: Expr, first: usize, last: usize) {
+    let with_pos = ExprWithPos { expr: t, pos_first: first, pos_last: last };
+    assert_eq!(parse_and_unwrap(Parser::parse_expr, s), with_pos);
+}
+
 fn assert_expr_invalid(s: &str) {
     assert_parsing_fails(Parser::parse_expr, s);
 }
@@ -22,8 +27,8 @@ fn expr_raw(e: Expr, f: usize, l: usize) -> ExprWithPos {
 
 #[test]
 fn string_single_and_double_quotes() {
-    assert_expr_parses(r#" 'asd' "#, Expr::String("asd".into()));
-    assert_expr_parses(r#" "asd" "#, Expr::String("asd".into()));
+    assert_expr_parses_padded(r#" 'asd' "#, Expr::String("asd".into()), 1, 5);
+    assert_expr_parses_padded(r#" "asd" "#, Expr::String("asd".into()), 1, 5);
 }
 
 #[test]
@@ -43,8 +48,8 @@ fn operator_expression() {
     assert_expr_parses(
         "1 + asd",
         Expr::BinOp {
-            left: expr(Expr::Int(1), 1, 1),
-            right: expr(Expr::Identifier("asd".into()), 1, 1),
+            left: expr(Expr::Int(1), 0, 0),
+            right: expr(Expr::Identifier("asd".into()), 4, 6),
             op: BinaryOp::Plus,
         },
     );
@@ -57,7 +62,7 @@ fn operator_expression() {
     assert_expr_parses(
         "true / 23.2",
         Expr::BinOp {
-            left: expr(Expr::Bool(true), 0, 4),
+            left: expr(Expr::Bool(true), 0, 3),
             right: expr(Expr::Float(23.2), 7, 10),
             op: BinaryOp::Divide,
         },
@@ -106,8 +111,8 @@ fn expr_operator_order() {
 
 #[test]
 fn expr_simple_groups() {
-    assert_expr_parses("(1)", Expr::Int(1));
-    assert_expr_parses(
+    assert_expr_parses_padded("(1)", Expr::Int(1), 1, 1);
+    assert_expr_parses_padded(
         "(-(-3))",
         Expr::UnaryOp {
             op: UnaryOp::Negate,
@@ -117,6 +122,8 @@ fn expr_simple_groups() {
                 4,
             ),
         },
+        1,
+        5,
     );
 }
 
@@ -164,7 +171,7 @@ fn expr_tuple() {
         Expr::TupleValue(vec![
             expr_raw(Expr::Int(1), 1, 1),
             expr_raw(Expr::Float(2.0), 4, 6),
-            expr_raw(Expr::Identifier("ad".into()), 9, 19),
+            expr_raw(Expr::Identifier("ad".into()), 9, 10),
         ]),
     );
 
@@ -191,12 +198,12 @@ fn expr_tuple() {
     );
 
     // single-element tuple is simplified to just an element
-    assert_expr_parses("(1, )", Expr::Int(1));
+    assert_expr_parses_padded("(1, )", Expr::Int(1), 1, 1);
 }
 
 #[test]
 fn expr_group_and_tuple_mixed() {
-    assert_expr_parses(
+    assert_expr_parses_padded(
         "((1, 2) + (3, 4))",
         Expr::BinOp {
             left: expr(
@@ -217,6 +224,8 @@ fn expr_group_and_tuple_mixed() {
             ),
             op: BinaryOp::Plus,
         },
+        1,
+        15,
     );
 }
 
@@ -269,13 +278,13 @@ fn expr_list_access_chained() {
         Expr::ListAccess {
             list: expr(
                 Expr::ListAccess {
-                    list: expr(Expr::Identifier("asd".into()), 0, 0),
-                    index: expr(Expr::Int(2), 0, 0),
+                    list: expr(Expr::Identifier("asd".into()), 0, 2),
+                    index: expr(Expr::Int(2), 4, 4),
                 },
                 0,
-                0,
+                5,
             ),
-            index: expr(Expr::Int(0), 0, 0),
+            index: expr(Expr::Int(0), 7, 7),
         },
     );
 }
@@ -284,7 +293,7 @@ fn expr_list_access_chained() {
 fn expr_field_access() {
     assert_expr_parses(
         "(1).qwe",
-        Expr::FieldAccess { object: expr(Expr::Int(1), 0, 0), field: "qwe".into() },
+        Expr::FieldAccess { object: expr(Expr::Int(1), 1, 1), field: "qwe".into() },
     );
 
     assert_expr_invalid("obj.(field)");
@@ -299,7 +308,10 @@ fn expr_own_field_access() {
 fn expr_func() {
     assert_expr_parses(
         "(function) (1, )",
-        Expr::FunctionCall { function: "function".into(), args: vec![Expr::Int(1)] },
+        Expr::FunctionCall {
+            function: "function".into(),
+            args: vec![expr_raw(Expr::Int(1), 12, 12)],
+        },
     );
 
     assert_expr_invalid("function.()");
@@ -313,11 +325,11 @@ fn expr_field_access_chained_with_method_call() {
         Expr::MethodCall {
             object: expr(
                 Expr::FieldAccess {
-                    object: expr(Expr::Identifier("obj".into()), 0, 0),
+                    object: expr(Expr::Identifier("obj".into()), 0, 2),
                     field: "field".into(),
                 },
                 0,
-                0,
+                8,
             ),
             method: "method".into(),
             args: vec![],
@@ -339,9 +351,11 @@ fn expr_method_call() {
 
 #[test]
 fn expr_own_method_call() {
-    assert_expr_parses(
+    assert_expr_parses_padded(
         "(@qwe())",
         Expr::OwnMethodCall { method: "qwe".into(), args: vec![] },
+        1,
+        6,
     );
 }
 
@@ -350,18 +364,22 @@ fn expr_method_call_with_args() {
     assert_expr_parses(
         "asd.qwe(1, )",
         Expr::MethodCall {
-            object: expr(Expr::Identifier("asd".into()), 0, 0),
+            object: expr(Expr::Identifier("asd".into()), 0, 2),
             method: "qwe".into(),
-            args: vec![Expr::Int(1)],
+            args: vec![expr_raw(Expr::Int(1), 8, 8)],
         },
     );
 
     assert_expr_parses(
         "asd.qwe(1, true, this)",
         Expr::MethodCall {
-            object: expr(Expr::Identifier("asd".into()), 0, 0),
+            object: expr(Expr::Identifier("asd".into()), 0, 2),
             method: "qwe".into(),
-            args: vec![Expr::Int(1), Expr::Bool(true), Expr::This],
+            args: vec![
+                expr_raw(Expr::Int(1), 8, 8),
+                expr_raw(Expr::Bool(true), 11, 14),
+                expr_raw(Expr::This, 17, 20),
+            ],
         },
     );
 }
@@ -374,10 +392,10 @@ fn expr_own_method_call_and_field_access() {
             object: expr(
                 Expr::OwnMethodCall { method: "qwe".into(), args: vec![] },
                 0,
-                0,
+                5,
             ),
             method: "next".into(),
-            args: vec![Expr::OwnFieldAccess { field: "field".into() }],
+            args: vec![expr_raw(Expr::OwnFieldAccess { field: "field".into() }, 12, 17)],
         },
     );
 }
@@ -387,11 +405,22 @@ fn expr_method_call_chained() {
     assert_expr_parses(
         "(1, 2).qwe().asd()",
         Expr::MethodCall {
-            object: expr(Expr::MethodCall {
-                object: expr(Expr::TupleValue(vec![Expr::Int(1), Expr::Int(2)])),
-                method: "qwe".into(),
-                args: vec![],
-            }),
+            object: expr(
+                Expr::MethodCall {
+                    object: expr(
+                        Expr::TupleValue(vec![
+                            expr_raw(Expr::Int(1), 1, 1),
+                            expr_raw(Expr::Int(2), 4, 4),
+                        ]),
+                        0,
+                        5,
+                    ),
+                    method: "qwe".into(),
+                    args: vec![],
+                },
+                0,
+                11,
+            ),
             method: "asd".into(),
             args: vec![],
         },
@@ -401,12 +430,16 @@ fn expr_method_call_chained() {
 #[test]
 fn expr_call_method_on_list_literal() {
     let expected = Expr::MethodCall {
-        object: expr(Expr::ListValue(vec![
-            Expr::Identifier("asd".into()),
-            Expr::Int(2),
-        ])),
+        object: expr(
+            Expr::ListValue(vec![
+                expr_raw(Expr::Identifier("asd".into()), 2, 4),
+                expr_raw(Expr::Int(2), 7, 7),
+            ]),
+            1,
+            8,
+        ),
         method: "qwe".into(),
-        args: vec![Expr::This],
+        args: vec![expr_raw(Expr::This, 15, 18)],
     };
 
     assert_expr_parses("([asd, 2]).qwe(this)", expected);
@@ -417,15 +450,23 @@ fn expr_call_method_on_list_access() {
     assert_expr_parses(
         "[asd, 2][0].qwe(this)",
         Expr::MethodCall {
-            object: expr(Expr::ListAccess {
-                list: expr(Expr::ListValue(vec![
-                    Expr::Identifier("asd".into()),
-                    Expr::Int(2),
-                ])),
-                index: expr(Expr::Int(0)),
-            }),
+            object: expr(
+                Expr::ListAccess {
+                    list: expr(
+                        Expr::ListValue(vec![
+                            expr_raw(Expr::Identifier("asd".into()), 1, 3),
+                            expr_raw(Expr::Int(2), 6, 6),
+                        ]),
+                        0,
+                        7,
+                    ),
+                    index: expr(Expr::Int(0), 9, 9),
+                },
+                0,
+                10,
+            ),
             method: "qwe".into(),
-            args: vec![Expr::This],
+            args: vec![expr_raw(Expr::This, 16, 19)],
         },
     );
 }
@@ -435,10 +476,18 @@ fn expr_function_call_with_method_call() {
     assert_expr_parses(
         "function()[0].method()",
         Expr::MethodCall {
-            object: expr(Expr::ListAccess {
-                list: expr(Expr::FunctionCall { function: "function".into(), args: vec![] }),
-                index: expr(Expr::Int(0)),
-            }),
+            object: expr(
+                Expr::ListAccess {
+                    list: expr(
+                        Expr::FunctionCall { function: "function".into(), args: vec![] },
+                        0,
+                        9,
+                    ),
+                    index: expr(Expr::Int(0), 11, 11),
+                },
+                0,
+                12,
+            ),
             method: "method".into(),
             args: vec![],
         },
@@ -453,12 +502,16 @@ fn expr_list_access_on_method_call() {
     assert_expr_parses(
         "1.qwe()[0]",
         Expr::ListAccess {
-            list: expr(Expr::MethodCall {
-                object: expr(Expr::Int(1)),
-                method: "qwe".into(),
-                args: vec![],
-            }),
-            index: expr(Expr::Int(0)),
+            list: expr(
+                Expr::MethodCall {
+                    object: expr(Expr::Int(1), 0, 0),
+                    method: "qwe".into(),
+                    args: vec![],
+                },
+                0,
+                6,
+            ),
+            index: expr(Expr::Int(0), 8, 8),
         },
     );
 }
