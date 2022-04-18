@@ -50,12 +50,12 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
         }
     }
 
-    pub fn generate(&mut self, statements: &[Statement]) -> Vec<LStatement> {
+    pub fn generate(&mut self, statements: &[StatementWithPos]) -> Vec<LStatement> {
         let mut res = vec![];
         self.allocate_object_if_constructor(&mut res);
 
         for statement in statements {
-            res.extend(self.generate_single(statement));
+            res.extend(self.generate_single(&statement.statement));
         }
         res
     }
@@ -67,9 +67,9 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
     fn generate_if_elif_else(
         &mut self,
         condition: &ExprWithPos,
-        if_body_input: &[Statement],
-        elif_bodies_input: &[(ExprWithPos, Vec<Statement>)],
-        else_body_input: &[Statement],
+        if_body_input: &[StatementWithPos],
+        elif_bodies_input: &[(ExprWithPos, Vec<StatementWithPos>)],
+        else_body_input: &[StatementWithPos],
     ) -> LStatement {
         let condition = self.check_expr(condition, Some(&Type::Bool));
         let if_body = self.generate(if_body_input);
@@ -158,7 +158,7 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
 }
 
 pub fn generate_light_statements(
-    og_statements: &Vec<Statement>,
+    og_statements: &Vec<StatementWithPos>,
     scope: &RawFunction,
     aggregate: &ProgramAggregate,
     resolver: &NameResolver,

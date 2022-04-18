@@ -8,10 +8,7 @@ type SymbolLookupMapping<T> = HashMap<ModuleAlias, HashMap<String, T>>;
 
 type SingleFileMapping<T> = HashMap<String, T>;
 
-pub type SymbolResolver<'a, T>
-where
-    T: Symbol,
-= Box<dyn Fn(&String) -> T + 'a>;
+pub type SymbolResolver<'a, T> = Box<dyn Fn(&String) -> T + 'a>;
 
 trait Symbol {}
 

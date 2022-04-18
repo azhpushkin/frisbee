@@ -68,6 +68,22 @@ fn multiple_imports() {
 
 #[test]
 fn parse_function_definition() {
+    let var_decl_statement = Statement::VarDeclWithAssign(
+        Type::Int,
+        "var".into(),
+        ExprWithPos {
+            expr: Expr::FunctionCall {
+                function: "asd".into(),
+                args: vec![ExprWithPos {
+                    expr: Expr::String("lol".into()),
+                    pos_first: 58,
+                    pos_last: 62,
+                }],
+            },
+            pos_first: 54,
+            pos_last: 63,
+        },
+    );
     assert_eq!(
         parse_and_unwrap(
             Parser::parse_top_level,
@@ -83,24 +99,7 @@ fn parse_function_definition() {
                     TypedNamedObject { typename: Type::Int, name: "age".into() },
                     TypedNamedObject { typename: Type::String, name: "name".into() }
                 ],
-                statements: vec![
-                    Statement::VarDeclWithAssign(
-                        Type::Int,
-                        "var".into(),
-                        ExprWithPos {
-                            expr: Expr::FunctionCall {
-                                function: "asd".into(),
-                                args: vec![ExprWithPos {
-                                    expr: Expr::String("lol".into()),
-                                    pos_first: 58,
-                                    pos_last: 62,
-                                }]
-                            },
-                            pos_first: 54,
-                            pos_last: 63
-                        }
-                    ),
-                ],
+                statements: vec![StatementWithPos { statement: var_decl_statement, pos: 44 }],
             }]
         }
     );
@@ -146,11 +145,14 @@ fn class_object_and_methods() {
                     TypedNamedObject { typename: Type::Int, name: "age".into() },
                     TypedNamedObject { typename: Type::String, name: "name".into() },
                 ],
-                statements: vec![Statement::Expr(ExprWithPos {
-                    expr: Expr::This,
-                    pos_first: 57,
-                    pos_last: 60
-                })],
+                statements: vec![StatementWithPos {
+                    statement: Statement::Expr(ExprWithPos {
+                        expr: Expr::This,
+                        pos_first: 57,
+                        pos_last: 60
+                    }),
+                    pos: 57
+                }],
             }]
         }
     );

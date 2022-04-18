@@ -1,4 +1,4 @@
-use crate::ast::{ExprWithPos, Expr};
+use crate::ast::{ExprWithPos, Expr, Statement, StatementWithPos};
 
 use super::super::parser_impl::*;
 use super::super::scanner::scan_tokens;
@@ -12,6 +12,10 @@ pub fn expr(e: Expr, f: usize, l: usize) -> Box<ExprWithPos> {
 
 pub fn expr_raw(e: Expr, f: usize, l: usize) -> ExprWithPos {
     ExprWithPos { expr: e, pos_first: f, pos_last: l }
+}
+
+pub fn stmt(s: Statement, p: usize) -> StatementWithPos {
+    StatementWithPos { statement: s, pos: p }
 }
 
 pub fn parse_and_unwrap<T: std::fmt::Debug>(parsefn: ParsingFunction<T>, s: &str) -> T {

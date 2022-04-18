@@ -37,27 +37,33 @@ pub struct FunctionDecl {
     pub rettype: Option<Type>,
     pub name: String,
     pub args: Vec<TypedNamedObject>,
-    pub statements: Vec<Statement>,
+    pub statements: Vec<StatementWithPos>,
 }
 
 pub type Type = crate::types::Type;
 
 #[derive(Debug, PartialEq)]
+pub struct StatementWithPos {
+    pub statement: Statement,
+    pub pos: usize,
+}
+
+#[derive(Debug, PartialEq)]
 pub enum Statement {
     IfElse {
         condition: ExprWithPos,
-        if_body: Vec<Statement>,
-        elif_bodies: Vec<(ExprWithPos, Vec<Statement>)>,
-        else_body: Vec<Statement>,
+        if_body: Vec<StatementWithPos>,
+        elif_bodies: Vec<(ExprWithPos, Vec<StatementWithPos>)>,
+        else_body: Vec<StatementWithPos>,
     },
     While {
         condition: ExprWithPos,
-        body: Vec<Statement>,
+        body: Vec<StatementWithPos>,
     },
     Foreach {
         itemname: String,
         iterable: ExprWithPos,
-        body: Vec<Statement>,
+        body: Vec<StatementWithPos>,
     },
     Break,
     Continue,

@@ -1,4 +1,4 @@
-use crate::ast::{ClassDecl, Expr, FunctionDecl, Statement, Type, ExprWithPos};
+use crate::ast::{ClassDecl, Expr, FunctionDecl, Statement, StatementWithPos, Type, ExprWithPos};
 
 pub fn add_default_constructor(class: &mut ClassDecl) {
     if class.methods.iter().find(|x| x.name == class.name).is_some() {
@@ -21,7 +21,7 @@ pub fn add_default_constructor(class: &mut ClassDecl) {
         name: class.name.clone(),
         rettype: Some(Type::Ident(class.name.clone())),
         args: class.fields.clone(),
-        statements,
+        statements: statements.into_iter().map(|s| StatementWithPos {statement: s, pos: 0}).collect(),
     };
     class.methods.push(default_constructor);
 }

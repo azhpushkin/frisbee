@@ -116,6 +116,13 @@ impl Parser {
         })
     }
 
+    fn stmt_with_pos(&self, stmt: Statement, pos: usize) -> ParseResult<StatementWithPos> {
+        Ok(StatementWithPos {
+            statement: stmt,
+            pos: self.tokens[pos].first,
+        })
+    }
+
     fn consume_token(&mut self) -> &Token {
         self.position += 1;
         // TODO: check performance or smth after removing clone() everywhere in file
@@ -315,8 +322,8 @@ impl Parser {
         Ok(ClassDecl { is_active, name: new_object_name, fields, methods })
     }
 
-    pub fn parse_statements_in_curly_block(&mut self) -> ParseResult<Vec<Statement>> {
-        let mut statements: Vec<Statement> = vec![];
+    pub fn parse_statements_in_curly_block(&mut self) -> ParseResult<Vec<StatementWithPos>> {
+        let mut statements: Vec<StatementWithPos> = vec![];
         consume_and_check!(self, Token::LeftCurlyBrackets);
         until_closes!(self, Token::RightCurlyBrackets, {
             statements.push(self.parse_statement()?);
@@ -324,7 +331,8 @@ impl Parser {
         Ok(statements)
     }
 
-    pub fn parse_if_else_stmt(&mut self) -> ParseResult<Statement> {
+    pub fn parse_if_else_stmt(&mut self) -> ParseResult<StatementWithPos> {
+        let start = self.position;
         consume_and_check!(self, Token::If);
         let condition = self.parse_expr()?;
 
@@ -341,33 +349,35 @@ impl Parser {
         if consume_if_matches_one_of!(self, [Token::Else]) {
             else_body = self.parse_statements_in_curly_block()?;
         }
-        Ok(Statement::IfElse { condition, if_body, elif_bodies, else_body })
+        self.stmt_with_pos(Statement::IfElse { condition, if_body, elif_bodies, else_body }, start)
     }
 
-    pub fn parse_while_loop_stmt(&mut self) -> ParseResult<Statement> {
+    pub fn parse_while_loop_stmt(&mut self) -> ParseResult<StatementWithPos> {
+        let start = self.position;
         consume_and_check!(self, Token::While);
         let condition = self.parse_expr()?;
         let body = self.parse_statements_in_curly_block()?;
-        Ok(Statement::While { condition, body })
+        self.stmt_with_pos(Statement::While { condition, body }, start)
     }
 
-    pub fn parse_foreach_loop_stmt(&mut self) -> ParseResult<Statement> {
+    pub fn parse_foreach_loop_stmt(&mut self) -> ParseResult<StatementWithPos> {
+        let start = self.position;
         consume_and_check!(self, Token::Foreach);
         let itemname = consume_and_check_ident!(self);
         consume_and_check!(self, Token::In);
         let iterable = self.parse_expr()?;
         let body = self.parse_statements_in_curly_block()?;
-        Ok(Statement::Foreach { itemname, iterable, body })
+        self.stmt_with_pos(Statement::Foreach { itemname, iterable, body }, start)
     }
 
-    pub fn parse_var_declaration_continuation(&mut self, typedecl: Type) -> ParseResult<Statement> {
+    pub fn parse_var_declaration_continuation(&mut self, typedecl: Type, start: usize) -> ParseResult<StatementWithPos> {
         let varname = consume_and_check_ident!(self);
         if consume_if_matches_one_of!(self, [Token::Semicolon]) {
-            return Ok(Statement::VarDecl(typedecl, varname));
+            return self.stmt_with_pos(Statement::VarDecl(typedecl, varname), start);
         } else if consume_if_matches_one_of!(self, [Token::Equal]) {
             let value = self.parse_expr()?;
             consume_and_check!(self, Token::Semicolon);
-            return Ok(Statement::VarDeclWithAssign(typedecl, varname, value));
+            return self.stmt_with_pos(Statement::VarDeclWithAssign(typedecl, varname, value), start);
         } else {
             return perr_with_expected(
                 self.full_token(0),
@@ -377,17 +387,18 @@ impl Parser {
         }
     }
 
-    pub fn parse_statement(&mut self) -> ParseResult<Statement> {
+    pub fn parse_statement(&mut self) -> ParseResult<StatementWithPos> {
+        let start = self.position;
         match self.rel_token(0) {
             Token::Break => {
                 self.consume_token();
                 consume_and_check!(self, Token::Semicolon);
-                return Ok(Statement::Break);
+                return self.stmt_with_pos(Statement::Break, start);
             }
             Token::Continue => {
                 self.consume_token();
                 consume_and_check!(self, Token::Semicolon);
-                return Ok(Statement::Continue);
+                return self.stmt_with_pos(Statement::Continue, start);
             }
             Token::If => return self.parse_if_else_stmt(),
             Token::While => return self.parse_while_loop_stmt(),
@@ -395,11 +406,11 @@ impl Parser {
             Token::Return => {
                 self.consume_token();
                 if consume_if_matches_one_of!(self, [Token::Semicolon]) {
-                    return Ok(Statement::Return(None));
+                    return self.stmt_with_pos(Statement::Return(None), start);
                 }
                 let expr = self.parse_expr()?;
                 consume_and_check!(self, Token::Semicolon);
-                return Ok(Statement::Return(Some(expr)));
+                return self.stmt_with_pos(Statement::Return(Some(expr)), start);
             }
             _ => (),
         }
@@ -409,7 +420,7 @@ impl Parser {
         let current_pos = self.position;
         let parsed_type = self.parse_type();
         if parsed_type.is_ok() {
-            return self.parse_var_declaration_continuation(parsed_type.unwrap());
+            return self.parse_var_declaration_continuation(parsed_type.unwrap(), start);
         }
 
         // If type is not parsed, than fallback to other statement types
@@ -425,16 +436,16 @@ impl Parser {
             // entirely as they have no effect.
             // However, in frisbee this is not true, as this is more OOP-like language
             // and expression like object method call might change its state
-            return Ok(Statement::Expr(expr));
+            return self.stmt_with_pos(Statement::Expr(expr), start);
         } else if consume_if_matches_one_of!(self, [Token::Equal]) {
             let value = self.parse_expr()?;
             consume_and_check!(self, Token::Semicolon);
-            return Ok(Statement::Assign { left: expr, right: value });
+            return self.stmt_with_pos(Statement::Assign { left: expr, right: value }, start);
         } else if consume_if_matches_one_of!(self, [Token::Bang]) {
             let method = consume_and_check_ident!(self);
             let args = self.parse_function_call_args()?;
             consume_and_check!(self, Token::Semicolon);
-            return Ok(Statement::SendMessage { active: expr, method, args });
+            return self.stmt_with_pos(Statement::SendMessage { active: expr, method, args }, start);
         } else {
             return perr_with_expected(
                 self.full_token(0),

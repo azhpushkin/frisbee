@@ -4,7 +4,8 @@ use super::super::parser_impl::*;
 use super::tests_helpers::*;
 
 fn assert_stmt_parses(s: &str, stmt: Statement) {
-    assert_eq!(parse_and_unwrap(Parser::parse_statement, s), stmt);
+    let res = parse_and_unwrap(Parser::parse_statement, s);
+    assert_eq!(res.statement, stmt);
 }
 
 fn assert_stmt_invalid(s: &str) {
@@ -50,7 +51,7 @@ fn stmt_if() {
         "if 1 {2;}",
         Statement::IfElse {
             condition: expr_raw(Expr::Int(1), 3, 3),
-            if_body: vec![Statement::Expr(expr_raw(Expr::Int(2), 6, 6))],
+            if_body: vec![stmt(Statement::Expr(expr_raw(Expr::Int(2), 6, 6)), 6)],
             elif_bodies: vec![],
             else_body: vec![],
         },
@@ -67,9 +68,9 @@ fn stmt_if_else() {
         "if 1 {2;} else {3;}",
         Statement::IfElse {
             condition: expr_raw(Expr::Int(1), 3, 3),
-            if_body: vec![Statement::Expr(expr_raw(Expr::Int(2), 6, 6))],
+            if_body: vec![stmt(Statement::Expr(expr_raw(Expr::Int(2), 6, 6)), 6)],
             elif_bodies: vec![],
-            else_body: vec![Statement::Expr(expr_raw(Expr::Int(3), 16, 16))],
+            else_body: vec![stmt(Statement::Expr(expr_raw(Expr::Int(3), 16, 16)), 16)],
         },
     );
 }
@@ -80,10 +81,10 @@ fn stmt_if_elif() {
         "if 1 {2;} elif 2 {3;}",
         Statement::IfElse {
             condition: expr_raw(Expr::Int(1), 3, 3),
-            if_body: vec![Statement::Expr(expr_raw(Expr::Int(2), 6, 6))],
+            if_body: vec![stmt(Statement::Expr(expr_raw(Expr::Int(2), 6, 6)), 6)],
             elif_bodies: vec![(
                 expr_raw(Expr::Int(2), 15, 15),
-                vec![Statement::Expr(expr_raw(Expr::Int(3), 18, 18))],
+                vec![stmt(Statement::Expr(expr_raw(Expr::Int(3), 18, 18)), 18)],
             )],
             else_body: vec![],
         },
@@ -96,12 +97,12 @@ fn stmt_if_elif_else() {
         "if 1 {2;} elif 2 {3;} else {4; }",
         Statement::IfElse {
             condition: expr_raw(Expr::Int(1), 3, 3),
-            if_body: vec![Statement::Expr(expr_raw(Expr::Int(2), 6, 6))],
+            if_body: vec![stmt(Statement::Expr(expr_raw(Expr::Int(2), 6, 6)), 6)],
             elif_bodies: vec![(
                 expr_raw(Expr::Int(2), 15, 15),
-                vec![Statement::Expr(expr_raw(Expr::Int(3), 18, 18))],
+                vec![stmt(Statement::Expr(expr_raw(Expr::Int(3), 18, 18)), 18)],
             )],
-            else_body: vec![Statement::Expr(expr_raw(Expr::Int(4), 28, 28))],
+            else_body: vec![stmt(Statement::Expr(expr_raw(Expr::Int(4), 28, 28)), 28)],
         },
     );
 }
@@ -115,7 +116,7 @@ fn stmt_while() {
         "while 1 {2;}",
         Statement::While {
             condition: expr_raw(Expr::Int(1), 6, 6),
-            body: vec![Statement::Expr(expr_raw(Expr::Int(2), 9, 9))],
+            body: vec![stmt(Statement::Expr(expr_raw(Expr::Int(2), 9, 9)), 9)],
         },
     );
 }
@@ -143,7 +144,7 @@ fn stmt_break_and_continue() {
         "while 1 {continue; break;}",
         Statement::While {
             condition: expr_raw(Expr::Int(1), 6, 6),
-            body: vec![Statement::Continue, Statement::Break],
+            body: vec![stmt(Statement::Continue, 9), stmt(Statement::Break, 19)],
         },
     );
 }
