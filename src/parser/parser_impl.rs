@@ -117,7 +117,7 @@ impl Parser {
     }
 
     fn rel_token_check(&self, rel_pos: isize, token: Token) -> bool {
-        matches!(self.rel_token(rel_pos), &token)
+        self.rel_token(rel_pos) == &token
     }
 
     fn is_finished(&self) -> bool {
@@ -444,13 +444,13 @@ impl Parser {
             self,
             [Token::Greater, Token::GreaterEqual, Token::LessEqual, Token::Less]
         ) {
-            let op = self.rel_token(-1);
+            let op = bin_op_from_token(self.rel_token(-1));
             let right = self.parse_expr_plus_minus()?;
 
             let inner = Expr::BinOp {
                 left: Box::new(res_expr),
                 right: Box::new(right),
-                op: bin_op_from_token(op),
+                op,
             };
             res_expr = self.expr_with_pos(inner, start, self.position - 1)?;
         }
@@ -462,13 +462,13 @@ impl Parser {
         let start = self.position;
         let mut res_expr = self.parse_expr_mul_div()?;
         while consume_if_matches_one_of!(self, [Token::Minus, Token::Plus]) {
-            let op = self.rel_token(-1);
+            let op = bin_op_from_token(self.rel_token(-1));
             let right = self.parse_expr_mul_div()?;
 
             let inner = Expr::BinOp {
                 left: Box::new(res_expr),
                 right: Box::new(right),
-                op: bin_op_from_token(op),
+                op,
             };
             res_expr = self.expr_with_pos(inner, start, self.position - 1)?;
         }
@@ -480,13 +480,13 @@ impl Parser {
         let start = self.position;
         let mut res_expr = self.parse_expr_unary()?;
         while consume_if_matches_one_of!(self, [Token::Star, Token::Slash]) {
-            let op = self.rel_token(-1);
+            let op = bin_op_from_token(self.rel_token(-1));
             let right = self.parse_expr_unary()?;
 
             let inner = Expr::BinOp {
                 left: Box::new(res_expr),
                 right: Box::new(right),
-                op: bin_op_from_token(op),
+                op,
             };
             res_expr = self.expr_with_pos(inner, start, self.position - 1)?;
         }
@@ -498,13 +498,13 @@ impl Parser {
         let start = self.position;
         let mut res_expr = self.parse_expr_comparison()?;
         while consume_if_matches_one_of!(self, [Token::EqualEqual, Token::BangEqual]) {
-            let op = self.rel_token(-1);
+            let op = bin_op_from_token(self.rel_token(-1));
             let right = self.parse_expr_comparison()?;
 
             let inner = Expr::BinOp {
                 left: Box::new(res_expr),
                 right: Box::new(right),
-                op: bin_op_from_token(op),
+                op
             };
             res_expr = self.expr_with_pos(inner, start, self.position - 1)?;
         }
@@ -515,10 +515,10 @@ impl Parser {
     pub fn parse_expr_unary(&mut self) -> ParseResult<ExprWithPos> {
         let start = self.position;
         if consume_if_matches_one_of!(self, [Token::Minus, Token::Not]) {
-            let t = self.rel_token(-1);
+            let op = unary_op_from_token(self.rel_token(-1));
             let operand = self.parse_method_or_field_access()?;
 
-            let inner = Expr::UnaryOp { operand: Box::new(operand), op: unary_op_from_token(t) };
+            let inner = Expr::UnaryOp { operand: Box::new(operand), op };
             return self.expr_with_pos(inner, start, self.position - 1);
         }
 
@@ -580,7 +580,7 @@ impl Parser {
                 let mut called_identifier: String;
                 let mut is_own_method = false;
 
-                match boxed_res.as_ref().expr {
+                match &boxed_res.expr {
                     Expr::Identifier(ident) => {
                         called_identifier = ident.clone();
                     },

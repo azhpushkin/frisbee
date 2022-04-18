@@ -76,8 +76,8 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
     //     Ok(unwrapped_items?)
     // }
 
-    pub fn calculate(&self, expr: &Expr, expected: Option<&Type>) -> LExprTyped {
-        match expr {
+    pub fn calculate(&self, expr: &ExprWithPos, expected: Option<&Type>) -> LExprTyped {
+        match &expr.expr {
             Expr::Int(i) => if_as_expected(expected, &Type::Int, LExpr::Int(*i)),
             Expr::Float(f) => if_as_expected(expected, &Type::Float, LExpr::Float(*f)),
             Expr::Bool(b) => if_as_expected(expected, &Type::Bool, LExpr::Bool(*b)),
@@ -136,7 +136,11 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                 if self.scope.method_of.is_none() {
                     panic!("Calling own method outside of method scope!");
                 }
-                let this_object = self.calculate(&Expr::This, expected);
+                // TODO: review exprwithpos for this, maybe too strange tbh
+                let this_object = self.calculate(
+                    &ExprWithPos { expr: Expr::This, pos_first: 0, pos_last: 0 },
+                    expected,
+                );
                 let raw_method =
                     self.resolve_method(self.scope.method_of.as_ref().unwrap(), method);
                 self.calculate_function_call(&raw_method, expected, &args, Some(this_object))
@@ -206,7 +210,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
         &self,
         raw_called: &'b RawFunction,
         expected_return: Option<&Type>,
-        given_args: &Vec<Expr>,
+        given_args: &Vec<ExprWithPos>,
         implicit_this: Option<LExprTyped>,
     ) -> LExprTyped {
         let expected_args: &[Type] = if implicit_this.is_some() {

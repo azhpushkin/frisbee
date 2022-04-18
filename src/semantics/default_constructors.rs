@@ -1,4 +1,4 @@
-use crate::ast::{ClassDecl, Expr, FunctionDecl, Statement, Type};
+use crate::ast::{ClassDecl, Expr, FunctionDecl, Statement, Type, ExprWithPos};
 
 pub fn add_default_constructor(class: &mut ClassDecl) {
     if class.methods.iter().find(|x| x.name == class.name).is_some() {
@@ -7,10 +7,14 @@ pub fn add_default_constructor(class: &mut ClassDecl) {
     }
 
     let mut statements: Vec<Statement> = vec![];
+    let dummy_expr_with_pos = |expr| ExprWithPos {expr, pos_first: 0, pos_last: 0};
     for field in class.fields.iter() {
+        // TODO: review ExprWithPos usage here
+        let left = Expr::OwnFieldAccess { field: field.name.clone() };
+        let right = Expr::Identifier(field.name.clone());
         statements.push(Statement::Assign {
-            left: Expr::OwnFieldAccess { field: field.name.clone() },
-            right: Expr::Identifier(field.name.clone()),
+            left: dummy_expr_with_pos(left),
+            right: dummy_expr_with_pos(right),
         });
     }
     let default_constructor = FunctionDecl {
@@ -19,4 +23,5 @@ pub fn add_default_constructor(class: &mut ClassDecl) {
         args: class.fields.clone(),
         statements,
     };
+    class.methods.push(default_constructor);
 }

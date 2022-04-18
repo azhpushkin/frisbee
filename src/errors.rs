@@ -1,9 +1,9 @@
 use crate::{ast::ModulePath, parser};
 
-pub fn get_position_coordinates(data: &String, pos: i32) -> (usize, usize) {
+pub fn get_position_coordinates(data: &String, pos: usize) -> (usize, usize) {
     let mut line: usize = 0;
     let mut row: usize = 0;
-    let mut counter: i32 = 0;
+    let mut counter: usize = 0;
 
     let mut chars = data.chars();
     while counter < pos {
@@ -20,7 +20,7 @@ pub fn get_position_coordinates(data: &String, pos: i32) -> (usize, usize) {
 }
 
 
-fn show_error(contents: &String, module: &ModulePath, pos: i32, error_msg: String) {
+fn show_error(contents: &String, module: &ModulePath, pos: usize, error_msg: String) {
     let (line, row) = get_position_coordinates(&contents, pos);
 
     println!(
@@ -55,6 +55,6 @@ pub fn show_parse_error(contents: &String, module: &ModulePath, error: parser::P
         Some(token) => format!("{} (Expected token <{:?}>)", error.error_msg, token),
         None => error.error_msg.to_string(),
     };
-
-    show_error(contents, module, error.error_at.1, formatted_error_msg);
+    // TODO: show error highlighted?
+    show_error(contents, module, error.error_at.first, formatted_error_msg);
 }

@@ -60,15 +60,15 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
         res
     }
 
-    fn check_expr(&self, expr: &Expr, expected: Option<&Type>) -> LExprTyped {
+    fn check_expr(&self, expr: &ExprWithPos, expected: Option<&Type>) -> LExprTyped {
         self.lexpr_generator.calculate(expr, expected)
     }
 
     fn generate_if_elif_else(
         &mut self,
-        condition: &Expr,
+        condition: &ExprWithPos,
         if_body_input: &[Statement],
-        elif_bodies_input: &[(Expr, Vec<Statement>)],
+        elif_bodies_input: &[(ExprWithPos, Vec<Statement>)],
         else_body_input: &[Statement],
     ) -> LStatement {
         let condition = self.check_expr(condition, Some(&Type::Bool));
@@ -99,7 +99,7 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
                 LStatement::DeclareVar { var_type: var_type.clone(), name: name.clone() }
             }
             Statement::Assign { left, right } => {
-                match left {
+                match &left.expr {
                     Expr::Identifier(i) => {
                         // TODO: check assigned value type
                         let value = self.check_expr(right, None);

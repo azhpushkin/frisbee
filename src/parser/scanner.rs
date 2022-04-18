@@ -37,7 +37,7 @@ pub enum Token {
 pub struct ScannedToken {
     pub token: Token,
     pub first: usize,
-    pub last: usize
+    pub last: usize,
 }
 pub type ScanningError = (&'static str, usize);
 
@@ -85,11 +85,13 @@ impl Scanner {
     }
 
     fn add_token(&mut self, token: Token) {
-        self.tokens.push(ScannedToken{token, first: self.position - 1, last: self.position - 1});
+        self.tokens
+            .push(ScannedToken { token, first: self.position - 1, last: self.position - 1 });
     }
 
     fn add_token_with_position(&mut self, token: Token, start: usize) {
-        self.tokens.push(ScannedToken{token, first: start, last: self.position - 1});
+        self.tokens
+            .push(ScannedToken { token, first: start, last: self.position - 1 });
     }
 }
 
@@ -128,18 +130,15 @@ fn scan_string(scanner: &mut Scanner, start: usize, quote: char) -> Option<Scann
     while !(scanner.is_finished() || scanner.check_ahead(0, quote)) {
         scanner.consume_char();
         if scanner.char_ahead(0) == '\n' {
-            return Some((
-                "String must be terminated at the same newline!",
-                start,
-            ));
+            return Some(("String must be terminated at the same newline!", start));
         }
     }
     if scanner.is_finished() {
         return Some(("String is not terminated!", start));
     } else {
         let content: String = scanner.chars[start + 1..scanner.position].iter().collect();
-        scanner.add_token_with_position(Token::String(content), start);
         scanner.consume_char();
+        scanner.add_token_with_position(Token::String(content), start);
     }
 
     None
@@ -274,13 +273,11 @@ pub fn scan_tokens(data: &str) -> Result<Vec<ScannedToken>, ScanningError> {
                 }
 
                 let content: String = scanner.chars[start..scanner.position].iter().collect();
-                scanner.add_token_with_position(
-                    match is_float {
-                        true => Token::Float(content.parse().unwrap()),
-                        _ => Token::Integer(content.parse().unwrap()),
-                    },
-                    start,
-                );
+                let token = match is_float {
+                    true => Token::Float(content.parse().unwrap()),
+                    _ => Token::Integer(content.parse().unwrap()),
+                };
+                scanner.add_token_with_position(token, start);
             }
 
             c if c.is_alphabetic() => {
@@ -295,7 +292,7 @@ pub fn scan_tokens(data: &str) -> Result<Vec<ScannedToken>, ScanningError> {
             }
         }
     }
-    scanner.add_token_with_position(Token::EOF, data.len());
+    scanner.add_token_with_position(Token::EOF, data.len() - 1);
 
     Ok(scanner.tokens)
 }
@@ -320,16 +317,17 @@ mod tests {
     fn test_positions() {
         let test_string = r#" 123 . [] "hey" 888.888 "#;
         let res = scan_tokens(test_string);
+        
         assert_eq!(
             res.unwrap(),
             vec![
-                ScannedToken {token:Token::Integer(123), first: 1, last: 3},
-                ScannedToken {token:Token::Dot, first: 5, last: 5},
-                ScannedToken {token:Token::LeftSquareBrackets, first: 7, last: 7},
-                ScannedToken {token:Token::RightSquareBrackets, first: 8, last: 8},
-                ScannedToken {token:Token::String(String::from("hey")), first: 10, last: 14},
-                ScannedToken {token:Token::Float(888.888), first: 16, last: 22},
-                ScannedToken {token:Token::EOF, first: 23, last: 23},
+                ScannedToken { token: Token::Integer(123), first: 1, last: 3 },
+                ScannedToken { token: Token::Dot, first: 5, last: 5 },
+                ScannedToken { token: Token::LeftSquareBrackets, first: 7, last: 7 },
+                ScannedToken { token: Token::RightSquareBrackets, first: 8, last: 8 },
+                ScannedToken { token: Token::String(String::from("hey")), first: 10, last: 14 },
+                ScannedToken { token: Token::Float(888.888), first: 16, last: 22 },
+                ScannedToken { token: Token::EOF, first: 23, last: 23 },
             ]
         );
     }
