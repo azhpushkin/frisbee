@@ -10,6 +10,7 @@
 * check foreach (conflict with other variable)
 * check how everything works when there is multiple values with same name (for i in ...)
 * check break and continue in loop only!
+* check how single-item tuples work!
 * 
 ---
 fun Nil hello(Int a, Int a) {}

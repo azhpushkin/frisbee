@@ -1,3 +1,5 @@
+use crate::parser::scanner::ScannedToken;
+
 #[derive(Debug, PartialEq)]
 pub struct FileAst {
     pub imports: Vec<ImportDecl>,
@@ -60,36 +62,36 @@ pub type Type = crate::types::Type;
 #[derive(Debug, PartialEq)]
 pub enum Statement {
     IfElse {
-        condition: Expr,
+        condition: ExprWithPos,
         if_body: Vec<Statement>,
-        elif_bodies: Vec<(Expr, Vec<Statement>)>,
+        elif_bodies: Vec<(ExprWithPos, Vec<Statement>)>,
         else_body: Vec<Statement>,
     },
     While {
-        condition: Expr,
+        condition: ExprWithPos,
         body: Vec<Statement>,
     },
     Foreach {
         itemname: String,
-        iterable: Expr,
+        iterable: ExprWithPos,
         body: Vec<Statement>,
     },
     Break,
     Continue,
-    Return(Option<Expr>),
+    Return(Option<ExprWithPos>),
     Assign {
-        left: Expr,
-        right: Expr,
+        left: ExprWithPos,
+        right: ExprWithPos,
     },
     VarDecl(Type, String),
-    VarDeclWithAssign(Type, String, Expr),
+    VarDeclWithAssign(Type, String, ExprWithPos),
     SendMessage {
-        active: Expr,
+        active: ExprWithPos,
         method: String,
-        args: Vec<Expr>,
+        args: Vec<ExprWithPos>,
     },
     // TODO: SWaitMessage
-    Expr(Expr),
+    Expr(ExprWithPos),
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -128,6 +130,13 @@ pub enum UnaryOp {
 // maybe save state of the actor before running it? (2x memory for this)
 
 #[derive(Debug, PartialEq)]
+pub struct ExprWithPos {
+    pub expr: Expr,
+    pub token_first: ScannedToken,
+    pub token_last: ScannedToken,
+}
+
+#[derive(Debug, PartialEq)]
 pub enum Expr {
     Int(i64),
     String(String),
@@ -138,19 +147,19 @@ pub enum Expr {
     This,
     Identifier(String),
 
-    UnaryOp { op: UnaryOp, operand: Box<Expr> },
-    BinOp { left: Box<Expr>, right: Box<Expr>, op: BinaryOp },
+    UnaryOp { op: UnaryOp, operand: Box<ExprWithPos> },
+    BinOp { left: Box<ExprWithPos>, right: Box<ExprWithPos>, op: BinaryOp },
 
-    ListAccess { list: Box<Expr>, index: Box<Expr> },
-    ListValue(Vec<Expr>),
-    TupleValue(Vec<Expr>),
+    ListAccess { list: Box<ExprWithPos>, index: Box<ExprWithPos> },
+    ListValue(Vec<ExprWithPos>),
+    TupleValue(Vec<ExprWithPos>),
 
-    FunctionCall { function: String, args: Vec<Expr> },
-    MethodCall { object: Box<Expr>, method: String, args: Vec<Expr> },
-    FieldAccess { object: Box<Expr>, field: String },
-    OwnMethodCall { method: String, args: Vec<Expr> },
+    FunctionCall { function: String, args: Vec<ExprWithPos> },
+    MethodCall { object: Box<ExprWithPos>, method: String, args: Vec<ExprWithPos> },
+    FieldAccess { object: Box<ExprWithPos>, field: String },
+    OwnMethodCall { method: String, args: Vec<ExprWithPos> },
     OwnFieldAccess { field: String },
 
-    NewClassInstance { typename: String, args: Vec<Expr> },
-    SpawnActive { typename: String, args: Vec<Expr> },
+    NewClassInstance { typename: String, args: Vec<ExprWithPos> },
+    SpawnActive { typename: String, args: Vec<ExprWithPos> },
 }

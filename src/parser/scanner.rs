@@ -33,8 +33,8 @@ pub enum Token {
     EOF
 }
 
-pub type ScannedToken = (Token, i32);
-pub type ScanningError = (&'static str, i32);
+pub type ScannedToken = (Token, usize);
+pub type ScanningError = (&'static str, usize);
 
 struct Scanner {
     chars: Vec<char>,
@@ -80,11 +80,11 @@ impl Scanner {
     }
 
     fn add_token(&mut self, token: Token) {
-        self.tokens.push((token, (self.position - 1) as i32))
+        self.tokens.push((token, self.position - 1))
     }
 
     fn add_token_with_position(&mut self, token: Token, pos: usize) {
-        self.tokens.push((token, pos as i32))
+        self.tokens.push((token, pos))
     }
 }
 
@@ -125,12 +125,12 @@ fn scan_string(scanner: &mut Scanner, start: usize, quote: char) -> Option<Scann
         if scanner.char_ahead(0) == '\n' {
             return Some((
                 "String must be terminated at the same newline!",
-                start as i32,
+                start,
             ));
         }
     }
     if scanner.is_finished() {
-        return Some(("String is not terminated!", start as i32));
+        return Some(("String is not terminated!", start));
     } else {
         let content: String = scanner.chars[start + 1..scanner.position].iter().collect();
         scanner.add_token_with_position(Token::String(content), start);
@@ -201,7 +201,7 @@ pub fn scan_tokens(data: &String) -> Result<Vec<ScannedToken>, ScanningError> {
                 if next_char == '?' {
                     return Err((
                         "Double-question mark has no sense (nillable is either ON or OFF)",
-                        (scanner.position as i32) - 1,
+                        scanner.position - 1,
                     ));
                 }
                 if !(next_char.is_whitespace()
@@ -212,21 +212,21 @@ pub fn scan_tokens(data: &String) -> Result<Vec<ScannedToken>, ScanningError> {
                 {
                     return Err((
                         "Symbol is not allowed right after questionmark",
-                        (scanner.position as i32) - 1,
+                        scanner.position - 1,
                     ));
                 }
                 scanner.add_token(Token::Question)
             }
             '@' => {
                 if !scanner.char_ahead(0).is_alphabetic() {
-                    return Err(("Identifier required after @", scanner.position as i32));
+                    return Err(("Identifier required after @", scanner.position));
                 }
                 let token = scan_identifier(&mut scanner, start + 1);
                 match token {
                     Token::Identifier(s) => {
                         scanner.add_token_with_position(Token::OwnIdentifier(s), start)
                     }
-                    _ => return Err(("Identifier required after @", scanner.position as i32)),
+                    _ => return Err(("Identifier required after @", scanner.position)),
                 }
             }
 
@@ -286,7 +286,7 @@ pub fn scan_tokens(data: &String) -> Result<Vec<ScannedToken>, ScanningError> {
             c if c.is_whitespace() => (),
 
             _ => {
-                return Err(("Unknown symbol occured", scanner.position as i32 - 1));
+                return Err(("Unknown symbol occured", scanner.position - 1));
             }
         }
     }
