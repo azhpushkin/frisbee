@@ -77,7 +77,7 @@ pub fn fill_aggregate_with_funcs<'a>(
                 if aggregate.functions.contains_key(&method_full_name) {
                     panic!(
                         "Method {} defined twice in {}.{}",
-                        method.name, file_alias.0, class_decl.name
+                        method.name, file_alias, class_decl.name
                     );
                 }
 

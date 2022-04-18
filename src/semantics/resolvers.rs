@@ -4,15 +4,9 @@ use crate::loader::{generate_alias, LoadedFile, ModuleAlias, WholeProgram};
 
 use super::symbols::{SymbolFunc, SymbolType};
 
-type SymbolLookupMapping<T>
-where
-    T: Symbol,
-= HashMap<String, HashMap<String, T>>;
+type SymbolLookupMapping<T> = HashMap<ModuleAlias, HashMap<String, T>>;
 
-type SingleFileMapping<T>
-where
-    T: Symbol,
-= HashMap<String, T>;
+type SingleFileMapping<T> = HashMap<String, T>;
 
 pub type SymbolResolver<'a, T>
 where
@@ -39,14 +33,14 @@ impl NameResolver {
 
             let function_origins = get_functions_origins(file);
             let functions_mapping = get_origins(function_origins, &SymbolFunc::new)
-                .unwrap_or_else(|x| panic!("Function {} defined twice in {}", x, file_name.0));
+                .unwrap_or_else(|x| panic!("Function {} defined twice in {}", x, file_name));
 
             let typename_origins = get_typenames_origins(file);
             let typenames_mapping = get_origins(typename_origins, &SymbolType::new)
-                .unwrap_or_else(|x| panic!("Type {} defined twice in {}", x, file_name.0));
+                .unwrap_or_else(|x| panic!("Type {} defined twice in {}", x, file_name));
 
-            resolver.functions.insert(file_name.0.clone(), functions_mapping);
-            resolver.typenames.insert(file_name.0.clone(), typenames_mapping);
+            resolver.functions.insert(file_name.clone(), functions_mapping);
+            resolver.typenames.insert(file_name.clone(), typenames_mapping);
         }
 
         resolver.validate(&wp);
@@ -63,10 +57,10 @@ impl NameResolver {
         'b: 'c,
     {
         Box::new(move |name: &String| {
-            let typename = self.typenames[&alias.0].get(name);
+            let typename: Option<&SymbolType> = self.typenames[&alias].get(name);
             match typename {
                 Some(t) => t.clone(),
-                None => panic!("Type {} not found in {}", name, alias.0),
+                None => panic!("Type {} not found in {}", name, alias),
             }
         })
     }
@@ -80,10 +74,10 @@ impl NameResolver {
         'b: 'c,
     {
         Box::new(move |name: &String| {
-            let function = self.functions[&alias.0].get(name);
+            let function: Option<&SymbolFunc> = self.functions[&alias].get(name);
             match function {
                 Some(f) => f.clone(),
-                None => panic!("Function {} not found in {}", name, alias.0),
+                None => panic!("Function {} not found in {}", name, alias),
             }
         })
     }
@@ -93,7 +87,7 @@ impl NameResolver {
             check_module_does_not_import_itself(file);
 
             for (module, name) in get_functions_origins(file) {
-                if !self.functions[&module.0].contains_key(name) {
+                if !self.functions[&module].contains_key(name) {
                     panic!(
                         "Expected function {} to be defined in module {:?}!",
                         name, module
@@ -101,7 +95,7 @@ impl NameResolver {
                 }
             }
             for (module, typename) in get_typenames_origins(file) {
-                if !self.typenames[&module.0].contains_key(typename) {
+                if !self.typenames[&module].contains_key(typename) {
                     panic!(
                         "Expected type {} to be defined in module {:?}!",
                         typename, module

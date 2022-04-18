@@ -23,7 +23,7 @@ pub fn get_position_coordinates(data: &String, pos: usize) -> (usize, usize) {
 fn show_error(contents: &String, alias: &ModuleAlias, pos: usize, error_msg: String) {
     let (line, row) = get_position_coordinates(&contents, pos);
 
-    println!("Error at line {} (in {}):\n----------\n", line, alias.0);
+    println!("Error at line {} (in {}):\n----------\n", line, alias);
 
     let lines: Vec<&str> = contents.split('\n').collect();
     let spaces: String = vec![' '; row].into_iter().collect();

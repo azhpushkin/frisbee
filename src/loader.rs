@@ -5,7 +5,13 @@ use crate::ast::*;
 use crate::{errors, parser};
 
 #[derive(Debug, PartialEq, Clone, Eq, Hash)]
-pub struct ModuleAlias(pub String);
+pub struct ModuleAlias(String);
+
+impl std::fmt::Display for ModuleAlias {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 #[derive(Debug)]
 pub struct LoadedFile {

@@ -10,12 +10,12 @@ pub struct SymbolFunc(String);
 
 impl SymbolFunc {
     pub fn new(alias: &ModuleAlias, name: &String) -> Self {
-        Self(format!("{}::{}", alias.0, name))
+        Self(format!("{}::{}", alias, name))
     }
 }
 impl SymbolType {
     pub fn new(alias: &ModuleAlias, name: &String) -> Self {
-        Self(format!("{}::{}", alias.0, name))
+        Self(format!("{}::{}", alias, name))
     }
 
     pub fn method(&self, method: &String) -> SymbolFunc {

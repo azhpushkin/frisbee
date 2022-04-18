@@ -68,7 +68,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
     }
 
     fn err_prefix(&self) -> String {
-        format!("In file {}: ", self.module.0)
+        format!("In file {}: ", self.module)
     }
 
     // fn calculate_vec(&self, items: &mut Vec<Expr>) -> SemanticResult<Vec<Type>> {
