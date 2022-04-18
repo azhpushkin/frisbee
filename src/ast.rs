@@ -1,5 +1,3 @@
-use crate::parser::scanner::ScannedToken;
-
 #[derive(Debug, PartialEq)]
 pub struct FileAst {
     pub imports: Vec<ImportDecl>,
@@ -132,8 +130,8 @@ pub enum UnaryOp {
 #[derive(Debug, PartialEq)]
 pub struct ExprWithPos {
     pub expr: Expr,
-    pub token_first: ScannedToken,
-    pub token_last: ScannedToken,
+    pub pos_first: usize,
+    pub pos_last: usize,
 }
 
 #[derive(Debug, PartialEq)]

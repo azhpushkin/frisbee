@@ -33,7 +33,12 @@ pub enum Token {
     EOF
 }
 
-pub type ScannedToken = (Token, usize);
+#[derive(Debug, Clone, PartialEq)]
+pub struct ScannedToken {
+    pub token: Token,
+    pub first: usize,
+    pub last: usize
+}
 pub type ScanningError = (&'static str, usize);
 
 struct Scanner {
@@ -80,11 +85,11 @@ impl Scanner {
     }
 
     fn add_token(&mut self, token: Token) {
-        self.tokens.push((token, self.position - 1))
+        self.tokens.push(ScannedToken{token, first: self.position - 1, last: self.position - 1});
     }
 
-    fn add_token_with_position(&mut self, token: Token, pos: usize) {
-        self.tokens.push((token, pos))
+    fn add_token_with_position(&mut self, token: Token, start: usize) {
+        self.tokens.push(ScannedToken{token, first: start, last: self.position - 1});
     }
 }
 
@@ -154,7 +159,7 @@ fn scan_identifier(scanner: &mut Scanner, start: usize) -> Token {
     identifier_to_token(s)
 }
 
-pub fn scan_tokens(data: &String) -> Result<Vec<ScannedToken>, ScanningError> {
+pub fn scan_tokens(data: &str) -> Result<Vec<ScannedToken>, ScanningError> {
     let mut scanner = Scanner::create(data.chars().collect::<Vec<_>>());
 
     while !scanner.is_finished() {
@@ -300,11 +305,11 @@ mod tests {
     use super::*;
 
     fn scan_tokens_helper(s: &str) -> Vec<Token> {
-        let res = scan_tokens(&String::from(s));
+        let res = scan_tokens(s);
         assert!(res.is_ok(), "Error on scanning: {:?}", res.unwrap_err());
         let res = res.unwrap();
 
-        let mut tokens = res.iter().map(|(t, _p)| t.clone()).collect::<Vec<Token>>();
+        let mut tokens = res.iter().map(|t| t.token.clone()).collect::<Vec<Token>>();
         assert_eq!(tokens.last().unwrap(), &Token::EOF);
 
         tokens.truncate(tokens.len() - 1);
@@ -313,17 +318,18 @@ mod tests {
 
     #[test]
     fn test_positions() {
-        let res = scan_tokens(&String::from(r#" 123 . [] "hey" 888.888 "#));
+        let test_string = r#" 123 . [] "hey" 888.888 "#;
+        let res = scan_tokens(test_string);
         assert_eq!(
             res.unwrap(),
             vec![
-                (Token::Integer(123), 1),
-                (Token::Dot, 5),
-                (Token::LeftSquareBrackets, 7),
-                (Token::RightSquareBrackets, 8),
-                (Token::String(String::from("hey")), 10),
-                (Token::Float(888.888), 16),
-                (Token::EOF, 24),
+                ScannedToken {token:Token::Integer(123), first: 1, last: 3},
+                ScannedToken {token:Token::Dot, first: 5, last: 5},
+                ScannedToken {token:Token::LeftSquareBrackets, first: 7, last: 7},
+                ScannedToken {token:Token::RightSquareBrackets, first: 8, last: 8},
+                ScannedToken {token:Token::String(String::from("hey")), first: 10, last: 14},
+                ScannedToken {token:Token::Float(888.888), first: 16, last: 22},
+                ScannedToken {token:Token::EOF, first: 23, last: 23},
             ]
         );
     }
@@ -475,11 +481,11 @@ mod tests {
             ]
         );
 
-        assert!(scan_tokens(&"@".into()).is_err());
-        assert!(scan_tokens(&"@ field".into()).is_err());
-        assert!(scan_tokens(&"(@)field".into()).is_err());
-        assert!(scan_tokens(&"@.field".into()).is_err());
-        assert!(scan_tokens(&"@2field".into()).is_err());
+        assert!(scan_tokens("@").is_err());
+        assert!(scan_tokens("@ field").is_err());
+        assert!(scan_tokens("(@)field").is_err());
+        assert!(scan_tokens("@.field").is_err());
+        assert!(scan_tokens("@2field").is_err());
     }
 
     #[test]

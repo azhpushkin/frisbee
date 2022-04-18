@@ -3,7 +3,7 @@
 * check that return statement is required
 * no return for constructors!!
 * check that `this` in arguments is not allowed (this will ensure this is only for methods)
-* check if multiline strings are OK
+* check if multiline strings are OK and how they work
 * check that variable is always assigned before using (all if branches)
 * check divide and minus ordering if chained (just to check everything is fine)
 * check that conditions are bool in if and else

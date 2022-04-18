@@ -4,7 +4,7 @@ mod helpers;
 pub mod scanner;
 pub mod parser_impl;
 
-mod tests;
+// mod tests;
 
 // pass this types through mod.rs
 pub type ParseError = parser_impl::ParseError;

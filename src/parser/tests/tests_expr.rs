@@ -3,7 +3,7 @@ use crate::ast::*;
 use super::super::parser_impl::*;
 use super::tests_helpers::*;
 
-fn assert_expr_parses(s: &str, t: Expr) {
+fn assert_expr_parses(s: &str, t: ExprWithPos) {
     assert_eq!(parse_and_unwrap(Parser::parse_expr, s), t);
 }
 

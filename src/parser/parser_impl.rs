@@ -33,8 +33,8 @@ fn perr_with_expected<T>(
 macro_rules! consume_and_check {
     ($self:ident, $expected:expr) => {
         match $self.consume_token() {
-            (t, _) if t.eq(&$expected) => (),
-            t => return perr_with_expected(t, "Unexpected token", $expected),
+            t if t.eq(&$expected) => (),
+            _ => return perr_with_expected($self.full_token(-1), "Unexpected token", $expected),
         }
     };
 }
@@ -42,7 +42,7 @@ macro_rules! consume_and_check {
 macro_rules! consume_if_matches_one_of {
     ($self:ident, $expected_arr:expr) => {{
         match $self.rel_token(0) {
-            (t, _) if $expected_arr.contains(t) => {
+            t if $expected_arr.contains(t) => {
                 $self.consume_token();
                 true
             }
@@ -54,8 +54,8 @@ macro_rules! consume_if_matches_one_of {
 macro_rules! consume_and_check_ident {
     ($self:ident) => {
         match $self.consume_token() {
-            (Token::Identifier(s), _) => s.clone(),
-            t => return perr(t, "Unexpected token (expected identifier)"),
+            Token::Identifier(s) => s.clone(),
+            _ => return perr($self.full_token(-1), "Unexpected token (expected identifier)"),
         }
     };
 }
@@ -63,8 +63,8 @@ macro_rules! consume_and_check_ident {
 macro_rules! consume_and_check_type_ident {
     ($self:ident) => {
         match $self.consume_token() {
-            (Token::TypeIdentifier(s), _) => s.clone(),
-            t => return perr(t, "Unexpected token (expected identifier)"),
+            Token::TypeIdentifier(s) => s.clone(),
+            _ => return perr($self.full_token(-1), "Unexpected token (expected identifier)"),
         }
     };
 }
@@ -80,8 +80,8 @@ impl Parser {
     pub fn create(tokens: Vec<ScannedToken>) -> Parser {
         Parser { tokens, position: 0 }
     }
-
-    fn rel_token(&self, rel_pos: isize) -> &ScannedToken {
+    
+    fn full_token(&self, rel_pos: isize) -> &ScannedToken {
         let pos = if rel_pos < 0 {
             self.position - (rel_pos.abs() as usize)
         } else {
@@ -90,28 +90,34 @@ impl Parser {
 
         match self.tokens.get(pos) {
             Some(x) => x,
-            None => &(Token::EOF, 0), // 0 here is strange but IDK what else
+            None => &ScannedToken{
+                token: Token::EOF,
+                first: 0,
+                last: 0,
+            }, // 0 here is strange but IDK what else
         }
+    }
+    
+    fn rel_token(&self, rel_pos: isize) -> &Token {
+        &self.full_token(rel_pos).token
     }
 
     fn expr_with_pos(&self, expr: Expr, start: usize, end: usize) -> ParseResult<ExprWithPos> {
         Ok(ExprWithPos {
             expr,
-            token_first: self.tokens[start].clone(),
-            token_last: self.tokens[end].clone(),
+            pos_first: self.tokens[start].first,
+            pos_last: self.tokens[end].last,
         })
     }
 
-    fn consume_token(&mut self) -> &ScannedToken {
+    fn consume_token(&mut self) -> &Token {
         self.position += 1;
         // TODO: check performance or smth after removing clone() everywhere in file
         self.rel_token(-1)
     }
 
     fn rel_token_check(&self, rel_pos: isize, token: Token) -> bool {
-        match self.rel_token(rel_pos) {
-            (x, _) => token.eq(x),
-        }
+        matches!(self.rel_token(rel_pos), &token)
     }
 
     fn is_finished(&self) -> bool {
@@ -122,7 +128,7 @@ impl Parser {
         let mut file_ast = FileAst { imports: vec![], functions: vec![], types: vec![] };
 
         while !self.is_finished() {
-            match self.rel_token(0).0 {
+            match self.rel_token(0) {
                 Token::From => file_ast.imports.push(self.parse_import()?),
                 Token::Active => file_ast.types.push(self.parse_object(true)?),
                 Token::Class => file_ast.types.push(self.parse_object(false)?),
@@ -132,7 +138,7 @@ impl Parser {
                 }
                 _ => {
                     return perr(
-                        self.rel_token(0),
+                        self.full_token(0),
                         "Only imports and fun/class/active declarations are allowed at top level!",
                     );
                 }
@@ -155,9 +161,9 @@ impl Parser {
 
         loop {
             match self.consume_token() {
-                (Token::TypeIdentifier(s), _) => typenames.push(s.clone()),
-                (Token::Identifier(s), _) => functions.push(s.clone()),
-                t => return perr(t, "Unexpected token (expected identifier)"),
+                Token::TypeIdentifier(s) => typenames.push(s.clone()),
+                Token::Identifier(s) => functions.push(s.clone()),
+                _ => return perr(self.full_token(-1), "Unexpected token (expected identifier)"),
             }
             if self.rel_token_check(0, Token::Comma) {
                 self.consume_token();
@@ -171,8 +177,7 @@ impl Parser {
     }
 
     pub fn parse_type(&mut self) -> ParseResult<Type> {
-        let (token, _) = self.consume_token();
-        let mut result_type = match token {
+        let mut result_type = match self.consume_token() {
             Token::LeftSquareBrackets => {
                 let item_type = self.parse_type()?;
                 consume_and_check!(self, Token::RightSquareBrackets);
@@ -189,7 +194,7 @@ impl Parser {
                 });
 
                 match tuple_items.len() {
-                    0 => return perr(self.rel_token(0), "Empty tuple is not allowed"),
+                    0 => return perr(self.full_token(0), "Empty tuple is not allowed"),
                     1 => tuple_items.pop().unwrap(),
                     _ => Type::Tuple(tuple_items),
                 }
@@ -202,7 +207,7 @@ impl Parser {
                 _ => Type::Ident(s.clone()),
             },
             _ => {
-                return perr(self.rel_token(-1), "Wrong token for type definition");
+                return perr(self.full_token(-1), "Wrong token for type definition");
             }
         };
 
@@ -219,7 +224,7 @@ impl Parser {
         member_of: Option<&String>,
     ) -> ParseResult<FunctionDecl> {
         consume_and_check!(self, Token::Fun);
-        let rettype = match self.rel_token(0).0 {
+        let rettype = match self.rel_token(0) {
             Token::Void => {
                 self.consume_token();
                 None
@@ -234,12 +239,12 @@ impl Parser {
             name = match &rettype {
                 Some(Type::Ident(s)) if s != member_of.unwrap() => {
                     return perr(
-                        self.rel_token(0),
+                        self.full_token(0),
                         "Wrong typename is used for constructor-like method",
                     )
                 }
                 Some(Type::Ident(s)) => s.clone(),
-                _ => return perr(self.rel_token(0), "Expected method name"),
+                _ => return perr(self.full_token(0), "Expected method name"),
             };
         } else {
             name = consume_and_check_ident!(self);
@@ -354,7 +359,7 @@ impl Parser {
             return Ok(Statement::VarDeclWithAssign(typedecl, varname, value));
         } else {
             return perr_with_expected(
-                self.rel_token(0),
+                self.full_token(0),
                 "Wrong variable declaration",
                 Token::Semicolon,
             );
@@ -362,8 +367,7 @@ impl Parser {
     }
 
     pub fn parse_statement(&mut self) -> ParseResult<Statement> {
-        let (token, _) = self.rel_token(0);
-        match token {
+        match self.rel_token(0) {
             Token::Break => {
                 self.consume_token();
                 consume_and_check!(self, Token::Semicolon);
@@ -422,7 +426,7 @@ impl Parser {
             return Ok(Statement::SendMessage { active: expr, method, args });
         } else {
             return perr_with_expected(
-                self.rel_token(0),
+                self.full_token(0),
                 "Expression abruptly ended",
                 Token::Semicolon,
             );
@@ -440,7 +444,7 @@ impl Parser {
             self,
             [Token::Greater, Token::GreaterEqual, Token::LessEqual, Token::Less]
         ) {
-            let (op, _) = &self.rel_token(-1).clone();
+            let op = self.rel_token(-1);
             let right = self.parse_expr_plus_minus()?;
 
             let inner = Expr::BinOp {
@@ -458,7 +462,7 @@ impl Parser {
         let start = self.position;
         let mut res_expr = self.parse_expr_mul_div()?;
         while consume_if_matches_one_of!(self, [Token::Minus, Token::Plus]) {
-            let (op, _) = &self.rel_token(-1).clone();
+            let op = self.rel_token(-1);
             let right = self.parse_expr_mul_div()?;
 
             let inner = Expr::BinOp {
@@ -476,7 +480,7 @@ impl Parser {
         let start = self.position;
         let mut res_expr = self.parse_expr_unary()?;
         while consume_if_matches_one_of!(self, [Token::Star, Token::Slash]) {
-            let (op, _) = &self.rel_token(-1).clone();
+            let op = self.rel_token(-1);
             let right = self.parse_expr_unary()?;
 
             let inner = Expr::BinOp {
@@ -494,7 +498,7 @@ impl Parser {
         let start = self.position;
         let mut res_expr = self.parse_expr_comparison()?;
         while consume_if_matches_one_of!(self, [Token::EqualEqual, Token::BangEqual]) {
-            let (op, _) = &self.rel_token(-1).clone();
+            let op = self.rel_token(-1);
             let right = self.parse_expr_comparison()?;
 
             let inner = Expr::BinOp {
@@ -511,7 +515,7 @@ impl Parser {
     pub fn parse_expr_unary(&mut self) -> ParseResult<ExprWithPos> {
         let start = self.position;
         if consume_if_matches_one_of!(self, [Token::Minus, Token::Not]) {
-            let (t, _) = &self.rel_token(-1).clone();
+            let t = self.rel_token(-1);
             let operand = self.parse_method_or_field_access()?;
 
             let inner = Expr::UnaryOp { operand: Box::new(operand), op: unary_op_from_token(t) };
@@ -584,7 +588,7 @@ impl Parser {
                         called_identifier = field.clone();
                         is_own_method = true;
                     },
-                    _ => return perr(self.rel_token(0), "Function call of non-function expr"),
+                    _ => return perr(self.full_token(0), "Function call of non-function expr"),
                 }
                 
                 // self.parse_function_call_args checks and consumes both left and right parenthesis
@@ -597,7 +601,7 @@ impl Parser {
                 // We need to check those manually, because otherwise next loop iteration will create chained call
                 if self.rel_token_check(0, Token::LeftParenthesis) {
                     return perr(
-                        self.rel_token(0),
+                        self.full_token(0),
                         "No first-class fuctions, chained func calls disallowed",
                     );
                 }
@@ -686,7 +690,7 @@ impl Parser {
 
     pub fn parse_expr_primary(&mut self) -> ParseResult<ExprWithPos> {
         let start = self.position;
-        let expr = match &self.rel_token(0).0 {
+        let expr = match self.rel_token(0) {
             Token::This => Expr::This,
             Token::Float(f) => Expr::Float(f.clone()),
             Token::Integer(i) => Expr::Int(i.clone()),
@@ -701,7 +705,7 @@ impl Parser {
             Token::TypeIdentifier(_) => return self.parse_new_class_instance_expr(),
             Token::Spawn => return self.parse_spawn_active_expr(),
             t => {
-                return perr_with_expected(self.rel_token(0), "Unexpected expression", t.clone());
+                return perr_with_expected(self.full_token(0), "Unexpected expression", t.clone());
             }
         };
 
