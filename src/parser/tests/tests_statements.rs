@@ -17,11 +17,15 @@ fn stmt_expr() {
 
     assert_stmt_parses(
         "(nil) == asd;",
-        Statement::Expr(Expr::BinOp {
-            left: Box::new(Expr::Nil),
-            right: Box::new(Expr::Identifier(String::from("asd"))),
-            op: BinaryOp::IsEqual,
-        }),
+        Statement::Expr(expr_raw(
+            Expr::BinOp {
+                left: expr(Expr::Nil, 1, 3),
+                right: expr(Expr::Identifier("asd".into()), 9, 11),
+                op: BinaryOp::IsEqual,
+            },
+            0,
+            11,
+        )),
     );
 }
 
@@ -31,7 +35,10 @@ fn stmt_return() {
     assert_stmt_invalid("return 2+;");
 
     assert_stmt_parses("return;", Statement::Return(None));
-    assert_stmt_parses("return 1;", Statement::Return(Some(Expr::Int(1))));
+    assert_stmt_parses(
+        "return 1;",
+        Statement::Return(Some(expr_raw(Expr::Int(1), 7, 7))),
+    );
 }
 
 #[test]
@@ -42,8 +49,8 @@ fn stmt_if() {
     assert_stmt_parses(
         "if 1 {2;}",
         Statement::IfElse {
-            condition: Expr::Int(1),
-            if_body: vec![Statement::Expr(Expr::Int(2))],
+            condition: expr_raw(Expr::Int(1), 3, 3),
+            if_body: vec![Statement::Expr(expr_raw(Expr::Int(2), 6, 6))],
             elif_bodies: vec![],
             else_body: vec![],
         },
@@ -59,10 +66,10 @@ fn stmt_if_else() {
     assert_stmt_parses(
         "if 1 {2;} else {3;}",
         Statement::IfElse {
-            condition: Expr::Int(1),
-            if_body: vec![Statement::Expr(Expr::Int(2))],
+            condition: expr_raw(Expr::Int(1), 3, 3),
+            if_body: vec![Statement::Expr(expr_raw(Expr::Int(2), 6, 6))],
             elif_bodies: vec![],
-            else_body: vec![Statement::Expr(Expr::Int(3))],
+            else_body: vec![Statement::Expr(expr_raw(Expr::Int(3), 16, 16))],
         },
     );
 }
@@ -72,14 +79,12 @@ fn stmt_if_elif() {
     assert_stmt_parses(
         "if 1 {2;} elif 2 {3;}",
         Statement::IfElse {
-            condition: Expr::Int(1),
-            if_body: vec![Statement::Expr(Expr::Int(2))],
-            elif_bodies: vec![
-                (
-                    Expr::Int(2),
-                    vec![Statement::Expr(Expr::Int(3))],
-                ),
-            ],
+            condition: expr_raw(Expr::Int(1), 3, 3),
+            if_body: vec![Statement::Expr(expr_raw(Expr::Int(2), 6, 6))],
+            elif_bodies: vec![(
+                expr_raw(Expr::Int(2), 15, 15),
+                vec![Statement::Expr(expr_raw(Expr::Int(3), 18, 18))],
+            )],
             else_body: vec![],
         },
     );
@@ -88,21 +93,18 @@ fn stmt_if_elif() {
 #[test]
 fn stmt_if_elif_else() {
     assert_stmt_parses(
-        "if 1 {2;} elif 2 {3;} else 4",
+        "if 1 {2;} elif 2 {3;} else {4; }",
         Statement::IfElse {
-            condition: Expr::Int(1),
-            if_body: vec![Statement::Expr(Expr::Int(2))],
-            elif_bodies: vec![
-                (
-                    Expr::Int(2),
-                    vec![Statement::Expr(Expr::Int(3))],
-                ),
-            ],
-            else_body: vec![Statement::Expr(Expr::Int(4))],
+            condition: expr_raw(Expr::Int(1), 3, 3),
+            if_body: vec![Statement::Expr(expr_raw(Expr::Int(2), 6, 6))],
+            elif_bodies: vec![(
+                expr_raw(Expr::Int(2), 15, 15),
+                vec![Statement::Expr(expr_raw(Expr::Int(3), 18, 18))],
+            )],
+            else_body: vec![Statement::Expr(expr_raw(Expr::Int(4), 28, 28))],
         },
     );
 }
-
 
 #[test]
 fn stmt_while() {
@@ -111,7 +113,10 @@ fn stmt_while() {
 
     assert_stmt_parses(
         "while 1 {2;}",
-        Statement::While { condition: Expr::Int(1), body: vec![Statement::Expr(Expr::Int(2))] },
+        Statement::While {
+            condition: expr_raw(Expr::Int(1), 6, 6),
+            body: vec![Statement::Expr(expr_raw(Expr::Int(2), 9, 9))],
+        },
     );
 }
 
@@ -120,8 +125,8 @@ fn stmt_foreach() {
     assert_stmt_parses(
         "foreach obj in (objects) {}",
         Statement::Foreach {
-            itemname: String::from("obj"),
-            iterable: Expr::Identifier("objects".into()),
+            itemname: "obj".into(),
+            iterable: expr_raw(Expr::Identifier("objects".into()), 16, 22),
             body: vec![],
         },
     );
@@ -137,14 +142,10 @@ fn stmt_break_and_continue() {
     assert_stmt_parses(
         "while 1 {continue; break;}",
         Statement::While {
-            condition: Expr::Int(1),
+            condition: expr_raw(Expr::Int(1), 6, 6),
             body: vec![Statement::Continue, Statement::Break],
         },
     );
-
-    // Only parses when inside of a loop
-    assert_stmt_invalid("break;");
-    assert_stmt_invalid("continue;");
 }
 
 #[test]
@@ -154,7 +155,7 @@ fn stmt_var_decl() {
 
     assert_stmt_parses(
         "Actor x;",
-        Statement::VarDecl(Type::Ident(String::from("Actor")), String::from("x")),
+        Statement::VarDecl(Type::Ident("Actor".into()), "x".into()),
     );
 }
 
@@ -166,9 +167,9 @@ fn stmt_var_decl_equal() {
     assert_stmt_parses(
         "Actor x = asd;",
         Statement::VarDeclWithAssign(
-            Type::Ident(String::from("Actor")),
-            String::from("x"),
-            Expr::Identifier(String::from("asd")),
+            Type::Ident("Actor".into()),
+            "x".into(),
+            expr_raw(Expr::Identifier("asd".into()), 10, 12),
         ),
     );
 }
@@ -180,7 +181,10 @@ fn stmt_equal() {
 
     assert_stmt_parses(
         "var = 2;",
-        Statement::Assign { left: Expr::Identifier(String::from("var")), right: Expr::Int(2) },
+        Statement::Assign {
+            left: expr_raw(Expr::Identifier("var".into()), 0, 2),
+            right: expr_raw(Expr::Int(2), 6, 6),
+        },
     );
 }
 
@@ -189,11 +193,15 @@ fn stmt_equal_to_list_item() {
     assert_stmt_parses(
         "var[1] = 2;",
         Statement::Assign {
-            left: Expr::ListAccess {
-                list: Box::new(Expr::Identifier(String::from("var"))),
-                index: Box::new(Expr::Int(1)),
-            },
-            right: Expr::Int(2),
+            left: expr_raw(
+                Expr::ListAccess {
+                    list: expr(Expr::Identifier("var".into()), 0, 2),
+                    index: expr(Expr::Int(1), 4, 4),
+                },
+                0,
+                5,
+            ),
+            right: expr_raw(Expr::Int(2), 9, 9),
         },
     );
 }
@@ -207,11 +215,15 @@ fn stmt_send_message() {
     assert_stmt_parses(
         "a.x ! method();",
         Statement::SendMessage {
-            active: Expr::FieldAccess {
-                object: Box::new(Expr::Identifier("a".into())),
-                field: String::from("x"),
-            },
-            method: String::from("method"),
+            active: expr_raw(
+                Expr::FieldAccess {
+                    object: expr(Expr::Identifier("a".into()), 0, 0),
+                    field: "x".into(),
+                },
+                0,
+                2,
+            ),
+            method: "method".into(),
             args: vec![],
         },
     );

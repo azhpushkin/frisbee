@@ -17,13 +17,6 @@ fn assert_expr_invalid(s: &str) {
     assert_parsing_fails(Parser::parse_expr, s);
 }
 
-fn expr(e: Expr, f: usize, l: usize) -> Box<ExprWithPos> {
-    Box::new(expr_raw(e, f, l))
-}
-
-fn expr_raw(e: Expr, f: usize, l: usize) -> ExprWithPos {
-    ExprWithPos { expr: e, pos_first: f, pos_last: l }
-}
 
 #[test]
 fn string_single_and_double_quotes() {
