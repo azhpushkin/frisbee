@@ -5,8 +5,7 @@ use std::path::{Path, PathBuf};
 
 use tempfile::{tempdir, TempDir};
 
-use crate::ast::{ModulePath, ModulePathAlias};
-use crate::loader::{load_program, WholeProgram};
+use crate::loader::{load_program, WholeProgram, ModuleAlias, generate_alias};
 
 pub struct TestFilesCreator {
     temp_workdir: TempDir,
@@ -90,9 +89,9 @@ pub fn setup_and_load_program(s: &str) -> WholeProgram {
     return t.load_program();
 }
 
-pub fn new_alias(module: &str) -> ModulePathAlias {
+pub fn new_alias(module: &str) -> ModuleAlias {
     // NOTE: this does not work for module.submodule right now
-    ModulePath(vec![module.to_string()]).alias()
+    generate_alias(&vec![module.to_owned()])
 }
 
 #[cfg(test)]

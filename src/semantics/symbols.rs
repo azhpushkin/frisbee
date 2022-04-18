@@ -1,4 +1,5 @@
-use crate::ast::{Type, ModulePathAlias};
+use crate::ast::Type;
+use crate::loader::ModuleAlias;
 
 
 #[derive(Debug, PartialEq, Clone, Eq, Hash)]
@@ -8,12 +9,12 @@ pub struct SymbolType(String);
 pub struct SymbolFunc(String);
 
 impl SymbolFunc {
-    pub fn new(alias: &ModulePathAlias, name: &String) -> Self {
+    pub fn new(alias: &ModuleAlias, name: &String) -> Self {
         Self(format!("{}::{}", alias.0, name))
     }
 }
 impl SymbolType {
-    pub fn new(alias: &ModulePathAlias, name: &String) -> Self {
+    pub fn new(alias: &ModuleAlias, name: &String) -> Self {
         Self(format!("{}::{}", alias.0, name))
     }
 

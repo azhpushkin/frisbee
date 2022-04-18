@@ -4,10 +4,13 @@ use std::path::{Path, PathBuf};
 use crate::ast::*;
 use crate::{errors, parser};
 
+#[derive(Debug, PartialEq, Clone, Eq, Hash)]
+pub struct ModuleAlias(pub String);
+
 #[derive(Debug)]
 pub struct LoadedFile {
     pub path: PathBuf,
-    pub module_path: ModulePath,
+    pub module_alias: ModuleAlias,
     pub contents: String,
     pub ast: FileAst,
 }
@@ -15,36 +18,41 @@ pub struct LoadedFile {
 #[derive(Debug)]
 pub struct WholeProgram {
     pub workdir: PathBuf,
-    pub main_module: ModulePath,
-    pub files: HashMap<ModulePathAlias, LoadedFile>,
+    pub main_module: ModuleAlias,
+    pub files: HashMap<ModuleAlias, LoadedFile>,
 }
 
-fn load_file(workdir: &PathBuf, module_path: &ModulePath) -> Option<LoadedFile> {
+pub fn generate_alias(path: &Vec<String>) -> ModuleAlias {
+    ModuleAlias(path.join("."))
+}
+
+fn load_file(workdir: &PathBuf, module_path: &Vec<String>) -> Option<LoadedFile> {
     // TODO: implement logging system for this
     let mut file_path = workdir.to_owned();
-    for subpath in module_path.0.iter() {
+    for subpath in module_path.iter() {
         file_path.push(subpath);
     }
     file_path.set_extension("frisbee");
 
     let contents = std::fs::read_to_string(&file_path).expect("Cant read file");
+    let alias = generate_alias(module_path);
 
     let tokens = parser::scanner::scan_tokens(&contents);
     if tokens.is_err() {
-        errors::show_scan_error(&contents, &module_path, tokens.unwrap_err());
+        errors::show_scan_error(&contents, &alias, tokens.unwrap_err());
         return None;
     }
 
     let ast: parser::ParseResult<FileAst> = parser::parse(tokens.unwrap());
 
     if ast.is_err() {
-        errors::show_parse_error(&contents, &module_path, ast.unwrap_err());
+        errors::show_parse_error(&contents, &alias, ast.unwrap_err());
         return None;
     }
 
     Some(LoadedFile {
         path: file_path,
-        module_path: module_path.clone(),
+        module_alias: alias,
         contents,
         ast: ast.unwrap(),
     })
@@ -61,32 +69,37 @@ pub fn load_program(entry_file_path: &Path) -> Option<WholeProgram> {
         );
     };
 
+    // TODO: file_stem returns OsString, but I convert it to str
+    // need to check how this works under windows/macos
     let main_module = entry_file_path.file_stem().unwrap().to_str().unwrap();
+
     let mut whole_program = WholeProgram {
         workdir: workdir.to_owned(),
-        main_module: ModulePath(vec![main_module.into()]),
+        main_module: ModuleAlias(main_module.to_owned()),
         files: HashMap::new(),
     };
 
-    let mut modules_to_load: Vec<ModulePath> = vec![whole_program.main_module.clone()];
+    let mut modules_to_load: Vec<Vec<String>> = vec![vec![main_module.to_owned()]];
 
     while !modules_to_load.is_empty() {
         let module_path = modules_to_load.pop().unwrap();
 
+        // TODO: check error reporting over here
         let loaded_file = load_file(&whole_program.workdir, &module_path);
         if loaded_file.is_none() {
             return None;
         }
 
         let loaded_file = loaded_file.unwrap();
+        let alias = generate_alias(&module_path);
 
-        whole_program.files.insert(module_path.alias().clone(), loaded_file);
+        whole_program.files.insert(alias.clone(), loaded_file);
 
-        let loaded_file = whole_program.files.get(&module_path.alias()).unwrap();
+        let loaded_file = whole_program.files.get(&alias).unwrap();
 
         for import in &loaded_file.ast.imports {
             // todo swap [0] to correct path forming
-            let alias = import.module_path.alias();
+            let alias = generate_alias(&import.module_path);
 
             if whole_program.files.get(&alias).is_none() {
                 modules_to_load.push(import.module_path.clone());
@@ -127,20 +140,20 @@ mod test {
         );
         assert_eq!(wp.files.len(), 2);
 
-        let main_module_path = ModulePath(vec!["main".into()]);
-        let sub_mod_module_path = ModulePath(vec!["sub".into(), "mod".into()]);
-        assert_eq!(wp.main_module, main_module_path);
+        let main_module_alias = generate_alias(&vec!["main".into()]);
+        let sub_mod_module_alias = generate_alias(&vec!["sub".into(), "mod".into()]);
+        assert_eq!(wp.main_module, main_module_alias);
 
-        let main_file = &wp.files[&main_module_path.alias()];
-        let sub_mod_file = &wp.files[&sub_mod_module_path.alias()];
+        let main_file = &wp.files[&main_module_alias];
+        let sub_mod_file = &wp.files[&sub_mod_module_alias];
 
         assert_eq!(main_file.path, wp.workdir.join("main.frisbee"));
-        assert_eq!(main_file.module_path, main_module_path);
+        assert_eq!(main_file.module_alias, main_module_alias);
 
         assert_eq!(
             sub_mod_file.path,
             wp.workdir.join("sub").join("mod.frisbee")
         );
-        assert_eq!(sub_mod_file.module_path, sub_mod_module_path);
+        assert_eq!(sub_mod_file.module_alias, sub_mod_module_alias);
     }
 }

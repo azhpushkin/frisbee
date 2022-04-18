@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
 use crate::ast::*;
+use crate::loader::ModuleAlias;
 
 use super::aggregate::{ProgramAggregate, RawFunction};
-use super::annotations::{CustomType, TypedFields};
+use super::annotations::{CustomType};
 use super::light_ast::{LExpr, LExprTyped};
 use super::operators::{calculate_binaryop, calculate_unaryop};
 use super::resolvers::{NameResolver, SymbolResolver};
@@ -18,7 +19,7 @@ fn if_as_expected(e: Option<&Type>, t: &Type, le: LExpr) -> LExprTyped {
 }
 
 pub struct LightExpressionsGenerator<'a, 'b, 'c> {
-    module: ModulePathAlias,
+    module: ModuleAlias,
     scope: &'a RawFunction,
     aggregate: &'b ProgramAggregate,
     variables_types: HashMap<String, Type>,

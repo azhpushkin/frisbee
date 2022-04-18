@@ -5,25 +5,10 @@ pub struct FileAst {
     pub types: Vec<ClassDecl>,
 }
 
-#[derive(Debug, PartialEq, Clone)]
-pub struct ModulePath(pub Vec<String>);
-
-#[derive(Debug, PartialEq, Clone, Eq, Hash)]
-pub struct ModulePathAlias(pub String);
-
-impl ModulePath {
-    pub fn alias(&self) -> ModulePathAlias {
-        ModulePathAlias(self.alias_str())
-    }
-    pub fn alias_str(&self) -> String {
-        self.0.join(".")
-    }
-}
-
 #[derive(Debug, PartialEq)]
 pub struct ImportDecl {
     // Path to module, e.g. `from module.sub..` -> ["module", "sub"]
-    pub module_path: ModulePath,
+    pub module_path: Vec<String>,
 
     // NOTE: typenames is not Vec<Type> because only non-builtins are imported
     // so all of the imported types are Type::TypeIdentifier (this is checked by parser)

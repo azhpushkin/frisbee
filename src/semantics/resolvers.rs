@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
-use crate::ast::{ModulePathAlias, Type};
-use crate::loader::{LoadedFile, WholeProgram};
+use crate::loader::{generate_alias, LoadedFile, ModuleAlias, WholeProgram};
 
 use super::symbols::{SymbolFunc, SymbolType};
 
@@ -57,7 +56,7 @@ impl NameResolver {
 
     pub fn get_typenames_resolver<'a, 'b, 'c>(
         &'a self,
-        alias: &'b ModulePathAlias,
+        alias: &'b ModuleAlias,
     ) -> SymbolResolver<'c, SymbolType>
     where
         'a: 'c,
@@ -74,7 +73,7 @@ impl NameResolver {
 
     pub fn get_functions_resolver<'a, 'b, 'c>(
         &'a self,
-        alias: &'b ModulePathAlias,
+        alias: &'b ModuleAlias,
     ) -> SymbolResolver<'c, SymbolFunc>
     where
         'a: 'c,
@@ -115,18 +114,18 @@ impl NameResolver {
 
 fn check_module_does_not_import_itself(file: &LoadedFile) {
     for import in &file.ast.imports {
-        if import.module_path == file.module_path {
-            panic!("Module {:?} is importing itself!", file.module_path.alias());
+        if generate_alias(&import.module_path) == file.module_alias {
+            panic!("Module {:?} is importing itself!", file.module_alias);
         }
     }
 }
 
 fn get_origins<'a, I, T>(
     symbols_origins: I,
-    compile_symbol: &dyn Fn(&ModulePathAlias, &String) -> T,
+    compile_symbol: &dyn Fn(&ModuleAlias, &String) -> T,
 ) -> Result<SingleFileMapping<T>, String>
 where
-    I: Iterator<Item = (ModulePathAlias, &'a String)>,
+    I: Iterator<Item = (ModuleAlias, &'a String)>,
 {
     let mut mapping: HashMap<String, T> = HashMap::new();
 
@@ -142,17 +141,17 @@ where
 
 fn get_typenames_origins<'a>(
     file: &'a LoadedFile,
-) -> Box<dyn Iterator<Item = (ModulePathAlias, &'a String)> + 'a> {
+) -> Box<dyn Iterator<Item = (ModuleAlias, &'a String)> + 'a> {
     let defined_types = file
         .ast
         .types
         .iter()
-        .map(move |d| (file.module_path.alias(), &d.name));
+        .map(move |d| (file.module_alias.clone(), &d.name));
 
     let imported_types = file.ast.imports.iter().flat_map(|i| {
         i.typenames
             .iter()
-            .map(move |typename| (i.module_path.alias(), typename))
+            .map(move |typename| (generate_alias(&i.module_path), typename))
     });
 
     Box::new(defined_types.chain(imported_types))
@@ -160,17 +159,17 @@ fn get_typenames_origins<'a>(
 
 fn get_functions_origins<'a>(
     file: &'a LoadedFile,
-) -> Box<dyn Iterator<Item = (ModulePathAlias, &'a String)> + 'a> {
+) -> Box<dyn Iterator<Item = (ModuleAlias, &'a String)> + 'a> {
     let defined_types = file
         .ast
         .functions
         .iter()
-        .map(move |f| (file.module_path.alias(), &f.name));
+        .map(move |f| (file.module_alias.clone(), &f.name));
 
     let imported_types = file.ast.imports.iter().flat_map(|i| {
         i.functions
             .iter()
-            .map(move |funcname| (i.module_path.alias(), funcname))
+            .map(move |funcname| (generate_alias(&i.module_path), funcname))
     });
 
     Box::new(defined_types.chain(imported_types))

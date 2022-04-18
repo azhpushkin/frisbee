@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use crate::ast::{FunctionDecl, ModulePathAlias, Type, TypedNamedObject};
-use crate::loader::WholeProgram;
+use crate::ast::{FunctionDecl, Type, TypedNamedObject};
+use crate::loader::{WholeProgram, ModuleAlias};
 
 use super::annotations::{annotate_type, annotate_typednamed_vec, CustomType, TypedFields};
 use super::light_ast::LStatement;
@@ -24,7 +24,7 @@ pub struct RawFunction {
 
     pub short_name: String,
     pub method_of: Option<SymbolType>,
-    pub defined_at: ModulePathAlias,
+    pub defined_at: ModuleAlias,
 }
 
 /// Creates basic aggregate, that contains only types
@@ -32,7 +32,7 @@ pub fn create_basic_aggregate(wp: &WholeProgram, resolver: &NameResolver) -> Pro
     let mut aggregate: ProgramAggregate = ProgramAggregate {
         types: HashMap::new(),
         functions: HashMap::new(),
-        entry: SymbolFunc::new(&wp.main_module.alias(), &String::from("main")),
+        entry: SymbolFunc::new(&wp.main_module, &String::from("main")),
     };
 
     for (file_alias, file) in wp.files.iter() {
