@@ -68,6 +68,14 @@ impl Vm {
         bytes
     }
 
+    fn read_bytes(&mut self, num: usize) -> Vec<u8> {
+        let mut bytes: Vec<u8> = vec![];
+        for _ in 0..num {
+            bytes.push(self.read_opcode());
+        }
+        bytes
+    }
+
     // NOTE: items are pushed on stack in-order (from left to right)
     // which means that they are popped in reverse order (from right to left)
     // so first pop b, than pop a
@@ -114,15 +122,43 @@ impl Vm {
                 c => panic!("Unknown const flag: {:02x}", c),
             };
         }
+        self.check_header("End of constants table");
         println!("Loaded constants: {:?}", self.constants);
     }
 
-    pub fn run(&mut self) {
-        self.load_consts();
+    fn check_header(&mut self, header_name: &'static str) {
+        let header = self.read_several::<2>();
+        if header != [0xff, 0xff] {
+            panic!("Cannot find header: {}", header_name);
+        }
+    }
 
+    fn skip_symbol_names(&mut self) {
+        loop {
+            let symbol_name_len = u16::from_be_bytes(self.read_several::<2>());
+            if symbol_name_len == 0 {
+                break;
+            }
+            self.read_bytes(symbol_name_len as usize); // symbol name
+            self.read_several::<2>(); // symbol position
+        }
+        self.check_header("End of symbol names");
+    }
+
+    fn load_entry(&mut self) -> usize {
         let entry = u16::from_be_bytes(self.read_several::<2>());
-        self.push(0); // return address
-        self.call_op(entry as usize, 0);
+        self.check_header("Entry loaded, start of functions");
+        entry as usize
+    }
+
+    pub fn run(&mut self) {
+        self.check_header("Initial header");
+        self.load_consts();
+        self.skip_symbol_names();
+        let entry = self.load_entry();
+
+        self.push(0); // return address for entry function
+        self.call_op(entry, 0);
 
         while self.ip < self.program.len() {
             println!("  stack: {:02x?}", &self.stack[0..self.stack_pointer]);
