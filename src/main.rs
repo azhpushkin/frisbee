@@ -1,13 +1,13 @@
 use std::path::Path;
 
 pub mod ast;
-pub mod types;
 pub mod codegen;
 pub mod errors;
 pub mod loader;
 pub mod parser;
 pub mod semantics;
 pub mod test_utils;
+pub mod types;
 pub mod vm;
 
 // TODO: color output?
@@ -26,12 +26,8 @@ fn main() {
     let aggregate = semantics::perform_semantic_analysis(&wp);
 
     let bytecode = codegen::generate(&aggregate);
-    // let aux = codegen::disassemble::get_auxilary_functions_positions(&aggregate);
 
-    // println!(
-    //     "{}",
-    //     codegen::disassemble::disassemble_bytes(&bytecode, Some(&aux))
-    // );
+    println!("{}", codegen::disassemble(&bytecode));
 
     if true {
         let mut vm = vm::Vm::new(bytecode);

@@ -5,9 +5,9 @@ use crate::semantics::symbols::SymbolFunc;
 
 use self::generator::FunctionBytecode;
 
-mod constants;
 mod assemble;
-pub mod disassemble;
+mod constants;
+mod disassemble;
 mod expressions;
 mod functions;
 mod generator;
@@ -18,7 +18,8 @@ fn generate_chunks(prog: &ProgramAggregate) -> (Vec<u8>, HashMap<SymbolFunc, Fun
 
     let mut functions_bytecode: HashMap<SymbolFunc, FunctionBytecode> = HashMap::new();
     for (name, raw_func) in prog.functions.iter() {
-        let bytecode = functions::generate_function_bytecode(raw_func, &prog, &mut globals).unwrap();
+        let bytecode =
+            functions::generate_function_bytecode(raw_func, &prog, &mut globals).unwrap();
         functions_bytecode.insert(name.clone(), bytecode);
     }
 
@@ -29,4 +30,9 @@ fn generate_chunks(prog: &ProgramAggregate) -> (Vec<u8>, HashMap<SymbolFunc, Fun
 pub fn generate(prog: &ProgramAggregate) -> Vec<u8> {
     let (c, f) = generate_chunks(prog);
     assemble::assemble_chunks(c, f, &prog.entry)
+}
+
+pub fn disassemble(program: &Vec<u8>) -> String {
+    let mut d = disassemble::Disassembler::new(&program);
+    return d.disassemble();
 }
