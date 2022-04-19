@@ -27,6 +27,7 @@ pub fn constants_to_bytecode(data: &Vec<Constant>) -> Vec<u8> {
         }
     }
     res.push(op::CONST_END_FLAG);
+    res.push(op::CONST_END_FLAG);
 
     res
 }

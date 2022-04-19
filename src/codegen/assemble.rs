@@ -5,43 +5,59 @@ use crate::semantics::symbols::SymbolFunc;
 
 use super::generator::FunctionBytecode;
 
+/*
+Bytecode structure:
+ - 0xff 0xff : two starting bytes
+ - constants block (see constants.rs::constants_to_bytecode)
+    - constants block ends with CONST_END_FLAG byte
+ - symbols info block, that contains function names
+    - each block starts with a string (2 bytes for length + string)
+    - then, placeholder for the function start
+ - functions bytecode
+
+*/
+
 pub fn assemble_chunks(
-    mut constants: Vec<u8>,
-    mut functions: HashMap<SymbolFunc, FunctionBytecode>,
+    constants: Vec<u8>,
+    functions: HashMap<SymbolFunc, FunctionBytecode>,
     entry: &SymbolFunc,
 ) -> Vec<u8> {
-    let mut functions_vec: Vec<SymbolFunc> = functions.keys().map(|x| x.clone()).collect();
-    functions_vec.sort();
+    let mut bytecode: Vec<u8> = vec![u8::MAX, u8::MAX]; // initial flag
+    bytecode.extend(constants);
+    bytecode.extend(vec![u8::MAX, u8::MAX]);
+
+    let mut encoded_symbols_info: HashMap<usize, &SymbolFunc> = HashMap::new();
+
+    for function_name in functions.keys() {
+        let name_s: String = function_name.into();
+        bytecode.extend((name_s.len() as u16).to_be_bytes());
+        bytecode.extend(name_s.as_bytes());
+
+        encoded_symbols_info.insert(bytecode.len(), function_name);
+        bytecode.extend([0, 0]);
+    }
+
+    bytecode.extend([0, 0, u8::MAX, u8::MAX]); // end of symbols info
+
+    // 2 bytes to encode entry function pos
+    encoded_symbols_info.insert(bytecode.len(), entry);
+    bytecode.extend([0, 0]);
 
     let mut functions_start: HashMap<&SymbolFunc, usize> = HashMap::new();
 
-    constants.extend([0, 0]); // 2 bytes to encode entry function pos
-
-    let mut current_shift = constants.len();
-
-    for name in functions_vec.iter() {
-        let bytecode = &functions[name].bytecode;
-        functions_start.insert(name, current_shift);
-        current_shift += bytecode.len();
-    }
-    let entry_pos = (functions_start[&entry] as u16).to_be_bytes();
-    let x = constants.len();
-    constants[x - 2] = entry_pos[0];
-    constants[x - 1] = entry_pos[1];
-
-    for function in functions.values_mut() {
-        let call_placeholders = function.call_placeholders.clone();
-
-        for (pos, called_func) in call_placeholders {
-            let start = (functions_start[&called_func] as u16).to_be_bytes();
-            function.bytecode[pos] = start[0];
-            function.bytecode[pos + 1] = start[1];
+    for (name, function_bytecode) in functions.iter() {
+        for (pos, called_func) in function_bytecode.call_placeholders.iter() {
+            encoded_symbols_info.insert(*pos + bytecode.len(), called_func);
         }
+        functions_start.insert(name, bytecode.len());
+        bytecode.extend_from_slice(&function_bytecode.bytecode);
     }
 
-    for funcname in functions_vec.iter() {
-        constants.extend(functions[funcname].bytecode.clone());
+    for (pos, called_func) in encoded_symbols_info.iter() {
+        let start = (functions_start[called_func] as u16).to_be_bytes();
+        bytecode[*pos] = start[0];
+        bytecode[*pos + 1] = start[1];
     }
 
-    return constants;
+    return bytecode;
 }

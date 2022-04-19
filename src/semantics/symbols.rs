@@ -13,6 +13,12 @@ impl SymbolFunc {
         Self(format!("{}::{}", alias, name))
     }
 }
+impl Into<String> for &SymbolFunc {
+    fn into(self) -> String {
+        self.0.clone()
+    }
+}
+
 impl SymbolType {
     pub fn new(alias: &ModuleAlias, name: &String) -> Self {
         Self(format!("{}::{}", alias, name))
