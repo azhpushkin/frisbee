@@ -1,4 +1,3 @@
-use crate::ast::Type;
 use crate::semantics::aggregate::{ProgramAggregate, RawFunction};
 use crate::semantics::light_ast::LStatement;
 use crate::vm::opcodes::op;

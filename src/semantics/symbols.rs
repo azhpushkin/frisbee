@@ -1,4 +1,4 @@
-use crate::ast::Type;
+use crate::types::Type;
 use crate::loader::ModuleAlias;
 
 #[derive(Debug, PartialEq, Clone, Eq, Hash)]

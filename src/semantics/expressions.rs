@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crate::ast::*;
 use crate::loader::ModuleAlias;
+use crate::types::Type;
 
 use super::aggregate::{ProgramAggregate, RawFunction};
 use super::annotations::{CustomType};

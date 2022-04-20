@@ -1,4 +1,5 @@
 use crate::ast::*;
+use crate::types::Type;
 
 use super::aggregate::{ProgramAggregate, RawFunction};
 use super::expressions::LightExpressionsGenerator;

@@ -1,4 +1,5 @@
-use crate::ast::{Type, TypedNamedObject};
+use crate::ast::TypedNamedObject;
+use crate::types::Type;
 use std::collections::HashMap;
 
 use super::resolvers::SymbolResolver;

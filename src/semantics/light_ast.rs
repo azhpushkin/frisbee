@@ -1,4 +1,4 @@
-use crate::ast::Type;
+use crate::types::Type;
 
 use super::symbols::{SymbolFunc, SymbolType};
 

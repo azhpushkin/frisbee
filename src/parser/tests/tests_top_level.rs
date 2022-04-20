@@ -1,4 +1,5 @@
 use crate::ast::*;
+use crate::types::Type;
 
 use super::super::parser_impl::*;
 use super::tests_helpers::*;

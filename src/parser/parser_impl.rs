@@ -1,5 +1,6 @@
 use super::scanner::*;
 use crate::ast::*;
+use crate::types::Type;
 
 use super::helpers::{bin_op_from_token, unary_op_from_token};
 

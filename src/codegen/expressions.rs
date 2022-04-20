@@ -1,8 +1,6 @@
 use super::constants::Constant;
 use super::generator::BytecodeGenerator;
-use crate::ast::Type;
 use crate::semantics::light_ast::{LExpr, LExprTyped, RawOperator};
-use crate::semantics::symbols::SymbolFunc;
 use crate::vm::opcodes::op;
 
 fn match_operator(raw_op: &RawOperator) -> u8 {

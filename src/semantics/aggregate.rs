@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
-use crate::ast::{FunctionDecl, Type, TypedNamedObject};
+use crate::ast::{FunctionDecl, TypedNamedObject};
 use crate::loader::{WholeProgram, ModuleAlias};
+use crate::types::Type;
 
 use super::annotations::{annotate_type, annotate_typednamed_vec, CustomType, TypedFields};
 use super::light_ast::LStatement;

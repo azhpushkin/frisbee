@@ -1,8 +1,7 @@
 use crate::ast::*;
+use crate::types::Type;
 
 use super::light_ast::{LExpr, LExprTyped, RawOperator};
-
-type T = Type;
 
 pub fn calculate_unaryop(operator: &UnaryOp, operand: LExprTyped) -> LExprTyped {
     let exact_operator: RawOperator = match (operator, &operand.expr_type) {

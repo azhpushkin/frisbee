@@ -40,8 +40,6 @@ pub struct FunctionDecl {
     pub statements: Vec<StatementWithPos>,
 }
 
-pub type Type = crate::types::Type;
-
 #[derive(Debug, PartialEq)]
 pub struct StatementWithPos {
     pub statement: Statement,
@@ -117,6 +115,8 @@ pub enum UnaryOp {
 // TODO : exceptions lead to message being discarder + logs!!
 // This means that if we do something like array[-1], we do not handle it, lol
 // maybe save state of the actor before running it? (2x memory for this)
+
+use crate::types::Type;
 
 #[derive(Debug, PartialEq)]
 pub struct ExprWithPos {
