@@ -33,6 +33,10 @@ pub fn generate_alias(path: &Vec<String>) -> ModuleAlias {
 }
 
 fn load_file(workdir: &PathBuf, module_path: &Vec<String>) -> Option<LoadedFile> {
+    if module_path.first().unwrap() == "std" {
+        println!("Error loading {:?}: std is reserved", module_path);
+        return None;
+    }
     // TODO: implement logging system for this
     let mut file_path = workdir.to_owned();
     for subpath in module_path.iter() {

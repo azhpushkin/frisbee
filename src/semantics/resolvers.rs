@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crate::loader::{generate_alias, LoadedFile, ModuleAlias, WholeProgram};
 
+use super::std_definitions::std_functions;
 use super::symbols::{SymbolFunc, SymbolType};
 
 type SymbolLookupMapping<T> = HashMap<ModuleAlias, HashMap<String, T>>;
@@ -113,18 +114,18 @@ fn check_module_does_not_import_itself(file: &LoadedFile) {
 
 fn get_origins<'a, I, T>(
     symbols_origins: I,
-    compile_symbol: &dyn Fn(&ModuleAlias, &String) -> T,
+    compile_symbol: &dyn Fn(&ModuleAlias, &'a str) -> T,
 ) -> Result<SingleFileMapping<T>, String>
 where
-    I: Iterator<Item = (ModuleAlias, &'a String)>,
+    I: Iterator<Item = (ModuleAlias, &'a str)>,
 {
     let mut mapping: HashMap<String, T> = HashMap::new();
 
     for (module_alias, symbol) in symbols_origins {
         if mapping.contains_key(symbol) {
-            return Err(symbol.clone());
+            return Err(symbol.to_owned());
         }
-        mapping.insert(symbol.clone(), compile_symbol(&module_alias, &symbol));
+        mapping.insert(symbol.to_owned(), compile_symbol(&module_alias, symbol));
     }
 
     Ok(mapping)
@@ -132,38 +133,42 @@ where
 
 fn get_typenames_origins<'a>(
     file: &'a LoadedFile,
-) -> Box<dyn Iterator<Item = (ModuleAlias, &'a String)> + 'a> {
+) -> Box<dyn Iterator<Item = (ModuleAlias, &'a str)> + 'a> {
     let defined_types = file
         .ast
         .types
         .iter()
-        .map(move |d| (file.module_alias.clone(), &d.name));
+        .map(move |d| (file.module_alias.clone(), d.name.as_str()));
 
     let imported_types = file.ast.imports.iter().flat_map(|i| {
         i.typenames
             .iter()
-            .map(move |typename| (generate_alias(&i.module_path), typename))
+            .map(move |typename| (generate_alias(&i.module_path), typename.as_str()))
     });
+    // TODO: we might have some more complex std types as well as functions
 
     Box::new(defined_types.chain(imported_types))
 }
 
 fn get_functions_origins<'a>(
     file: &'a LoadedFile,
-) -> Box<dyn Iterator<Item = (ModuleAlias, &'a String)> + 'a> {
+) -> Box<dyn Iterator<Item = (ModuleAlias, &'a str)> + 'a> {
     let defined_types = file
         .ast
         .functions
         .iter()
-        .map(move |f| (file.module_alias.clone(), &f.name));
+        .map(move |f| (file.module_alias.clone(), f.name.as_str()));
 
     let imported_types = file.ast.imports.iter().flat_map(|i| {
         i.functions
             .iter()
-            .map(move |funcname| (generate_alias(&i.module_path), funcname))
+            .map(move |funcname| (generate_alias(&i.module_path), funcname.as_str()))
     });
+    let std_functions_mapping = std_functions
+        .iter()
+        .map(move |std_func| (file.module_alias.clone(), *std_func));
 
-    Box::new(defined_types.chain(imported_types))
+    Box::new(defined_types.chain(imported_types).chain(std_functions_mapping))
 }
 
 #[cfg(test)]

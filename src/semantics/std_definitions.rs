@@ -1,4 +1,8 @@
-
+pub const std_functions: [&str; 3] = [
+    "print",
+    "println",
+    "range",
+];
 // print(String) -> void
 // println(String) -> void
 // range(Int, Int) -> [Int]

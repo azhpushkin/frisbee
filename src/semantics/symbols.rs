@@ -1,7 +1,6 @@
 use crate::ast::Type;
 use crate::loader::ModuleAlias;
 
-
 #[derive(Debug, PartialEq, Clone, Eq, Hash)]
 pub struct SymbolType(String);
 
@@ -9,8 +8,11 @@ pub struct SymbolType(String);
 pub struct SymbolFunc(String);
 
 impl SymbolFunc {
-    pub fn new(alias: &ModuleAlias, name: &String) -> Self {
-        Self(format!("{}::{}", alias, name))
+    pub fn new<S>(alias: &ModuleAlias, name: S) -> Self
+    where
+        S: Into<String>,
+    {
+        Self(format!("{}::{}", alias, name.into()))
     }
 
     pub fn is_std(&self) -> bool {
@@ -24,8 +26,11 @@ impl Into<String> for &SymbolFunc {
 }
 
 impl SymbolType {
-    pub fn new(alias: &ModuleAlias, name: &String) -> Self {
-        Self(format!("{}::{}", alias, name))
+    pub fn new<S>(alias: &ModuleAlias, name: S) -> Self
+    where
+        S: Into<String>,
+    {
+        Self(format!("{}::{}", alias, name.into()))
     }
 
     pub fn method(&self, method: &String) -> SymbolFunc {
