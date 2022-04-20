@@ -5,10 +5,11 @@ use crate::loader::ModuleAlias;
 use crate::types::Type;
 
 use super::aggregate::{ProgramAggregate, RawFunction};
-use super::annotations::{CustomType};
+use super::annotations::CustomType;
 use super::light_ast::{LExpr, LExprTyped};
 use super::operators::{calculate_binaryop, calculate_unaryop};
 use super::resolvers::{NameResolver, SymbolResolver};
+use super::std_definitions::{get_std_raw_signature, STD_FUNCTION_NAMES};
 use super::symbols::{SymbolFunc, SymbolType};
 
 fn if_as_expected(e: Option<&Type>, t: &Type, le: LExpr) -> LExprTyped {
@@ -114,9 +115,13 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
             ),
 
             Expr::FunctionCall { function, args } => {
-                let raw_called = self.resolve_func(&function);
-
-                self.calculate_function_call(&raw_called, expected, &args, None)
+                if STD_FUNCTION_NAMES.contains(&function.as_str()) {
+                    let std_raw = get_std_raw_signature(function);
+                    self.calculate_function_call(&std_raw, expected, &args, None)
+                } else {
+                    let raw_called = self.resolve_func(&function);
+                    self.calculate_function_call(&raw_called, expected, &args, None)
+                }
             }
             Expr::MethodCall { object, method, args } => {
                 let object = self.calculate(object, expected);

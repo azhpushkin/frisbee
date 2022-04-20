@@ -9,5 +9,6 @@ fun void main() {
             break;
         }
     }
+    println(o);
     return a;
 }

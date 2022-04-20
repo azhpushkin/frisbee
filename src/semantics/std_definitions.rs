@@ -1,19 +1,43 @@
 use std::collections::HashMap;
 
+use crate::loader::{generate_alias, ModuleAlias};
 use crate::types::Type;
 
-const VOID_TYPE: Type = Type::Tuple(vec![]);
+use super::aggregate::RawFunction;
+use super::annotations::TypedFields;
+use super::symbols::SymbolFunc;
 
-pub fn raw_std_functions() -> HashMap<&'static str, (Vec<Type>, Type)> {
+fn std_symbol_func(name: &str) -> SymbolFunc {
+    let std_module = generate_alias(&vec!["std".into()]);
+    SymbolFunc::new(&std_module, name)
+}
+
+fn std_function_signatures() -> HashMap<&'static str, (Vec<Type>, Type)> {
     HashMap::from([
-        ("print", (vec![Type::String], VOID_TYPE.clone())),
-        ("println", (vec![Type::String], VOID_TYPE.clone())),
+        ("print", (vec![Type::String], Type::Tuple(vec![]))),
+        ("println", (vec![Type::String], Type::Tuple(vec![]))),
         (
             "range",
             (vec![Type::Int, Type::Int], Type::List(Box::new(Type::Int))),
         ),
-        ("gen_input", (vec![], Type::String)),
+        ("input", (vec![], Type::String)),
     ])
+}
+
+pub fn get_std_raw_signature(name: &String) -> RawFunction {
+    let (args, return_type) = &std_function_signatures()[name.as_str()];
+    RawFunction {
+        name: std_symbol_func(name.as_str()),
+        return_type: Some(return_type.clone()),
+        args: TypedFields {
+            types: args.clone(),
+            names: args.iter().enumerate().map(|(i, _)| (i, "".into())).collect(),
+        },
+        body: vec![],
+        short_name: name.clone(),
+        method_of: None,
+        defined_at: generate_alias(&vec!["std".into()]),
+    }
 }
 
 pub const STD_FUNCTION_NAMES: [&str; 4] = ["print", "println", "range", "get_input"];
