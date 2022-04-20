@@ -167,6 +167,7 @@ impl Vm {
         while self.ip < self.program.len() {
             println!("  stack: {:02x?}", &self.stack[0..self.stack_pointer]);
             println!(">> exec pc: {:02x?}", self.ip);
+            println!("Str: {:?}", self.strings);
 
             let opcode = self.read_opcode();
             match opcode {
@@ -203,6 +204,21 @@ impl Vm {
                 op::AND_BOOL => self.exec_binaryop(|a, b| a & b),
                 op::OR_BOOL => self.exec_binaryop(|a, b| a | b),
                 op::EQ_BOOL => self.exec_binaryop(|a, b| !(a ^ b)),
+
+                op::ADD_STRINGS => {
+                    let (b, a) = (self.pop(), self.pop());
+                    let (s1, s2) = (&self.strings[a as usize], &self.strings[b as usize]);
+                    let res = format!("{}{}", s1, s2);
+                    self.strings.push(res);
+                    self.push((self.strings.len() - 1) as u64);
+                }
+                op::EQ_STRINGS => {
+                    let (b, a) = (self.pop(), self.pop());
+                    let (s1, s2) = (&self.strings[a as usize], &self.strings[b as usize]);
+                    let res = (s1 == s2) as u64;
+                    self.push(res);
+                }
+
                 op::GET_VAR => {
                     let value_pos = self.read_opcode() as usize;
                     self.push(self.stack[self.current_frame().stack_start + value_pos]);

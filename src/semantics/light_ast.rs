@@ -60,6 +60,7 @@ pub enum RawOperator {
     OrBools,
 
     EqualStrings,
+    AddStrings,
     // TODO: think about this a little more
 }
 

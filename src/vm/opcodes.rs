@@ -40,6 +40,9 @@ pub mod op {
         EQ_BOOL,
         AND_BOOL,
         OR_BOOL,
+        
+        ADD_STRINGS,
+        EQ_STRINGS,
 
         RETURN,
         POP

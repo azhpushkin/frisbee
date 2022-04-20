@@ -25,10 +25,23 @@ pub fn opcode_to_s(c: u8) -> &'static str {
         op::LESS_INT => "less_int",
         op::EQ_INT => "eq_int",
 
+        op::NEGATE_FLOAT => "negate_float",
         op::ADD_FLOAT => "add_float",
         op::SUB_FLOAT => "sub_float",
         op::MUL_FLOAT => "mul_float",
         op::DIV_FLOAT => "div_float",
+        op::GREATER_FLOAT => "greater_float",
+        op::LESS_FLOAT => "less_float",
+        op::EQ_FLOAT => "eq_float",
+
+        op::NEGATE_BOOL => "negate_bool",
+        op::EQ_BOOL => "eq_bool",
+        op::AND_BOOL => "and_bool",
+        op::OR_BOOL => "or_bool",
+        
+        op::ADD_STRINGS => "add_strings",
+        op::EQ_STRINGS => "eq_strings",
+
         op::CALL => "call",
         op::RETURN => "return",
         op::POP => "pop",

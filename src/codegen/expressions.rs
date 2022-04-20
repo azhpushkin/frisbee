@@ -28,7 +28,8 @@ fn match_operator(raw_op: &RawOperator) -> u8 {
         RawOperator::AndBools => op::AND_BOOL,
         RawOperator::OrBools => op::OR_BOOL,
 
-        RawOperator::EqualStrings => todo!(),
+        RawOperator::EqualStrings => op::EQ_STRINGS,
+        RawOperator::AddStrings => op::ADD_STRINGS,
     }
 }
 

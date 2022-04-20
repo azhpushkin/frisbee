@@ -49,7 +49,7 @@ pub fn calculate_binaryop(operator: &BinaryOp, left: LExprTyped, right: LExprTyp
             match left.expr_type {
                 Type::Int => (RawOperator::AddInts, Type::Int),
                 Type::Float => (RawOperator::AddFloats, Type::Float),
-                Type::String => (RawOperator::AddFloats, Type::Float),
+                Type::String => (RawOperator::AddStrings, Type::String),
                 Type::List(_) => panic!("WOW i need to implement this to be fair"),
                 _ => raise_error(),
             }
