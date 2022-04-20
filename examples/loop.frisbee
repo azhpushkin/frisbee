@@ -1,14 +1,11 @@
 
 fun void main() {
     Int a = 1;
-    String q = "123";
-    String o = q + "456" + '78';
     while a < 100 {
         a = a * 2;
         if a == 64 {
             break;
         }
     }
-    println(o);
     return a;
 }

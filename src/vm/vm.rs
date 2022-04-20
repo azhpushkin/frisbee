@@ -1,4 +1,5 @@
 use super::opcodes::op;
+use super::stdlib::std_println;
 
 const STACK_SIZE: usize = 1024;
 
@@ -11,7 +12,7 @@ pub struct Vm {
     program: Vec<u8>,
     ip: usize,
     constants: Vec<u64>,
-    strings: Vec<String>,  //  DO NOT EMPTY IT YET
+    strings: Vec<String>, //  DO NOT EMPTY IT YET
     stack: [u64; STACK_SIZE],
     stack_pointer: usize,
     frames: Vec<CallFrame>, // TODO: limit size
@@ -50,6 +51,13 @@ impl Vm {
         self.frames
             .push(CallFrame { return_ip: self.ip, stack_start: self.stack_pointer - args_num - 1 });
         self.ip = func_pos;
+    }
+
+    fn call_std(&mut self, func_index: usize, args_num: usize) {
+        let start = self.stack_pointer - args_num - 1;
+        std_println(&mut self.stack[start..], &mut self.strings);
+        self.ip += 1;
+        self.stack_pointer = start - args_num;
     }
 
     fn return_op(&mut self) {
@@ -236,6 +244,11 @@ impl Vm {
                     let args_num = self.read_opcode();
                     let function_pos = u16::from_be_bytes([self.read_opcode(), self.read_opcode()]);
                     self.call_op(function_pos as usize, args_num as usize);
+                }
+                op::CALL_STD => {
+                    let args_num = self.read_opcode();
+                    let std_function_index = self.read_opcode();
+                    self.call_std(std_function_index as usize, args_num as usize);
                 }
                 op::POP => {
                     self.pop();

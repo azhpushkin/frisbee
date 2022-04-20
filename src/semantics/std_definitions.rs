@@ -13,9 +13,10 @@ fn std_symbol_func(name: &str) -> SymbolFunc {
 }
 
 fn std_function_signatures() -> HashMap<&'static str, (Vec<Type>, Type)> {
+    // TODO: review return types when void is done!
     HashMap::from([
-        ("print", (vec![Type::String], Type::Tuple(vec![]))),
-        ("println", (vec![Type::String], Type::Tuple(vec![]))),
+        ("print", (vec![Type::String], Type::Int)),
+        ("println", (vec![Type::String], Type::Int)),
         (
             "range",
             (vec![Type::Int, Type::Int], Type::List(Box::new(Type::Int))),

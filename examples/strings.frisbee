@@ -1,0 +1,6 @@
+fun void main() {
+    String q = "123";
+    String o = q + "456" + '78';
+    println(o);
+    return 9;
+}

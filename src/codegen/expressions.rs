@@ -74,9 +74,16 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 for arg in args.iter() {
                     self.push_expr(&arg);
                 }
-                self.push(op::CALL);
-                self.push(args.len() as u8);
-                self.push_function_placeholder(name);
+                if name.is_std() {
+                    self.push(op::CALL_STD);
+                    self.push(args.len() as u8);
+                    self.push(0);  // TODO: correct index here
+                } else {
+                    self.push(op::CALL);
+                    self.push(args.len() as u8);
+                    self.push_function_placeholder(name);
+                }
+                
             }
             LExpr::Allocate { .. } => todo!("Allocate is not here yet!"),
         }

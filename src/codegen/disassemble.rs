@@ -43,6 +43,7 @@ pub fn opcode_to_s(c: u8) -> &'static str {
         op::EQ_STRINGS => "eq_strings",
 
         op::CALL => "call",
+        op::CALL_STD => "call_std",
         op::RETURN => "return",
         op::POP => "pop",
         op::SET_VAR => "set_var",

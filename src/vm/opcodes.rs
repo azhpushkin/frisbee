@@ -60,7 +60,9 @@ pub mod op {
     opcodes_list!(180,
         JUMP,
         JUMP_BACK,
-        JUMP_IF_FALSE
+        JUMP_IF_FALSE,
+
+        CALL_STD  // args num + index of std function
     );
 
     opcodes_list!(220,
