@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::loader::{generate_alias, LoadedFile, ModuleAlias, WholeProgram};
 
-use super::std_definitions::std_functions;
+use super::std_definitions::STD_FUNCTION_NAMES;
 use super::symbols::{SymbolFunc, SymbolType};
 
 type SymbolLookupMapping<T> = HashMap<ModuleAlias, HashMap<String, T>>;
@@ -164,7 +164,7 @@ fn get_functions_origins<'a>(
             .iter()
             .map(move |funcname| (generate_alias(&i.module_path), funcname.as_str()))
     });
-    let std_functions_mapping = std_functions
+    let std_functions_mapping = STD_FUNCTION_NAMES
         .iter()
         .map(move |std_func| (file.module_alias.clone(), *std_func));
 
