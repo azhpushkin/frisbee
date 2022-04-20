@@ -10,7 +10,13 @@ impl Globals {
     }
 
     pub fn get_constant(&mut self, constant: Constant) -> u8 {
-        self.constants.push(constant);
-        (self.constants.len() - 1) as u8
+        let existing = self.constants.iter().enumerate().find(|(_, c)| *c == &constant);
+        match existing {
+            Some((pos, _)) => pos as u8,
+            None => {
+                self.constants.push(constant);
+                (self.constants.len() - 1) as u8
+            }
+        }
     }
 }

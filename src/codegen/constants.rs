@@ -1,6 +1,6 @@
 use crate::vm::opcodes::op;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum Constant {
     Int(i64),
     Float(f64),
