@@ -1,3 +1,5 @@
+use std::convert::TryFrom;
+
 use super::constants::Constant;
 use super::generator::BytecodeGenerator;
 use crate::semantics::light_ast::{LExpr, LExprTyped, RawOperator};
@@ -37,10 +39,16 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
     pub fn push_expr(&mut self, expr: &LExprTyped) {
         let LExprTyped { expr, expr_type } = expr;
         match expr {
-            LExpr::Int(i) => {
-                self.push(op::LOAD_CONST);
-                self.push_constant(Constant::Int(*i as i64));
-            }
+            LExpr::Int(i) => match i8::try_from(*i) {
+                Ok(i8_value) => {
+                    self.push(op::LOAD_SMALL_INT);
+                    self.push(i8_value as u8);
+                }
+                Err(_) => {
+                    self.push(op::LOAD_CONST);
+                    self.push_constant(Constant::Int(*i as i64));
+                }
+            },
             LExpr::Float(f) => {
                 self.push(op::LOAD_CONST);
                 self.push_constant(Constant::Float(*f as f64));
@@ -48,7 +56,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
             LExpr::String(s) => {
                 self.push(op::LOAD_CONST);
                 self.push_constant(Constant::String(s.clone()));
-            },
+            }
             LExpr::Bool(b) if *b => self.push(op::LOAD_TRUE),
             LExpr::Bool(_) => self.push(op::LOAD_FALSE),
 

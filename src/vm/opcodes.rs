@@ -40,7 +40,7 @@ pub mod op {
         EQ_BOOL,
         AND_BOOL,
         OR_BOOL,
-        
+
         ADD_STRINGS,
         EQ_STRINGS,
 
@@ -51,7 +51,7 @@ pub mod op {
     // Opcodes with single operand
     opcodes_list!(100,
         LOAD_CONST,
-        LOAD_INT,
+        LOAD_SMALL_INT,
         SET_VAR,
         GET_VAR
     );

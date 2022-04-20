@@ -167,7 +167,6 @@ impl Vm {
         while self.ip < self.program.len() {
             println!("  stack: {:02x?}", &self.stack[0..self.stack_pointer]);
             println!(">> exec pc: {:02x?}", self.ip);
-            println!("Str: {:?}", self.strings);
 
             let opcode = self.read_opcode();
             match opcode {
@@ -175,7 +174,7 @@ impl Vm {
                     let index = self.read_opcode();
                     self.push(self.constants[index as usize]);
                 }
-                op::LOAD_INT => {
+                op::LOAD_SMALL_INT => {
                     let value = self.read_opcode();
                     self.push(value as u64);
                 }

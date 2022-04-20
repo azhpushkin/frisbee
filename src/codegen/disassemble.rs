@@ -12,7 +12,7 @@ pub fn opcode_to_s(c: u8) -> &'static str {
     match c {
         op::RESERVE_ONE => "reserve_one",
         op::LOAD_CONST => "load_const",
-        op::LOAD_INT => "load_int",
+        op::LOAD_SMALL_INT => "load_small_int",
         op::LOAD_TRUE => "load_true",
         op::LOAD_FALSE => "load_false",
 
@@ -38,7 +38,7 @@ pub fn opcode_to_s(c: u8) -> &'static str {
         op::EQ_BOOL => "eq_bool",
         op::AND_BOOL => "and_bool",
         op::OR_BOOL => "or_bool",
-        
+
         op::ADD_STRINGS => "add_strings",
         op::EQ_STRINGS => "eq_strings",
 
@@ -122,7 +122,7 @@ impl<'a> Disassembler<'a> {
             let const_text: String = match self.get_byte().1 {
                 op::CONST_INT_FLAG => i64::from_be_bytes(self.get_bytes::<8>()).to_string(),
                 op::CONST_FLOAT_FLAG => f64::from_be_bytes(self.get_bytes::<8>()).to_string(),
-                op::CONST_STRING_FLAG => self.get_str(),
+                op::CONST_STRING_FLAG => format!("\"{}\"", self.get_str()),
                 op::CONST_END_FLAG => {
                     break;
                 }
