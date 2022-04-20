@@ -11,6 +11,7 @@ pub struct Vm {
     program: Vec<u8>,
     ip: usize,
     constants: Vec<u64>,
+    strings: Vec<String>,  //  DO NOT EMPTY IT YET
     stack: [u64; STACK_SIZE],
     stack_pointer: usize,
     frames: Vec<CallFrame>, // TODO: limit size
@@ -22,6 +23,7 @@ impl Vm {
             program,
             ip: 0,
             constants: vec![],
+            strings: vec![],
             stack: [0; STACK_SIZE],
             stack_pointer: 0,
             frames: vec![],
@@ -116,7 +118,9 @@ impl Vm {
                 }
                 op::CONST_STRING_FLAG => {
                     let str_len = u16::from_be_bytes(self.read_several::<2>());
-                    panic!("Strings are not implemented yet!");
+                    let str_bytes = self.read_bytes(str_len as usize);
+                    self.strings.push(String::from_utf8(str_bytes).unwrap());
+                    self.constants.push((self.strings.len() - 1) as u64);
                 }
                 op::CONST_END_FLAG => break,
                 c => panic!("Unknown const flag: {:02x}", c),

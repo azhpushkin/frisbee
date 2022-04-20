@@ -1,6 +1,7 @@
 
 fun void main() {
     Int a = 1;
+    String b = "123";
     while a < 100 {
         a = a * 2;
         if a == 64 {

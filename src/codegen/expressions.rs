@@ -44,7 +44,10 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 self.push(op::LOAD_CONST);
                 self.push_constant(Constant::Float(*f as f64));
             }
-            LExpr::String(_) => todo!("load string is not done!"),
+            LExpr::String(s) => {
+                self.push(op::LOAD_CONST);
+                self.push_constant(Constant::String(s.clone()));
+            },
             LExpr::Bool(b) if *b => self.push(op::LOAD_TRUE),
             LExpr::Bool(_) => self.push(op::LOAD_FALSE),
 
