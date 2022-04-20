@@ -3,6 +3,7 @@ use std::convert::TryFrom;
 use super::constants::Constant;
 use super::generator::BytecodeGenerator;
 use crate::semantics::light_ast::{LExpr, LExprTyped, RawOperator};
+use crate::semantics::symbols::SymbolFunc;
 use crate::vm::opcodes::op;
 
 fn match_operator(raw_op: &RawOperator) -> u8 {
@@ -32,6 +33,17 @@ fn match_operator(raw_op: &RawOperator) -> u8 {
 
         RawOperator::EqualStrings => op::EQ_STRINGS,
         RawOperator::AddStrings => op::ADD_STRINGS,
+    }
+}
+
+pub fn match_std_function(name: &SymbolFunc) -> u8 {
+    let name_s: String = name.into();
+    match name_s.as_str() {
+        "std::print" => 0,
+        "std::println" => 1,
+        "std::range" => 2,
+        "std::get_input" => 3,
+        _ => panic!("Unknown function: {}", name_s),
     }
 }
 
@@ -77,13 +89,12 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 if name.is_std() {
                     self.push(op::CALL_STD);
                     self.push(args.len() as u8);
-                    self.push(0);  // TODO: correct index here
+                    self.push(match_std_function(name)); // TODO: correct index here
                 } else {
                     self.push(op::CALL);
                     self.push(args.len() as u8);
                     self.push_function_placeholder(name);
                 }
-                
             }
             LExpr::Allocate { .. } => todo!("Allocate is not here yet!"),
         }

@@ -1,6 +1,5 @@
 fun void main() {
-    String q = "123";
-    String o = q + "456" + '78';
-    println(o);
+    String x = get_input();
+    println("Hello, " + x + '!');
     return 9;
 }

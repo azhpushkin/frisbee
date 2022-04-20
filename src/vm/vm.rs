@@ -1,5 +1,5 @@
 use super::opcodes::op;
-use super::stdlib::std_println;
+use super::stdlib::STD_FUNCTIONS;
 
 const STACK_SIZE: usize = 1024;
 
@@ -55,9 +55,8 @@ impl Vm {
 
     fn call_std(&mut self, func_index: usize, args_num: usize) {
         let start = self.stack_pointer - args_num - 1;
-        std_println(&mut self.stack[start..], &mut self.strings);
-        self.ip += 1;
-        self.stack_pointer = start - args_num;
+        STD_FUNCTIONS[func_index](&mut self.stack[start..], &mut self.strings);
+        self.stack_pointer -= args_num;
     }
 
     fn return_op(&mut self) {

@@ -21,7 +21,7 @@ fn std_function_signatures() -> HashMap<&'static str, (Vec<Type>, Type)> {
             "range",
             (vec![Type::Int, Type::Int], Type::List(Box::new(Type::Int))),
         ),
-        ("input", (vec![], Type::String)),
+        ("get_input", (vec![], Type::String)),
     ])
 }
 
