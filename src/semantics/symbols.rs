@@ -12,6 +12,10 @@ impl SymbolFunc {
     pub fn new(alias: &ModuleAlias, name: &String) -> Self {
         Self(format!("{}::{}", alias, name))
     }
+
+    pub fn is_std(&self) -> bool {
+        self.0.starts_with("std::")
+    }
 }
 impl Into<String> for &SymbolFunc {
     fn into(self) -> String {

@@ -7,6 +7,7 @@ pub mod annotations;
 mod default_constructors;
 mod expressions;
 pub mod light_ast;
+mod std_definitions;
 mod operators;
 mod resolvers;
 mod statements;
