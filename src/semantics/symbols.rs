@@ -15,6 +15,20 @@ impl SymbolFunc {
         Self(format!("{}::{}", alias, name.into()))
     }
 
+    pub fn new_std_function(name: &str) -> Self {
+        Self(format!("std::{}", name))
+    }
+
+    pub fn new_std_method(t: &Type, name: &str) -> Self {
+        match t {
+            Type::Int => Self(format!("std::Int::{}", name)),
+            Type::Float => Self(format!("std::Float::{}", name)),
+            Type::Bool => Self(format!("std::Bool::{}", name)),
+            Type::String => Self(format!("std::String::{}", name)),
+            _ => panic!("Cant create std method {} for {:?} type", name, t),
+        }
+    }
+
     pub fn is_std(&self) -> bool {
         self.0.starts_with("std::")
     }

@@ -1,17 +1,12 @@
 use std::collections::HashMap;
 
-use crate::loader::{generate_alias, ModuleAlias};
+use crate::loader::generate_alias;
 use crate::stdlib;
 use crate::types::Type;
 
 use super::aggregate::RawFunction;
 use super::annotations::TypedFields;
 use super::symbols::SymbolFunc;
-
-fn std_symbol_func(name: &str) -> SymbolFunc {
-    let std_module = generate_alias(&vec!["std".into()]);
-    SymbolFunc::new(&std_module, name)
-}
 
 pub fn is_std_function(func_name: &str) -> bool {
     stdlib::STD_FUNCTIONS.iter().find(|(k, _)| *k == func_name).is_some()
@@ -25,7 +20,7 @@ fn std_function_signatures() -> HashMap<&'static str, (Vec<Type>, Type)> {
 pub fn get_std_function_raw(name: &String) -> RawFunction {
     let (args, return_type) = &std_function_signatures()[name.as_str()];
     RawFunction {
-        name: std_symbol_func(name.as_str()),
+        name: SymbolFunc::new_std_function(name.as_str()),
         return_type: Some(return_type.clone()),
         args: TypedFields {
             types: args.clone(),

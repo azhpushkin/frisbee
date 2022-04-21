@@ -100,3 +100,39 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use crate::semantics::symbols::SymbolFunc;
+    use crate::stdlib;
+    use crate::types::Type;
+    use crate::vm::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
+
+    #[test]
+    fn check_that_all_std_functions_are_there() {
+        let mut std_symbols: Vec<SymbolFunc> = vec![];
+
+        std_symbols.extend(stdlib::STD_FUNCTIONS.map(|(s, _)| SymbolFunc::new_std_function(s)));
+        let method_pairs = [
+            (stdlib::STD_BOOL_METHODS.iter(), Type::Bool),
+            (stdlib::STD_INT_METHODS.iter(), Type::Int),
+            (stdlib::STD_FLOAT_METHODS.iter(), Type::Float),
+            (stdlib::STD_STRING_METHODS.iter(), Type::String),
+        ];
+        for (methods, t) in method_pairs {
+            std_symbols.extend(methods.map(|(s, _)| SymbolFunc::new_std_method(&t, s)));
+        }
+
+        let mut implemented_std_functions: Vec<String> = STD_RAW_FUNCTION_RUNNERS
+            .iter()
+            .map(|(s, _)| String::from(*s))
+            .collect();
+        let mut typechecked_std_functions: Vec<String> =
+            std_symbols.iter().map(|s| s.into()).collect();
+
+        implemented_std_functions.sort();
+        typechecked_std_functions.sort();
+
+        assert_eq!(implemented_std_functions, typechecked_std_functions);
+    }
+}

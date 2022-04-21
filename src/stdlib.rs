@@ -5,10 +5,9 @@ pub type StdFunc = (&'static str, fn() -> (Vec<Type>, Type));
 pub const STD_FUNCTIONS: [StdFunc; 4] = [
     ("print", || (vec![Type::String], Type::Int)),
     ("println", || (vec![Type::String], Type::Int)),
-    (
-        "range",
-        || (vec![Type::Int, Type::Int], Type::List(Box::new(Type::Int))),
-    ),
+    ("range", || {
+        (vec![Type::Int, Type::Int], Type::List(Box::new(Type::Int)))
+    }),
     ("get_input", || (vec![], Type::String)),
 ];
 
@@ -31,14 +30,11 @@ pub const STD_FLOAT_METHODS: [StdFunc; 5] = [
 pub const STD_STRING_METHODS: [StdFunc; 4] = [
     ("len", || (vec![], Type::Int)),
     ("is_empty", || (vec![], Type::Bool)),
-    (
-        "find",
-        || (vec![Type::String], Type::Maybe(Box::new(Type::Int))),
-    ),
+    ("find", || {
+        (vec![Type::String], Type::Maybe(Box::new(Type::Int)))
+    }),
     ("contains", || (vec![Type::String], Type::Bool)),
 ];
-
-
 
 // print(String) -> void
 // println(String) -> void

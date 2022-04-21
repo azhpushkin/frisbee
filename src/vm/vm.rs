@@ -1,5 +1,5 @@
 use super::opcodes::op;
-use super::stdlib::STD_FUNCTIONS;
+use super::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
 
 const STACK_SIZE: usize = 1024;
 
@@ -55,7 +55,7 @@ impl Vm {
 
     fn call_std(&mut self, func_index: usize, args_num: usize) {
         let start = self.stack_pointer - args_num - 1;
-        STD_FUNCTIONS[func_index](&mut self.stack[start..], &mut self.strings);
+        STD_RAW_FUNCTION_RUNNERS[func_index].1(&mut self.stack[start..], &mut self.strings);
         self.stack_pointer -= args_num;
     }
 
