@@ -37,16 +37,15 @@ fn generate_statement_bytecode<'a, 'b>(
             generator.push(op::POP);
         }
         LStatement::DeclareVar { var_type, name } => {
-            // TODO: this should reserve the space for the variable
-            generator.add_local(name);
-            generator.push(op::RESERVE_ONE);
+            generator.add_local(name, var_type);
+            generator.push_reserve(var_type);
         }
         LStatement::AssignVar { name, value } => {
             generator.push_expr(value);
             generator.push_set_var(name);
         }
         LStatement::DeclareAndAssignVar { var_type, name, value } => {
-            generator.add_local(name);
+            generator.add_local(name, var_type);
             generator.push_expr(value);
         }
         LStatement::Return(expr) => {

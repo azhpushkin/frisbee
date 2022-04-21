@@ -84,7 +84,8 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 self.push_get_var(varname);
             }
             LExpr::CallFunction { name, args } => {
-                self.push(op::RESERVE_ONE);
+                todo!("Add return value to call_function");
+                // self.push_reserve(Type::Int);
                 for arg in args.iter() {
                     self.push_expr(&arg);
                 }
@@ -96,6 +97,11 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                     self.push(op::CALL);
                     self.push(args.len() as u8);
                     self.push_function_placeholder(name);
+                }
+            }
+            LExpr::TupleValue(items) => {
+                for item in items.iter() {
+                    self.push_expr(&item);
                 }
             }
             LExpr::Allocate { .. } => todo!("Allocate is not here yet!"),

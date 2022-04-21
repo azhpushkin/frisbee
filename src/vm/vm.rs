@@ -243,10 +243,13 @@ impl Vm {
                     let value_pos = self.read_opcode() as usize;
                     self.stack[self.current_frame().stack_start + value_pos] = value;
                 }
-                op::RESERVE_ONE => {
+                op::RESERVE => {
                     // TODO: this seems wrong, function might reserve at the very start tbh
                     // should check after basic implementation probably
-                    self.push(0);
+                    let value = self.read_opcode();
+                    for _ in 0..value {
+                        self.push(0);
+                    } 
                 }
                 op::CALL => {
                     let args_num = self.read_opcode();

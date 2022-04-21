@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crate::semantics::aggregate::ProgramAggregate;
 use crate::semantics::symbols::SymbolFunc;
+use crate::types::Type;
 use crate::vm::opcodes::op;
 
 use super::constants::Constant;
@@ -17,10 +18,24 @@ pub struct JumpPlaceholder {
     position: usize,
 }
 
+fn get_type_size(t: &Type) -> usize {
+    match t {
+        Type::Int => 1,
+        Type::Float => 1,
+        Type::Bool => 1,
+        Type::String => 1,
+        Type::Maybe(inner) => get_type_size(inner.as_ref()) + 1,
+        Type::Tuple(items) => items.iter().map(|t| get_type_size(t)).sum(),
+        Type::List(_) => 1,
+        Type::Ident(_) => 1,
+    }
+}
+
 pub struct BytecodeGenerator<'a, 'b> {
     aggregate: &'a ProgramAggregate,
     globals: &'b mut Globals,
     locals: HashMap<&'a String, u8>,
+    locals_positions: Vec<u8>,
     bytecode: FunctionBytecode,
 }
 
@@ -38,9 +53,10 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
         }
     }
 
-    pub fn add_local(&mut self, varname: &'a String) {
+    pub fn add_local(&mut self, varname: &'a String, t: &Type) {
         // TODO: add type info for offsets
         self.locals.insert(varname, self.locals.len() as u8);
+        self.locals_positions.push(get_type_size(t))
     }
 
     pub fn push_get_var(&mut self, varname: &String) {
@@ -67,6 +83,10 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
 
     pub fn push(&mut self, opcode: u8) {
         self.bytecode.bytecode.push(opcode);
+    }
+
+    pub fn push_reserve(&mut self, for_type: &Type) {
+
     }
 
     pub fn push_function_placeholder(&mut self, func: &SymbolFunc) {

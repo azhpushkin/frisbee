@@ -16,8 +16,6 @@ pub mod op {
         LOAD_TRUE,
         LOAD_FALSE,
 
-        RESERVE_ONE,
-
         NEGATE_INT,
         ADD_INT,
         SUB_INT,
@@ -50,6 +48,8 @@ pub mod op {
 
     // Opcodes with single operand
     opcodes_list!(100,
+        RESERVE,
+
         LOAD_CONST,
         LOAD_SMALL_INT,
         SET_VAR,

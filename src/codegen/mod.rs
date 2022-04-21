@@ -9,7 +9,7 @@ mod assemble;
 mod constants;
 mod disassemble;
 mod expressions;
-mod functions;
+mod statements;
 mod generator;
 mod globals;
 
@@ -19,7 +19,7 @@ fn generate_chunks(prog: &ProgramAggregate) -> (Vec<u8>, HashMap<SymbolFunc, Fun
     let mut functions_bytecode: HashMap<SymbolFunc, FunctionBytecode> = HashMap::new();
     for (name, raw_func) in prog.functions.iter() {
         let bytecode =
-            functions::generate_function_bytecode(raw_func, &prog, &mut globals).unwrap();
+            statements::generate_function_bytecode(raw_func, &prog, &mut globals).unwrap();
         functions_bytecode.insert(name.clone(), bytecode);
     }
 
