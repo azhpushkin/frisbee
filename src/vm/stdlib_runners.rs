@@ -17,6 +17,23 @@ fn std_get_input(stack: &mut [u64], memory: &mut Vec<String>) {
     stack[0] = memory.len() as u64 - 1;
 }
 
+fn std_bool_to_string(stack: &mut [u64], memory: &mut Vec<String>) {
+    let s = if stack[1] > 0 { "true" } else { "false" };
+    memory.push(s.into());
+    stack[0] = memory.len() as u64 - 1;
+}
+
+fn std_int_to_string(stack: &mut [u64], memory: &mut Vec<String>) {
+    memory.push((stack[1] as i64).to_string());
+    stack[0] = memory.len() as u64 - 1;
+}
+
+fn std_float_to_string(stack: &mut [u64], memory: &mut Vec<String>) {
+    println!("asd {}", stack[1] as f64);
+    memory.push((stack[1] as f64).to_string());
+    stack[0] = memory.len() as u64 - 1;
+}
+
 fn noop(stack: &mut [u64], memory: &mut Vec<String>) {
     panic!("not implemented yet");
 }
@@ -26,11 +43,11 @@ pub static STD_RAW_FUNCTION_RUNNERS: [(&'static str, RawStdRunner); 17] = [
     ("std::println", std_println),
     ("std::range", noop),
     ("std::get_input", std_get_input),
-    ("std::Bool::to_string", noop),
+    ("std::Bool::to_string", std_bool_to_string),
     ("std::Int::to_float", noop),
-    ("std::Int::to_string", noop),
+    ("std::Int::to_string", std_int_to_string),
     ("std::Int::abs", noop),
-    ("std::Float::to_string", noop),
+    ("std::Float::to_string", std_float_to_string),
     ("std::Float::abs", noop),
     ("std::Float::ceil", noop),
     ("std::Float::floor", noop),

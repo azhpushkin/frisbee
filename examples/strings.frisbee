@@ -1,5 +1,6 @@
 fun void main() {
     String x = get_input();
-    println("Hello, " + x + '!' + 123.to_string());
+    println("Hello, " + x + '!');
+    println("True is: " + true.to_string() + " and " + (-2.2).to_string());
     return 9;
 }

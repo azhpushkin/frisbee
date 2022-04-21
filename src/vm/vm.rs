@@ -185,6 +185,12 @@ impl Vm {
                     let value = self.read_opcode();
                     self.push(value as u64);
                 }
+                op::LOAD_TRUE => {
+                    self.push(1);
+                }
+                op::LOAD_FALSE => {
+                    self.push(0);
+                }
 
                 // TODO: test div and suband compare for float and ints
                 op::NEGATE_INT => self.exec_unaryop(|x| (-(x as i64)) as u64),

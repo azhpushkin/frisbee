@@ -5,6 +5,7 @@ use super::generator::BytecodeGenerator;
 use crate::semantics::light_ast::{LExpr, LExprTyped, RawOperator};
 use crate::semantics::symbols::SymbolFunc;
 use crate::vm::opcodes::op;
+use crate::vm::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
 
 fn match_operator(raw_op: &RawOperator) -> u8 {
     match raw_op {
@@ -38,12 +39,13 @@ fn match_operator(raw_op: &RawOperator) -> u8 {
 
 pub fn match_std_function(name: &SymbolFunc) -> u8 {
     let name_s: String = name.into();
-    match name_s.as_str() {
-        "std::print" => 0,
-        "std::println" => 1,
-        "std::range" => 2,
-        "std::get_input" => 3,
-        _ => panic!("Unknown function: {}", name_s),
+    let matched_std_function = STD_RAW_FUNCTION_RUNNERS
+        .iter()
+        .enumerate()
+        .find(|(_, (name, _))| *name == name_s.as_str());
+    match matched_std_function {
+        Some((index, (_, _))) => index as u8,
+        None => panic!("No std function {} found", name_s),
     }
 }
 
