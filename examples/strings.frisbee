@@ -1,5 +1,5 @@
 fun void main() {
     String x = get_input();
-    println("Hello, " + x + '!');
+    println("Hello, " + x + '!' + 123.to_string());
     return 9;
 }

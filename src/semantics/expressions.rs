@@ -9,7 +9,7 @@ use super::annotations::CustomType;
 use super::light_ast::{LExpr, LExprTyped};
 use super::operators::{calculate_binaryop, calculate_unaryop};
 use super::resolvers::{NameResolver, SymbolResolver};
-use super::std_definitions::{get_std_function_raw, is_std_function};
+use super::std_definitions::{get_std_function_raw, is_std_function, get_std_method};
 use super::symbols::{SymbolFunc, SymbolType};
 
 fn if_as_expected(e: Option<&Type>, t: &Type, le: LExpr) -> LExprTyped {
@@ -126,17 +126,20 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
             Expr::MethodCall { object, method, args } => {
                 let object = self.calculate(object, expected);
                 let object_type = object.expr_type.clone();
-                match object_type {
-                    Type::Int | Type::Float | Type::String | Type::List(..) => {
-                        todo!("No std methods yet!")
+                let std_method: Box<RawFunction>;
+                let raw_method = match &object_type {
+                    Type::Bool | Type::Int | Type::Float | Type::String => {
+                        std_method = Box::new(get_std_method(&object_type, method));
+                        std_method.as_ref()
                     }
-                    _ => (),
-                }
+                    Type::Ident(_) => {
+                        let object_symbol: SymbolType = object_type.into();
+                        self.resolve_method(&object_symbol, method)
+                    }
+                    t => panic!("Methods are not done for {:?}", t),
+                };
                 // TODO: check if maybe type
                 // TODO: check if tuple type
-
-                let object_symbol: SymbolType = object_type.into();
-                let raw_method = self.resolve_method(&object_symbol, method);
                 self.calculate_function_call(&raw_method, expected, &args, Some(object))
             }
             Expr::OwnMethodCall { method, args } => {
