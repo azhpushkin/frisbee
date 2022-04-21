@@ -1,5 +1,6 @@
 use super::opcodes::op;
 use super::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
+use super::utils::{u64_to_f64, f64_to_u64};
 
 const STACK_SIZE: usize = 1024;
 
@@ -7,6 +8,7 @@ struct CallFrame {
     pub return_ip: usize,
     pub stack_start: usize,
 }
+
 
 pub struct Vm {
     program: Vec<u8>,
@@ -95,9 +97,10 @@ impl Vm {
     }
 
     fn exec_binaryop_f64(&mut self, op: fn(f64, f64) -> f64) {
-        let b = self.pop() as f64;
-        let a = self.pop() as f64;
-        self.push(op(a, b) as u64);
+        let b = u64_to_f64(self.pop());
+        let a = u64_to_f64(self.pop());
+        let res = op(a, b);
+        self.push(f64_to_u64(res));
     }
 
     fn exec_binaryop(&mut self, op: fn(u64, u64) -> u64) {
@@ -120,8 +123,8 @@ impl Vm {
                     self.constants.push(i as u64);
                 }
                 op::CONST_FLOAT_FLAG => {
-                    let f = f64::from_be_bytes(self.read_several::<8>());
-                    self.constants.push(f as u64);
+                    let f = u64::from_be_bytes(self.read_several::<8>());
+                    self.constants.push(f);
                 }
                 op::CONST_STRING_FLAG => {
                     let str_len = u16::from_be_bytes(self.read_several::<2>());
@@ -202,12 +205,12 @@ impl Vm {
                 op::LESS_INT => self.exec_binaryop(|a, b| ((a as i64) < (b as i64)) as u64),
                 op::EQ_INT => self.exec_binaryop(|a, b| ((a as i64) == (b as i64)) as u64),
 
-                op::NEGATE_FLOAT => self.exec_unaryop(|x| (-(x as f64)) as u64),
+                op::NEGATE_FLOAT => self.exec_unaryop(|x| f64_to_u64(-u64_to_f64(x))),
                 op::ADD_FLOAT => self.exec_binaryop_f64(|a, b| a + b),
                 op::MUL_FLOAT => self.exec_binaryop_f64(|a, b| a * b),
                 op::SUB_FLOAT => self.exec_binaryop_f64(|a, b| a - b),
                 op::DIV_FLOAT => self.exec_binaryop_f64(|a, b| a / b),
-                op::GREATER_FLOAT => self.exec_binaryop(|a, b| ((a as f64) > (b as f64)) as u64),
+                op::GREATER_FLOAT => self.exec_binaryop(|a, b| (u64_to_f64(a) > u64_to_f64(b)) as u64),
                 op::LESS_FLOAT => self.exec_binaryop(|a, b| ((a as f64) < (b as f64)) as u64),
                 op::EQ_FLOAT => self.exec_binaryop(|a, b| ((a as f64) == (b as f64)) as u64),
 

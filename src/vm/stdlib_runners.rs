@@ -1,4 +1,5 @@
 use std::io;
+use super::utils::u64_to_f64;
 
 pub type RawStdRunner = for<'r, 's> fn(&'r mut [u64], &'s mut Vec<String>);
 
@@ -29,8 +30,7 @@ fn std_int_to_string(stack: &mut [u64], memory: &mut Vec<String>) {
 }
 
 fn std_float_to_string(stack: &mut [u64], memory: &mut Vec<String>) {
-    println!("asd {}", stack[1] as f64);
-    memory.push((stack[1] as f64).to_string());
+    memory.push(u64_to_f64(stack[1]).to_string());
     stack[0] = memory.len() as u64 - 1;
 }
 
