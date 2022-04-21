@@ -26,6 +26,7 @@ pub enum LStatement {
         value: LExprTyped
     },
     // TODO: change to generic assign
+    // assign to name, field, tuple or list only allowed
     AssignVar {
         name: String,
         value: LExprTyped,
@@ -93,6 +94,8 @@ pub enum LExpr {
     Float(f64),
 
     GetVar(String),
+
+    TupleValue(Vec<LExprTyped>),
 
     ApplyOp { operator: RawOperator, operands: Vec<LExprTyped> },
     CallFunction { name: SymbolFunc, args: Vec<LExprTyped> },

@@ -12,6 +12,13 @@
 * check break and continue in loop only!
 * check how single-item tuples work!
 * check that function names cant overlap with std functions
+* what if only part of tuple is defined? E.g. 
+    ```example
+    String a = 123;
+    let b = (a, "asd");
+    ```
+* but in this case there is no expected at all due to the `let` (and we cant have `(String, _)`)
+* next
 ---
 fun Nil hello(Int a, Int a) {}
 

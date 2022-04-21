@@ -9,7 +9,7 @@ use super::annotations::CustomType;
 use super::light_ast::{LExpr, LExprTyped};
 use super::operators::{calculate_binaryop, calculate_unaryop};
 use super::resolvers::{NameResolver, SymbolResolver};
-use super::std_definitions::{get_std_function_raw, is_std_function, get_std_method};
+use super::std_definitions::{get_std_function_raw, get_std_method, is_std_function};
 use super::symbols::{SymbolFunc, SymbolType};
 
 fn if_as_expected(e: Option<&Type>, t: &Type, le: LExpr) -> LExprTyped {
@@ -161,7 +161,29 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                 self.calculate_function_call(&raw_constructor, expected, &args, None)
             }
 
-            // Expr::TupleValue(items) => Type::Tuple(self.calculate_vec(items)?),
+            Expr::TupleValue(items) => {
+                let item_types: Vec<Type>;
+                let calculated: Vec<LExprTyped>;
+                match expected {
+                    None => {
+                        calculated = items.iter().map(|item| self.calculate(item, None)).collect();
+                        item_types = calculated.iter().map(|item| item.expr_type.clone()).collect();
+                    }
+                    Some(Type::Tuple(expected_item_types)) => {
+                        calculated = items
+                            .iter()
+                            .zip(expected_item_types)
+                            .map(|(item, item_type)| self.calculate(item, Some(item_type)))
+                            .collect();
+                        item_types = expected_item_types.clone();
+                    }
+                    Some(t) => panic!("Tuple value expected, but got {:?}", t),
+                }
+                LExprTyped {
+                    expr: LExpr::TupleValue(calculated),
+                    expr_type: Type::Tuple(item_types),
+                }
+            }
             // Expr::ListValue(items) => {
             //     if items.len() == 0 {
             //         // TODO: tests for anonymous type (in let and in methods)
