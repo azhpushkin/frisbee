@@ -295,8 +295,14 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
             processed_args.insert(0, this_object);
         }
 
-        let lexpr_call =
-            LExpr::CallFunction { name: raw_called.name.clone(), args: processed_args };
+        let lexpr_call = LExpr::CallFunction {
+            name: raw_called.name.clone(),
+            return_type: match raw_called.return_type {
+                Some(t) => t.clone(),
+                None => Type::Tuple(vec![]),
+            },
+            args: processed_args,
+        };
         if raw_called.return_type.is_none() {
             if expected_return.is_some() {
                 panic!(

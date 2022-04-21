@@ -83,9 +83,8 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
             LExpr::GetVar(varname) => {
                 self.push_get_var(varname);
             }
-            LExpr::CallFunction { name, args } => {
-                todo!("Add return value to call_function");
-                // self.push_reserve(Type::Int);
+            LExpr::CallFunction { name, return_type, args } => {
+                self.push_reserve(return_type);
                 for arg in args.iter() {
                     self.push_expr(&arg);
                 }

@@ -99,7 +99,7 @@ pub enum LExpr {
     TupleValue(Vec<LExprTyped>),
 
     ApplyOp { operator: RawOperator, operands: Vec<LExprTyped> },
-    CallFunction { name: SymbolFunc, args: Vec<LExprTyped> },
+    CallFunction { name: SymbolFunc, return_type: Type, args: Vec<LExprTyped> },
     Allocate { typename: SymbolType },
     // TODO: all others
 
