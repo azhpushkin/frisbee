@@ -201,8 +201,33 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
             //         Type::List(Box::new(calculated_items[0].clone()))
             //     }
             // }
-
-            // Expr::ListAccess { list, index } => self.calculate_access_by_index(list, index)?,
+            Expr::ListAccess { list, index } => {
+                let calculated_object = self.calculate(&list, None);
+                match calculated_object.expr_type {
+                    Type::Tuple(item_types) => {
+                        let index_value: usize;
+                        match index.expr {
+                            Expr::Int(i) if i >= item_types.len() as i64 => {
+                                panic!("Tuple index out of bounds: {} >= {}", i, item_types.len());
+                            }
+                            Expr::Int(i) => {
+                                index_value = i as usize;
+                            }
+                            _ => panic!("Only integer allowed in tuple access!"),
+                        }
+                        return if_as_expected(
+                            expected,
+                            &item_types[index_value],
+                            LExpr::GetTupleItem {
+                                tuple: Box::new(calculated_object),
+                                index: index_value,
+                            },
+                        );
+                    }
+                    Type::List(_) => todo!("Did not implemented lists yet!"),
+                    t => panic!("Did not expected to have type {:?} here", t),
+                }
+            }
 
             // Expr::SpawnActive { typename, args } => {
             //     let class_signature = self.get_class_signature(typename)?;

@@ -18,7 +18,7 @@
     let b = (a, "asd");
     ```
 * but in this case there is no expected at all due to the `let` (and we cant have `(String, _)`)
-* next
+* check if empty tuple is allowed as a type
 ---
 fun Nil hello(Int a, Int a) {}
 

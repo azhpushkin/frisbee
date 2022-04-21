@@ -1,5 +1,5 @@
 fun void main() {
     (String, Int) person = ("Hello", 123);
-    person[0] = get_input();
+    //person[0] = get_input();
     println("Person " + person[0] + " is of age " + person[1].to_string());
 }

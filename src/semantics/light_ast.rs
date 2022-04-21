@@ -94,6 +94,7 @@ pub enum LExpr {
     Float(f64),
 
     GetVar(String),
+    GetTupleItem{tuple: Box<LExprTyped>, index: usize},
 
     TupleValue(Vec<LExprTyped>),
 
