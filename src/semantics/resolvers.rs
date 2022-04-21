@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::loader::{generate_alias, LoadedFile, ModuleAlias, WholeProgram};
 
-use super::std_definitions::STD_FUNCTION_NAMES;
+use super::std_definitions::is_std_function;
 use super::symbols::{SymbolFunc, SymbolType};
 
 type SymbolLookupMapping<T> = HashMap<ModuleAlias, HashMap<String, T>>;
@@ -91,6 +91,10 @@ impl NameResolver {
                         name, module
                     );
                 }
+
+                if is_std_function(name) {
+                    panic!("Function {} is already defined in stdlib!", name);
+                }
             }
             for (module, typename) in get_typenames_origins(file) {
                 if !self.typenames[&module].contains_key(typename) {
@@ -164,11 +168,8 @@ fn get_functions_origins<'a>(
             .iter()
             .map(move |funcname| (generate_alias(&i.module_path), funcname.as_str()))
     });
-    let std_functions_mapping = STD_FUNCTION_NAMES
-        .iter()
-        .map(move |std_func| (file.module_alias.clone(), *std_func));
 
-    Box::new(defined_types.chain(imported_types).chain(std_functions_mapping))
+    Box::new(defined_types.chain(imported_types))
 }
 
 #[cfg(test)]

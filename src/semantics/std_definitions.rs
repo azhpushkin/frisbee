@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use crate::loader::{generate_alias, ModuleAlias};
+use crate::stdlib;
 use crate::types::Type;
 
 use super::aggregate::RawFunction;
@@ -12,20 +13,16 @@ fn std_symbol_func(name: &str) -> SymbolFunc {
     SymbolFunc::new(&std_module, name)
 }
 
-fn std_function_signatures() -> HashMap<&'static str, (Vec<Type>, Type)> {
-    // TODO: review return types when void is done!
-    HashMap::from([
-        ("print", (vec![Type::String], Type::Int)),
-        ("println", (vec![Type::String], Type::Int)),
-        (
-            "range",
-            (vec![Type::Int, Type::Int], Type::List(Box::new(Type::Int))),
-        ),
-        ("get_input", (vec![], Type::String)),
-    ])
+pub fn is_std_function(func_name: &str) -> bool {
+    stdlib::STD_FUNCTIONS.iter().find(|(k, _)| *k == func_name).is_some()
 }
 
-pub fn get_std_raw_signature(name: &String) -> RawFunction {
+fn std_function_signatures() -> HashMap<&'static str, (Vec<Type>, Type)> {
+    // TODO: review return types when void is done!
+    HashMap::from(stdlib::STD_FUNCTIONS.map(|(k, v)| (k, v())))
+}
+
+pub fn get_std_function_raw(name: &String) -> RawFunction {
     let (args, return_type) = &std_function_signatures()[name.as_str()];
     RawFunction {
         name: std_symbol_func(name.as_str()),
@@ -40,36 +37,3 @@ pub fn get_std_raw_signature(name: &String) -> RawFunction {
         defined_at: generate_alias(&vec!["std".into()]),
     }
 }
-
-pub const STD_FUNCTION_NAMES: [&str; 4] = ["print", "println", "range", "get_input"];
-
-// print(String) -> void
-// println(String) -> void
-// range(Int, Int) -> [Int]
-
-// Bool
-// to_string
-
-// Int
-// * to_float
-// * to_string
-// * abs
-
-// Float
-// * to_string
-// * abs
-// * ceil
-// * floor
-// * round
-
-// String:
-// * len
-// * is_empty  -> shortcut for len == 0
-// * contains -> shortcut to find != nil
-// * find -> Int?
-
-// List
-// * push
-// * pop
-// * len
-// * is_empty
