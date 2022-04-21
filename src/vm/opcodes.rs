@@ -42,18 +42,16 @@ pub mod op {
         ADD_STRINGS,
         EQ_STRINGS,
 
-        RETURN,
-        POP
+        RETURN
     );
 
     // Opcodes with single operand
     opcodes_list!(100,
         RESERVE,
+        POP,
 
         LOAD_CONST,
-        LOAD_SMALL_INT,
-        SET_VAR,
-        GET_VAR
+        LOAD_SMALL_INT
     );
 
     // Opcodes with two operands
@@ -61,6 +59,9 @@ pub mod op {
         JUMP,
         JUMP_BACK,
         JUMP_IF_FALSE,
+
+        SET_VAR,  // offset + size
+        GET_VAR,  // offset + size
 
         CALL_STD  // args num + index of std function
     );

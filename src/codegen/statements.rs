@@ -10,12 +10,11 @@ pub fn generate_function_bytecode(
     aggregate: &ProgramAggregate,
     globals: &mut Globals,
 ) -> Result<FunctionBytecode, String> {
-    let arg_vars = func.args.iter().map(|arg| arg.0);
 
     let mut generator = BytecodeGenerator::new(
         aggregate,
         globals,
-        arg_vars.enumerate().map(|(i, var)| (var, i as u8)).collect(),
+        func.args.iter().collect()
     );
 
     for statement in func.body.iter() {
@@ -34,7 +33,7 @@ fn generate_statement_bytecode<'a, 'b>(
     match statement {
         LStatement::Expression(expr) => {
             generator.push_expr(expr);
-            generator.push(op::POP);
+            generator.push_pop(&expr.expr_type);
         }
         LStatement::DeclareVar { var_type, name } => {
             generator.add_local(name, var_type);
@@ -42,7 +41,7 @@ fn generate_statement_bytecode<'a, 'b>(
         }
         LStatement::AssignVar { name, value } => {
             generator.push_expr(value);
-            generator.push_set_var(name);
+            generator.push_set_var(name, 0, &value.expr_type);
         }
         LStatement::DeclareAndAssignVar { var_type, name, value } => {
             generator.add_local(name, var_type);

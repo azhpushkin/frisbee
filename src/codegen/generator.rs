@@ -18,7 +18,7 @@ pub struct JumpPlaceholder {
     position: usize,
 }
 
-fn get_type_size(t: &Type) -> usize {
+fn get_type_size(t: &Type) -> u8 {
     match t {
         Type::Int => 1,
         Type::Float => 1,
@@ -35,7 +35,7 @@ pub struct BytecodeGenerator<'a, 'b> {
     aggregate: &'a ProgramAggregate,
     globals: &'b mut Globals,
     locals: HashMap<&'a String, u8>,
-    locals_positions: Vec<u8>,
+    locals_offset: u8,
     bytecode: FunctionBytecode,
 }
 
@@ -43,32 +43,41 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
     pub fn new(
         aggregate: &'a ProgramAggregate,
         globals: &'b mut Globals,
-        locals: HashMap<&'a String, u8>,
+        initial_locals: Vec<(&'a String, &'a Type)>
     ) -> Self {
+        let mut locals: HashMap<&'a String, u8> = HashMap::new();
+        let mut locals_offset: u8 = 0;
+
+        for (local_name, local_type) in initial_locals.iter() {
+            locals.insert(local_name, locals_offset);
+            locals_offset += get_type_size(local_type);
+        }
         BytecodeGenerator {
             aggregate,
             globals,
             locals,
+            locals_offset,
             bytecode: FunctionBytecode { bytecode: vec![], call_placeholders: vec![] },
         }
     }
 
     pub fn add_local(&mut self, varname: &'a String, t: &Type) {
-        // TODO: add type info for offsets
-        self.locals.insert(varname, self.locals.len() as u8);
-        self.locals_positions.push(get_type_size(t))
+        self.locals.insert(varname, self.locals_offset);
+        self.locals_offset += get_type_size(t);
     }
 
-    pub fn push_get_var(&mut self, varname: &String) {
+    pub fn push_get_var(&mut self, varname: &String, for_type: &Type) {
         let var_pos = self.locals.get(varname).unwrap().clone();
         self.push(op::GET_VAR);
         self.push(var_pos + 1);
+        self.push(get_type_size(for_type));
     }
 
-    pub fn push_set_var(&mut self, varname: &String) {
+    pub fn push_set_var(&mut self, varname: &String, offset: u8, for_type: &Type) {
         let var_pos = self.locals.get(varname).unwrap().clone();
         self.push(op::SET_VAR);
         self.push(var_pos + 1);
+        self.push(get_type_size(for_type));
     }
 
     pub fn push_set_return(&mut self) {
@@ -86,7 +95,13 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
     }
 
     pub fn push_reserve(&mut self, for_type: &Type) {
+        self.push(op::RESERVE);
+        self.push(get_type_size(for_type) as u8);
+    }
 
+    pub fn push_pop(&mut self, for_type: &Type) {
+        self.push(op::POP);
+        self.push(get_type_size(for_type) as u8);
     }
 
     pub fn push_function_placeholder(&mut self, func: &SymbolFunc) {

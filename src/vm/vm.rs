@@ -236,12 +236,19 @@ impl Vm {
 
                 op::GET_VAR => {
                     let value_pos = self.read_opcode() as usize;
-                    self.push(self.stack[self.current_frame().stack_start + value_pos]);
+                    let value_size = self.read_opcode() as usize;
+                    for i in 0..value_size {
+                        self.push(self.stack[self.current_frame().stack_start + value_pos + i]);
+                    }
                 }
                 op::SET_VAR => {
-                    let value = self.pop();
                     let value_pos = self.read_opcode() as usize;
-                    self.stack[self.current_frame().stack_start + value_pos] = value;
+                    let value_size = self.read_opcode() as usize;
+                    // Go backwards because pop() returns items in a reversed order
+                    for i in 0..value_size {
+                        let value = self.pop();
+                        self.stack[self.current_frame().stack_start + value_pos + value_size-i-1] = value;
+                    }
                 }
                 op::RESERVE => {
                     // TODO: this seems wrong, function might reserve at the very start tbh
@@ -262,7 +269,11 @@ impl Vm {
                     self.call_std(std_function_index as usize, args_num as usize);
                 }
                 op::POP => {
-                    self.pop();
+                    let amount = self.read_opcode();
+                    for _ in 0..amount {
+                        self.pop();
+                    }
+                    
                 }
                 op::RETURN => {
                     self.return_op();
