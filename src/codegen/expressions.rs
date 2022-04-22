@@ -118,16 +118,20 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                     self.push_expr(&item);
                 }
             }
-            LExpr::GetTupleItem { tuple, index } => todo!(),
-            //     self.push_reserve(get_type_from_tuple(tuple, *index));
-            //     self.push_expr(&tuple);
-            //     let offset: u8 = 0;
-            //     for i in 0..*index {
-            //         offset += self.get_type_size(get_type_from_tuple(tuple, i));
-            //     }
-            //     self.push(op::GET_TUPLE_ITEM);
-            //     self.push(*index as u8);
-            // },
+            LExpr::GetTupleItem { tuple, index } => {
+                let tuple_type = &tuple.as_ref().expr_type;
+                let item_type = get_type_from_tuple(tuple_type, *index);
+                self.push_reserve(item_type);
+                self.push_expr(tuple.as_ref());
+                let mut offset: u8 = 0;
+                for i in 0..*index {
+                    offset += get_type_size(get_type_from_tuple(tuple_type, i));
+                }
+                self.push(op::GET_TUPLE_ITEM);
+                self.push(get_type_size(tuple_type));
+                self.push(offset);
+                self.push(get_type_size(item_type));
+            },
             LExpr::Allocate { .. } => todo!("Allocate is not here yet!"),
         }
     }

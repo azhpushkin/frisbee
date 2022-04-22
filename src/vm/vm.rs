@@ -257,6 +257,17 @@ impl Vm {
                             value;
                     }
                 }
+                op::GET_TUPLE_ITEM => {
+                    let tuple_size = self.read_opcode() as usize;
+                    let offset = self.read_opcode() as usize;
+                    let size_to_copy = self.read_opcode() as usize;
+                    self.stack_pointer -= tuple_size;
+                    for i in 0..size_to_copy {
+                        let v = self.stack[self.stack_pointer + offset + i];
+                        self.stack[self.stack_pointer - size_to_copy + i] = v;
+                    }
+
+                }
                 op::RESERVE => {
                     // TODO: this seems wrong, function might reserve at the very start tbh
                     // should check after basic implementation probably

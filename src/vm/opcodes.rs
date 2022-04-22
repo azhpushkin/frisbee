@@ -64,9 +64,14 @@ pub mod op {
         GET_LOCAL  // offset + size
     );
 
+    // Opcodes with three operands
+    opcodes_list!(200,
+        GET_TUPLE_ITEM
+    );
+
     // Both have 4 operands: return size, total offset, call po
-    pub const CALL: u8 = 220;
-    pub const CALL_STD: u8 = 221;
+    pub const CALL: u8 = 240;
+    pub const CALL_STD: u8 = 241;
 
     pub const CONST_END_FLAG: u8 = u8::MAX;
     pub const CONST_INT_FLAG: u8 = 1;    
@@ -81,7 +86,7 @@ pub fn get_args_num(op: u8) -> usize {
         return 0;
     } else if op < 180 {
         return 1;
-    } else if op < 220 {
+    } else if op < 200 {
         return 2;
     } else {
         return 3;
