@@ -124,7 +124,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                 }
             }
             Expr::MethodCall { object, method, args } => {
-                let object = self.calculate(object, expected);
+                let object = self.calculate(object, None);
                 let object_type = object.expr_type.clone();
                 let std_method: Box<RawFunction>;
                 let raw_method = match &object_type {
