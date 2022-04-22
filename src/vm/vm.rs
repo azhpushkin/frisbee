@@ -234,14 +234,14 @@ impl Vm {
                     self.push(res);
                 }
 
-                op::GET_VAR => {
+                op::GET_LOCAL => {
                     let value_pos = self.read_opcode() as usize;
                     let value_size = self.read_opcode() as usize;
                     for i in 0..value_size {
                         self.push(self.stack[self.current_frame().stack_start + value_pos + i]);
                     }
                 }
-                op::SET_VAR => {
+                op::SET_LOCAL => {
                     let value_pos = self.read_opcode() as usize;
                     let value_size = self.read_opcode() as usize;
                     // Go backwards because pop() returns items in a reversed order

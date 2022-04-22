@@ -60,8 +60,8 @@ pub mod op {
         JUMP_BACK,
         JUMP_IF_FALSE,
 
-        SET_VAR,  // offset + size
-        GET_VAR,  // offset + size
+        SET_LOCAL,  // offset + size
+        GET_LOCAL,  // offset + size
 
         CALL_STD  // args num + index of std function
     );

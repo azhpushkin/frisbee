@@ -43,7 +43,7 @@ fn generate_statement_bytecode<'a, 'b>(
         }
         LStatement::AssignVar { name, value } => {
             generator.push_expr(value);
-            generator.push_set_var(name);
+            generator.push_set_local(name);
         }
         LStatement::DeclareAndAssignVar { var_type, name, value } => {
             generator.add_local(name, var_type);
