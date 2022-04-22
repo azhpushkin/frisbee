@@ -4,6 +4,7 @@ use super::constants::Constant;
 use super::generator::BytecodeGenerator;
 use crate::semantics::light_ast::{LExpr, LExprTyped, RawOperator};
 use crate::semantics::symbols::SymbolFunc;
+use crate::types::Type;
 use crate::vm::opcodes::op;
 use crate::vm::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
 
@@ -49,6 +50,13 @@ pub fn match_std_function(name: &SymbolFunc) -> u8 {
     }
 }
 
+fn get_type_from_tuple<'a>(t: &'a Type, i: usize) -> &'a Type{
+    match t {
+        Type::Tuple(items) => &items[i],
+        _ => panic!("something is wrong, semantics should have checked this.."),
+    }
+}
+
 impl<'a, 'b> BytecodeGenerator<'a, 'b> {
     pub fn push_expr(&mut self, expr: &LExprTyped) {
         let LExprTyped { expr, expr_type } = expr;
@@ -84,6 +92,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 self.push_get_var(varname);
             }
             LExpr::CallFunction { name, return_type, args } => {
+                // TODO: review this, as args_num now can have variable length
                 self.push_reserve(return_type);
                 for arg in args.iter() {
                     self.push_expr(&arg);
@@ -103,6 +112,16 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                     self.push_expr(&item);
                 }
             }
+            // LExpr::GetTupleItem { tuple, index } => {
+            //     self.push_reserve(get_type_from_tuple(tuple, *index));
+            //     self.push_expr(&tuple);
+            //     let offset: u8 = 0;
+            //     for i in 0..*index {
+            //         offset += self.get_type_size(get_type_from_tuple(tuple, i));
+            //     }
+            //     self.push(op::GET_TUPLE_ITEM);
+            //     self.push(*index as u8);
+            // },
             LExpr::Allocate { .. } => todo!("Allocate is not here yet!"),
         }
     }

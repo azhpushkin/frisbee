@@ -19,6 +19,7 @@
     ```
 * but in this case there is no expected at all due to the `let` (and we cant have `(String, _)`)
 * check if empty tuple is allowed as a type
+* change tuple inside of list, how....
 ---
 fun Nil hello(Int a, Int a) {}
 

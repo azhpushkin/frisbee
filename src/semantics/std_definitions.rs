@@ -34,7 +34,7 @@ pub fn get_std_method(t: &Type, method_name: &String) -> RawFunction {
         
     RawFunction {
         name: SymbolFunc::new_std_method(t, method_name.as_str()),
-        return_type: Some(return_type.clone()),
+        return_type: return_type.clone(),
         args: TypedFields {
             types: args.clone(),
             names: args.iter().enumerate().map(|(i, _)| (i, "".into())).collect(),
@@ -50,7 +50,7 @@ pub fn get_std_function_raw(name: &String) -> RawFunction {
     let (args, return_type) = &std_function_signatures()[name.as_str()];
     RawFunction {
         name: SymbolFunc::new_std_function(name.as_str()),
-        return_type: Some(return_type.clone()),
+        return_type: return_type.clone(),
         args: TypedFields {
             types: args.clone(),
             names: args.iter().enumerate().map(|(i, _)| (i, "".into())).collect(),

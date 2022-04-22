@@ -121,7 +121,7 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
 
             Statement::Return(Some(e)) => {
                 // TODO: check value of return
-                LStatement::Return(self.check_expr(e, self.scope.return_type.as_ref()))
+                LStatement::Return(self.check_expr(e, Some(&self.scope.return_type)))
             }
             Statement::Return(None) => {
                 todo!("Return empty tuple here!");

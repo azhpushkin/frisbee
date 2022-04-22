@@ -19,7 +19,7 @@ pub struct ProgramAggregate {
 #[derive(Debug)]
 pub struct RawFunction {
     pub name: SymbolFunc,
-    pub return_type: Option<Type>,
+    pub return_type: Type,
     pub args: TypedFields,
     pub body: Vec<LStatement>,
 
@@ -66,8 +66,8 @@ pub fn fill_aggregate_with_funcs<'a>(
         let file_resolver = resolver.get_typenames_resolver(&file_alias);
 
         let get_return_type = |t: &_| match t {
-            None => None,
-            Some(t) => Some(annotate_type(t, &file_resolver)),
+            None => Type::Tuple(vec![]),
+            Some(t) => annotate_type(t, &file_resolver),
         };
 
         for class_decl in file.ast.types.iter() {

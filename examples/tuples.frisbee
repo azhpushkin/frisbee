@@ -3,3 +3,36 @@ fun void main() {
     //person[0] = get_input();
     println("Person " + person[0] + " is of age " + person[1].to_string());
 }
+
+/* 
+get_input returns (bool, String)
+
+reserve 1 # for var, stack [0]
+reserve 2 # for return value, stack [0, 0, 0]
+call_std _ _  # got return, stack [0, 1, 123123123]
+set_var 0 
+
+
+we can make set_var like (from, to, amount) + pop amount, which seems to help
+
+now get_var
+
+print(get_input()[1]);
+
+
+reserve 0  # for return of void print, stack []
+reserve 2  # for return of get_input(), stack [0, 0]
+call std _ _ # [1, 123123123]
+
+.. NOW we have two values on stack, despite wanting only single one
+.. it might help if we distinguish between temp and non-temporary value
+.. if tuple is non-temporary value, then we can just load part of tuple and that's all
+.. otherwise, we need to unload it first....
+.. maybe, reserve space for it and that's it?
+.. e.g:
+```
+get_input()[1] => get(get_input(), 1)
+```
+
+
+*/

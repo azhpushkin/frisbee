@@ -23,7 +23,7 @@ pub enum LStatement {
     DeclareAndAssignVar {
         var_type: Type,
         name: String,
-        value: LExprTyped
+        value: LExprTyped,
     },
     // TODO: change to generic assign
     // assign to name, field, tuple or list only allowed

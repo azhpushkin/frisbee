@@ -203,7 +203,8 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
             // }
             Expr::ListAccess { list, index } => {
                 let calculated_object = self.calculate(&list, None);
-                match calculated_object.expr_type {
+                
+                match calculated_object.expr_type.clone() {
                     Type::Tuple(item_types) => {
                         let index_value: usize;
                         match index.expr {
@@ -297,29 +298,13 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
 
         let lexpr_call = LExpr::CallFunction {
             name: raw_called.name.clone(),
-            return_type: match raw_called.return_type {
-                Some(t) => t.clone(),
-                None => Type::Tuple(vec![]),
-            },
+            return_type: raw_called.return_type.clone(),
             args: processed_args,
         };
-        if raw_called.return_type.is_none() {
-            if expected_return.is_some() {
-                panic!(
-                    "Function {:?} does not return anything, expected {:?}",
-                    raw_called.name, expected_return
-                );
-            }
-
-            return LExprTyped {
-                expr: lexpr_call,
-                expr_type: Type::Tuple(vec![]), // TODO: this is smart, but need to revise this
-            };
-        }
 
         if_as_expected(
             expected_return,
-            raw_called.return_type.as_ref().unwrap(),
+            &raw_called.return_type,
             lexpr_call,
         )
     }

@@ -36,6 +36,7 @@ pub struct BytecodeGenerator<'a, 'b> {
     globals: &'b mut Globals,
     locals: HashMap<&'a String, u8>,
     locals_offset: u8,
+    locals_types: HashMap<&'a String, Type>,
     bytecode: FunctionBytecode,
 }
 
@@ -43,41 +44,47 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
     pub fn new(
         aggregate: &'a ProgramAggregate,
         globals: &'b mut Globals,
-        initial_locals: Vec<(&'a String, &'a Type)>
+        initial_locals: Vec<(&'a String, &'a Type)>,
+        return_type: &'a Type,
     ) -> Self {
         let mut locals: HashMap<&'a String, u8> = HashMap::new();
-        let mut locals_offset: u8 = 0;
-
-        for (local_name, local_type) in initial_locals.iter() {
+        let mut locals_offset: u8 = get_type_size(return_type);
+        let mut locals_types = HashMap::new();
+        
+        for (local_name, local_type) in initial_locals {
             locals.insert(local_name, locals_offset);
             locals_offset += get_type_size(local_type);
+            locals_types.insert(local_name, local_type.clone());
         }
+
         BytecodeGenerator {
             aggregate,
             globals,
             locals,
             locals_offset,
+            locals_types,
             bytecode: FunctionBytecode { bytecode: vec![], call_placeholders: vec![] },
         }
     }
 
     pub fn add_local(&mut self, varname: &'a String, t: &Type) {
         self.locals.insert(varname, self.locals_offset);
+        self.locals_types.insert(varname, t.clone());
         self.locals_offset += get_type_size(t);
     }
 
-    pub fn push_get_var(&mut self, varname: &String, for_type: &Type) {
+    pub fn push_get_var(&mut self, varname: &String) {
         let var_pos = self.locals.get(varname).unwrap().clone();
         self.push(op::GET_VAR);
         self.push(var_pos + 1);
-        self.push(get_type_size(for_type));
+        self.push(get_type_size(&self.locals_types[varname]));
     }
 
-    pub fn push_set_var(&mut self, varname: &String, offset: u8, for_type: &Type) {
+    pub fn push_set_var(&mut self, varname: &String) {
         let var_pos = self.locals.get(varname).unwrap().clone();
         self.push(op::SET_VAR);
         self.push(var_pos + 1);
-        self.push(get_type_size(for_type));
+        self.push(get_type_size(&self.locals_types[varname]));
     }
 
     pub fn push_set_return(&mut self) {

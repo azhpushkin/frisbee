@@ -1,5 +1,6 @@
 use crate::semantics::aggregate::{ProgramAggregate, RawFunction};
 use crate::semantics::light_ast::LStatement;
+use crate::types::Type;
 use crate::vm::opcodes::op;
 
 use super::generator::{BytecodeGenerator, FunctionBytecode, JumpPlaceholder};
@@ -14,7 +15,8 @@ pub fn generate_function_bytecode(
     let mut generator = BytecodeGenerator::new(
         aggregate,
         globals,
-        func.args.iter().collect()
+        func.args.iter().collect(),
+        &func.return_type,
     );
 
     for statement in func.body.iter() {
@@ -41,7 +43,7 @@ fn generate_statement_bytecode<'a, 'b>(
         }
         LStatement::AssignVar { name, value } => {
             generator.push_expr(value);
-            generator.push_set_var(name, 0, &value.expr_type);
+            generator.push_set_var(name);
         }
         LStatement::DeclareAndAssignVar { var_type, name, value } => {
             generator.add_local(name, var_type);
