@@ -4,11 +4,12 @@ fun Int add_squares(Int a, Int b) {
     return c + (b * b);
 }
 
-fun void main() {
+fun Int main() {
     Int b = 2;
     Int a = 3;
     
     Int res = add_squares(a, b);
+    println("Res is " +  res.to_string());
 
     if a == 2 {
         res = res * 2;

@@ -1,7 +1,7 @@
 use std::convert::TryFrom;
 
 use super::constants::Constant;
-use super::generator::BytecodeGenerator;
+use super::generator::{get_type_size, BytecodeGenerator};
 use crate::semantics::light_ast::{LExpr, LExprTyped, RawOperator};
 use crate::semantics::symbols::SymbolFunc;
 use crate::types::Type;
@@ -50,7 +50,7 @@ pub fn match_std_function(name: &SymbolFunc) -> u8 {
     }
 }
 
-fn get_type_from_tuple<'a>(t: &'a Type, i: usize) -> &'a Type{
+fn get_type_from_tuple<'a>(t: &'a Type, i: usize) -> &'a Type {
     match t {
         Type::Tuple(items) => &items[i],
         _ => panic!("something is wrong, semantics should have checked this.."),
@@ -89,7 +89,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 self.push(match_operator(operator));
             }
             LExpr::GetVar(varname) => {
-                self.push_get_var(varname);
+                self.push_get_local(varname);
             }
             LExpr::CallFunction { name, return_type, args } => {
                 // TODO: review this, as args_num now can have variable length
@@ -97,13 +97,19 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 for arg in args.iter() {
                     self.push_expr(&arg);
                 }
+                let func_locals_size: u8 =
+                    args.iter().map(|arg| get_type_size(&arg.expr_type)).sum();
+
                 if name.is_std() {
                     self.push(op::CALL_STD);
-                    self.push(args.len() as u8);
-                    self.push(match_std_function(name)); // TODO: correct index here
+                    self.push(get_type_size(return_type));
+                    self.push(func_locals_size);
+                    self.push(0);
+                    self.push(match_std_function(name));
                 } else {
                     self.push(op::CALL);
-                    self.push(args.len() as u8);
+                    self.push(get_type_size(return_type));
+                    self.push(func_locals_size);
                     self.push_function_placeholder(name);
                 }
             }
@@ -112,7 +118,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                     self.push_expr(&item);
                 }
             }
-            // LExpr::GetTupleItem { tuple, index } => {
+            LExpr::GetTupleItem { tuple, index } => todo!(),
             //     self.push_reserve(get_type_from_tuple(tuple, *index));
             //     self.push_expr(&tuple);
             //     let offset: u8 = 0;

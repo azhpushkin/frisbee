@@ -11,6 +11,7 @@
 * check how everything works when there is multiple values with same name (for i in ...)
 * check break and continue in loop only!
 * check how single-item tuples work!
+* check that main function is `void`
 * check that function names cant overlap with std functions
 * what if only part of tuple is defined? E.g. 
     ```example

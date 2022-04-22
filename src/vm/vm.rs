@@ -1,14 +1,14 @@
 use super::opcodes::op;
 use super::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
-use super::utils::{u64_to_f64, f64_to_u64};
+use super::utils::{f64_to_u64, u64_to_f64};
 
 const STACK_SIZE: usize = 1024;
 
 struct CallFrame {
     pub return_ip: usize,
     pub stack_start: usize,
+    pub return_size: usize,
 }
-
 
 pub struct Vm {
     program: Vec<u8>,
@@ -49,22 +49,25 @@ impl Vm {
         byte
     }
 
-    fn call_op(&mut self, func_pos: usize, args_num: usize) {
-        self.frames
-            .push(CallFrame { return_ip: self.ip, stack_start: self.stack_pointer - args_num - 1 });
+    fn call_op(&mut self, func_pos: usize, return_size: usize, locals_size: usize) {
+        self.frames.push(CallFrame {
+            return_ip: self.ip,
+            stack_start: self.stack_pointer - locals_size - return_size,
+            return_size,
+        });
         self.ip = func_pos;
     }
 
-    fn call_std(&mut self, func_index: usize, args_num: usize) {
-        let start = self.stack_pointer - args_num - 1;
+    fn call_std(&mut self, func_index: usize, return_size: usize, locals_size: usize) {
+        let start = self.stack_pointer - locals_size - return_size;
         STD_RAW_FUNCTION_RUNNERS[func_index].1(&mut self.stack[start..], &mut self.strings);
-        self.stack_pointer -= args_num;
+        self.stack_pointer = start + return_size;
     }
 
     fn return_op(&mut self) {
         let frame = self.frames.pop().unwrap();
         self.ip = frame.return_ip;
-        self.stack_pointer = frame.stack_start + 1;
+        self.stack_pointer = frame.stack_start + frame.return_size;
     }
 
     fn current_frame(&self) -> &CallFrame {
@@ -172,7 +175,7 @@ impl Vm {
         let entry = self.load_entry();
 
         self.push(0); // return address for entry function
-        self.call_op(entry, 0);
+        self.call_op(entry, 1, 0);
 
         while self.ip < self.program.len() {
             println!("  stack: {:02x?}", &self.stack[0..self.stack_pointer]);
@@ -210,7 +213,9 @@ impl Vm {
                 op::MUL_FLOAT => self.exec_binaryop_f64(|a, b| a * b),
                 op::SUB_FLOAT => self.exec_binaryop_f64(|a, b| a - b),
                 op::DIV_FLOAT => self.exec_binaryop_f64(|a, b| a / b),
-                op::GREATER_FLOAT => self.exec_binaryop(|a, b| (u64_to_f64(a) > u64_to_f64(b)) as u64),
+                op::GREATER_FLOAT => {
+                    self.exec_binaryop(|a, b| (u64_to_f64(a) > u64_to_f64(b)) as u64)
+                }
                 op::LESS_FLOAT => self.exec_binaryop(|a, b| ((a as f64) < (b as f64)) as u64),
                 op::EQ_FLOAT => self.exec_binaryop(|a, b| ((a as f64) == (b as f64)) as u64),
 
@@ -247,7 +252,9 @@ impl Vm {
                     // Go backwards because pop() returns items in a reversed order
                     for i in 0..value_size {
                         let value = self.pop();
-                        self.stack[self.current_frame().stack_start + value_pos + value_size-i-1] = value;
+                        self.stack
+                            [self.current_frame().stack_start + value_pos + value_size - i - 1] =
+                            value;
                     }
                 }
                 op::RESERVE => {
@@ -256,24 +263,24 @@ impl Vm {
                     let value = self.read_opcode();
                     for _ in 0..value {
                         self.push(0);
-                    } 
+                    }
                 }
-                op::CALL => {
-                    let args_num = self.read_opcode();
-                    let function_pos = u16::from_be_bytes([self.read_opcode(), self.read_opcode()]);
-                    self.call_op(function_pos as usize, args_num as usize);
-                }
-                op::CALL_STD => {
-                    let args_num = self.read_opcode();
-                    let std_function_index = self.read_opcode();
-                    self.call_std(std_function_index as usize, args_num as usize);
+                op::CALL | op::CALL_STD => {
+                    let return_size = self.read_opcode() as usize;
+                    let args_size = self.read_opcode() as usize;
+                    let function_pos = u16::from_be_bytes(self.read_several::<2>()) as usize;
+
+                    match opcode {
+                        op::CALL => self.call_op(function_pos, return_size, args_size),
+                        op::CALL_STD => self.call_std(function_pos, return_size, args_size),
+                        _ => unreachable!(),
+                    }
                 }
                 op::POP => {
                     let amount = self.read_opcode();
                     for _ in 0..amount {
                         self.pop();
                     }
-                    
                 }
                 op::RETURN => {
                     self.return_op();

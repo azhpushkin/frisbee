@@ -61,14 +61,12 @@ pub mod op {
         JUMP_IF_FALSE,
 
         SET_LOCAL,  // offset + size
-        GET_LOCAL,  // offset + size
-
-        CALL_STD  // args num + index of std function
+        GET_LOCAL  // offset + size
     );
 
-    opcodes_list!(220,
-        CALL
-    );
+    // Both have 4 operands: return size, total offset, call po
+    pub const CALL: u8 = 220;
+    pub const CALL_STD: u8 = 221;
 
     pub const CONST_END_FLAG: u8 = u8::MAX;
     pub const CONST_INT_FLAG: u8 = 1;    
@@ -77,7 +75,9 @@ pub mod op {
 }
 
 pub fn get_args_num(op: u8) -> usize {
-    if op < 100 {
+    if op == op::CALL || op == op::CALL_STD {
+        return 4;
+    } else if op < 100 {
         return 0;
     } else if op < 180 {
         return 1;

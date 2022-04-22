@@ -3,8 +3,8 @@ use crate::types::Type;
 pub type StdFunc = (&'static str, fn() -> (Vec<Type>, Type));
 
 pub const STD_FUNCTIONS: [StdFunc; 4] = [
-    ("print", || (vec![Type::String], Type::Int)),
-    ("println", || (vec![Type::String], Type::Int)),
+    ("print", || (vec![Type::String], Type::Tuple(vec![]))),
+    ("println", || (vec![Type::String], Type::Tuple(vec![]))),
     ("range", || {
         (vec![Type::Int, Type::Int], Type::List(Box::new(Type::Int)))
     }),

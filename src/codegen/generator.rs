@@ -18,7 +18,7 @@ pub struct JumpPlaceholder {
     position: usize,
 }
 
-fn get_type_size(t: &Type) -> u8 {
+pub fn get_type_size(t: &Type) -> u8 {
     match t {
         Type::Int => 1,
         Type::Float => 1,
@@ -36,7 +36,8 @@ pub struct BytecodeGenerator<'a, 'b> {
     globals: &'b mut Globals,
     locals: HashMap<&'a String, u8>,
     locals_offset: u8,
-    locals_types: HashMap<&'a String, Type>,
+    locals_types: HashMap<&'a String, &'a Type>,
+    return_type: &'a Type,
     bytecode: FunctionBytecode,
 }
 
@@ -50,11 +51,11 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
         let mut locals: HashMap<&'a String, u8> = HashMap::new();
         let mut locals_offset: u8 = get_type_size(return_type);
         let mut locals_types = HashMap::new();
-        
+
         for (local_name, local_type) in initial_locals {
             locals.insert(local_name, locals_offset);
             locals_offset += get_type_size(local_type);
-            locals_types.insert(local_name, local_type.clone());
+            locals_types.insert(local_name, local_type);
         }
 
         BytecodeGenerator {
@@ -63,33 +64,35 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
             locals,
             locals_offset,
             locals_types,
+            return_type,
             bytecode: FunctionBytecode { bytecode: vec![], call_placeholders: vec![] },
         }
     }
 
-    pub fn add_local(&mut self, varname: &'a String, t: &Type) {
+    pub fn add_local(&mut self, varname: &'a String, t: &'a Type) {
         self.locals.insert(varname, self.locals_offset);
-        self.locals_types.insert(varname, t.clone());
+        self.locals_types.insert(varname, t);
         self.locals_offset += get_type_size(t);
     }
 
     pub fn push_get_local(&mut self, varname: &String) {
         let var_pos = self.locals.get(varname).unwrap().clone();
         self.push(op::GET_LOCAL);
-        self.push(var_pos + 1);
+        self.push(var_pos);
         self.push(get_type_size(&self.locals_types[varname]));
     }
 
     pub fn push_set_local(&mut self, varname: &String) {
         let var_pos = self.locals.get(varname).unwrap().clone();
         self.push(op::SET_LOCAL);
-        self.push(var_pos + 1);
+        self.push(var_pos);
         self.push(get_type_size(&self.locals_types[varname]));
     }
 
     pub fn push_set_return(&mut self) {
         self.push(op::SET_LOCAL);
         self.push(0);
+        self.push(get_type_size(&self.return_type));
     }
 
     pub fn push_constant(&mut self, constant: Constant) {
@@ -102,8 +105,11 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
     }
 
     pub fn push_reserve(&mut self, for_type: &Type) {
-        self.push(op::RESERVE);
-        self.push(get_type_size(for_type) as u8);
+        let reserve_size = get_type_size(for_type) as u8;
+        if reserve_size > 0 {
+            self.push(op::RESERVE);
+            self.push(reserve_size);
+        }
     }
 
     pub fn push_pop(&mut self, for_type: &Type) {

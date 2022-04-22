@@ -1,0 +1,5 @@
+fun Int main() {
+    //println(2.to_string());
+    println("Hello!" + 2.to_string());
+    return 1;
+}

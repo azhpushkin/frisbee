@@ -4,11 +4,11 @@ use super::utils::{u64_to_f64, f64_to_u64};
 pub type RawStdRunner = for<'r, 's> fn(&'r mut [u64], &'s mut Vec<String>);
 
 fn std_println(stack: &mut [u64], memory: &mut Vec<String>) {
-    println!("[Println] {}", memory[stack[1] as usize]);
+    println!("[Println] {}", memory[stack[0] as usize]);
 }
 
 fn std_print(stack: &mut [u64], memory: &mut Vec<String>) {
-    print!("[Print] {}", memory[stack[1] as usize]);
+    print!("[Print] {}", memory[stack[0] as usize]);
 }
 
 fn std_get_input(stack: &mut [u64], memory: &mut Vec<String>) {
