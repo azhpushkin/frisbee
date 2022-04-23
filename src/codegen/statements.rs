@@ -11,7 +11,6 @@ pub fn generate_function_bytecode(
     aggregate: &ProgramAggregate,
     globals: &mut Globals,
 ) -> Result<FunctionBytecode, String> {
-
     let mut generator = BytecodeGenerator::new(
         aggregate,
         globals,
@@ -29,7 +28,7 @@ pub fn generate_function_bytecode(
 fn generate_statement_bytecode<'a, 'b>(
     statement: &'a LStatement,
     generator: &mut BytecodeGenerator<'a, 'b>,
-    loop_start: Option<usize>,    
+    loop_start: Option<usize>,
 ) -> Vec<JumpPlaceholder> {
     let mut break_placeholders = vec![];
     match statement {
@@ -54,26 +53,27 @@ fn generate_statement_bytecode<'a, 'b>(
             generator.push_set_return();
             generator.push(op::RETURN);
         }
-        LStatement::IfElse { condition, if_body: ifbody, else_body: elsebody } if elsebody.is_empty() => {
+        LStatement::IfElse { condition, if_body, else_body }
+            if else_body.is_empty() =>
+        {
             generator.push_expr(condition);
             generator.push(op::JUMP_IF_FALSE);
 
             let placeholder_to_skip_ifbody: JumpPlaceholder = generator.push_placeholder();
 
-            for statement in ifbody.iter() {
+            for statement in if_body.iter() {
                 let br = generate_statement_bytecode(statement, generator, loop_start);
                 break_placeholders.extend(br);
             }
-            let end_if_pos = generator.get_position() as u16;
             generator.fill_placeholder(&placeholder_to_skip_ifbody);
         }
-        LStatement::IfElse { condition, if_body: ifbody, else_body: elsebody } => {
+        LStatement::IfElse { condition, if_body, else_body } => {
             generator.push_expr(condition);
             generator.push(op::JUMP_IF_FALSE);
 
             let placeholder_to_skip_ifbody = generator.push_placeholder();
 
-            for statement in ifbody.iter() {
+            for statement in if_body.iter() {
                 let br = generate_statement_bytecode(statement, generator, loop_start);
                 break_placeholders.extend(br);
             }
@@ -81,7 +81,7 @@ fn generate_statement_bytecode<'a, 'b>(
             let placeholder_to_skip_elsebody = generator.push_placeholder();
             generator.fill_placeholder(&placeholder_to_skip_ifbody);
 
-            for statement in elsebody.iter() {
+            for statement in else_body.iter() {
                 let br = generate_statement_bytecode(statement, generator, loop_start);
                 break_placeholders.extend(br);
             }
@@ -91,7 +91,7 @@ fn generate_statement_bytecode<'a, 'b>(
             let mut loop_breaks = vec![];
             let start_pos = generator.get_position();
             generator.push_expr(condition);
-            
+
             generator.push(op::JUMP_IF_FALSE);
             let placeholder_to_skip_loop = generator.push_placeholder();
 
@@ -104,23 +104,22 @@ fn generate_statement_bytecode<'a, 'b>(
 
             // jump back to condition
             generator.fill_placeholder_backward(&placeholder_to_jump_back, start_pos);
-            
+
             // after loop is done - fill jumps related to breaks and condition failure
-            generator.fill_placeholder(&placeholder_to_skip_loop);            
+            generator.fill_placeholder(&placeholder_to_skip_loop);
             for break_placeholder in loop_breaks {
                 generator.fill_placeholder(&break_placeholder);
             }
-        },
+        }
         LStatement::Break => {
             generator.push(op::JUMP);
             break_placeholders.push(generator.push_placeholder());
-
-        },
+        }
         LStatement::Continue => {
             generator.push(op::JUMP_BACK);
             let placeholder_to_jump_back = generator.push_placeholder();
             generator.fill_placeholder_backward(&placeholder_to_jump_back, loop_start.unwrap());
-        },
+        }
     };
     break_placeholders
 }
