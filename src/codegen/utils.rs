@@ -40,6 +40,17 @@ pub fn get_tuple_offset(tuple_type: &Type, tuple_indexes: &[usize]) -> u8 {
     }
 }
 
+pub fn get_tuple_subitem_size(tuple_type: &Type, tuple_indexes: &[usize]) -> u8 {
+    if tuple_indexes.is_empty() {
+        return get_type_size(tuple_type);
+    } else {
+        return get_tuple_subitem_size(
+            &get_type_from_tuple(tuple_type, tuple_indexes[0]),
+            &tuple_indexes[1..],
+        );
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

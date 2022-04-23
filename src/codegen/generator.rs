@@ -7,7 +7,7 @@ use crate::vm::opcodes::op;
 
 use super::constants::Constant;
 use super::globals::Globals;
-use super::utils::get_type_size;
+use super::utils::{get_type_size, get_tuple_offset, get_tuple_subitem_size};
 
 pub type CallPlaceholders = (usize, SymbolFunc);
 
@@ -73,9 +73,10 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
 
     pub fn push_set_local(&mut self, varname: &String, tuple_indexes: &Vec<usize>) {
         let var_pos = self.locals.get(varname).unwrap().clone();
+        let offset = get_tuple_offset(&self.locals_types[varname], &tuple_indexes);
         self.push(op::SET_LOCAL);
-        self.push(var_pos);
-        self.push(get_type_size(&self.locals_types[varname]));
+        self.push(var_pos + offset);
+        self.push(get_tuple_subitem_size(&self.locals_types[varname], &tuple_indexes));
     }
 
     pub fn push_set_return(&mut self) {

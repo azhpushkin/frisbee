@@ -4,7 +4,7 @@ fun Int add_squares(Int a, Int b) {
     return c + (b * b);
 }
 
-fun Int main() {
+fun void main() {
     Int b = 2;
     Int a = 3;
     
@@ -15,11 +15,10 @@ fun Int main() {
         res = res * 2;
     } 
     elif a==1 {
-        return 77;
+        res = 77;
     }
     else {
         res = res + 1;
     }
-    return res; //  TODO: empty return is return (None)!!
-    // TODO: why this "return 9" compiles? must be semantic error!
+    println(res.to_string());
 }
