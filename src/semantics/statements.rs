@@ -36,11 +36,8 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
 
             if first_arg.is_none() || first_arg.unwrap() != "this" {
                 // Create "this" right at the start of the method
-                res.push(LStatement::DeclareVar {
+                res.push(LStatement::DeclareAndAssignVar {
                     var_type: class_name.into(),
-                    name: "this".into(),
-                });
-                res.push(LStatement::AssignVar {
                     name: "this".into(),
                     value: LExprTyped {
                         expr: LExpr::Allocate { typename: class_name.clone() },
@@ -100,13 +97,16 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
                 LStatement::DeclareVar { var_type: var_type.clone(), name: name.clone() }
             }
             Statement::Assign { left, right } => {
-                match &left.expr {
-                    Expr::Identifier(i) => {
-                        // TODO: check assigned value type
-                        let value = self.check_expr(right, None);
-                        LStatement::AssignVar { name: i.clone(), value }
-                    }
-                    _ => panic!("Only identifiers now!"),
+                let left_calculated = self.check_expr(left, None);
+                let right_calculated = self.check_expr(right, Some(&left_calculated.expr_type));
+                let is_local = get_local_offset(&left_calculated);
+                match is_local {
+                    Some((var_name, tuple_indexes)) => LStatement::AssignLocal {
+                        name: var_name,
+                        tuple_indexes,
+                        value: right_calculated,
+                    },
+                    _ => panic!("Only locals now!"),
                 }
             }
             Statement::VarDeclWithAssign(var_type, name, value) => {
@@ -143,13 +143,14 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
                 let index_name = format!("{}__{}__index", self.scope.short_name, itemname.clone());
 
                 let add_item_var = LStatement::DeclareVar { var_type, name: itemname.clone() };
-                let add_index_var =
-                    LStatement::DeclareVar { var_type: Type::Int, name: index_name.clone() };
-                let set_index_value =
-                    LStatement::AssignVar { name: index_name.clone(), value: LExprTyped::int(0) };
+                let add_index_var = LStatement::DeclareAndAssignVar {
+                    var_type: Type::Int,
+                    name: index_name.clone(),
+                    value: LExprTyped::int(0),
+                };
 
                 // and so on
-                return vec![add_item_var, add_index_var, set_index_value];
+                return vec![add_item_var, add_index_var];
             }
 
             f => todo!("not implemented {:?}", f),
@@ -166,4 +167,16 @@ pub fn generate_light_statements(
 ) -> Vec<LStatement> {
     let mut gen = LightStatementsGenerator::new(scope, aggregate, resolver);
     gen.generate(&og_statements)
+}
+
+fn get_local_offset(lexpr: &LExprTyped) -> Option<(String, Vec<usize>)> {
+    match &lexpr.expr {
+        LExpr::GetVar(s) => Some((s.clone(), vec![])),
+        LExpr::GetTupleItem { tuple, index } => {
+            let mut res = get_local_offset(tuple.as_ref())?;
+            res.1.push(*index);
+            Some(res)
+        }
+        _ => None,
+    }
 }

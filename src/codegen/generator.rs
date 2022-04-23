@@ -7,6 +7,7 @@ use crate::vm::opcodes::op;
 
 use super::constants::Constant;
 use super::globals::Globals;
+use super::utils::get_type_size;
 
 pub type CallPlaceholders = (usize, SymbolFunc);
 
@@ -18,18 +19,6 @@ pub struct JumpPlaceholder {
     position: usize,
 }
 
-pub fn get_type_size(t: &Type) -> u8 {
-    match t {
-        Type::Int => 1,
-        Type::Float => 1,
-        Type::Bool => 1,
-        Type::String => 1,
-        Type::Maybe(inner) => get_type_size(inner.as_ref()) + 1,
-        Type::Tuple(items) => items.iter().map(|t| get_type_size(t)).sum(),
-        Type::List(_) => 1,
-        Type::Ident(_) => 1,
-    }
-}
 
 pub struct BytecodeGenerator<'a, 'b> {
     aggregate: &'a ProgramAggregate,
@@ -82,7 +71,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
         self.push(get_type_size(&self.locals_types[varname]));
     }
 
-    pub fn push_set_local(&mut self, varname: &String) {
+    pub fn push_set_local(&mut self, varname: &String, tuple_indexes: &Vec<usize>) {
         let var_pos = self.locals.get(varname).unwrap().clone();
         self.push(op::SET_LOCAL);
         self.push(var_pos);

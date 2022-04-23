@@ -40,9 +40,9 @@ fn generate_statement_bytecode<'a, 'b>(
             generator.add_local(name, var_type);
             generator.push_reserve(var_type);
         }
-        LStatement::AssignVar { name, value } => {
+        LStatement::AssignLocal { name, tuple_indexes, value } => {
             generator.push_expr(value);
-            generator.push_set_local(name);
+            generator.push_set_local(name, tuple_indexes);
         }
         LStatement::DeclareAndAssignVar { var_type, name, value } => {
             generator.add_local(name, var_type);

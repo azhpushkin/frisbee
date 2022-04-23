@@ -1,7 +1,8 @@
 use std::convert::TryFrom;
 
 use super::constants::Constant;
-use super::generator::{get_type_size, BytecodeGenerator};
+use super::generator::BytecodeGenerator;
+use super::utils::{get_type_from_tuple, get_type_size};
 use crate::semantics::light_ast::{LExpr, LExprTyped, RawOperator};
 use crate::semantics::symbols::SymbolFunc;
 use crate::types::Type;
@@ -50,12 +51,6 @@ pub fn match_std_function(name: &SymbolFunc) -> u8 {
     }
 }
 
-fn get_type_from_tuple<'a>(t: &'a Type, i: usize) -> &'a Type {
-    match t {
-        Type::Tuple(items) => &items[i],
-        _ => panic!("something is wrong, semantics should have checked this.."),
-    }
-}
 
 impl<'a, 'b> BytecodeGenerator<'a, 'b> {
     pub fn push_expr(&mut self, expr: &LExprTyped) {

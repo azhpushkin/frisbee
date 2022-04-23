@@ -12,6 +12,7 @@ mod expressions;
 mod statements;
 mod generator;
 mod globals;
+mod utils;
 
 fn generate_chunks(prog: &ProgramAggregate) -> (Vec<u8>, HashMap<SymbolFunc, FunctionBytecode>) {
     let mut globals = globals::Globals::new();

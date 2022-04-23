@@ -27,8 +27,11 @@ pub enum LStatement {
     },
     // TODO: change to generic assign
     // assign to name, field, tuple or list only allowed
-    AssignVar {
+    AssignLocal {
         name: String,
+        // [1, 2] means <var>[1][2]
+        // these indexes are verified and flattened for simplicity
+        tuple_indexes: Vec<usize>,
         value: LExprTyped,
     },
     Expression(LExprTyped),
@@ -94,7 +97,7 @@ pub enum LExpr {
     Float(f64),
 
     GetVar(String),
-    GetTupleItem{tuple: Box<LExprTyped>, index: usize},
+    GetTupleItem { tuple: Box<LExprTyped>, index: usize },
 
     TupleValue(Vec<LExprTyped>),
 
