@@ -2,7 +2,7 @@ use std::convert::TryFrom;
 
 use super::constants::Constant;
 use super::generator::BytecodeGenerator;
-use super::utils::{get_type_from_tuple, get_type_size};
+use super::utils::{get_type_from_tuple, get_type_size, get_tuple_offset};
 use crate::semantics::light_ast::{LExpr, LExprTyped, RawOperator};
 use crate::semantics::symbols::SymbolFunc;
 use crate::types::Type;
@@ -118,10 +118,8 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 let item_type = get_type_from_tuple(tuple_type, *index);
                 self.push_reserve(item_type);
                 self.push_expr(tuple.as_ref());
-                let mut offset: u8 = 0;
-                for i in 0..*index {
-                    offset += get_type_size(get_type_from_tuple(tuple_type, i));
-                }
+
+                let offset = get_tuple_offset(tuple_type, &[*index, ]);
                 self.push(op::GET_TUPLE_ITEM);
                 self.push(get_type_size(tuple_type));
                 self.push(offset);
