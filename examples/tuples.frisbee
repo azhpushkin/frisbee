@@ -1,7 +1,7 @@
 fun void main() {
-    (String, Int) person = ("Noone", 123);
+    (String, (String, Int)) person = ("Noone", ('asdasdasdasd' , 123));
     //person[0] = get_input();
-    println("Person " + person[0] + " is of age " + person[1].to_string());
+    println("Person " + person[0] + " is of age " +person[1][0]+ person[1][1].to_string());
 }
 
 /* 

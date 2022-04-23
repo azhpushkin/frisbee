@@ -1,3 +1,5 @@
+use std::fmt::{Formatter, Error, Display};
+
 use crate::types::Type;
 use crate::loader::ModuleAlias;
 
@@ -36,6 +38,12 @@ impl SymbolFunc {
 impl Into<String> for &SymbolFunc {
     fn into(self) -> String {
         self.0.clone()
+    }
+}
+
+impl Display for SymbolFunc {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        write!(f, "{}", self.0)
     }
 }
 

@@ -24,7 +24,7 @@ fn main() {
 
     semantics::add_default_constructors(&mut wp);
 
-    let aggregate = semantics::perform_semantic_analysis(&wp);
+    let aggregate = semantics::perform_semantic_analysis(&wp).expect("Error generating bytecode!");
 
     let bytecode = codegen::generate(&aggregate);
 

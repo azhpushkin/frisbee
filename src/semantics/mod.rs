@@ -5,12 +5,13 @@ use crate::loader::WholeProgram;
 pub mod aggregate;
 pub mod annotations;
 mod default_constructors;
+pub mod errors;
 mod expressions;
 pub mod light_ast;
-mod std_definitions;
 mod operators;
 mod resolvers;
 mod statements;
+mod std_definitions;
 pub mod symbols;
 mod tests;
 
@@ -22,12 +23,14 @@ pub fn add_default_constructors(wp: &mut WholeProgram) {
     }
 }
 
-pub fn perform_semantic_analysis(wp: &WholeProgram) -> aggregate::ProgramAggregate {
+pub fn perform_semantic_analysis(
+    wp: &WholeProgram,
+) -> errors::SemanticResult<aggregate::ProgramAggregate> {
     let names_resolver = resolvers::NameResolver::create(wp);
     let mut aggregate = aggregate::create_basic_aggregate(wp, &names_resolver);
 
     let functions_mapping =
-        aggregate::fill_aggregate_with_funcs(wp, &mut aggregate, &names_resolver);
+        aggregate::fill_aggregate_with_funcs(wp, &mut aggregate, &names_resolver)?;
 
     let mut ls_mapping: HashMap<symbols::SymbolFunc, Vec<light_ast::LStatement>> = HashMap::new();
 
@@ -46,5 +49,5 @@ pub fn perform_semantic_analysis(wp: &WholeProgram) -> aggregate::ProgramAggrega
         raw_function.body = light_statements;
     }
 
-    aggregate
+    Ok(aggregate)
 }

@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 
 use crate::ast::{FunctionDecl, TypedNamedObject};
-use crate::loader::{WholeProgram, ModuleAlias};
+use crate::loader::{ModuleAlias, WholeProgram};
 use crate::types::Type;
 
 use super::annotations::{annotate_type, annotate_typednamed_vec, CustomType, TypedFields};
+use super::errors::{SemanticError, SemanticResult};
 use super::light_ast::LStatement;
 use super::resolvers::NameResolver;
 use super::symbols::{SymbolFunc, SymbolType};
@@ -59,7 +60,7 @@ pub fn fill_aggregate_with_funcs<'a>(
     wp: &'a WholeProgram,
     aggregate: &mut ProgramAggregate,
     resolver: &NameResolver,
-) -> HashMap<SymbolFunc, &'a FunctionDecl> {
+) -> SemanticResult<HashMap<SymbolFunc, &'a FunctionDecl>> {
     let mut mapping_to_og_funcs = HashMap::new();
 
     for (file_alias, file) in wp.files.iter() {
@@ -128,9 +129,16 @@ pub fn fill_aggregate_with_funcs<'a>(
         }
     }
 
-    if !aggregate.functions.contains_key(&aggregate.entry) {
-        panic!("Main function {:?} not defined!", aggregate.entry);
+    if let Some(raw_entry) = aggregate.functions.get(&aggregate.entry) {
+        if raw_entry.return_type != Type::Tuple(vec![]) {
+            return SemanticError::top_level(format!(
+                "Entry function {} must return void, but it returns {:?}",
+                aggregate.entry, raw_entry.return_type,
+            ));
+        }
+    } else {
+        return SemanticError::top_level(format!("Entry function {} not found", aggregate.entry));
     }
 
-    mapping_to_og_funcs
+    Ok(mapping_to_og_funcs)
 }

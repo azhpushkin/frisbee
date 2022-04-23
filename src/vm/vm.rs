@@ -174,8 +174,7 @@ impl Vm {
         self.skip_symbol_names();
         let entry = self.load_entry();
 
-        self.push(0); // return address for entry function
-        self.call_op(entry, 1, 0);
+        self.call_op(entry, 0, 0);
 
         while self.ip < self.program.len() {
             println!("  stack: {:02x?}", &self.stack[0..self.stack_pointer]);
