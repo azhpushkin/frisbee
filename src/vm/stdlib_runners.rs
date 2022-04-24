@@ -1,6 +1,6 @@
 use super::heap;
 use super::utils::{f64_to_u64, u64_to_f64};
-use std::io;
+use std::io::{self, Write};
 
 pub type RawStdRunner = for<'r, 's> fn(&'r mut [u64], &'s mut heap::Heap);
 
@@ -12,6 +12,7 @@ fn std_println(stack: &mut [u64], memory: &mut heap::Heap) {
 fn std_print(stack: &mut [u64], memory: &mut heap::Heap) {
     let obj = memory.get(stack[0]);
     print!("[Print] {}", obj.extract_string());
+    io::stdout().flush().unwrap();
 }
 
 fn std_get_input(stack: &mut [u64], memory: &mut heap::Heap) {
