@@ -1,5 +1,5 @@
 
-fun Int main() {
+fun void main() {
     Int a = 1;
     while a < 100 {
         a = a * 2;
@@ -7,5 +7,5 @@ fun Int main() {
             break;
         }
     }
-    return a;
+    println(a.to_string());
 }

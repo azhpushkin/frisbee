@@ -1,5 +1,4 @@
-fun Int main() {
+fun void main() {
     println(2.to_string());
     println("Hello!" + 2.to_string());
-    return 1;
 }
