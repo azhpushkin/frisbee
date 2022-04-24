@@ -2,7 +2,7 @@ use std::convert::TryFrom;
 
 use super::constants::Constant;
 use super::generator::BytecodeGenerator;
-use super::utils::{get_type_from_tuple, get_type_size, get_tuple_offset};
+use super::utils::{get_tuple_offset, get_type_from_tuple, get_type_size};
 use crate::semantics::light_ast::{LExpr, LExprTyped, RawOperator};
 use crate::semantics::symbols::SymbolFunc;
 use crate::types::Type;
@@ -51,21 +51,20 @@ pub fn match_std_function(name: &SymbolFunc) -> u8 {
     }
 }
 
-
 impl<'a, 'b> BytecodeGenerator<'a, 'b> {
     pub fn push_expr(&mut self, expr: &LExprTyped) {
         let LExprTyped { expr, expr_type } = expr;
         match expr {
-            LExpr::Int(i) => match i8::try_from(*i) {
-                Ok(i8_value) => {
+            LExpr::Int(i) => {
+                if 0 <= *i && *i < 256 {
+                    // TODO: check how 255 and 0 and -255 is handled
                     self.push(op::LOAD_SMALL_INT);
-                    self.push(i8_value as u8);
-                }
-                Err(_) => {
+                    self.push(*i as u8);
+                } else {
                     self.push(op::LOAD_CONST);
                     self.push_constant(Constant::Int(*i as i64));
                 }
-            },
+            }
             LExpr::Float(f) => {
                 self.push(op::LOAD_CONST);
                 self.push_constant(Constant::Float(*f as f64));
@@ -119,12 +118,12 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 self.push_reserve(item_type);
                 self.push_expr(tuple.as_ref());
 
-                let offset = get_tuple_offset(tuple_type, &[*index, ]);
+                let offset = get_tuple_offset(tuple_type, &[*index]);
                 self.push(op::GET_TUPLE_ITEM);
                 self.push(get_type_size(tuple_type));
                 self.push(offset);
                 self.push(get_type_size(item_type));
-            },
+            }
             LExpr::Allocate { .. } => todo!("Allocate is not here yet!"),
         }
     }
