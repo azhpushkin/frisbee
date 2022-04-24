@@ -1,4 +1,5 @@
 use super::opcodes::op;
+use super::heap;
 use super::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
 use super::utils::{f64_to_u64, u64_to_f64};
 
@@ -14,7 +15,7 @@ pub struct Vm {
     program: Vec<u8>,
     ip: usize,
     constants: Vec<u64>,
-    strings: Vec<String>, //  DO NOT EMPTY IT YET
+    memory: heap::Heap,
     stack: [u64; STACK_SIZE],
     stack_pointer: usize,
     frames: Vec<CallFrame>, // TODO: limit size
@@ -26,7 +27,7 @@ impl Vm {
             program,
             ip: 0,
             constants: vec![],
-            strings: vec![],
+            memory: heap::Heap::new(),
             stack: [0; STACK_SIZE],
             stack_pointer: 0,
             frames: vec![],
@@ -60,7 +61,7 @@ impl Vm {
 
     fn call_std(&mut self, func_index: usize, return_size: usize, locals_size: usize) {
         let start = self.stack_pointer - locals_size - return_size;
-        STD_RAW_FUNCTION_RUNNERS[func_index].1(&mut self.stack[start..], &mut self.strings);
+        STD_RAW_FUNCTION_RUNNERS[func_index].1(&mut self.stack[start..], &mut self.memory);
         self.stack_pointer = start + return_size;
     }
 
@@ -132,8 +133,10 @@ impl Vm {
                 op::CONST_STRING_FLAG => {
                     let str_len = u16::from_be_bytes(self.read_several::<2>());
                     let str_bytes = self.read_bytes(str_len as usize);
-                    self.strings.push(String::from_utf8(str_bytes).unwrap());
-                    self.constants.push((self.strings.len() - 1) as u64);
+                    let s = String::from_utf8(str_bytes).unwrap();
+                    let obj_pos = self.memory.insert(heap::HeapObject::String(s));
+                    
+                    self.constants.push(obj_pos);
                 }
                 op::CONST_END_FLAG => break,
                 c => panic!("Unknown const flag: {:02x}", c),
@@ -177,8 +180,8 @@ impl Vm {
         self.call_op(entry, 0, 0);
 
         while self.ip < self.program.len() {
-            println!("  stack: {:02x?}", &self.stack[0..self.stack_pointer]);
-            println!(">> exec pc: {:02x?}", self.ip);
+            // println!("  stack: {:02x?}", &self.stack[0..self.stack_pointer]);
+            // println!(">> exec pc: {:02x?}", self.ip);
 
             let opcode = self.read_opcode();
             match opcode {
@@ -226,14 +229,19 @@ impl Vm {
 
                 op::ADD_STRINGS => {
                     let (b, a) = (self.pop(), self.pop());
-                    let (s1, s2) = (&self.strings[a as usize], &self.strings[b as usize]);
+                    let s1 = self.memory.get(a).extract_string();
+                    let s2 = self.memory.get(b).extract_string();
+                    
                     let res = format!("{}{}", s1, s2);
-                    self.strings.push(res);
-                    self.push((self.strings.len() - 1) as u64);
+                    let new_obj = heap::HeapObject::String(res);
+                    let new_obj_pos = self.memory.insert(new_obj);
+                    self.push(new_obj_pos);
                 }
                 op::EQ_STRINGS => {
                     let (b, a) = (self.pop(), self.pop());
-                    let (s1, s2) = (&self.strings[a as usize], &self.strings[b as usize]);
+                    let s1 = self.memory.get(a).extract_string();
+                    let s2 = self.memory.get(b).extract_string();
+
                     let res = (s1 == s2) as u64;
                     self.push(res);
                 }
