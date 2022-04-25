@@ -1,5 +1,5 @@
-use super::opcodes::op;
 use super::heap;
+use super::opcodes::op;
 use super::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
 use super::utils::{f64_to_u64, u64_to_f64};
 
@@ -135,7 +135,7 @@ impl Vm {
                     let str_bytes = self.read_bytes(str_len as usize);
                     let s = String::from_utf8(str_bytes).unwrap();
                     let obj_pos = self.memory.insert(heap::HeapObject::String(s));
-                    
+
                     self.constants.push(obj_pos);
                 }
                 op::CONST_END_FLAG => break,
@@ -231,7 +231,7 @@ impl Vm {
                     let (b, a) = (self.pop(), self.pop());
                     let s1 = self.memory.get(a).extract_string();
                     let s2 = self.memory.get(b).extract_string();
-                    
+
                     let res = format!("{}{}", s1, s2);
                     let new_obj = heap::HeapObject::String(res);
                     let new_obj_pos = self.memory.insert(new_obj);
@@ -264,6 +264,22 @@ impl Vm {
                             value;
                     }
                 }
+                op::GET_FROM_HEAP => {
+                    let pointer = self.pop();
+                    let offset = self.read_opcode();
+                    let size = self.read_opcode();
+
+                    let heap_obj = self.memory.get_mut(pointer);
+                    let memory_chunk: &[u64] = heap_obj.extract_memory_mut(offset);
+
+                    for i in 0..size as usize {
+                        let x = *memory_chunk.get(i).expect("Wrong params here");
+
+                        // Do not use push to avoid compiler checks errors
+                        self.stack[self.stack_pointer + i] = x;
+                        self.stack_pointer += 1;
+                    }
+                }
                 op::GET_TUPLE_ITEM => {
                     let tuple_size = self.read_opcode() as usize;
                     let offset = self.read_opcode() as usize;
@@ -273,7 +289,6 @@ impl Vm {
                         let v = self.stack[self.stack_pointer + offset + i];
                         self.stack[self.stack_pointer - size_to_copy + i] = v;
                     }
-
                 }
                 op::RESERVE => {
                     // TODO: this seems wrong, function might reserve at the very start tbh
