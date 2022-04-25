@@ -47,6 +47,8 @@ pub mod op {
 
     // Opcodes with single operand
     opcodes_list!(100,
+        ALLOCATE,
+        
         RESERVE,
         POP,
 

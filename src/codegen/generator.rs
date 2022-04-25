@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
-use crate::semantics::aggregate::ProgramAggregate;
 use crate::semantics::symbols::SymbolFunc;
 use crate::types::Type;
 use crate::vm::opcodes::op;
 
 use super::constants::{Constant, ConstantsTable};
+use super::types_metadata::TypeMetadataTable;
 use super::utils::{get_type_size, get_tuple_offset, get_tuple_subitem_size};
 
 pub type CallPlaceholders = (usize, SymbolFunc);
@@ -20,7 +20,7 @@ pub struct JumpPlaceholder {
 
 
 pub struct BytecodeGenerator<'a, 'b> {
-    aggregate: &'a ProgramAggregate,
+    pub types_meta: &'a TypeMetadataTable,
     constants: &'b mut ConstantsTable,
     locals: HashMap<&'a String, u8>,
     locals_offset: u8,
@@ -31,7 +31,7 @@ pub struct BytecodeGenerator<'a, 'b> {
 
 impl<'a, 'b> BytecodeGenerator<'a, 'b> {
     pub fn new(
-        aggregate: &'a ProgramAggregate,
+        types_meta: &'a TypeMetadataTable,
         constants: &'b mut ConstantsTable,
         initial_locals: Vec<(&'a String, &'a Type)>,
         return_type: &'a Type,
@@ -47,7 +47,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
         }
 
         BytecodeGenerator {
-            aggregate,
+            types_meta,
             constants,
             locals,
             locals_offset,

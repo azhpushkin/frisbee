@@ -1,17 +1,18 @@
-use crate::semantics::aggregate::{ProgramAggregate, RawFunction};
+use crate::semantics::aggregate::RawFunction;
 use crate::semantics::light_ast::LStatement;
 use crate::vm::opcodes::op;
 
 use super::constants::ConstantsTable;
 use super::generator::{BytecodeGenerator, FunctionBytecode, JumpPlaceholder};
+use super::types_metadata::TypeMetadataTable;
 
 pub fn generate_function_bytecode(
     func: &RawFunction,
-    aggregate: &ProgramAggregate,
+    types_meta: &TypeMetadataTable,
     constants: &mut ConstantsTable,
 ) -> Result<FunctionBytecode, String> {
     let mut generator = BytecodeGenerator::new(
-        aggregate,
+        types_meta,
         constants,
         func.args.iter().collect(),
         &func.return_type,
@@ -53,9 +54,7 @@ fn generate_statement_bytecode<'a, 'b>(
             generator.push_set_return();
             generator.push(op::RETURN);
         }
-        LStatement::IfElse { condition, if_body, else_body }
-            if else_body.is_empty() =>
-        {
+        LStatement::IfElse { condition, if_body, else_body } if else_body.is_empty() => {
             generator.push_expr(condition);
             generator.push(op::JUMP_IF_FALSE);
 

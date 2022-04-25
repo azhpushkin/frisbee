@@ -46,6 +46,7 @@ pub fn opcode_to_s(c: u8) -> &'static str {
         op::CALL_STD => "call_std",
         op::RETURN => "return",
         op::POP => "pop",
+        op::ALLOCATE => "allocate",
         op::SET_LOCAL => "set_local",
         op::GET_LOCAL => "get_local",
         op::GET_TUPLE_ITEM => "get_tuple_item",

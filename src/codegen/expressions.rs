@@ -124,8 +124,12 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 self.push(offset);
                 self.push(get_type_size(item_type));
             }
-            LExpr::AccessField { ..} => todo!(),
-            LExpr::Allocate { .. } => todo!("Allocate is not here yet!"),
+            LExpr::AccessField { .. } => todo!(),
+            LExpr::Allocate { typename } => {
+                let type_size = self.types_meta.get_size(typename);
+                self.push(op::ALLOCATE);
+                self.push(type_size);
+            }
         }
     }
 }
