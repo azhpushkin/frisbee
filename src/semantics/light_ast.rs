@@ -34,9 +34,10 @@ pub enum LStatement {
         tuple_indexes: Vec<usize>,
         value: LExprTyped,
     },
-    AssignToPointer {
-        left: LExprTyped,
-        right: LExprTyped,
+    AssignToField {
+        object: Box<LExprTyped>,  // box to avoid hustle of unboxing from LExpr::AccessField
+        field: String,
+        value: LExprTyped,
     },
     Expression(LExprTyped),
     // TODO: send message

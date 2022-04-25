@@ -48,7 +48,7 @@ pub mod op {
     // Opcodes with single operand
     opcodes_list!(100,
         ALLOCATE,
-        
+
         RESERVE,
         POP,
 
@@ -63,7 +63,10 @@ pub mod op {
         JUMP_IF_FALSE,
 
         SET_LOCAL,  // offset + size
-        GET_LOCAL  // offset + size
+        GET_LOCAL,  // offset + size
+
+        SET_TO_HEAP,  // offset from pointer, size
+        GET_FROM_HEAP // offset from pointer, size
     );
 
     // Opcodes with three operands

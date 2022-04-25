@@ -107,14 +107,14 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
                         value: right_calculated,
                     }
                 } else {
-                    match &left_calculated.expr {
-                        LExpr::AccessTupleItem {..} | LExpr::AccessField {..} => {
-                            LStatement::AssignToPointer {
-                                left: left_calculated,
-                                right: right_calculated
-                            }
-                        },
-                        _ => panic!("Cant assign to {:?}", left_calculated.expr)
+                    // We dont need type of left_calculated anymore as it is used only for right typecheck
+                    // but expr field is still used, so move it away to new LExpr value
+                    match left_calculated.expr {
+                        LExpr::AccessField { object, field } => {
+                            LStatement::AssignToField { object, field, value: right_calculated }
+                        }
+                        LExpr::AccessTupleItem { tuple, index } => todo!("Flatten this!"),
+                        _ => panic!("Cant assign to {:?}", left_calculated.expr),
                     }
                 }
             }

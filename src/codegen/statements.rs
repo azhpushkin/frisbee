@@ -1,5 +1,6 @@
 use crate::semantics::aggregate::RawFunction;
-use crate::semantics::light_ast::LStatement;
+use crate::semantics::light_ast::{LStatement, LExpr};
+use crate::semantics::symbols::SymbolType;
 use crate::vm::opcodes::op;
 
 use super::constants::ConstantsTable;
@@ -19,7 +20,7 @@ pub fn generate_function_bytecode(
     );
 
     for statement in func.body.iter() {
-        generate_statement_bytecode(statement, &mut generator, None);
+        generate_statement_bytecode(statement, &mut generator, types_meta, None);
     }
 
     Ok(generator.get_bytecode())
@@ -28,6 +29,7 @@ pub fn generate_function_bytecode(
 fn generate_statement_bytecode<'a, 'b>(
     statement: &'a LStatement,
     generator: &mut BytecodeGenerator<'a, 'b>,
+    types_meta: &TypeMetadataTable,
     loop_start: Option<usize>,
 ) -> Vec<JumpPlaceholder> {
     let mut break_placeholders = vec![];
@@ -48,7 +50,14 @@ fn generate_statement_bytecode<'a, 'b>(
             generator.add_local(name, var_type);
             generator.push_expr(value);
         }
-        LStatement::AssignToPointer { left, right } => todo!(),
+        LStatement::AssignToField { object, field, value } => {
+            let object_type: SymbolType = object.expr_type.into();
+            generator.push_expr(&object);
+            generator.push_expr(value);
+            generator.push(op::SET_TO_HEAP);
+            generator.push(types_meta.get(&object_type).field_offsets[field]);
+            generator.push(types_meta.get(&object_type).field_sizes[field]);
+        }
         LStatement::Return(expr) => {
             generator.push_expr(expr);
             generator.push_set_return();
