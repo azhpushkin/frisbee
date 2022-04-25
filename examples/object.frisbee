@@ -1,15 +1,16 @@
 class Person {
     String name;
-    Int age;
+    (Int, Bool) age;
+    String surname;
 
     fun String name_extended(String prefix) {
-        @age = 213;
+        @age = (213, false);
         return prefix + " " + @name;
     }
 }
 
 fun void main() {
-    Person p = Person("Anton", 100500);
-    println(p.name_extended("Mr."));
+    Person p = Person("Anton", (100500, true), "Zhdan");
+    println(p.name_extended(p.surname) + " is of age " + p.age[0].to_string());
     return;
 }
