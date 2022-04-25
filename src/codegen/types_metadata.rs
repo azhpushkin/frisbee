@@ -18,11 +18,10 @@ pub struct TypeMetadataTable {
 
 fn metadata_for_type(definition: &CustomType) -> TypeMetadata {
     let type_size: u8 = definition.fields.types.iter().map(|t| get_type_size(t)).sum();
-    let field_sizes: Vec<u8> =
-    definition.fields.types.iter().map(|t| get_type_size(t)).collect();
-    
+    let field_sizes: Vec<u8> = definition.fields.types.iter().map(|t| get_type_size(t)).collect();
+
     let mut field_offsets = vec![0; field_sizes.len()];
-    for (i, field_size) in field_sizes.iter().enumerate().skip(1) {
+    for (i, _) in field_sizes.iter().enumerate().skip(1) {
         field_offsets[i] = field_offsets[i - 1] + field_sizes[i - 1];
     }
     let generate_field_names = || definition.fields.iter().map(|(n, t)| n.clone());
@@ -44,7 +43,6 @@ impl TypeMetadataTable {
             indexes.insert(typename.clone(), index);
             metadata.push(metadata_for_type(definition));
         }
-        todo!("Test this");
 
         TypeMetadataTable { indexes, metadata }
     }
@@ -54,4 +52,42 @@ impl TypeMetadataTable {
     }
 }
 
+#[cfg(test)]
+mod test {
+    use crate::semantics::annotations::TypedFields;
+    use crate::types::Type;
 
+    use super::*;
+
+    #[test]
+    fn check_offsets_and_sizes() {
+        let field_types = vec![
+            Type::Int,
+            Type::Tuple(vec![Type::Ident("Some".into()), Type::String]),
+            Type::Bool,
+        ];
+        let field_names: Vec<String> = vec!["a".into(), "b".into(), "c".into()];
+        let fields = TypedFields {
+            types: field_types,
+            names: field_names.into_iter().enumerate().collect(),
+        };
+        let custom_type = CustomType {
+            name: Type::Ident("module::MyType".into()).into(),
+            is_active: false,
+            fields,
+        };
+
+        let metadata = metadata_for_type(&custom_type);
+
+        assert_eq!(metadata.size, 4);
+        assert_eq!(metadata.field_offsets.len(), 3);
+        assert_eq!(metadata.field_offsets["a".into()], 0);
+        assert_eq!(metadata.field_offsets["b".into()], 1);
+        assert_eq!(metadata.field_offsets["c".into()], 3);
+
+        assert_eq!(metadata.field_sizes.len(), 3);
+        assert_eq!(metadata.field_sizes["a".into()], 1);
+        assert_eq!(metadata.field_sizes["b".into()], 2);
+        assert_eq!(metadata.field_sizes["c".into()], 1);
+    }
+}
