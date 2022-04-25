@@ -98,7 +98,7 @@ pub fn fill_aggregate_with_funcs<'a>(
                     RawFunction {
                         name: method_full_name.clone(),
                         return_type: get_return_type(&method.rettype),
-                        args: annotate_typednamed_vec(&method.args, &file_resolver),
+                        args: annotate_typednamed_vec(&args, &file_resolver),
                         body: vec![],
                         short_name: method.name.clone(),
                         method_of: Some(type_full_name.clone()),
