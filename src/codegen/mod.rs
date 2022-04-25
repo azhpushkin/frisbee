@@ -11,13 +11,11 @@ mod disassemble;
 mod expressions;
 mod statements;
 mod generator;
-mod types_metadata;
+//mod types_metadata;
 mod utils;
 
 fn generate_chunks(prog: &ProgramAggregate) -> (Vec<u8>, HashMap<SymbolFunc, FunctionBytecode>) {
     let mut constants = constants::ConstantsTable::new();
-
-
 
     let mut functions_bytecode: HashMap<SymbolFunc, FunctionBytecode> = HashMap::new();
     for (name, raw_func) in prog.functions.iter() {

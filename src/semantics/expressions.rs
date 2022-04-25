@@ -12,11 +12,11 @@ use super::resolvers::{NameResolver, SymbolResolver};
 use super::std_definitions::{get_std_function_raw, get_std_method, is_std_function};
 use super::symbols::{SymbolFunc, SymbolType};
 
-fn if_as_expected(e: Option<&Type>, t: &Type, le: LExpr) -> LExprTyped {
-    if e.is_some() && e.unwrap() != t {
-        panic!("Expected type {:?} but got {:?}", e.unwrap(), t);
+fn if_as_expected(expected: Option<&Type>, real: &Type, le: LExpr) -> LExprTyped {
+    if expected.is_some() && expected.unwrap() != real {
+        panic!("Expected type {:?} but got {:?}", expected.unwrap(), real);
     } else {
-        LExprTyped { expr: le, expr_type: t.clone() }
+        LExprTyped { expr: le, expr_type: real.clone() }
     }
 }
 
@@ -55,7 +55,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
         }
         self.variables_types.insert(name, t);
     }
-
+    
     fn resolve_type(&self, name: &String) -> &'b CustomType {
         self.aggregate.types.get(&(self.type_resolver)(name)).unwrap()
     }
@@ -67,6 +67,14 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
     fn resolve_method(&self, t: &SymbolType, method: &String) -> &'b RawFunction {
         let method_func: SymbolFunc = t.method(method);
         self.aggregate.functions.get(&method_func).unwrap()
+    }
+
+    fn resolve_field<'q>(&self, t: &'q CustomType, f: &String) -> &'q Type {
+        let field_type = t.fields.iter().find(|(name, t)| *name==f);
+        match field_type {
+            Some((_, t)) => t,
+            None => panic!("No field {} in type {:?}", f, t.name),
+        }
     }
 
     fn err_prefix(&self) -> String {
@@ -229,6 +237,38 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                     t => panic!("Did not expected to have type {:?} here", t),
                 }
             }
+            Expr::FieldAccess { object, field } => {
+                // TODO: implement something for built-in types
+                let object_calculated = self.calculate(&object, None);
+                match &object_calculated.expr_type {
+                    Type::Ident(i) => {
+                        let object_definition = self.resolve_type(i);
+                        let field_type = self.resolve_field(object_definition, &field);
+
+                        let lexpr = LExpr::AccessField { object: Box::new(object_calculated), field: field.clone() };
+                        if_as_expected(expected, &field_type, lexpr)
+                    },
+                    _ => {
+                        panic!("Error at {:?} - type {:?} has no fields", object, object_calculated.expr_type);
+                    }
+                }
+            }
+            Expr::OwnFieldAccess { field } => {
+                if self.scope.method_of.is_none() {
+                    panic!("Calling own method outside of method scope!");
+                }
+                // TODO: review exprwithpos for this, maybe too strange tbh
+                let this_object = self.calculate(
+                    &ExprWithPos { expr: Expr::This, pos_first: 0, pos_last: 0 },
+                    expected,
+                );
+                let object_symbol: SymbolType = this_object.expr_type.clone().into();
+                let object_definition = self.aggregate.types.get(&object_symbol).unwrap();
+                let field_type = self.resolve_field(object_definition, &field);
+
+                let lexpr = LExpr::AccessField { object: Box::new(this_object), field: field.clone() };
+                if_as_expected(expected, &field_type, lexpr)
+            }
 
             // Expr::SpawnActive { typename, args } => {
             //     let class_signature = self.get_class_signature(typename)?;
@@ -241,25 +281,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
             //     self.check_function_call(constuctor, args)?
             // }
 
-            // Expr::FieldAccess { object, field } => {
-            //     // TODO: implement something for built-in types
-            //     let obj_type = self.calculate_and_annotate(object)?;
-            //     match &obj_type {
-            //         Type::IdentQualified(alias, name) => {
-            //             let field_type = self.get_type_field(alias, name, field)?;
-            //             field_type.clone()
-            //         }
-            //         Type::Ident(..) => panic!("TypeIdent should not be present here!"),
-            //         _ => {
-            //             panic!("Error at {:?} - type {:?} has no fields", object, obj_type)
-            //         }
-            //     }
-            // }
-            // Expr::OwnFieldAccess { field } => {
-            //     let field_type =
-            //         self.get_type_field(&self.file_name, &self.scope.as_ref().unwrap(), field)?;
-            //     field_type.clone()
-            // }
+            
             e => todo!("Expressions {:?} is not yet done!", e),
         }
     }

@@ -106,5 +106,7 @@ pub enum LExpr {
     Allocate { typename: SymbolType },
     // TODO: all others
 
+    AccessField{ object: Box<LExprTyped>, field: String},
+
     // TODO: spawn!
 }
