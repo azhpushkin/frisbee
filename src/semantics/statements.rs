@@ -168,9 +168,10 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
                 // TODO: check value of return
                 LStatement::Return(self.check_expr(e, Some(&self.scope.return_type)))
             }
-            Statement::Return(None) => {
-                todo!("Return empty tuple here!");
-            }
+            Statement::Return(None) => LStatement::Return(LExprTyped {
+                expr: LExpr::TupleValue(vec![]),
+                expr_type: Type::Tuple(vec![]),
+            }),
             Statement::Break => LStatement::Break,
             Statement::Continue => LStatement::Continue,
             Statement::IfElse { condition, if_body, elif_bodies, else_body } => {

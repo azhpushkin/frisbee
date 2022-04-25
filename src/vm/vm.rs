@@ -286,13 +286,11 @@ impl Vm {
                     let size = self.read_opcode() as usize;
 
                     let heap_obj = self.memory.get_mut(pointer);
-                    let memory_chunk: &[u64] = heap_obj.extract_memory_mut(offset);
+                    let memory_chunk: &mut [u64] = heap_obj.extract_memory_mut(offset);
 
                     for i in 0..size {
-                        let x = *memory_chunk.get(i).expect("Wrong params here");
-
-                        // Do not use push to avoid compiler checks errors
-                        self.stack[self.stack_pointer - size + i] = x;
+                        let x = self.stack[self.stack_pointer - size + i];
+                        memory_chunk[i] = x;
                     }
                     self.stack_pointer -= size;
                 }

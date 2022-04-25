@@ -6,7 +6,7 @@ use crate::vm::opcodes::op;
 
 use super::constants::{Constant, ConstantsTable};
 use super::types_metadata::TypeMetadataTable;
-use super::utils::{get_type_size, get_tuple_offset, get_tuple_subitem_size};
+use super::utils::{get_tuple_offset, get_tuple_subitem_size, get_type_size};
 
 pub type CallPlaceholders = (usize, SymbolFunc);
 
@@ -17,7 +17,6 @@ pub struct FunctionBytecode {
 pub struct JumpPlaceholder {
     position: usize,
 }
-
 
 pub struct BytecodeGenerator<'a, 'b> {
     pub types_meta: &'a TypeMetadataTable,
@@ -75,7 +74,10 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
         let offset = get_tuple_offset(&self.locals_types[varname], &tuple_indexes);
         self.push(op::SET_LOCAL);
         self.push(var_pos + offset);
-        self.push(get_tuple_subitem_size(&self.locals_types[varname], &tuple_indexes));
+        self.push(get_tuple_subitem_size(
+            &self.locals_types[varname],
+            &tuple_indexes,
+        ));
     }
 
     pub fn push_set_return(&mut self) {

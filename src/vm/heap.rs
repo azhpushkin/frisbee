@@ -3,12 +3,14 @@ use std::collections::HashMap;
 // Will be extended later on to support more metadata
 pub type HeapObjectHeader = (bool, u64); // flag for future gc, index in heap hashmap
 
+#[derive(Debug)]
 pub enum HeapObject {
     String(String),
     List(Vec<u64>),
     Custom(Vec<u64>),
 }
 
+#[derive(Debug)]
 pub struct Heap {
     data: HashMap<u64, (HeapObjectHeader, Box<HeapObject>)>,
     counter: u64,

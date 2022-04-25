@@ -3,6 +3,7 @@ class Person {
     Int age;
 
     fun String name_extended(String prefix) {
+        @age = 213;
         return prefix + " " + @name;
     }
 }
@@ -10,4 +11,5 @@ class Person {
 fun void main() {
     Person p = Person("Anton", 100500);
     println(p.name_extended("Mr."));
+    return;
 }
