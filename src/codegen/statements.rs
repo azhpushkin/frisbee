@@ -52,8 +52,11 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
             }
             LStatement::AssignToField { object, field, value } => {
                 let object_type: SymbolType = object.expr_type.clone().into();
-                self.push_expr(&object);
+                // Push value before object, as we need to first pop a pointer
+                // to access the memory before writing value to it
                 self.push_expr(value);
+                self.push_expr(&object);
+                
                 self.push(op::SET_TO_HEAP);
                 self.push(self.types_meta.get(&object_type).field_offsets[field]);
                 self.push(self.types_meta.get(&object_type).field_sizes[field]);

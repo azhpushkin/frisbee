@@ -267,18 +267,34 @@ impl Vm {
                 op::GET_FROM_HEAP => {
                     let pointer = self.pop();
                     let offset = self.read_opcode();
-                    let size = self.read_opcode();
+                    let size = self.read_opcode() as usize;
 
                     let heap_obj = self.memory.get_mut(pointer);
                     let memory_chunk: &[u64] = heap_obj.extract_memory_mut(offset);
 
-                    for i in 0..size as usize {
+                    for i in 0..size {
                         let x = *memory_chunk.get(i).expect("Wrong params here");
 
                         // Do not use push to avoid compiler checks errors
                         self.stack[self.stack_pointer + i] = x;
                         self.stack_pointer += 1;
                     }
+                }
+                op::SET_TO_HEAP => {
+                    let pointer = self.pop();
+                    let offset = self.read_opcode();
+                    let size = self.read_opcode() as usize;
+
+                    let heap_obj = self.memory.get_mut(pointer);
+                    let memory_chunk: &[u64] = heap_obj.extract_memory_mut(offset);
+
+                    for i in 0..size {
+                        let x = *memory_chunk.get(i).expect("Wrong params here");
+
+                        // Do not use push to avoid compiler checks errors
+                        self.stack[self.stack_pointer - size + i] = x;
+                    }
+                    self.stack_pointer -= size;
                 }
                 op::GET_TUPLE_ITEM => {
                     let tuple_size = self.read_opcode() as usize;
