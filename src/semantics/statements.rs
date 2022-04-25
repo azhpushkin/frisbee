@@ -9,7 +9,6 @@ use super::resolvers::NameResolver;
 
 struct LightStatementsGenerator<'a: 'd, 'b, 'c: 'd, 'd> {
     scope: &'a RawFunction,
-    aggregate: &'b ProgramAggregate,
     resolver: &'c NameResolver,
     lexpr_generator: LightExpressionsGenerator<'a, 'b, 'd>,
 }
@@ -25,7 +24,14 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
             lexpr_generator.add_variable(name.clone(), typename.clone());
         }
 
-        Self { scope, aggregate, resolver, lexpr_generator }
+        Self { scope, resolver, lexpr_generator }
+    }
+
+    fn annotate_type(&self, t: &Type) -> Type {
+        annotate_type(
+            t,
+            &self.resolver.get_typenames_resolver(&self.scope.defined_at),
+        )
     }
 
     fn is_constructor(&self) -> bool {
@@ -118,15 +124,10 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
         let light_statement = match statement {
             Statement::Expr(e) => LStatement::Expression(self.check_expr(e, None)),
             Statement::VarDecl(var_type, name) => {
-                self.lexpr_generator.add_variable(name.clone(), annotate_type(
-                    var_type,
-                    &self.resolver.get_typenames_resolver(&self.scope.defined_at),
-                ));
+                self.lexpr_generator
+                    .add_variable(name.clone(), self.annotate_type(var_type));
                 LStatement::DeclareVar {
-                    var_type: annotate_type(
-                        var_type,
-                        &self.resolver.get_typenames_resolver(&self.scope.defined_at),
-                    ),
+                    var_type: self.annotate_type(var_type),
                     name: name.clone(),
                 }
             }
@@ -153,19 +154,11 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
                 }
             }
             Statement::VarDeclWithAssign(var_type, name, value) => {
-                self.lexpr_generator.add_variable(
-                    name.clone(),
-                    annotate_type(
-                        var_type,
-                        &self.resolver.get_typenames_resolver(&self.scope.defined_at),
-                    ),
-                );
+                self.lexpr_generator
+                    .add_variable(name.clone(), self.annotate_type(var_type));
                 let value = self.check_expr(value, None);
                 LStatement::DeclareAndAssignVar {
-                    var_type: annotate_type(
-                        var_type,
-                        &self.resolver.get_typenames_resolver(&self.scope.defined_at),
-                    ),
+                    var_type: self.annotate_type(var_type),
                     name: name.clone(),
                     value,
                 }
