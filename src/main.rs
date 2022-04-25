@@ -6,10 +6,10 @@ pub mod errors;
 pub mod loader;
 pub mod parser;
 pub mod semantics;
+pub mod stdlib;
 pub mod test_utils;
 pub mod types;
 pub mod vm;
-pub mod stdlib;
 
 // TODO: color output?
 
@@ -25,6 +25,7 @@ fn main() {
     semantics::add_default_constructors(&mut wp);
 
     let aggregate = semantics::perform_semantic_analysis(&wp).expect("Error generating bytecode!");
+    println!("{:#?}", aggregate);
 
     let bytecode = codegen::generate(&aggregate);
 

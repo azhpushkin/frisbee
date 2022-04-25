@@ -5,4 +5,5 @@ class Person {
 
 fun void main() {
     Person p = Person("Anton", 100500);
+    println(p.name);
 }

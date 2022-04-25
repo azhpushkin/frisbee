@@ -3,7 +3,7 @@ use super::opcodes::op;
 use super::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
 use super::utils::{f64_to_u64, u64_to_f64};
 
-const STACK_SIZE: usize = 1024;
+const STACK_SIZE: usize = 20;
 
 struct CallFrame {
     pub return_ip: usize,
@@ -180,8 +180,8 @@ impl Vm {
         self.call_op(entry, 0, 0);
 
         while self.ip < self.program.len() {
-            // println!("  stack: {:02x?}", &self.stack[0..self.stack_pointer]);
-            // println!(">> exec pc: {:02x?}", self.ip);
+            println!("  stack: {:02x?}", &self.stack[0..self.stack_pointer]);
+            println!(">> exec pc: {:02x?}", self.ip);
 
             let opcode = self.read_opcode();
             match opcode {
@@ -306,11 +306,13 @@ impl Vm {
                         self.stack[self.stack_pointer - size_to_copy + i] = v;
                     }
                 }
-                // op::ALLOCATE => {
-                //     let size = self.read_opcode() as usize;
-                //     // TODO: should
-                //     let new_obj =
-                // }
+                op::ALLOCATE => {
+                    let size = self.read_opcode() as usize;
+                    // TODO: should
+                    let new_obj = heap::HeapObject::new_custom(size);
+                    let new_obj_pos = self.memory.insert(new_obj);
+                    self.push(new_obj_pos);
+                }
                 op::RESERVE => {
                     // TODO: this seems wrong, function might reserve at the very start tbh
                     // should check after basic implementation probably
