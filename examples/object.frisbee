@@ -1,0 +1,8 @@
+class Person {
+    String name;
+    Int age;
+}
+
+fun void main() {
+    Person p = Person("Anton", 100500);
+}

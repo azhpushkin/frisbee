@@ -5,8 +5,7 @@ use crate::semantics::symbols::SymbolFunc;
 use crate::types::Type;
 use crate::vm::opcodes::op;
 
-use super::constants::Constant;
-use super::globals::Globals;
+use super::constants::{Constant, ConstantsTable};
 use super::utils::{get_type_size, get_tuple_offset, get_tuple_subitem_size};
 
 pub type CallPlaceholders = (usize, SymbolFunc);
@@ -22,7 +21,7 @@ pub struct JumpPlaceholder {
 
 pub struct BytecodeGenerator<'a, 'b> {
     aggregate: &'a ProgramAggregate,
-    globals: &'b mut Globals,
+    constants: &'b mut ConstantsTable,
     locals: HashMap<&'a String, u8>,
     locals_offset: u8,
     locals_types: HashMap<&'a String, &'a Type>,
@@ -33,7 +32,7 @@ pub struct BytecodeGenerator<'a, 'b> {
 impl<'a, 'b> BytecodeGenerator<'a, 'b> {
     pub fn new(
         aggregate: &'a ProgramAggregate,
-        globals: &'b mut Globals,
+        constants: &'b mut ConstantsTable,
         initial_locals: Vec<(&'a String, &'a Type)>,
         return_type: &'a Type,
     ) -> Self {
@@ -49,7 +48,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
 
         BytecodeGenerator {
             aggregate,
-            globals,
+            constants,
             locals,
             locals_offset,
             locals_types,
@@ -86,7 +85,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
     }
 
     pub fn push_constant(&mut self, constant: Constant) {
-        let constant_pos = self.globals.get_constant(constant);
+        let constant_pos = self.constants.get_constant(constant);
         self.push(constant_pos);
     }
 

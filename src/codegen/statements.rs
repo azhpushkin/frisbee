@@ -1,19 +1,18 @@
 use crate::semantics::aggregate::{ProgramAggregate, RawFunction};
 use crate::semantics::light_ast::LStatement;
-use crate::types::Type;
 use crate::vm::opcodes::op;
 
+use super::constants::ConstantsTable;
 use super::generator::{BytecodeGenerator, FunctionBytecode, JumpPlaceholder};
-use super::globals::Globals;
 
 pub fn generate_function_bytecode(
     func: &RawFunction,
     aggregate: &ProgramAggregate,
-    globals: &mut Globals,
+    constants: &mut ConstantsTable,
 ) -> Result<FunctionBytecode, String> {
     let mut generator = BytecodeGenerator::new(
         aggregate,
-        globals,
+        constants,
         func.args.iter().collect(),
         &func.return_type,
     );

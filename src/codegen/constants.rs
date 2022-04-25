@@ -7,7 +7,7 @@ pub enum Constant {
     String(String),
 }
 
-pub fn constants_to_bytecode(data: &Vec<Constant>) -> Vec<u8> {
+fn constants_to_bytecode(data: &Vec<Constant>) -> Vec<u8> {
     let mut res = vec![];
     for constant in data.iter() {
         match constant {
@@ -29,4 +29,27 @@ pub fn constants_to_bytecode(data: &Vec<Constant>) -> Vec<u8> {
     res.push(op::CONST_END_FLAG);
 
     res
+}
+
+pub struct ConstantsTable{ table: Vec<Constant>}
+
+impl ConstantsTable {
+    pub fn new() -> Self {
+        ConstantsTable { table: vec![] }
+    }
+
+    pub fn get_constant(&mut self, constant: Constant) -> u8 {
+        let existing = self.table.iter().enumerate().find(|(_, c)| *c == &constant);
+        match existing {
+            Some((pos, _)) => pos as u8,
+            None => {
+                self.table.push(constant);
+                (self.table.len() - 1) as u8
+            }
+        }
+    }
+
+    pub fn generate_bytecode(&self) -> Vec<u8> {
+        constants_to_bytecode(&self.table)
+    }
 }

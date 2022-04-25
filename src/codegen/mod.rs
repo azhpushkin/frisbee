@@ -11,21 +11,23 @@ mod disassemble;
 mod expressions;
 mod statements;
 mod generator;
-mod globals;
+mod types_metadata;
 mod utils;
 
 fn generate_chunks(prog: &ProgramAggregate) -> (Vec<u8>, HashMap<SymbolFunc, FunctionBytecode>) {
-    let mut globals = globals::Globals::new();
+    let mut constants = constants::ConstantsTable::new();
+
+
 
     let mut functions_bytecode: HashMap<SymbolFunc, FunctionBytecode> = HashMap::new();
     for (name, raw_func) in prog.functions.iter() {
         let bytecode =
-            statements::generate_function_bytecode(raw_func, &prog, &mut globals).unwrap();
+            statements::generate_function_bytecode(raw_func, &prog, &mut constants).unwrap();
         functions_bytecode.insert(name.clone(), bytecode);
     }
 
-    let const_bytecode = constants::constants_to_bytecode(&globals.constants);
-    (const_bytecode, functions_bytecode)
+    let constants_bytecode = constants.generate_bytecode();
+    (constants_bytecode, functions_bytecode)
 }
 
 pub fn generate(prog: &ProgramAggregate) -> Vec<u8> {
