@@ -20,7 +20,8 @@ fn metadata_for_type(definition: &CustomType) -> TypeMetadata {
     let type_size: u8 = definition.fields.types.iter().map(|t| get_type_size(t)).sum();
     let field_sizes: Vec<u8> =
     definition.fields.types.iter().map(|t| get_type_size(t)).collect();
-    let field_offsets = vec![0; field_sizes.len()];
+    
+    let mut field_offsets = vec![0; field_sizes.len()];
     for (i, field_size) in field_sizes.iter().enumerate().skip(1) {
         field_offsets[i] = field_offsets[i - 1] + field_sizes[i - 1];
     }

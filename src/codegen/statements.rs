@@ -51,7 +51,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 self.push_expr(value);
             }
             LStatement::AssignToField { object, field, value } => {
-                let object_type: SymbolType = object.expr_type.into();
+                let object_type: SymbolType = object.expr_type.clone().into();
                 self.push_expr(&object);
                 self.push_expr(value);
                 self.push(op::SET_TO_HEAP);

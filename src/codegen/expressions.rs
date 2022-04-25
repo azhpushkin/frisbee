@@ -124,11 +124,16 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 self.push(offset);
                 self.push(get_type_size(item_type));
             }
-            LExpr::AccessField { .. } => todo!(),
+            LExpr::AccessField { object, field  } => {
+                let object_type = object.expr_type.clone().into();
+                self.push_expr(&object);
+                self.push(op::GET_FROM_HEAP);
+                self.push(self.types_meta.get(&object_type).field_offsets[field]);
+                self.push(self.types_meta.get(&object_type).field_sizes[field]);
+            },
             LExpr::Allocate { typename } => {
-                let type_size = self.types_meta.get_size(typename);
                 self.push(op::ALLOCATE);
-                self.push(type_size);
+                self.push(self.types_meta.get(typename).size);
             }
         }
     }
