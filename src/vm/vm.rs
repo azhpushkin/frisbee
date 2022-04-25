@@ -134,7 +134,7 @@ impl Vm {
                     let str_len = u16::from_be_bytes(self.read_several::<2>());
                     let str_bytes = self.read_bytes(str_len as usize);
                     let s = String::from_utf8(str_bytes).unwrap();
-                    let obj_pos = self.memory.insert(heap::HeapObject::String(s));
+                    let obj_pos = self.memory.insert(heap::HeapObject::new_string(s));
 
                     self.constants.push(obj_pos);
                 }
@@ -233,7 +233,7 @@ impl Vm {
                     let s2 = self.memory.get(b).extract_string();
 
                     let res = format!("{}{}", s1, s2);
-                    let new_obj = heap::HeapObject::String(res);
+                    let new_obj = heap::HeapObject::new_string(res);
                     let new_obj_pos = self.memory.insert(new_obj);
                     self.push(new_obj_pos);
                 }
@@ -306,6 +306,11 @@ impl Vm {
                         self.stack[self.stack_pointer - size_to_copy + i] = v;
                     }
                 }
+                // op::ALLOCATE => {
+                //     let size = self.read_opcode() as usize;
+                //     // TODO: should
+                //     let new_obj =
+                // }
                 op::RESERVE => {
                     // TODO: this seems wrong, function might reserve at the very start tbh
                     // should check after basic implementation probably

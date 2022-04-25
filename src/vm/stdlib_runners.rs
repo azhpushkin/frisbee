@@ -1,66 +1,66 @@
-use super::heap;
+use super::heap::{Heap, HeapObject};
 use super::utils::{f64_to_u64, u64_to_f64};
 use std::io::{self, Write};
 
-pub type RawStdRunner = for<'r, 's> fn(&'r mut [u64], &'s mut heap::Heap);
+pub type RawStdRunner = for<'r, 's> fn(&'r mut [u64], &'s mut Heap);
 
-fn std_println(stack: &mut [u64], memory: &mut heap::Heap) {
+fn std_println(stack: &mut [u64], memory: &mut Heap) {
     let obj = memory.get_mut(stack[0]);
     println!("[Println] {}", obj.extract_string());
 }
 
-fn std_print(stack: &mut [u64], memory: &mut heap::Heap) {
+fn std_print(stack: &mut [u64], memory: &mut Heap) {
     let obj = memory.get_mut(stack[0]);
     print!("[Print] {}", obj.extract_string());
     io::stdout().flush().unwrap();
 }
 
-fn std_get_input(stack: &mut [u64], memory: &mut heap::Heap) {
+fn std_get_input(stack: &mut [u64], memory: &mut Heap) {
     let mut input = String::new();
     io::stdin().read_line(&mut input).expect("Failed to read line");
-    
-    let obj_pos = memory.insert(heap::HeapObject::String(input.trim().into()));
+
+    let obj_pos = memory.insert(HeapObject::new_string(input.trim().into()));
     stack[0] = obj_pos;
 }
 
-fn std_bool_to_string(stack: &mut [u64], memory: &mut heap::Heap) {
+fn std_bool_to_string(stack: &mut [u64], memory: &mut Heap) {
     let s = if stack[1] > 0 { "true" } else { "false" };
-    
-    let obj_pos = memory.insert(heap::HeapObject::String(s.into()));
+
+    let obj_pos = memory.insert(HeapObject::new_string(s.into()));
     stack[0] = obj_pos;
 }
 
-fn std_int_to_string(stack: &mut [u64], memory: &mut heap::Heap) {
+fn std_int_to_string(stack: &mut [u64], memory: &mut Heap) {
     let s = (stack[1] as i64).to_string();
 
-    let obj_pos = memory.insert(heap::HeapObject::String(s));
+    let obj_pos = memory.insert(HeapObject::new_string(s));
     stack[0] = obj_pos;
 }
 
-fn std_int_to_float(stack: &mut [u64], memory: &mut heap::Heap) {
+fn std_int_to_float(stack: &mut [u64], memory: &mut Heap) {
     stack[0] = f64_to_u64((stack[1] as i64) as f64);
 }
 
-fn std_int_abs(stack: &mut [u64], memory: &mut heap::Heap) {
+fn std_int_abs(stack: &mut [u64], memory: &mut Heap) {
     stack[0] = (stack[1] as i64).abs() as u64;
 }
 
-fn std_float_round(stack: &mut [u64], memory: &mut heap::Heap) {
+fn std_float_round(stack: &mut [u64], memory: &mut Heap) {
     stack[0] = (u64_to_f64(stack[1]).round() as i64) as u64;
 }
 
-fn std_float_to_string(stack: &mut [u64], memory: &mut heap::Heap) {
+fn std_float_to_string(stack: &mut [u64], memory: &mut Heap) {
     let s = u64_to_f64(stack[1]).to_string();
-    
-    let obj_pos = memory.insert(heap::HeapObject::String(s));
+
+    let obj_pos = memory.insert(HeapObject::new_string(s));
     stack[0] = obj_pos;
 }
 
-fn std_float_abs(stack: &mut [u64], memory: &mut heap::Heap) {
+fn std_float_abs(stack: &mut [u64], memory: &mut Heap) {
     stack[0] = f64_to_u64(u64_to_f64(stack[1]).abs());
 }
 
-fn noop(stack: &mut [u64], memory: &mut heap::Heap) {
+fn noop(stack: &mut [u64], memory: &mut Heap) {
     panic!("not implemented yet");
 }
 
