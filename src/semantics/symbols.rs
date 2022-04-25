@@ -1,7 +1,7 @@
-use std::fmt::{Formatter, Error, Display};
+use std::fmt::{Display, Error, Formatter};
 
-use crate::types::Type;
 use crate::loader::ModuleAlias;
+use crate::types::Type;
 
 #[derive(Debug, PartialEq, Clone, Eq, Hash)]
 pub struct SymbolType(String);
@@ -69,7 +69,10 @@ impl From<Type> for SymbolType {
     fn from(t: Type) -> Self {
         if let Type::Ident(name) = t {
             // check that ident is a correct SymbolType
-            let (module, typename) = name.rsplit_once("::").expect("Not a SymbolType");
+            if !name.contains("::") {
+                panic!("{} is not a valid SymbolType", name);
+            }
+            let (module, typename) = name.rsplit_once("::").unwrap();
             assert!(module.find("::").is_none(), "Bad module name: {}", module);
             assert!(
                 typename.chars().next().unwrap().is_ascii_uppercase(),

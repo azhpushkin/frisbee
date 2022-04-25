@@ -56,10 +56,6 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
         self.variables_types.insert(name, t);
     }
 
-    fn resolve_type(&self, name: &String) -> &'b CustomType {
-        self.aggregate.types.get(&(self.type_resolver)(name)).unwrap()
-    }
-
     fn resolve_func(&self, name: &String) -> &'b RawFunction {
         self.aggregate.functions.get(&(self.func_resolver)(name)).unwrap()
     }
@@ -154,14 +150,15 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                 // TODO: review exprwithpos for this, maybe too strange tbh
                 let this_object = self.calculate(
                     &ExprWithPos { expr: Expr::This, pos_first: 0, pos_last: 0 },
-                    None
+                    None,
                 );
                 let raw_method =
                     self.resolve_method(self.scope.method_of.as_ref().unwrap(), method);
                 self.calculate_function_call(&raw_method, expected, &args, Some(this_object))
             }
             Expr::NewClassInstance { typename, args } => {
-                let raw_type = self.resolve_type(&typename);
+                let symbol = &(self.type_resolver)(typename);
+                let raw_type = &self.aggregate.types[&symbol];
                 let raw_constructor = self.resolve_method(&raw_type.name, typename);
                 self.calculate_function_call(&raw_constructor, expected, &args, None)
             }
@@ -238,8 +235,10 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                 // TODO: implement something for built-in types
                 let object_calculated = self.calculate(&object, None);
                 match &object_calculated.expr_type {
-                    Type::Ident(i) => {
-                        let object_definition = self.resolve_type(i);
+                    Type::Ident(annotated_type) => {
+                        let type_symbol: SymbolType = object_calculated.expr_type.clone().into();
+
+                        let object_definition = &self.aggregate.types[&type_symbol];
                         let field_type = self.resolve_field(object_definition, &field);
 
                         let lexpr = LExpr::AccessField {

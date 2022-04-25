@@ -2,6 +2,7 @@ use crate::ast::*;
 use crate::types::Type;
 
 use super::aggregate::{ProgramAggregate, RawFunction};
+use super::annotations::annotate_type;
 use super::expressions::LightExpressionsGenerator;
 use super::light_ast::{LExpr, LExprTyped, LStatement};
 use super::resolvers::NameResolver;
@@ -117,8 +118,17 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
         let light_statement = match statement {
             Statement::Expr(e) => LStatement::Expression(self.check_expr(e, None)),
             Statement::VarDecl(var_type, name) => {
-                self.lexpr_generator.add_variable(name.clone(), var_type.clone());
-                LStatement::DeclareVar { var_type: var_type.clone(), name: name.clone() }
+                self.lexpr_generator.add_variable(name.clone(), annotate_type(
+                    var_type,
+                    &self.resolver.get_typenames_resolver(&self.scope.defined_at),
+                ));
+                LStatement::DeclareVar {
+                    var_type: annotate_type(
+                        var_type,
+                        &self.resolver.get_typenames_resolver(&self.scope.defined_at),
+                    ),
+                    name: name.clone(),
+                }
             }
             Statement::Assign { left, right } => {
                 let left_calculated = self.check_expr(left, None);
@@ -143,10 +153,19 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
                 }
             }
             Statement::VarDeclWithAssign(var_type, name, value) => {
-                self.lexpr_generator.add_variable(name.clone(), var_type.clone());
+                self.lexpr_generator.add_variable(
+                    name.clone(),
+                    annotate_type(
+                        var_type,
+                        &self.resolver.get_typenames_resolver(&self.scope.defined_at),
+                    ),
+                );
                 let value = self.check_expr(value, None);
                 LStatement::DeclareAndAssignVar {
-                    var_type: var_type.clone(),
+                    var_type: annotate_type(
+                        var_type,
+                        &self.resolver.get_typenames_resolver(&self.scope.defined_at),
+                    ),
                     name: name.clone(),
                     value,
                 }
