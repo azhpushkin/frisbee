@@ -10,6 +10,7 @@
 * check foreach (conflict with other variable)
 * check how everything works when there is multiple values with same name (for i in ...)
 * check break and continue in loop only!
+* ensure that return is REQUIRED, but constructor must not have one
 * check how single-item tuples work!
 * check that main function is `void`
 * check that function names cant overlap with std functions

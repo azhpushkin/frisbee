@@ -27,7 +27,7 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
         Self { scope, aggregate, resolver, lexpr_generator }
     }
 
-    fn allocate_object_if_constructor(&self, res: &mut Vec<LStatement>) {
+    fn is_constructor(&self) -> bool {
         if let Some(class_name) = &self.scope.method_of {
             let first_arg = self.scope.args.names.get(&0);
             // For each method, first argument is "this", which is implicitly passed
@@ -35,25 +35,49 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
             // that this method is a constructor
 
             if first_arg.is_none() || first_arg.unwrap() != "this" {
-                // Create "this" right at the start of the method
-                res.push(LStatement::DeclareAndAssignVar {
-                    var_type: class_name.into(),
-                    name: "this".into(),
-                    value: LExprTyped {
-                        expr: LExpr::Allocate { typename: class_name.clone() },
-                        expr_type: class_name.into(),
-                    },
-                });
+                return true;
             }
         }
+        return false;
+    }
+
+    fn allocate_object_for_constructor(&self) -> LStatement {
+        let class_name = self.scope.method_of.as_ref().unwrap();
+
+        LStatement::DeclareAndAssignVar {
+            var_type: class_name.into(),
+            name: "this".into(),
+            value: LExprTyped {
+                expr: LExpr::Allocate { typename: class_name.clone() },
+                expr_type: class_name.into(),
+            },
+        }
+    }
+
+    fn return_new_object_for_constructor(&self) -> LStatement {
+        let class_name = self.scope.method_of.as_ref().unwrap();
+
+        LStatement::Return(LExprTyped {
+            expr: LExpr::GetVar("this".into()),
+            expr_type: class_name.into(),
+        })
     }
 
     pub fn generate(&mut self, statements: &[StatementWithPos]) -> Vec<LStatement> {
         let mut res = vec![];
-        self.allocate_object_if_constructor(&mut res);
+
+        if self.is_constructor() {
+            // Allocate "this" right at the start of the method
+            res.push(self.allocate_object_for_constructor());
+        }
 
         for statement in statements {
             res.extend(self.generate_single(&statement.statement));
+        }
+
+        if self.is_constructor() {
+            // Allocate "this" right at the start of the method
+            res.push(self.return_new_object_for_constructor());
         }
         res
     }
