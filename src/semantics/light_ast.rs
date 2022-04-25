@@ -34,6 +34,10 @@ pub enum LStatement {
         tuple_indexes: Vec<usize>,
         value: LExprTyped,
     },
+    AssignToPointer {
+        left: LExprTyped,
+        right: LExprTyped,
+    },
     Expression(LExprTyped),
     // TODO: send message
 }
@@ -97,7 +101,7 @@ pub enum LExpr {
     Float(f64),
 
     GetVar(String),
-    GetTupleItem { tuple: Box<LExprTyped>, index: usize },
+    AccessTupleItem { tuple: Box<LExprTyped>, index: usize },
 
     TupleValue(Vec<LExprTyped>),
 

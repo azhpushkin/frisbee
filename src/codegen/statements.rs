@@ -47,6 +47,7 @@ fn generate_statement_bytecode<'a, 'b>(
             generator.add_local(name, var_type);
             generator.push_expr(value);
         }
+        LStatement::AssignToPointer { left, right } => todo!(),
         LStatement::Return(expr) => {
             generator.push_expr(expr);
             generator.push_set_return();

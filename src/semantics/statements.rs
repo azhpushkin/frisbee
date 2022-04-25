@@ -100,13 +100,22 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
                 let left_calculated = self.check_expr(left, None);
                 let right_calculated = self.check_expr(right, Some(&left_calculated.expr_type));
                 let is_local = get_local_offset(&left_calculated);
-                match is_local {
-                    Some((var_name, tuple_indexes)) => LStatement::AssignLocal {
+                if let Some((var_name, tuple_indexes)) = is_local {
+                    LStatement::AssignLocal {
                         name: var_name,
                         tuple_indexes,
                         value: right_calculated,
-                    },
-                    _ => panic!("Only locals now!"),
+                    }
+                } else {
+                    match &left_calculated.expr {
+                        LExpr::AccessTupleItem {..} | LExpr::AccessField {..} => {
+                            LStatement::AssignToPointer {
+                                left: left_calculated,
+                                right: right_calculated
+                            }
+                        },
+                        _ => panic!("Cant assign to {:?}", left_calculated.expr)
+                    }
                 }
             }
             Statement::VarDeclWithAssign(var_type, name, value) => {
@@ -172,7 +181,7 @@ pub fn generate_light_statements(
 fn get_local_offset(lexpr: &LExprTyped) -> Option<(String, Vec<usize>)> {
     match &lexpr.expr {
         LExpr::GetVar(s) => Some((s.clone(), vec![])),
-        LExpr::GetTupleItem { tuple, index } => {
+        LExpr::AccessTupleItem { tuple, index } => {
             let mut res = get_local_offset(tuple.as_ref())?;
             res.1.push(*index);
             Some(res)

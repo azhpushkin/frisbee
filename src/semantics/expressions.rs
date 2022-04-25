@@ -55,7 +55,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
         }
         self.variables_types.insert(name, t);
     }
-    
+
     fn resolve_type(&self, name: &String) -> &'b CustomType {
         self.aggregate.types.get(&(self.type_resolver)(name)).unwrap()
     }
@@ -70,7 +70,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
     }
 
     fn resolve_field<'q>(&self, t: &'q CustomType, f: &String) -> &'q Type {
-        let field_type = t.fields.iter().find(|(name, t)| *name==f);
+        let field_type = t.fields.iter().find(|(name, t)| *name == f);
         match field_type {
             Some((_, t)) => t,
             None => panic!("No field {} in type {:?}", f, t.name),
@@ -105,11 +105,8 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                 if self.scope.method_of.is_none() {
                     panic!("Using \"this\" is not allowed outside of methods");
                 }
-                let identifier_type = self
-                    .variables_types
-                    .get("name")
-                    .expect("This is not in scope of method!");
-                if_as_expected(expected, identifier_type, LExpr::GetVar("this".into()))
+                let obj_type: Type = self.scope.method_of.as_ref().unwrap().into();
+                if_as_expected(expected, &obj_type, LExpr::GetVar("this".into()))
             }
 
             Expr::UnaryOp { op, operand } => {
@@ -157,7 +154,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                 // TODO: review exprwithpos for this, maybe too strange tbh
                 let this_object = self.calculate(
                     &ExprWithPos { expr: Expr::This, pos_first: 0, pos_last: 0 },
-                    expected,
+                    None
                 );
                 let raw_method =
                     self.resolve_method(self.scope.method_of.as_ref().unwrap(), method);
@@ -211,7 +208,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
             // }
             Expr::ListAccess { list, index } => {
                 let calculated_object = self.calculate(&list, None);
-                
+
                 match calculated_object.expr_type.clone() {
                     Type::Tuple(item_types) => {
                         let index_value: usize;
@@ -227,7 +224,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                         return if_as_expected(
                             expected,
                             &item_types[index_value],
-                            LExpr::GetTupleItem {
+                            LExpr::AccessTupleItem {
                                 tuple: Box::new(calculated_object),
                                 index: index_value,
                             },
@@ -245,28 +242,40 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                         let object_definition = self.resolve_type(i);
                         let field_type = self.resolve_field(object_definition, &field);
 
-                        let lexpr = LExpr::AccessField { object: Box::new(object_calculated), field: field.clone() };
+                        let lexpr = LExpr::AccessField {
+                            object: Box::new(object_calculated),
+                            field: field.clone(),
+                        };
                         if_as_expected(expected, &field_type, lexpr)
-                    },
+                    }
                     _ => {
-                        panic!("Error at {:?} - type {:?} has no fields", object, object_calculated.expr_type);
+                        panic!(
+                            "Error at {:?} - type {:?} has no fields",
+                            object, object_calculated.expr_type
+                        );
                     }
                 }
             }
             Expr::OwnFieldAccess { field } => {
                 if self.scope.method_of.is_none() {
-                    panic!("Calling own method outside of method scope!");
+                    panic!("Accessing own field outside of method scope!");
                 }
                 // TODO: review exprwithpos for this, maybe too strange tbh
                 let this_object = self.calculate(
-                    &ExprWithPos { expr: Expr::This, pos_first: 0, pos_last: 0 },
-                    expected,
+                    &ExprWithPos {
+                        expr: Expr::This,
+                        pos_first: expr.pos_first,
+                        pos_last: expr.pos_first,
+                    },
+                    None,
                 );
+
                 let object_symbol: SymbolType = this_object.expr_type.clone().into();
                 let object_definition = self.aggregate.types.get(&object_symbol).unwrap();
                 let field_type = self.resolve_field(object_definition, &field);
 
-                let lexpr = LExpr::AccessField { object: Box::new(this_object), field: field.clone() };
+                let lexpr =
+                    LExpr::AccessField { object: Box::new(this_object), field: field.clone() };
                 if_as_expected(expected, &field_type, lexpr)
             }
 
@@ -280,8 +289,6 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
             //         class_signature.methods.get(typename).expect("Constructor not found");
             //     self.check_function_call(constuctor, args)?
             // }
-
-            
             e => todo!("Expressions {:?} is not yet done!", e),
         }
     }
@@ -324,11 +331,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
             args: processed_args,
         };
 
-        if_as_expected(
-            expected_return,
-            &raw_called.return_type,
-            lexpr_call,
-        )
+        if_as_expected(expected_return, &raw_called.return_type, lexpr_call)
     }
 
     // fn calculate_access_by_index(

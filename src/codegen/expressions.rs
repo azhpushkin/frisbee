@@ -112,7 +112,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                     self.push_expr(&item);
                 }
             }
-            LExpr::GetTupleItem { tuple, index } => {
+            LExpr::AccessTupleItem { tuple, index } => {
                 let tuple_type = &tuple.as_ref().expr_type;
                 let item_type = get_type_from_tuple(tuple_type, *index);
                 self.push_reserve(item_type);
@@ -124,6 +124,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 self.push(offset);
                 self.push(get_type_size(item_type));
             }
+            LExpr::AccessField { ..} => todo!(),
             LExpr::Allocate { .. } => todo!("Allocate is not here yet!"),
         }
     }
