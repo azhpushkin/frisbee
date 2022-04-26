@@ -1,4 +1,4 @@
-from student import Student;
+from complex_test_student import Student;
 
 
 fun void main() {
