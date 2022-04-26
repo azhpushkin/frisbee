@@ -20,6 +20,7 @@ g:
 check:
 	 { echo Anton; echo Zhdan; } | cargo run -- examples/tuples.frisbee > /dev/null
 	 echo Name | cargo run -- examples/strings.frisbee > /dev/null
+	 echo Bodya | cargo run -- examples/list.frisbee > /dev/null
 
 	 cargo run -- examples/print.frisbee > /dev/null
 	 cargo run -- examples/loop.frisbee > /dev/null
