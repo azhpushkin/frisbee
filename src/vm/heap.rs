@@ -61,4 +61,12 @@ impl Heap {
         let obj = self.data.get(&index).unwrap();
         &obj.1
     }
+
+    pub fn simple_debug_view(&self) -> String {
+        let mut s = String::from("HEAP STATE: \n");
+        for (index, obj) in self.data.iter() {
+            s.push_str(format!("\t{} => {:?}\n", index, obj).as_str());
+        }
+        s
+    }
 }

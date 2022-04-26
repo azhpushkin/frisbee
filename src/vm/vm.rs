@@ -183,10 +183,10 @@ impl Vm {
 
         while self.ip < self.program.len() {
             if debug_mode {
-                println!("  stack: {:02x?}", &self.stack[0..self.stack_pointer]);
-                println!("  memory: {:?}", &self.memory);
+                println!(" ## STACK: {:02x?}", &self.stack[0..self.stack_pointer]);
+                println!(" ## {}", &self.memory.simple_debug_view());
                 println!(">> preparing to exec pc: {:02x?}", self.ip);
-                io::stdin().read_line(&mut String::from(""));
+                io::stdin().read_line(&mut String::from("")).unwrap();
             }
 
             let opcode = self.read_opcode();
