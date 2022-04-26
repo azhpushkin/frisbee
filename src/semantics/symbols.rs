@@ -27,7 +27,7 @@ impl SymbolFunc {
             Type::Float => Self(format!("std::Float::{}", name)),
             Type::Bool => Self(format!("std::Bool::{}", name)),
             Type::String => Self(format!("std::String::{}", name)),
-            _ => panic!("Cant create std method {} for {:?} type", name, t),
+            _ => panic!("Cant create std method {} for {} type", name, t),
         }
     }
 
@@ -81,7 +81,7 @@ impl From<Type> for SymbolType {
             );
             SymbolType(name.clone())
         } else {
-            panic!("Expected TypeIdent, got {:?}", t);
+            panic!("Type {} can't be coersed to SymbolType!", t);
         }
     }
 }

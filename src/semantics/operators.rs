@@ -7,10 +7,10 @@ pub fn calculate_unaryop(operator: &UnaryOp, operand: LExprTyped) -> LExprTyped 
     let exact_operator: RawOperator = match (operator, &operand.expr_type) {
         (UnaryOp::Negate, Type::Int) => RawOperator::UnaryNegateInt,
         (UnaryOp::Negate, Type::Float) => RawOperator::UnaryNegateFloat,
-        (UnaryOp::Negate, t) => panic!("Cant apply Negate to {:?} type", t),
+        (UnaryOp::Negate, t) => panic!("Can't apply Negate to {} type", t),
 
         (UnaryOp::Not, Type::Bool) => RawOperator::UnaryNegateBool,
-        (UnaryOp::Not, t) => panic!("Cant apply NOT to {:?} type", t),
+        (UnaryOp::Not, t) => panic!("Can't apply NOT to {} type", t),
     };
     let expr_type = operand.expr_type.clone();
     LExprTyped {
@@ -24,7 +24,12 @@ fn wrap_binary(op: RawOperator, operands: Vec<LExprTyped>, res_type: Type) -> LE
 }
 
 pub fn calculate_binaryop(operator: &BinaryOp, left: LExprTyped, right: LExprTyped) -> LExprTyped {
-    let raise_error = || panic!("Cant apply {:?} to {:?} and {:?}", &operator, &left, &right);
+    let raise_error = || {
+        panic!(
+            "Cant apply {:?} to {} and {}",
+            &operator, &left.expr_type, &right.expr_type
+        )
+    };
 
     let ensure_same_types = || {
         if left.expr_type != right.expr_type {
@@ -109,7 +114,6 @@ pub fn calculate_binaryop(operator: &BinaryOp, left: LExprTyped, right: LExprTyp
         }
         BinaryOp::Or => raise_error(),
     };
-
 
     wrap_binary(exact_operator, vec![left, right], result_type)
 }

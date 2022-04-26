@@ -132,7 +132,7 @@ pub fn fill_aggregate_with_funcs<'a>(
     if let Some(raw_entry) = aggregate.functions.get(&aggregate.entry) {
         if raw_entry.return_type != Type::Tuple(vec![]) {
             return SemanticError::top_level(format!(
-                "Entry function {} must return void, but it returns {:?}",
+                "Entry function {} must return void, but it returns {}",
                 aggregate.entry, raw_entry.return_type,
             ));
         }

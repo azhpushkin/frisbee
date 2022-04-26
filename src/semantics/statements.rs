@@ -155,14 +155,12 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
                 }
             }
             Statement::VarDeclWithAssign(var_type, name, value) => {
-                self.lexpr_generator
-                    .add_variable(name.clone(), self.annotate_type(var_type));
-                let value = self.check_expr(value, None);
-                LStatement::DeclareAndAssignVar {
-                    var_type: self.annotate_type(var_type),
-                    name: name.clone(),
-                    value,
-                }
+                let var_type = self.annotate_type(var_type);
+                let value = self.check_expr(value, Some(&var_type));
+
+                self.lexpr_generator.add_variable(name.clone(), var_type.clone());
+
+                LStatement::DeclareAndAssignVar { var_type, name: name.clone(), value }
             }
 
             Statement::Return(Some(e)) => {

@@ -25,7 +25,6 @@ pub fn get_tuple_offset(tuple_type: &Type, tuple_indexes: &[usize]) -> u8 {
         return 0;
     }
 
-    println!("Got tuple_type {:?} and {:?}", tuple_type, tuple_indexes);
     match tuple_type {
         Type::Tuple(items) => {
             let mut offset: u8 = 0;

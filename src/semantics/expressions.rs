@@ -14,7 +14,7 @@ use super::symbols::{SymbolFunc, SymbolType};
 
 fn if_as_expected(expected: Option<&Type>, real: &Type, le: LExpr) -> LExprTyped {
     if expected.is_some() && expected.unwrap() != real {
-        panic!("Expected type {:?} but got {:?}", expected.unwrap(), real);
+        panic!("Expected type {} but got {}", expected.unwrap(), real);
     } else {
         LExprTyped { expr: le, expr_type: real.clone() }
     }
@@ -137,7 +137,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                         let object_symbol: SymbolType = object_type.into();
                         self.resolve_method(&object_symbol, method)
                     }
-                    t => panic!("Methods are not done for {:?}", t),
+                    t => panic!("Methods are not done for {}", t),
                 };
                 // TODO: check if maybe type
                 // TODO: check if tuple type
@@ -179,7 +179,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                             .collect();
                         item_types = expected_item_types.clone();
                     }
-                    Some(t) => panic!("Tuple value expected, but got {:?}", t),
+                    Some(t) => panic!("Unexpected tuple value (expected {})", t),
                 }
                 LExprTyped {
                     expr: LExpr::TupleValue(calculated),
@@ -228,7 +228,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                         );
                     }
                     Type::List(_) => todo!("Did not implemented lists yet!"),
-                    t => panic!("Did not expected to have type {:?} here", t),
+                    t => panic!("Did not expected to have type {} here", t),
                 }
             }
             Expr::FieldAccess { object, field } => {
@@ -249,7 +249,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                     }
                     _ => {
                         panic!(
-                            "Error at {:?} - type {:?} has no fields",
+                            "Error at {:?} - type {} has no fields",
                             object, object_calculated.expr_type
                         );
                     }
