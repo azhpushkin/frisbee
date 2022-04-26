@@ -233,32 +233,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                 }
             }
             Expr::ListAccess { list, index } => {
-                let calculated_object = self.calculate(&list, None);
-
-                match calculated_object.expr_type.clone() {
-                    Type::Tuple(item_types) => {
-                        let index_value: usize;
-                        match index.expr {
-                            Expr::Int(i) if i >= item_types.len() as i64 => {
-                                panic!("Tuple index out of bounds: {} >= {}", i, item_types.len());
-                            }
-                            Expr::Int(i) => {
-                                index_value = i as usize;
-                            }
-                            _ => panic!("Only integer allowed in tuple access!"),
-                        }
-                        return if_as_expected(
-                            expected,
-                            &item_types[index_value],
-                            LExpr::AccessTupleItem {
-                                tuple: Box::new(calculated_object),
-                                index: index_value,
-                            },
-                        );
-                    }
-                    Type::List(_) => todo!("Did not implemented lists yet!"),
-                    t => panic!("Did not expected to have type {} here", t),
-                }
+                self.calculate_access_by_index(list, index, expected)
             }
             Expr::FieldAccess { object, field } => {
                 // TODO: implement something for built-in types
@@ -360,6 +335,47 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
         };
 
         if_as_expected(expected_return, &raw_called.return_type, lexpr_call)
+    }
+
+    fn calculate_access_by_index(
+        &self,
+        object: &ExprWithPos,
+        index: &ExprWithPos,
+        expected: Option<&Type>,
+    ) -> LExprTyped {
+        let calculated_object = self.calculate(&object, None);
+
+        match calculated_object.expr_type.clone() {
+            Type::Tuple(item_types) => {
+                let index_value: usize;
+                match index.expr {
+                    Expr::Int(i) if i >= item_types.len() as i64 => {
+                        panic!("Tuple index out of bounds: {} >= {}", i, item_types.len());
+                    }
+                    Expr::Int(i) => {
+                        index_value = i as usize;
+                    }
+                    _ => panic!("Only integer allowed in tuple access!"),
+                }
+                return if_as_expected(
+                    expected,
+                    &item_types[index_value],
+                    LExpr::AccessTupleItem {
+                        tuple: Box::new(calculated_object),
+                        index: index_value,
+                    },
+                );
+            }
+            Type::List(inner) => {
+                let calculated_index = self.calculate(index, Some(&Type::Int));
+                let new_expr = LExpr::AccessListItem {
+                    list: Box::new(calculated_object),
+                    index: Box::new(calculated_index),
+                };
+                return if_as_expected(expected, inner.as_ref(), new_expr);
+            }
+            t => panic!("Did not expected to have type {} here", t),
+        }
     }
 
     // fn calculate_access_by_index(

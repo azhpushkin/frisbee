@@ -110,7 +110,9 @@ pub enum LExpr {
 
     ApplyOp { operator: RawOperator, operands: Vec<LExprTyped> },
     CallFunction { name: SymbolFunc, return_type: Type, args: Vec<LExprTyped> },
+    
     AccessField { object: Box<LExprTyped>, field: String },
+    AccessListItem { list: Box<LExprTyped>, index: Box<LExprTyped> },
 
     Allocate { typename: SymbolType },
     // TODO: spawn!
