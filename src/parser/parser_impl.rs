@@ -533,20 +533,25 @@ impl Parser {
     }
 
     pub fn parse_function_call_args(&mut self) -> ParseResult<Vec<ExprWithPos>> {
-        let args: Vec<ExprWithPos>;
         if self.rel_token_check(1, Token::RightParenthesis) {
             // Consume both left and right parenthesis
             self.consume_token();
             self.consume_token();
-            args = vec![];
+            Ok(vec![])
         } else {
-            let mut args_expr = self.parse_group_or_tuple()?;
-            args = match &mut args_expr.expr {
-                Expr::TupleValue(a) => std::mem::take(a),
-                _ => vec![args_expr],
+            // There is at least one expr here after check above
+            consume_and_check!(self, Token::LeftParenthesis);
+            let mut args_expr = vec![self.parse_expr()?, ];
+
+            while consume_if_matches_one_of!(self, [Token::Comma]) {
+                if self.rel_token_check(0, Token::RightParenthesis) {
+                    break;
+                }
+                args_expr.push(self.parse_expr()?);
             }
+            consume_and_check!(self, Token::RightParenthesis);
+            Ok(args_expr)
         }
-        Ok(args)
     }
 
     pub fn parse_method_or_field_access(&mut self) -> ParseResult<ExprWithPos> {
@@ -557,7 +562,7 @@ impl Parser {
             self,
             [Token::Dot, Token::LeftSquareBrackets, Token::LeftParenthesis]
         ) {
-            let mut inner: Expr;
+            let inner: Expr;
             let boxed_res = Box::new(res_expr);
 
             if self.rel_token_check(-1, Token::Dot) {
@@ -581,7 +586,7 @@ impl Parser {
                 // Lastly, check if this is a function call
                 //  If called object is Identifier - than this is a usual function call
                 //  But, if it is OwnFieldAccess (e.g. @something), than this is an OwnMethodCall
-                let mut called_identifier: String;
+                let called_identifier: String;
                 let mut is_own_method = false;
 
                 match &boxed_res.expr {

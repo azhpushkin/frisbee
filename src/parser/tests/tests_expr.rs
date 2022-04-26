@@ -17,7 +17,6 @@ fn assert_expr_invalid(s: &str) {
     assert_parsing_fails(Parser::parse_expr, s);
 }
 
-
 #[test]
 fn string_single_and_double_quotes() {
     assert_expr_parses_padded(r#" 'asd' "#, Expr::String("asd".into()), 1, 5);
@@ -190,8 +189,14 @@ fn expr_tuple() {
         ]),
     );
 
-    // single-element tuple is simplified to just an element
+    // ENABLED: version where 1-elem tuple is just an element
     assert_expr_parses_padded("(1, )", Expr::Int(1), 1, 1);
+
+    // DISABLED: single-element tuple is still a tuple
+    // assert_expr_parses(
+    //     "(1, )",
+    //     Expr::TupleValue(vec![expr_raw(Expr::Int(1), 1, 1)]),
+    // );
 }
 
 #[test]
@@ -298,7 +303,7 @@ fn expr_own_field_access() {
 }
 
 #[test]
-fn expr_func() {
+fn expr_func_call() {
     assert_expr_parses(
         "(function) (1, )",
         Expr::FunctionCall {
@@ -308,7 +313,26 @@ fn expr_func() {
     );
 
     assert_expr_invalid("function.()");
+    assert_expr_invalid("function(1, ,)");
     assert_expr_invalid("function()()");
+}
+
+#[test]
+fn expr_func_call_with_tuple_arg() {
+    assert_expr_parses(
+        "function((1, 2), )",
+        Expr::FunctionCall {
+            function: "function".into(),
+            args: vec![expr_raw(
+                Expr::TupleValue(vec![
+                    expr_raw(Expr::Int(1), 10, 10),
+                    expr_raw(Expr::Int(2), 13, 13),
+                ]),
+                9,
+                14,
+            )],
+        },
+    );
 }
 
 #[test]
@@ -339,6 +363,25 @@ fn expr_method_call() {
     assert_expr_parses(
         "1.qwe()",
         Expr::MethodCall { object: expr(Expr::Int(1), 0, 0), method: "qwe".into(), args: vec![] },
+    );
+}
+
+#[test]
+fn expr_method_call_tuple_arg() {
+    assert_expr_parses(
+        "1.qwe((1, 2))",
+        Expr::MethodCall {
+            object: expr(Expr::Int(1), 0, 0),
+            method: "qwe".into(),
+            args: vec![expr_raw(
+                Expr::TupleValue(vec![
+                    expr_raw(Expr::Int(1), 7, 7),
+                    expr_raw(Expr::Int(2), 10, 10),
+                ]),
+                6,
+                11,
+            )],
+        },
     );
 }
 
