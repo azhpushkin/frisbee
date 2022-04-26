@@ -23,6 +23,13 @@ impl HeapObject {
     pub fn new_string(s: String) -> Box<Self> {
         Box::new(HeapObject::String(s))
     }
+    pub fn new_list(initial_mem_size: usize, copy_from: &[u64]) -> Box<Self> {
+        let mut list = vec![0; initial_mem_size];
+        for i in 0..initial_mem_size {
+            list[i] = copy_from[i];
+        }
+        Box::new(HeapObject::List(list))
+    }
 
     pub fn extract_string(&self) -> &String {
         match self {
@@ -65,7 +72,13 @@ impl Heap {
     pub fn simple_debug_view(&self) -> String {
         let mut s = String::from("HEAP STATE: \n");
         for (index, obj) in self.data.iter() {
-            s.push_str(format!("\t{} => {:?}\n", index, obj).as_str());
+            s.push_str(
+                format!(
+                    "\t{} => {:?}\t// meta: {{is_marked: {}, inner_index: {}}}\n",
+                    index, obj.1, obj.0 .0, obj.0 .1
+                )
+                .as_str(),
+            );
         }
         s
     }

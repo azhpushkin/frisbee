@@ -183,11 +183,9 @@ impl Vm {
 
         while self.ip < self.program.len() {
             if show_debug {
-                println!(" ## STACK: {:02x?}", &self.stack[0..self.stack_pointer]);
-                println!(" ## {}", &self.memory.simple_debug_view());
+                println!(">> preparing to exec pc: {:02x?}", self.ip);
             }
             if step_by_step {
-                println!(">> preparing to exec pc: {:02x?}", self.ip);
                 io::stdin().read_line(&mut String::from("")).unwrap();
             }
 
@@ -319,6 +317,20 @@ impl Vm {
                     let new_obj_pos = self.memory.insert(new_obj);
                     self.push(new_obj_pos);
                 }
+                op::ALLOCATE_LIST => {
+                    let item_size = self.read_opcode() as usize;
+                    let initial_items_amount = self.read_opcode() as usize;
+
+                    let total_mem_size = item_size * initial_items_amount;
+                    self.stack_pointer -= total_mem_size;
+
+                    let new_obj = heap::HeapObject::new_list(
+                        total_mem_size,
+                        &self.stack[self.stack_pointer..],
+                    );
+                    let new_obj_pos = self.memory.insert(new_obj);
+                    self.push(new_obj_pos);
+                }
                 op::RESERVE => {
                     // TODO: this seems wrong, function might reserve at the very start tbh
                     // should check after basic implementation probably
@@ -370,6 +382,10 @@ impl Vm {
                     self.ip -= x as usize;
                 }
                 _ => panic!("Unknown opcode: {}", opcode),
+            }
+            if show_debug {
+                println!(" ## STACK: {:02x?}", &self.stack[0..self.stack_pointer]);
+                println!(" ## {}", &self.memory.simple_debug_view());
             }
         }
     }
