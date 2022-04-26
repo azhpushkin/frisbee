@@ -6,6 +6,7 @@ use crate::vm::opcodes::op;
 use super::constants::ConstantsTable;
 use super::generator::{BytecodeGenerator, FunctionBytecode, JumpPlaceholder};
 use super::types_metadata::TypeMetadataTable;
+use super::utils::{get_tuple_offset, get_type_size};
 
 pub fn generate_function_bytecode(
     func: &RawFunction,
@@ -50,16 +51,19 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 self.add_local(name, var_type);
                 self.push_expr(value);
             }
-            LStatement::AssignToField { object, field, value } => {
+            LStatement::AssignToField { object, field, tuple_indexes, value } => {
                 let object_type: SymbolType = object.expr_type.clone().into();
                 // Push value before object, as we need to first pop a pointer
                 // to access the memory before writing value to it
                 self.push_expr(value);
                 self.push_expr(&object);
-                
+
+                let field_offset = self.types_meta.get(&object_type).field_offsets[field];
+                let tuple_offset = get_tuple_offset(&value.expr_type, &tuple_indexes);
+                // let field_size = self.types_meta.get(&object_type).field_sizes[field];
                 self.push(op::SET_TO_HEAP);
-                self.push(self.types_meta.get(&object_type).field_offsets[field]);
-                self.push(self.types_meta.get(&object_type).field_sizes[field]);
+                self.push(field_offset + tuple_offset);
+                self.push(get_type_size(&value.expr_type));
             }
             LStatement::Return(expr) => {
                 self.push_expr(expr);

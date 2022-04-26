@@ -142,9 +142,12 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
                     LExpr::GetVar(name) => {
                         LStatement::AssignLocal { name, tuple_indexes, value: right_calculated }
                     }
-                    LExpr::AccessField { object, field } => {
-                        LStatement::AssignToField { object, field, value: right_calculated }
-                    }
+                    LExpr::AccessField { object, field } => LStatement::AssignToField {
+                        object,
+                        field,
+                        tuple_indexes,
+                        value: right_calculated,
+                    },
                     e => panic!(
                         "Did not expected {:?} here, should be checked by split_left...",
                         e

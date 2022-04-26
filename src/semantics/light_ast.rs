@@ -37,6 +37,7 @@ pub enum LStatement {
     AssignToField {
         object: Box<LExprTyped>,  // box to avoid hustle of unboxing from LExpr::AccessField
         field: String,
+        tuple_indexes: Vec<usize>,
         value: LExprTyped,
     },
     Expression(LExprTyped),
