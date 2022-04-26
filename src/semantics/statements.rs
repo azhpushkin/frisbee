@@ -143,8 +143,14 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
                         LStatement::AssignLocal { name, tuple_indexes, value: right_calculated }
                     }
                     LExpr::AccessField { object, field } => LStatement::AssignToField {
-                        object,
+                        object: *object,
                         field,
+                        tuple_indexes,
+                        value: right_calculated,
+                    },
+                    LExpr::AccessListItem { list, index } => LStatement::AssignToList {
+                        list: *list,
+                        index: *index,
                         tuple_indexes,
                         value: right_calculated,
                     },
@@ -218,7 +224,7 @@ fn split_left_part_of_assignment(lexpr: LExprTyped) -> Result<(LExprTyped, Vec<u
     // GetVar and AccessField (and AccessListItem) are considered a base part of the assignment
     // which point to the memory part, which will be updated
     // vec![] part is used as an offset which should be added to the memory address
-    if matches!(&lexpr.expr, LExpr::GetVar(..) | LExpr::AccessField { .. }) {
+    if matches!(&lexpr.expr, LExpr::GetVar(..) | LExpr::AccessField { .. } | LExpr::AccessListItem { .. }) {
         return Ok((lexpr, vec![]));
     }
     if let LExpr::AccessTupleItem { tuple, index } = lexpr.expr {

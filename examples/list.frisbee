@@ -1,6 +1,9 @@
 fun void main() {
     [(String, Int)] names = [("Anton", 20), ("Alina", 19)];
-     println("First is " + names[0][0]);
+    println("First is " + names[0][0]);
+    names[1][1] = 22;
+    println("Age of " + names[1][0] + " is " + names[1][1].to_string());
+
     // names.push("Vlad");
     // println("Last is " + names[-1]);
 }

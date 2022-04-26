@@ -35,8 +35,14 @@ pub enum LStatement {
         value: LExprTyped,
     },
     AssignToField {
-        object: Box<LExprTyped>, // box to avoid hustle of unboxing from LExpr::AccessField
+        object: LExprTyped, // box to avoid hustle of unboxing from LExpr::AccessField
         field: String,
+        tuple_indexes: Vec<usize>,
+        value: LExprTyped,
+    },
+    AssignToList {
+        list: LExprTyped,
+        index: LExprTyped,
         tuple_indexes: Vec<usize>,
         value: LExprTyped,
     },
@@ -110,7 +116,7 @@ pub enum LExpr {
 
     ApplyOp { operator: RawOperator, operands: Vec<LExprTyped> },
     CallFunction { name: SymbolFunc, return_type: Type, args: Vec<LExprTyped> },
-    
+
     AccessField { object: Box<LExprTyped>, field: String },
     AccessListItem { list: Box<LExprTyped>, index: Box<LExprTyped> },
 

@@ -6,7 +6,7 @@ use crate::vm::opcodes::op;
 use super::constants::ConstantsTable;
 use super::generator::{BytecodeGenerator, FunctionBytecode, JumpPlaceholder};
 use super::types_metadata::TypeMetadataTable;
-use super::utils::{get_tuple_offset};
+use super::utils::{get_tuple_offset, get_list_inner_type};
 
 pub fn generate_function_bytecode(
     func: &RawFunction,
@@ -63,6 +63,18 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 // let field_size = self.types_meta.get(&object_type).field_sizes[field];
                 self.push(op::SET_TO_HEAP);
                 self.push(field_offset + tuple_offset);
+                self.push(value.expr_type.get_size());
+            }
+            LStatement::AssignToList { list, index, tuple_indexes, value } => {
+                let list_type = get_list_inner_type(&list.expr_type);
+                self.push_expr(value);
+                self.push_expr(index);
+                self.push_expr(list);
+
+                let tuple_offset = get_tuple_offset(&list_type, &tuple_indexes);
+
+                self.push(op::SET_LIST_ITEM);
+                self.push(tuple_offset);
                 self.push(value.expr_type.get_size());
             }
             LStatement::Return(expr) => {

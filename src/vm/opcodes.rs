@@ -55,7 +55,7 @@ pub mod op {
         LOAD_CONST,
         LOAD_SMALL_INT,
 
-        GET_LIST_ITEM
+        GET_LIST_ITEM  // index
     );
 
     // Opcodes with two operands
@@ -70,6 +70,7 @@ pub mod op {
         GET_LOCAL,  // offset + size
 
         SET_TO_HEAP,  // offset from pointer, size
+        SET_LIST_ITEM,  // offset from pointer, size
         GET_FROM_HEAP // offsetodo!()t from pointer, size
     );
 
