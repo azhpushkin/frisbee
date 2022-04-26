@@ -36,3 +36,18 @@ impl fmt::Display for Type {
         }
     }
 }
+
+impl Type {
+    pub fn get_size(&self) -> u8 {
+        match self {
+            Type::Int => 1,
+            Type::Float => 1,
+            Type::Bool => 1,
+            Type::String => 1,
+            Type::Maybe(inner) => inner.as_ref().get_size() + 1,
+            Type::Tuple(items) => items.iter().map(|t| t.get_size()).sum(),
+            Type::List(_) => 1,
+            Type::Ident(_) => 1,
+        }
+    }
+}
