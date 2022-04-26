@@ -60,15 +60,17 @@ fn std_float_abs(stack: &mut [u64], memory: &mut Heap) {
     stack[0] = f64_to_u64(u64_to_f64(stack[1]).abs());
 }
 
-// fn std_list_push(stack: &mut [u64], memory: &mut Heap) {
-//     let list_obj = memory.get_mut(stack[0]);
-//     let item_size = list_obj.get_item_size();
-//     let list_raw_vec = list_obj.extract_list_raw_vec();
+fn std_list_push(stack: &mut [u64], memory: &mut Heap) {
+    let list_obj = memory.get_mut(stack[0]);
+    let list = list_obj.extract_list();
 
-//     for i in 0..item_size {
-//         list_raw_vec.push(sta)
-//     }
-// }
+    list.size += 1;
+    let item_size = list.item_size;
+
+    for i in 0..item_size {
+        list.data.push(stack[1 + i]);
+    }
+}
 
 fn noop(stack: &mut [u64], memory: &mut Heap) {
     panic!("not implemented yet");
@@ -98,7 +100,7 @@ pub static STD_RAW_FUNCTION_RUNNERS: [(&'static str, RawStdRunner); 21] = [
     ("std::String::find", noop),
     ("std::String::contains", noop),
 
-    ("std::List::push", noop),
+    ("std::List::push", std_list_push),
     ("std::List::pop", noop),
     ("std::List::len", noop),
     ("std::List::is_empty", noop),

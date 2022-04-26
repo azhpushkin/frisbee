@@ -6,9 +6,9 @@ fun void main() {
 
     // Check push() method and negative index
     names.push(("Vlad", 23));
-    println("Last is " + names[-1][0]);
+    println("Last is " + names[2][0]);
 
     // Check pop() and len() methods
-    names.pop();
-    println("There are currently " + names.len().to_string() + " names in list");
+    //names.pop();
+    //println("There are currently " + names.len().to_string() + " names in list");
 }
