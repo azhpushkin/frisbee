@@ -69,8 +69,8 @@ pub mod op {
         SET_LOCAL,  // offset + size
         GET_LOCAL,  // offset + size
 
-        SET_TO_HEAP,  // offset from pointer, size
-        GET_FROM_HEAP, // offsetodo!()t from pointer, size
+        SET_OBJ_FIELD,  // offset from pointer, size
+        GET_OBJ_FIELD, // offset from pointer, size
 
         SET_LIST_ITEM  // offset from pointer, size of value to set
     );

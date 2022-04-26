@@ -60,6 +60,16 @@ fn std_float_abs(stack: &mut [u64], memory: &mut Heap) {
     stack[0] = f64_to_u64(u64_to_f64(stack[1]).abs());
 }
 
+// fn std_list_push(stack: &mut [u64], memory: &mut Heap) {
+//     let list_obj = memory.get_mut(stack[0]);
+//     let item_size = list_obj.get_item_size();
+//     let list_raw_vec = list_obj.extract_list_raw_vec();
+
+//     for i in 0..item_size {
+//         list_raw_vec.push(sta)
+//     }
+// }
+
 fn noop(stack: &mut [u64], memory: &mut Heap) {
     panic!("not implemented yet");
 }

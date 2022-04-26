@@ -4,9 +4,16 @@ use std::collections::HashMap;
 pub type HeapObjectHeader = (bool, u64); // flag for future gc, index in heap hashmap
 
 #[derive(Debug)]
+pub struct List {
+    pub item_size: usize,
+    pub size: usize,
+    pub data: Vec<u64>,
+}
+
+#[derive(Debug)]
 pub enum HeapObject {
     String(String),
-    List(usize, Vec<u64>),
+    List(List),
     Custom(Vec<u64>),
 }
 
@@ -15,6 +22,7 @@ pub struct Heap {
     data: HashMap<u64, (HeapObjectHeader, Box<HeapObject>)>,
     counter: u64,
 }
+// TODO: check performance gains from using unreachable_unchecked or smth like that
 
 impl HeapObject {
     pub fn new_custom(size: usize) -> Box<Self> {
@@ -29,38 +37,27 @@ impl HeapObject {
         for i in 0..memory_size {
             list[i] = copy_from[i];
         }
-        Box::new(HeapObject::List(item_size, list))
-    }
-
-    pub fn get_item_size(&self) -> usize {
-        match self {
-            HeapObject::List(s, _) => *s,
-            _ => unreachable!("Trying to extract list size memory from non-list object"),
-        }
+        Box::new(HeapObject::List(List{ item_size, size: initial_list_size, data: list }))
     }
 
     pub fn extract_string(&self) -> &String {
+        // String are immutable so no &mut self needed
         match self {
             HeapObject::String(s) => s,
             _ => unreachable!("Trying to extract string from non-string object"),
         }
     }
-    pub fn extract_list_item_memory(&mut self, index: usize) -> &mut [u64] {
+    pub fn extract_list(&mut self) -> &mut List {
         match self {
-            HeapObject::List(s, memory) => {
-                let offset = index * (*s);
-                &mut memory[offset..]
-            },
+            HeapObject::List(l) => l,
             _ => unreachable!("Trying to extract list item memory from non-list object"),
         }
     }
-    pub fn extract_memory_mut(&mut self, offset: usize) -> &mut [u64] {
-        let mem = match self {
-            HeapObject::List(_, l) => l,
-            HeapObject::Custom(i) => i,
-            HeapObject::String(_) => panic!("Strings must be processed in a special way"),
-        };
-        &mut mem[offset..]
+    pub fn extract_object_memory(&mut self) -> &mut Vec<u64> {
+        match self {
+            HeapObject::Custom(data) => data,
+            _ => panic!("Trying to extract object memory from non-custom object"),
+        }
     }
 }
 
@@ -98,5 +95,11 @@ impl Heap {
             );
         }
         s
+    }
+}
+
+impl List {
+    pub fn get_item_mem(&mut self, index: usize) -> &mut [u64]{
+        &mut self.data[index*self.item_size..]
     }
 }

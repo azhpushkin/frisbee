@@ -61,7 +61,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 let field_offset = self.types_meta.get(&object_type).field_offsets[field];
                 let tuple_offset = get_tuple_offset(&value.expr_type, &tuple_indexes);
                 // let field_size = self.types_meta.get(&object_type).field_sizes[field];
-                self.push(op::SET_TO_HEAP);
+                self.push(op::SET_OBJ_FIELD);
                 self.push(field_offset + tuple_offset);
                 self.push(value.expr_type.get_size());
             }

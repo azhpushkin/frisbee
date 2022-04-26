@@ -50,11 +50,12 @@ pub fn opcode_to_s(c: u8) -> &'static str {
         op::ALLOCATE_LIST => "allocate_list",
         
         op::GET_LOCAL => "get_local",
-        op::GET_TUPLE_ITEM => "get_tuple_item",
         op::SET_LOCAL => "set_local",
+
+        op::GET_TUPLE_ITEM => "get_tuple_item",
         
-        op::GET_FROM_HEAP => "get_from_heap",
-        op::SET_TO_HEAP => "set_to_heap",
+        op::GET_OBJ_FIELD => "get_obj_field",
+        op::SET_OBJ_FIELD => "set_obj_field",
 
         op::GET_LIST_ITEM => "get_list_item",
         op::SET_LIST_ITEM => "set_list_item",

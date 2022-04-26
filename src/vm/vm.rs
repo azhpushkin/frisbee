@@ -275,32 +275,29 @@ impl Vm {
                             value;
                     }
                 }
-                op::GET_FROM_HEAP => {
+                op::GET_OBJ_FIELD => {
                     let pointer = self.pop();
-                    let offset = self.read_opcode();
+                    let offset = self.read_opcode() as usize;
                     let size = self.read_opcode() as usize;
 
                     let heap_obj = self.memory.get_mut(pointer);
-                    let memory_chunk: &[u64] = heap_obj.extract_memory_mut(offset as usize);
+                    let memory_chunk = heap_obj.extract_object_memory();
 
                     for i in 0..size {
-                        let x = *memory_chunk.get(i).expect("Wrong params here");
-
-                        // Do not use push to avoid compiler checks errors
-                        push!(self, x);
+                        push!(self, memory_chunk[offset+i]);
                     }
                 }
-                op::SET_TO_HEAP => {
+                op::SET_OBJ_FIELD => {
                     let pointer = self.pop();
-                    let offset = self.read_opcode();
+                    let offset = self.read_opcode() as usize;
                     let size = self.read_opcode() as usize;
 
                     let heap_obj = self.memory.get_mut(pointer);
-                    let memory_chunk: &mut [u64] = heap_obj.extract_memory_mut(offset as usize);
+                    let memory_chunk = heap_obj.extract_object_memory();
 
                     for i in 0..size {
                         let x = self.stack[self.stack_pointer - size + i];
-                        memory_chunk[i] = x;
+                        memory_chunk[offset + i] = x;
                     }
                     self.stack_pointer -= size;
                 }
@@ -308,10 +305,12 @@ impl Vm {
                     let list_pointer = self.pop();
                     let index = self.pop() as usize;
                     let heap_obj = self.memory.get_mut(list_pointer);
-                    let item_size = heap_obj.get_item_size();
-                    let list_memory = heap_obj.extract_list_item_memory(index);
+                    let list = heap_obj.extract_list();
+                    let item_size = list.item_size;
+                    let item_memory = list.get_item_mem(index);
+                    
                     for i in 0..item_size {
-                        push!(self, list_memory[i]);
+                        push!(self, item_memory[i]);
                     }
                 }
                 op::SET_LIST_ITEM => {
@@ -324,7 +323,8 @@ impl Vm {
                     // TODO: check bounds?
                     let heap_obj = self.memory.get_mut(list_pointer);
                     // TODO: negative index?
-                    let memory_to_write = heap_obj.extract_list_item_memory(index as usize);
+                    let list = heap_obj.extract_list();
+                    let memory_to_write = list.get_item_mem(index as usize);
 
                     self.stack_pointer -= value_size;
                     for i in 0..value_size {

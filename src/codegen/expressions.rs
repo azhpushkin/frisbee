@@ -135,7 +135,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
             LExpr::AccessField { object, field } => {
                 let object_type = object.expr_type.clone().into();
                 self.push_expr(&object);
-                self.push(op::GET_FROM_HEAP);
+                self.push(op::GET_OBJ_FIELD);
                 self.push(self.types_meta.get(&object_type).field_offsets[field]);
                 self.push(self.types_meta.get(&object_type).field_sizes[field]);
             }
