@@ -306,7 +306,6 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
         given_args: &Vec<ExprWithPos>,
         implicit_this: Option<LExprTyped>,
     ) -> LExprTyped {
-        println!("Calculating function call {:?}\n\n{:?}", raw_called, given_args);
         let expected_args: &[Type] = if implicit_this.is_some() {
             &raw_called.args.types[1..]
         } else {
