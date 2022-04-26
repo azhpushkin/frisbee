@@ -1,6 +1,5 @@
-
 fun void main() {
-    [String] names = ("Anton", "Alina");
+    [String] names = ["Anton", "Alina"];
     // println("First is " + names[0]);
     // names.push("Vlad");
     // println("Last is " + names[-1]);

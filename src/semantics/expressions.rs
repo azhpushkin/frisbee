@@ -186,23 +186,52 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                     expr_type: Type::Tuple(item_types),
                 }
             }
-            // Expr::ListValue(items) => {
-            //     if items.len() == 0 {
-            //         // TODO: tests for anonymous type (in let and in methods)
-            //         Type::List(Box::new(Type::Anonymous))
-            //     } else {
-            //         let calculated_items = self.calculate_vec(items)?;
-            //         // Check for maybe types required, but this is not for now
-            //         if calculated_items.windows(2).any(|pair| pair[0] != pair[1]) {
-            //             panic!(
-            //                 "{} list items have different types: {:?}",
-            //                 self.err_prefix(),
-            //                 calculated_items
-            //             );
-            //         }
-            //         Type::List(Box::new(calculated_items[0].clone()))
-            //     }
-            // }
+            Expr::ListValue(items) if items.is_empty() => match expected {
+                Some(Type::List(item_type)) => {
+                    let item_type = item_type.as_ref().clone();
+
+                    LExprTyped {
+                        expr: LExpr::ListValue { item_type, items: vec![] },
+                        expr_type: expected.unwrap().clone(),
+                    }
+                }
+                Some(t) => panic!("Unexpected list value (expected {})", t),
+                None => panic!("Can't figure out list type over here!"),
+            },
+            Expr::ListValue(items) => {
+                let expected_item_type = match expected {
+                    None => None,
+                    Some(Type::List(item_type)) => Some(item_type.as_ref().clone()),
+                    Some(t) => panic!("Unexpected list value (expected {})", t),
+                };
+                let calculated_items: Vec<_> = items
+                    .iter()
+                    .map(|expr| self.calculate(expr, expected_item_type.as_ref()))
+                    .collect();
+
+                let item_type: Type;
+                if expected_item_type.is_none() {
+                    item_type = calculated_items[0].expr_type.clone();
+                    for LExprTyped { expr_type, .. } in &calculated_items[1..] {
+                        if expr_type != &item_type {
+                            panic!(
+                                "Item types mismatch in a list: {} and {}",
+                                item_type, expr_type
+                            );
+                        }
+                    }
+                } else {
+                    item_type = expected_item_type.unwrap().clone()
+                };
+
+                LExprTyped {
+                    expr: LExpr::ListValue {
+                        item_type: item_type.clone(),
+                        items: calculated_items,
+                    },
+                    expr_type: Type::List(Box::new(item_type)),
+                }
+            }
             Expr::ListAccess { list, index } => {
                 let calculated_object = self.calculate(&list, None);
 
