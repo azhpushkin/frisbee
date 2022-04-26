@@ -129,15 +129,18 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                 let object_type = object.expr_type.clone();
                 let std_method: Box<RawFunction>;
                 let raw_method = match &object_type {
-                    Type::Bool | Type::Int | Type::Float | Type::String => {
-                        std_method = Box::new(get_std_method(&object_type, method));
-                        std_method.as_ref()
-                    }
+                    Type::Tuple(..) => panic!("Tuple type has no methods"),
+                    Type::Maybe(..) => panic!("Use ?. operator to access methods for Maybe type"),
+
                     Type::Ident(_) => {
                         let object_symbol: SymbolType = object_type.into();
                         self.resolve_method(&object_symbol, method)
                     }
-                    t => panic!("Methods are not done for {}", t),
+                    t => {
+                        std_method = Box::new(get_std_method(&t, method));
+                        std_method.as_ref()
+                    }
+                    
                 };
                 // TODO: check if maybe type
                 // TODO: check if tuple type

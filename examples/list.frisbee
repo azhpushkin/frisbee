@@ -4,6 +4,11 @@ fun void main() {
     names[1][1] = 22;
     println("Age of " + names[1][0] + " is " + names[1][1].to_string());
 
-    // names.push("Vlad");
-    // println("Last is " + names[-1]);
+    // Check push() method and negative index
+    names.push(("Vlad", 23));
+    println("Last is " + names[-1]);
+
+    // Check pop() and len() methods
+    names.pop();
+    println("There are currently " + names.len().to_string() + " names in list");
 }

@@ -169,6 +169,7 @@ mod test {
             (stdlib::STD_INT_METHODS.iter(), Type::Int),
             (stdlib::STD_FLOAT_METHODS.iter(), Type::Float),
             (stdlib::STD_STRING_METHODS.iter(), Type::String),
+            (stdlib::STD_LIST_METHODS.iter(), Type::List(Box::new(Type::Int))),  // inner type does not matter
         ];
         for (methods, t) in method_pairs {
             std_symbols.extend(methods.map(|(s, _)| SymbolFunc::new_std_method(&t, s)));

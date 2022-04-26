@@ -23,11 +23,12 @@ pub fn get_std_method(t: &Type, method_name: &String) -> RawFunction {
         Type::Int => stdlib::STD_INT_METHODS.iter(),
         Type::Float => stdlib::STD_FLOAT_METHODS.iter(),
         Type::String => stdlib::STD_STRING_METHODS.iter(),
+        Type::List(_) => stdlib::STD_LIST_METHODS.iter(),
         _ => panic!("Unsupported type for std method: {}", t),
     };
     
     let (mut args, return_type) = match type_methods.find(|(k, _)| k == method_name) {
-        Some((_, v)) => v(),
+        Some((_, v)) => v(t),
         None => panic!("Not found method {} for type {}", method_name, t),
     };
     args.insert(0, t.clone());

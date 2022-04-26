@@ -27,6 +27,7 @@ impl SymbolFunc {
             Type::Float => Self(format!("std::Float::{}", name)),
             Type::Bool => Self(format!("std::Bool::{}", name)),
             Type::String => Self(format!("std::String::{}", name)),
+            Type::List(..) => Self(format!("std::List::{}", name)),
             _ => panic!("Cant create std method {} for {} type", name, t),
         }
     }
