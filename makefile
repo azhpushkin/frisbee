@@ -23,5 +23,6 @@ check:
 
 	 cargo run -- examples/print.frisbee > /dev/null
 	 cargo run -- examples/loop.frisbee > /dev/null
+	 cargo run -- examples/object.frisbee > /dev/null
 
 	 @echo "ALL GOOD OLD FILES WORK FINE"
