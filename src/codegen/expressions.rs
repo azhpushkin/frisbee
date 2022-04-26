@@ -140,11 +140,9 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 self.push(self.types_meta.get(&object_type).field_sizes[field]);
             }
             LExpr::AccessListItem { list, index } => {
-                let item_type = get_list_inner_type(&list.expr_type);
                 self.push_expr(index);
                 self.push_expr(list);
                 self.push(op::GET_LIST_ITEM);
-                self.push(item_type.get_size());
             },
             LExpr::Allocate { typename } => {
                 self.push(op::ALLOCATE);

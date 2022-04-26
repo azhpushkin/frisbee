@@ -6,7 +6,7 @@ pub type HeapObjectHeader = (bool, u64); // flag for future gc, index in heap ha
 #[derive(Debug)]
 pub enum HeapObject {
     String(String),
-    List(Vec<u64>),
+    List(usize, Vec<u64>),
     Custom(Vec<u64>),
 }
 
@@ -23,12 +23,20 @@ impl HeapObject {
     pub fn new_string(s: String) -> Box<Self> {
         Box::new(HeapObject::String(s))
     }
-    pub fn new_list(initial_mem_size: usize, copy_from: &[u64]) -> Box<Self> {
-        let mut list = vec![0; initial_mem_size];
-        for i in 0..initial_mem_size {
+    pub fn new_list(item_size: usize, initial_list_size: usize, copy_from: &[u64]) -> Box<Self> {
+        let memory_size = item_size * initial_list_size;
+        let mut list = vec![0; memory_size];
+        for i in 0..memory_size {
             list[i] = copy_from[i];
         }
-        Box::new(HeapObject::List(list))
+        Box::new(HeapObject::List(item_size, list))
+    }
+
+    pub fn get_item_size(&self) -> usize {
+        match self {
+            HeapObject::List(s, _) => *s,
+            _ => unreachable!("Trying to extract list size memory from non-list object"),
+        }
     }
 
     pub fn extract_string(&self) -> &String {
@@ -37,9 +45,18 @@ impl HeapObject {
             _ => unreachable!("Trying to extract string from non-string object"),
         }
     }
+    pub fn extract_list_item_memory(&mut self, index: usize) -> &mut [u64] {
+        match self {
+            HeapObject::List(s, memory) => {
+                let offset = index * (*s);
+                &mut memory[offset..]
+            },
+            _ => unreachable!("Trying to extract list item memory from non-list object"),
+        }
+    }
     pub fn extract_memory_mut(&mut self, offset: usize) -> &mut [u64] {
         let mem = match self {
-            HeapObject::List(l) => l,
+            HeapObject::List(_, l) => l,
             HeapObject::Custom(i) => i,
             HeapObject::String(_) => panic!("Strings must be processed in a special way"),
         };

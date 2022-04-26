@@ -42,6 +42,8 @@ pub mod op {
         ADD_STRINGS,
         EQ_STRINGS,
 
+        GET_LIST_ITEM,
+
         RETURN
     );
 
@@ -53,9 +55,7 @@ pub mod op {
         POP,
 
         LOAD_CONST,
-        LOAD_SMALL_INT,
-
-        GET_LIST_ITEM  // index
+        LOAD_SMALL_INT
     );
 
     // Opcodes with two operands
@@ -70,8 +70,9 @@ pub mod op {
         GET_LOCAL,  // offset + size
 
         SET_TO_HEAP,  // offset from pointer, size
-        SET_LIST_ITEM,  // offset from pointer, size
-        GET_FROM_HEAP // offsetodo!()t from pointer, size
+        GET_FROM_HEAP, // offsetodo!()t from pointer, size
+
+        SET_LIST_ITEM  // offset from pointer, size of value to set
     );
 
     // Opcodes with three operands

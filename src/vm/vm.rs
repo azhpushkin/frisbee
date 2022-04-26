@@ -301,14 +301,31 @@ impl Vm {
                     self.stack_pointer -= size;
                 }
                 op::GET_LIST_ITEM => {
-                    let item_size = self.read_opcode() as usize;
                     let list_pointer = self.pop();
                     let index = self.pop() as usize;
                     let heap_obj = self.memory.get_mut(list_pointer);
-                    let list_memory = heap_obj.extract_memory_mut(item_size * index);
+                    let item_size = heap_obj.get_item_size();
+                    let list_memory = heap_obj.extract_list_item_memory(index);
                     for i in 0..item_size {
                         self.stack[self.stack_pointer] = list_memory[i];
                         self.stack_pointer += 1;
+                    }
+                }
+                op::SET_LIST_ITEM => {
+                    let inner_offset = self.read_opcode() as usize;  // offset per single element
+                    let value_size = self.read_opcode() as usize;
+                    
+                    let list_pointer = self.pop();
+                    let index = self.pop();
+
+                    // TODO: check bounds?
+                    let heap_obj = self.memory.get_mut(list_pointer);
+                    // TODO: negative index?
+                    let memory_to_write = heap_obj.extract_list_item_memory(index as usize);
+
+                    self.stack_pointer -= value_size;
+                    for i in 0..value_size {
+                        memory_to_write[inner_offset + i] = self.stack[self.stack_pointer + i];
                     }
                 }
                 op::GET_TUPLE_ITEM => {
@@ -332,11 +349,11 @@ impl Vm {
                     let item_size = self.read_opcode() as usize;
                     let initial_items_amount = self.read_opcode() as usize;
 
-                    let total_mem_size = item_size * initial_items_amount;
-                    self.stack_pointer -= total_mem_size;
+                    self.stack_pointer -= item_size * initial_items_amount;
 
                     let new_obj = heap::HeapObject::new_list(
-                        total_mem_size,
+                        item_size,
+                        initial_items_amount,
                         &self.stack[self.stack_pointer..],
                     );
                     let new_obj_pos = self.memory.insert(new_obj);
