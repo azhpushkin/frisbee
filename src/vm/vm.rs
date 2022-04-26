@@ -1,3 +1,5 @@
+use std::io;
+
 use super::heap;
 use super::opcodes::op;
 use super::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
@@ -171,7 +173,7 @@ impl Vm {
         entry as usize
     }
 
-    pub fn run(&mut self) {
+    pub fn run(&mut self, debug_mode: bool) {
         self.check_header("Initial header");
         self.load_consts();
         self.skip_symbol_names();
@@ -180,8 +182,12 @@ impl Vm {
         self.call_op(entry, 0, 0);
 
         while self.ip < self.program.len() {
-            println!("  stack: {:02x?}", &self.stack[0..self.stack_pointer]);
-            println!(">> exec pc: {:02x?}", self.ip);
+            if debug_mode {
+                println!("  stack: {:02x?}", &self.stack[0..self.stack_pointer]);
+                println!("  memory: {:?}", &self.memory);
+                println!(">> preparing to exec pc: {:02x?}", self.ip);
+                io::stdin().read_line(&mut String::from(""));
+            }
 
             let opcode = self.read_opcode();
             match opcode {

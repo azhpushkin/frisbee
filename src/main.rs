@@ -31,8 +31,6 @@ fn main() {
 
     println!("{}", codegen::disassemble(&bytecode));
 
-    if true {
-        let mut vm = vm::Vm::new(bytecode);
-        vm.run();
-    }
+    let mut vm = vm::Vm::new(bytecode);
+    vm.run(false);
 }

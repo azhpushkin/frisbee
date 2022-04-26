@@ -12,5 +12,7 @@ class Person {
 fun void main() {
     Person p = Person("Anton", (100500, true), "Zhdan");
     println(p.name_extended(p.surname) + " is of age " + p.age[0].to_string());
+    p.age[0] = 333;
+    println("I meant that " + p.name + " is of age " + p.age[0].to_string());
     return;
 }
