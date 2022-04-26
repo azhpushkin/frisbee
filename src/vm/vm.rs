@@ -173,7 +173,7 @@ impl Vm {
         entry as usize
     }
 
-    pub fn run(&mut self, debug_mode: bool) {
+    pub fn run(&mut self, step_by_step: bool, show_debug: bool) {
         self.check_header("Initial header");
         self.load_consts();
         self.skip_symbol_names();
@@ -182,9 +182,11 @@ impl Vm {
         self.call_op(entry, 0, 0);
 
         while self.ip < self.program.len() {
-            if debug_mode {
+            if show_debug {
                 println!(" ## STACK: {:02x?}", &self.stack[0..self.stack_pointer]);
                 println!(" ## {}", &self.memory.simple_debug_view());
+            }
+            if step_by_step {
                 println!(">> preparing to exec pc: {:02x?}", self.ip);
                 io::stdin().read_line(&mut String::from("")).unwrap();
             }

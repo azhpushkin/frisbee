@@ -58,6 +58,8 @@ pub mod op {
 
     // Opcodes with two operands
     opcodes_list!(180,
+        ALLOCATE_LIST,  // item_size + initial_size
+
         JUMP,
         JUMP_BACK,
         JUMP_IF_FALSE,
@@ -66,7 +68,7 @@ pub mod op {
         GET_LOCAL,  // offset + size
 
         SET_TO_HEAP,  // offset from pointer, size
-        GET_FROM_HEAP // offset from pointer, size
+        GET_FROM_HEAP // offsetodo!()t from pointer, size
     );
 
     // Opcodes with three operands
