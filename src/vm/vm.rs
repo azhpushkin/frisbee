@@ -65,7 +65,10 @@ impl Vm {
 
     fn call_std(&mut self, func_index: usize, return_size: usize, locals_size: usize) {
         let start = self.stack_pointer - locals_size - return_size;
-        STD_RAW_FUNCTION_RUNNERS[func_index].1(&mut self.stack[start..], &mut self.memory);
+        STD_RAW_FUNCTION_RUNNERS[func_index].1(
+            &mut self.stack[start..self.stack_pointer],
+            &mut self.memory,
+        );
         self.stack_pointer = start + return_size;
     }
 
@@ -284,7 +287,7 @@ impl Vm {
                     let memory_chunk = heap_obj.extract_object_memory();
 
                     for i in 0..size {
-                        push!(self, memory_chunk[offset+i]);
+                        push!(self, memory_chunk[offset + i]);
                     }
                 }
                 op::SET_OBJ_FIELD => {
@@ -304,14 +307,14 @@ impl Vm {
                 op::GET_LIST_ITEM => {
                     let list_pointer = self.pop();
                     let index = self.pop() as i64;
-                    
+
                     let heap_obj = self.memory.get_mut(list_pointer);
                     let list = heap_obj.extract_list();
 
                     let index = list.normalize_index(index);
                     let item_size = list.item_size;
                     let item_memory = list.get_item_mem(index);
-                    
+
                     for i in 0..item_size {
                         push!(self, item_memory[i]);
                     }
@@ -325,7 +328,7 @@ impl Vm {
 
                     let heap_obj = self.memory.get_mut(list_pointer);
                     let list = heap_obj.extract_list();
-                    
+
                     let index = list.normalize_index(index);
                     let memory_to_write = list.get_item_mem(index as usize);
 

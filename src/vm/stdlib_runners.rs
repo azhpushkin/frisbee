@@ -37,15 +37,15 @@ fn std_int_to_string(stack: &mut [u64], memory: &mut Heap) {
     stack[0] = obj_pos;
 }
 
-fn std_int_to_float(stack: &mut [u64], memory: &mut Heap) {
+fn std_int_to_float(stack: &mut [u64], _memory: &mut Heap) {
     stack[0] = f64_to_u64((stack[1] as i64) as f64);
 }
 
-fn std_int_abs(stack: &mut [u64], memory: &mut Heap) {
+fn std_int_abs(stack: &mut [u64], _memory: &mut Heap) {
     stack[0] = (stack[1] as i64).abs() as u64;
 }
 
-fn std_float_round(stack: &mut [u64], memory: &mut Heap) {
+fn std_float_round(stack: &mut [u64], _memory: &mut Heap) {
     stack[0] = (u64_to_f64(stack[1]).round() as i64) as u64;
 }
 
@@ -56,7 +56,7 @@ fn std_float_to_string(stack: &mut [u64], memory: &mut Heap) {
     stack[0] = obj_pos;
 }
 
-fn std_float_abs(stack: &mut [u64], memory: &mut Heap) {
+fn std_float_abs(stack: &mut [u64], _memory: &mut Heap) {
     stack[0] = f64_to_u64(u64_to_f64(stack[1]).abs());
 }
 
@@ -72,7 +72,26 @@ fn std_list_push(stack: &mut [u64], memory: &mut Heap) {
     }
 }
 
-fn noop(stack: &mut [u64], memory: &mut Heap) {
+fn std_list_pop(stack: &mut [u64], memory: &mut Heap) {
+    let list_obj = memory.get_mut(stack[stack.len() - 1]);
+    let list = list_obj.extract_list();
+
+    list.size -= 1;
+    let item_size = list.item_size;
+
+    for i in 0..item_size {
+        stack[item_size - i - 1] = list.data.pop().unwrap();
+    }
+}
+
+fn std_list_len(stack: &mut [u64], memory: &mut Heap) {
+    let list_obj = memory.get_mut(stack[1]);
+    let list = list_obj.extract_list();
+
+    stack[0] = list.item_size as u64;
+}
+
+fn noop(_stack: &mut [u64], _memory: &mut Heap) {
     panic!("not implemented yet");
 }
 
@@ -101,7 +120,7 @@ pub static STD_RAW_FUNCTION_RUNNERS: [(&'static str, RawStdRunner); 21] = [
     ("std::String::contains", noop),
 
     ("std::List::push", std_list_push),
-    ("std::List::pop", noop),
-    ("std::List::len", noop),
+    ("std::List::pop", std_list_pop),
+    ("std::List::len", std_list_len),
     ("std::List::is_empty", noop),
 ];
