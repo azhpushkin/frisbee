@@ -10,6 +10,7 @@
 * check foreach (conflict with other variable)
 * check how everything works when there is multiple values with same name (for i in ...)
 * check break and continue in loop only!
+* check and implement something for cases when index is bigger than list
 * check that initial list size is no more than 255
 * check that tuple size is no more than 255
 * ensure that return is REQUIRED, but constructor must not have one

@@ -2,7 +2,7 @@ use std::convert::TryFrom;
 
 use super::constants::Constant;
 use super::generator::BytecodeGenerator;
-use super::utils::{get_tuple_offset, get_type_from_tuple};
+use super::utils::{get_tuple_offset, get_type_from_tuple, get_list_inner_type};
 use crate::semantics::light_ast::{LExpr, LExprTyped, RawOperator};
 use crate::semantics::symbols::SymbolFunc;
 use crate::types::Type;
@@ -139,7 +139,13 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 self.push(self.types_meta.get(&object_type).field_offsets[field]);
                 self.push(self.types_meta.get(&object_type).field_sizes[field]);
             }
-            LExpr::AccessListItem { list, index } => todo!(),
+            LExpr::AccessListItem { list, index } => {
+                let item_type = get_list_inner_type(&list.expr_type);
+                self.push_expr(index);
+                self.push_expr(list);
+                self.push(op::GET_LIST_ITEM);
+                self.push(item_type.get_size());
+            },
             LExpr::Allocate { typename } => {
                 self.push(op::ALLOCATE);
                 self.push(self.types_meta.get(typename).size);

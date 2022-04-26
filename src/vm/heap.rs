@@ -37,13 +37,13 @@ impl HeapObject {
             _ => unreachable!("Trying to extract string from non-string object"),
         }
     }
-    pub fn extract_memory_mut(&mut self, offset: u8) -> &mut [u64] {
+    pub fn extract_memory_mut(&mut self, offset: usize) -> &mut [u64] {
         let mem = match self {
             HeapObject::List(l) => l,
             HeapObject::Custom(i) => i,
             HeapObject::String(_) => panic!("Strings must be processed in a special way"),
         };
-        &mut mem[offset as usize..]
+        &mut mem[offset..]
     }
 }
 

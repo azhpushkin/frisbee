@@ -1,6 +1,6 @@
 fun void main() {
     [(String, Int)] names = [("Anton", 20), ("Alina", 19)];
-    // println("First is " + names[0]);
+     println("First is " + names[0][0]);
     // names.push("Vlad");
     // println("Last is " + names[-1]);
 }

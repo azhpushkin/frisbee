@@ -37,6 +37,13 @@ pub fn get_tuple_subitem_size(tuple_type: &Type, tuple_indexes: &[usize]) -> u8 
     }
 }
 
+pub fn get_list_inner_type(list_type: &Type) -> &Type {
+    match list_type {
+        Type::List(inner_type) => inner_type.as_ref(),
+        _ => panic!("something is wrong, semantics should have checked this.."),
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

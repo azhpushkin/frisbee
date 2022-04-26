@@ -276,7 +276,7 @@ impl Vm {
                     let size = self.read_opcode() as usize;
 
                     let heap_obj = self.memory.get_mut(pointer);
-                    let memory_chunk: &[u64] = heap_obj.extract_memory_mut(offset);
+                    let memory_chunk: &[u64] = heap_obj.extract_memory_mut(offset as usize);
 
                     for i in 0..size {
                         let x = *memory_chunk.get(i).expect("Wrong params here");
@@ -292,13 +292,24 @@ impl Vm {
                     let size = self.read_opcode() as usize;
 
                     let heap_obj = self.memory.get_mut(pointer);
-                    let memory_chunk: &mut [u64] = heap_obj.extract_memory_mut(offset);
+                    let memory_chunk: &mut [u64] = heap_obj.extract_memory_mut(offset as usize);
 
                     for i in 0..size {
                         let x = self.stack[self.stack_pointer - size + i];
                         memory_chunk[i] = x;
                     }
                     self.stack_pointer -= size;
+                }
+                op::GET_LIST_ITEM => {
+                    let item_size = self.read_opcode() as usize;
+                    let list_pointer = self.pop();
+                    let index = self.pop() as usize;
+                    let heap_obj = self.memory.get_mut(list_pointer);
+                    let list_memory = heap_obj.extract_memory_mut(item_size * index);
+                    for i in 0..item_size {
+                        self.stack[self.stack_pointer] = list_memory[i];
+                        self.stack_pointer += 1;
+                    }
                 }
                 op::GET_TUPLE_ITEM => {
                     let tuple_size = self.read_opcode() as usize;

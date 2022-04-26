@@ -53,7 +53,9 @@ pub mod op {
         POP,
 
         LOAD_CONST,
-        LOAD_SMALL_INT
+        LOAD_SMALL_INT,
+
+        GET_LIST_ITEM
     );
 
     // Opcodes with two operands
