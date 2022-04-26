@@ -102,4 +102,48 @@ impl List {
     pub fn get_item_mem(&mut self, index: usize) -> &mut [u64]{
         &mut self.data[index*self.item_size..]
     }
+
+    pub fn normalize_index(&self, index: i64) -> usize {
+        if index < 0 {
+            if index.abs() > self.size as i64 {
+                panic!("Negative out of bounds: list of size {} but {} requested", self.size, index);
+            }
+            (self.size as i64 + index) as usize
+        } else {
+            if index >= self.size as i64 {
+                panic!("Out of bounds: list of size {} but {} requested", self.size, index);
+            }
+            index as usize
+        }
+    }
+}
+
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_normalize_index() {
+        let l = List { item_size: 1, size: 10, data: vec![0; 10] };
+
+        assert_eq!(l.normalize_index(0), 0);
+        assert_eq!(l.normalize_index(1), 1);
+        assert_eq!(l.normalize_index(-1), 9);
+        assert_eq!(l.normalize_index(-10), 0);
+    }
+
+    #[test]
+    #[should_panic(expected = "Out of bounds: list of size 10 but 10 requested")]
+    fn too_big_index_panics() {
+        let l = List { item_size: 1, size: 10, data: vec![0; 10] };
+        l.normalize_index(10);
+    }
+
+    #[test]
+    #[should_panic(expected = "Negative out of bounds: list of size 10 but -11 requested")]
+    fn too_small_index_panics() {
+        let l = List { item_size: 1, size: 10, data: vec![0; 10] };
+        l.normalize_index(-11);
+    }
 }

@@ -303,9 +303,12 @@ impl Vm {
                 }
                 op::GET_LIST_ITEM => {
                     let list_pointer = self.pop();
-                    let index = self.pop() as usize;
+                    let index = self.pop() as i64;
+                    
                     let heap_obj = self.memory.get_mut(list_pointer);
                     let list = heap_obj.extract_list();
+
+                    let index = list.normalize_index(index);
                     let item_size = list.item_size;
                     let item_memory = list.get_item_mem(index);
                     
@@ -318,12 +321,12 @@ impl Vm {
                     let value_size = self.read_opcode() as usize;
 
                     let list_pointer = self.pop();
-                    let index = self.pop();
+                    let index = self.pop() as i64;
 
-                    // TODO: check bounds?
                     let heap_obj = self.memory.get_mut(list_pointer);
-                    // TODO: negative index?
                     let list = heap_obj.extract_list();
+                    
+                    let index = list.normalize_index(index);
                     let memory_to_write = list.get_item_mem(index as usize);
 
                     self.stack_pointer -= value_size;
