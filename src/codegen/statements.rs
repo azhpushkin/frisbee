@@ -1,12 +1,12 @@
 use crate::semantics::aggregate::RawFunction;
-use crate::semantics::light_ast::{LExpr, LStatement};
+use crate::semantics::light_ast::LStatement;
 use crate::semantics::symbols::SymbolType;
 use crate::vm::opcodes::op;
 
 use super::constants::ConstantsTable;
 use super::generator::{BytecodeGenerator, FunctionBytecode, JumpPlaceholder};
 use super::types_metadata::TypeMetadataTable;
-use super::utils::{get_tuple_offset, get_list_inner_type};
+use super::utils::{get_list_inner_type, get_tuple_offset};
 
 pub fn generate_function_bytecode(
     func: &RawFunction,

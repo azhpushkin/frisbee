@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 
 use tempfile::{tempdir, TempDir};
 
-use crate::loader::{load_program, WholeProgram, ModuleAlias, generate_alias};
+use crate::loader::{generate_alias, load_program, ModuleAlias, WholeProgram};
 
 pub struct TestFilesCreator {
     temp_workdir: TempDir,

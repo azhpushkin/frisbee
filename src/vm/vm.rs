@@ -141,7 +141,7 @@ impl Vm {
                     let str_len = u16::from_be_bytes(self.read_several::<2>());
                     let str_bytes = self.read_bytes(str_len as usize);
                     let s = String::from_utf8(str_bytes).unwrap();
-                    
+
                     let (obj_pos, _) = self.memory.new_string(s);
                     self.constants.push(obj_pos);
                 }

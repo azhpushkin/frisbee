@@ -1,10 +1,9 @@
-use crate::ast::{ExprWithPos, Expr, Statement, StatementWithPos};
+use crate::ast::{Expr, ExprWithPos, Statement, StatementWithPos};
 
 use super::super::parser_impl::*;
 use super::super::scanner::scan_tokens;
 
 pub type ParsingFunction<T> = fn(&mut Parser) -> ParseResult<T>;
-
 
 pub fn expr(e: Expr, f: usize, l: usize) -> Box<ExprWithPos> {
     Box::new(expr_raw(e, f, l))

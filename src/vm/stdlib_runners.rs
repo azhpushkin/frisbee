@@ -1,4 +1,4 @@
-use super::heap::{Heap, HeapObject};
+use super::heap::Heap;
 use super::utils::{f64_to_u64, u64_to_f64};
 use std::io::{self, Write};
 

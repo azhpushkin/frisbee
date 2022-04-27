@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::slice::Iter;
 
 use crate::semantics::symbols::SymbolFunc;
 
@@ -44,7 +43,7 @@ pub fn assemble_chunks(
     }
 
     // end of symbols info marked with 0, 0, 255, 255
-    bytecode.extend([0, 0]); 
+    bytecode.extend([0, 0]);
     bytecode.extend_from_slice(&HEADER);
 
     // 4. Entry function pointer + header

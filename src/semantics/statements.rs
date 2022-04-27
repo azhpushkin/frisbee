@@ -36,7 +36,7 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
     }
 
     fn is_constructor(&self) -> bool {
-        if let Some(class_name) = &self.scope.method_of {
+        if let Some(_) = &self.scope.method_of {
             let first_arg = self.scope.args.names.get(&0);
             // For each method, first argument is "this", which is implicitly passed
             // So if there is no arguments or first argument is not "this" - then we assume

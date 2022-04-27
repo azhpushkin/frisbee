@@ -60,12 +60,7 @@ fn load_file(workdir: &PathBuf, module_path: &Vec<String>) -> Option<LoadedFile>
         return None;
     }
 
-    Some(LoadedFile {
-        path: file_path,
-        module_alias: alias,
-        contents,
-        ast: ast.unwrap(),
-    })
+    Some(LoadedFile { path: file_path, module_alias: alias, contents, ast: ast.unwrap() })
 }
 
 // TODO:  ensure both windows and Unix are working file

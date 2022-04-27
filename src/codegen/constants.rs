@@ -31,7 +31,9 @@ fn constants_to_bytecode(data: &Vec<Constant>) -> Vec<u8> {
     res
 }
 
-pub struct ConstantsTable{ table: Vec<Constant>}
+pub struct ConstantsTable {
+    table: Vec<Constant>,
+}
 
 impl ConstantsTable {
     pub fn new() -> Self {

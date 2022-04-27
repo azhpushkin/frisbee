@@ -1,4 +1,3 @@
-use crate::ast::*;
 use crate::types::Type;
 
 use super::super::parser_impl::*;
@@ -39,9 +38,9 @@ fn list_types() {
     assert_type_parses("[String]", Type::List(Box::new(Type::String)));
     assert_type_parses(
         "[[Actor]]",
-        Type::List(Box::new(Type::List(Box::new(Type::Ident(
-            String::from("Actor"),
-        ))))),
+        Type::List(Box::new(Type::List(Box::new(Type::Ident(String::from(
+            "Actor",
+        )))))),
     );
 
     assert_parsing_fails(Parser::parse_type, "[ ]");
@@ -54,18 +53,15 @@ fn maybe_types() {
     assert_type_parses("String?", Type::Maybe(Box::new(Type::String)));
     assert_type_parses(
         "[Actor?]?",
-        Type::Maybe(Box::new(Type::List(Box::new(Type::Maybe(
-            Box::new(Type::Ident("Actor".into())),
-        ))))),
+        Type::Maybe(Box::new(Type::List(Box::new(Type::Maybe(Box::new(
+            Type::Ident("Actor".into()),
+        )))))),
     );
 }
 
 #[test]
 fn tuple_types() {
-    assert_type_parses(
-        "(String, Int)",
-        Type::Tuple(vec![Type::String, Type::Int]),
-    );
+    assert_type_parses("(String, Int)", Type::Tuple(vec![Type::String, Type::Int]));
     assert_type_parses(
         "(Actor, (Bool, Class, Passive), Int)",
         Type::Tuple(vec![

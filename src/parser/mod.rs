@@ -1,8 +1,8 @@
 use crate::ast::FileAst;
 
 mod helpers;
-pub mod scanner;
 pub mod parser_impl;
+pub mod scanner;
 
 mod tests;
 

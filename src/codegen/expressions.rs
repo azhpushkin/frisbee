@@ -1,11 +1,8 @@
-use std::convert::TryFrom;
-
 use super::constants::Constant;
 use super::generator::BytecodeGenerator;
-use super::utils::{get_tuple_offset, get_type_from_tuple, get_list_inner_type};
+use super::utils::{get_tuple_offset, get_type_from_tuple};
 use crate::semantics::light_ast::{LExpr, LExprTyped, RawOperator};
 use crate::semantics::symbols::SymbolFunc;
-use crate::types::Type;
 use crate::vm::opcodes::op;
 use crate::vm::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
 
@@ -53,7 +50,7 @@ pub fn match_std_function(name: &SymbolFunc) -> u8 {
 
 impl<'a, 'b> BytecodeGenerator<'a, 'b> {
     pub fn push_expr(&mut self, expr: &LExprTyped) {
-        let LExprTyped { expr, expr_type } = expr;
+        let LExprTyped { expr, .. } = expr;
         match expr {
             LExpr::Int(i) => {
                 if 0 <= *i && *i < 256 {
@@ -91,8 +88,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 for arg in args.iter() {
                     self.push_expr(&arg);
                 }
-                let func_locals_size: u8 =
-                    args.iter().map(|arg| arg.expr_type.get_size()).sum();
+                let func_locals_size: u8 = args.iter().map(|arg| arg.expr_type.get_size()).sum();
 
                 if name.is_std() {
                     self.push(op::CALL_STD);
@@ -119,7 +115,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 self.push(op::ALLOCATE_LIST);
                 self.push(item_type.get_size());
                 self.push(items.len() as u8);
-            },
+            }
             LExpr::AccessTupleItem { tuple, index } => {
                 let tuple_type = &tuple.as_ref().expr_type;
                 let item_type = get_type_from_tuple(tuple_type, *index);
@@ -143,7 +139,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 self.push_expr(index);
                 self.push_expr(list);
                 self.push(op::GET_LIST_ITEM);
-            },
+            }
             LExpr::Allocate { typename } => {
                 self.push(op::ALLOCATE);
                 self.push(self.types_meta.get(typename).size);
@@ -169,7 +165,10 @@ mod test {
             (stdlib::STD_INT_METHODS.iter(), Type::Int),
             (stdlib::STD_FLOAT_METHODS.iter(), Type::Float),
             (stdlib::STD_STRING_METHODS.iter(), Type::String),
-            (stdlib::STD_LIST_METHODS.iter(), Type::List(Box::new(Type::Int))),  // inner type does not matter
+            (
+                stdlib::STD_LIST_METHODS.iter(),
+                Type::List(Box::new(Type::Int)),
+            ), // inner type does not matter
         ];
         for (methods, t) in method_pairs {
             std_symbols.extend(methods.map(|(s, _)| SymbolFunc::new_std_method(&t, s)));

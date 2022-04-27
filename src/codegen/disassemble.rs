@@ -1,12 +1,5 @@
-use std::collections::HashMap;
-use std::iter::Enumerate;
-use std::slice::Iter;
-
-use crate::semantics::aggregate::ProgramAggregate;
-use crate::semantics::symbols::SymbolFunc;
 use crate::vm::opcodes::{get_args_num, op};
-
-use super::generate_chunks;
+use std::collections::HashMap;
 
 pub fn opcode_to_s(c: u8) -> &'static str {
     match c {
@@ -48,12 +41,12 @@ pub fn opcode_to_s(c: u8) -> &'static str {
         op::POP => "pop",
         op::ALLOCATE => "allocate",
         op::ALLOCATE_LIST => "allocate_list",
-        
+
         op::GET_LOCAL => "get_local",
         op::SET_LOCAL => "set_local",
 
         op::GET_TUPLE_ITEM => "get_tuple_item",
-        
+
         op::GET_OBJ_FIELD => "get_obj_field",
         op::SET_OBJ_FIELD => "set_obj_field",
 

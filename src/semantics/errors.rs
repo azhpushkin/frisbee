@@ -1,15 +1,15 @@
-use crate::ast::{StatementWithPos, ExprWithPos};
+use crate::ast::{ExprWithPos, StatementWithPos};
 
 #[derive(Debug)]
 pub enum SemanticError {
-    ExprError{expr: ExprWithPos, message: String},
-    StmtError{stmt: StatementWithPos, message: String},
-    TopLevelError{message: String},
+    ExprError { expr: ExprWithPos, message: String },
+    StmtError { stmt: StatementWithPos, message: String },
+    TopLevelError { message: String },
 }
 
 impl SemanticError {
     pub fn top_level<T>(message: String) -> SemanticResult<T> {
-        Err(SemanticError::TopLevelError{message})
+        Err(SemanticError::TopLevelError { message })
     }
 }
 

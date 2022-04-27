@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use crate::semantics::annotations::CustomType;
 use crate::semantics::symbols::SymbolType;
 
-
 pub struct TypeMetadata {
     pub size: u8,
     pub field_offsets: HashMap<String, u8>,
@@ -23,7 +22,7 @@ fn metadata_for_type(definition: &CustomType) -> TypeMetadata {
     for (i, _) in field_sizes.iter().enumerate().skip(1) {
         field_offsets[i] = field_offsets[i - 1] + field_sizes[i - 1];
     }
-    let generate_field_names = || definition.fields.iter().map(|(n, t)| n.clone());
+    let generate_field_names = || definition.fields.iter().map(|(n, _)| n.clone());
 
     TypeMetadata {
         size: type_size,

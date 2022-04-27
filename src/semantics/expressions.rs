@@ -66,7 +66,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
     }
 
     fn resolve_field<'q>(&self, t: &'q CustomType, f: &String) -> &'q Type {
-        let field_type = t.fields.iter().find(|(name, t)| *name == f);
+        let field_type = t.fields.iter().find(|(name, _)| *name == f);
         match field_type {
             Some((_, t)) => t,
             None => panic!("No field {} in type {:?}", f, t.name),
@@ -76,12 +76,6 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
     fn err_prefix(&self) -> String {
         format!("In file {}: ", self.module)
     }
-
-    // fn calculate_vec(&self, items: &mut Vec<Expr>) -> SemanticResult<Vec<Type>> {
-    //     let calculated_items = items.iter_mut().map(|item| self.calculate_and_annotate(item));
-    //     let unwrapped_items: SemanticResult<Vec<Type>> = calculated_items.collect();
-    //     Ok(unwrapped_items?)
-    // }
 
     pub fn calculate(&self, expr: &ExprWithPos, expected: Option<&Type>) -> LExprTyped {
         match &expr.expr {
@@ -140,7 +134,6 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                         std_method = Box::new(get_std_method(&t, method));
                         std_method.as_ref()
                     }
-                    
                 };
                 // TODO: check if maybe type
                 // TODO: check if tuple type
@@ -242,7 +235,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                 // TODO: implement something for built-in types
                 let object_calculated = self.calculate(&object, None);
                 match &object_calculated.expr_type {
-                    Type::Ident(annotated_type) => {
+                    Type::Ident(_) => {
                         let type_symbol: SymbolType = object_calculated.expr_type.clone().into();
 
                         let object_definition = &self.aggregate.types[&type_symbol];

@@ -1,7 +1,7 @@
-mod vm;
-pub mod stdlib_runners;
-pub mod opcodes;
-mod utils;
 mod heap;
+pub mod opcodes;
+pub mod stdlib_runners;
+mod utils;
+mod vm;
 
 pub type Vm = vm::Vm;

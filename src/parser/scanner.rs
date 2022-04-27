@@ -317,7 +317,7 @@ mod tests {
     fn test_positions() {
         let test_string = r#" 123 . [] "hey" 888.888 "#;
         let res = scan_tokens(test_string);
-        
+
         assert_eq!(
             res.unwrap(),
             vec![
