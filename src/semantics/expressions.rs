@@ -90,10 +90,6 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
         }
     }
 
-    fn err_prefix(&self) -> String {
-        format!("In file {}: ", self.module)
-    }
-
     pub fn calculate(
         &self,
         expr: &ExprWithPos,
@@ -145,12 +141,17 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                 }
             }
             Expr::MethodCall { object, method, args } => {
-                let object = self.calculate(object, None)?;
-                let object_type = object.expr_type.clone();
+                let le_object = self.calculate(object, None)?;
+                let object_type = le_object.expr_type.clone();
                 let std_method: Box<RawFunction>;
                 let raw_method = match &object_type {
-                    Type::Tuple(..) => panic!("Tuple type has no methods"),
-                    Type::Maybe(..) => panic!("Use ?. operator to access methods for Maybe type"),
+                    Type::Tuple(..) => return expression_error!(expr, "Tuples have no methods"),
+                    Type::Maybe(..) => {
+                        return expression_error!(
+                            expr,
+                            "Use ?. operator to access methods for Maybe type",
+                        );
+                    }
 
                     Type::Ident(_) => {
                         let object_symbol: SymbolType = object_type.into();
@@ -163,11 +164,11 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                 };
                 // TODO: check if maybe type
                 // TODO: check if tuple type
-                self.calculate_function_call(expr, &raw_method, expected, &args, Some(object))
+                self.calculate_function_call(expr, &raw_method, expected, &args, Some(le_object))
             }
             Expr::OwnMethodCall { method, args } => {
                 if self.scope.method_of.is_none() {
-                    panic!("Calling own method outside of method scope!");
+                    return expression_error!(expr, "Calling own method outside of method scope!");
                 }
                 // TODO: review exprwithpos for this, maybe too strange tbh
                 let this_object = self.calculate(
@@ -204,7 +205,9 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                         calculated = calculated_result?;
                         item_types = expected_item_types.clone();
                     }
-                    Some(t) => panic!("Unexpected tuple value (expected {})", t),
+                    Some(t) => {
+                        return expression_error!(expr, "Unexpected tuple value (expected {})", t)
+                    }
                 }
                 Ok(LExprTyped {
                     expr: LExpr::TupleValue(calculated),
@@ -221,14 +224,18 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                         expr_type: expected.unwrap().clone(),
                     })
                 }
-                Some(t) => panic!("Unexpected list value (expected {})", t),
-                None => panic!("Can't figure out list type over here!"),
+                Some(t) => {
+                    return expression_error!(expr, "Unexpected list value (expected {})", t)
+                }
+                None => return expression_error!(expr, "Can't figure out list type over here!"),
             },
             Expr::ListValue(items) => {
                 let expected_item_type = match expected {
                     None => None,
                     Some(Type::List(item_type)) => Some(item_type.as_ref().clone()),
-                    Some(t) => panic!("Unexpected list value (expected {})", t),
+                    Some(t) => {
+                        return expression_error!(expr, "Unexpected list value (expected {})", t)
+                    }
                 };
                 let calculated_items: SemanticResult<Vec<_>> = items
                     .iter()
@@ -241,7 +248,8 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                     item_type = calculated_items[0].expr_type.clone();
                     for LExprTyped { expr_type, .. } in &calculated_items[1..] {
                         if expr_type != &item_type {
-                            panic!(
+                            return expression_error!(
+                                expr,
                                 "Item types mismatch in a list: {} and {}",
                                 item_type, expr_type
                             );
@@ -339,10 +347,10 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
         };
 
         if given_args.len() != expected_args.len() {
-            panic!(
-                "{} Function {:?} expects {} arguments, but {} given",
-                self.err_prefix(),
-                raw_called.name,
+            return expression_error!(
+                original,
+                "Function {} expects {} arguments, but {} given",
+                raw_called.short_name,
                 expected_args.len(),
                 given_args.len(),
             );
@@ -386,12 +394,16 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                 let index_value: usize;
                 match index.expr {
                     Expr::Int(i) if i >= item_types.len() as i64 => {
-                        panic!("Tuple index out of bounds: {} >= {}", i, item_types.len());
+                        return expression_error!(
+                            index,
+                            "Index of tuple is out of bounds (must be between 0 and {})",
+                            item_types.len()
+                        );
                     }
                     Expr::Int(i) => {
                         index_value = i as usize;
                     }
-                    _ => panic!("Only integer allowed in tuple access!"),
+                    _ => return expression_error!(index, "Only integer allowed in tuple access!"),
                 }
                 return if_as_expected(
                     original,
@@ -411,7 +423,11 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                 };
                 return if_as_expected(original, expected, inner.as_ref(), new_expr);
             }
-            t => panic!("Did not expected to have type {} here", t),
+            t => expression_error!(
+                object,
+                "Only lists and tuples implement index access (got {})",
+                t
+            ),
         }
     }
 }
