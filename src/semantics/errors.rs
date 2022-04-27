@@ -1,3 +1,4 @@
+use crate::ast::ExprWithPos;
 use crate::loader::ModuleAlias;
 
 #[derive(Debug)]
@@ -6,6 +7,16 @@ pub enum SemanticError {
     StmtError { pos: usize, message: String },
     TopLevelError { message: String },
 }
+
+// impl SemanticError {
+//     pub fn add_expr<T>(expr: &ExprWithPos) {
+//         |msg: String| -> SemanticResult<T> {Err(SemanticError::ExprError {
+//             pos_first: expr.pos_first,
+//             pos_last: expr.pos_last,
+//             message: msg,
+//         })}
+//     }
+// }
 
 pub type SemanticResult<T> = Result<T, SemanticError>;
 pub type SemanticResultWithModule<T> = Result<T, (ModuleAlias, SemanticError)>;

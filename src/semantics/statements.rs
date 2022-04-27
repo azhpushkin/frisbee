@@ -100,8 +100,7 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
         expr: &ExprWithPos,
         expected: Option<&Type>,
     ) -> SemanticResult<LExprTyped> {
-        // TODO result here
-        Ok(self.lexpr_generator.calculate(expr, expected))
+        self.lexpr_generator.calculate(expr, expected)
     }
 
     fn generate_if_elif_else(
@@ -300,7 +299,7 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
                 ]);
             }
 
-            f => todo!("not implemented {:?}", f),
+            Statement::SendMessage { .. } => todo!("No SendMessage processing yet!"),
         };
         Ok(vec![light_statement])
     }
