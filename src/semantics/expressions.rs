@@ -7,7 +7,7 @@ use crate::types::Type;
 
 use super::aggregate::{ProgramAggregate, RawFunction};
 use super::annotations::CustomType;
-use super::errors::{top_level_error, SemanticResult};
+use super::errors::SemanticResult;
 use super::light_ast::{LExpr, LExprTyped};
 use super::operators::{calculate_binaryop, calculate_unaryop};
 use super::resolvers::{NameResolver, SymbolResolver};
@@ -61,13 +61,12 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
         }
     }
 
-    pub fn add_variable(&mut self, name: String, t: Type) -> SemanticResult<()> {
+    pub fn add_variable(&mut self, name: String, t: Type) -> Result<(), String> {
         if self.variables_types.contains_key(&name) {
-            return top_level_error!(
+            return Err(format!(
                 "Variable {} defined multiple times in function {}",
-                name,
-                self.scope.short_name
-            );
+                name, self.scope.short_name
+            ));
         }
         self.variables_types.insert(name, t);
         Ok(())
@@ -251,7 +250,8 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                             return expression_error!(
                                 expr,
                                 "Item types mismatch in a list: {} and {}",
-                                item_type, expr_type
+                                item_type,
+                                expr_type
                             );
                         }
                     }

@@ -3,7 +3,7 @@ use crate::types::Type;
 
 use super::aggregate::{ProgramAggregate, RawFunction};
 use super::annotations::annotate_type;
-use super::errors::{expression_error, statement_error, SemanticResult};
+use super::errors::{expression_error, statement_error, SemanticError, SemanticResult};
 use super::expressions::LightExpressionsGenerator;
 use super::light_ast::{LExpr, LExprTyped, LStatement, RawOperator};
 use super::resolvers::NameResolver;
@@ -28,7 +28,9 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
 
     pub fn init_function_arguments(&mut self) -> SemanticResult<()> {
         for (name, typename) in self.scope.args.iter() {
-            self.lexpr_generator.add_variable(name.clone(), typename.clone())?;
+            self.lexpr_generator
+                .add_variable(name.clone(), typename.clone())
+                .or_else(SemanticError::to_top_level)?;
         }
         Ok(())
     }
@@ -131,11 +133,13 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
     }
 
     fn generate_single(&mut self, statement: &StatementWithPos) -> SemanticResult<Vec<LStatement>> {
+        let stmt_err = SemanticError::add_statement(statement);
         let light_statement = match &statement.statement {
             Statement::Expr(e) => LStatement::Expression(self.check_expr(e, None)?),
             Statement::VarDecl(var_type, name) => {
                 self.lexpr_generator
-                    .add_variable(name.clone(), self.annotate_type(var_type))?;
+                    .add_variable(name.clone(), self.annotate_type(var_type))
+                    .or_else(stmt_err)?;
                 LStatement::DeclareVar {
                     var_type: self.annotate_type(var_type),
                     name: name.clone(),
@@ -175,7 +179,9 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
                 let var_type = self.annotate_type(var_type);
                 let value = self.check_expr(value, Some(&var_type))?;
 
-                self.lexpr_generator.add_variable(name.clone(), var_type.clone())?;
+                self.lexpr_generator
+                    .add_variable(name.clone(), var_type.clone())
+                    .or_else(stmt_err)?;
 
                 LStatement::DeclareAndAssignVar { var_type, name: name.clone(), value }
             }
@@ -218,10 +224,14 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
                 let iterable_name = format!("{}@iterable_{}", item_name, statement.pos);
 
                 self.lexpr_generator
-                    .add_variable(item_name.clone(), item_type.clone())?;
-                self.lexpr_generator.add_variable(index_name.clone(), Type::Int)?;
+                    .add_variable(item_name.clone(), item_type.clone())
+                    .or_else(&stmt_err)?;
                 self.lexpr_generator
-                    .add_variable(iterable_name.clone(), iterable_type.clone())?;
+                    .add_variable(index_name.clone(), Type::Int)
+                    .or_else(&stmt_err)?;
+                self.lexpr_generator
+                    .add_variable(iterable_name.clone(), iterable_type.clone())
+                    .or_else(&stmt_err)?;
 
                 let get_iterable_var = || LExprTyped {
                     expr_type: iterable_type.clone(),
