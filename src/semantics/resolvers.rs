@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::loader::{generate_alias, LoadedFile, ModuleAlias, WholeProgram};
 use crate::semantics::errors::SemanticError;
 
-use super::errors::{top_level_error, SemanticResult};
+use super::errors::{top_level_with_module, SemanticResultWithModule};
 use super::std_definitions::is_std_function;
 use super::symbols::{SymbolFunc, SymbolType};
 
@@ -25,7 +25,7 @@ pub struct NameResolver {
 }
 
 impl NameResolver {
-    pub fn create(wp: &WholeProgram) -> SemanticResult<NameResolver> {
+    pub fn create(wp: &WholeProgram) -> SemanticResultWithModule<NameResolver> {
         let mut resolver = NameResolver { typenames: HashMap::new(), functions: HashMap::new() };
 
         for (file_name, file) in wp.files.iter() {
@@ -82,11 +82,11 @@ impl NameResolver {
         })
     }
 
-    fn validate(&self, wp: &WholeProgram) -> SemanticResult<()> {
+    fn validate(&self, wp: &WholeProgram) -> SemanticResultWithModule<()> {
         for (alias, file) in wp.files.iter() {
             for (module, name) in get_functions_origins(file) {
                 if !self.functions[&module].contains_key(name) {
-                    return top_level_error!(
+                    return top_level_with_module!(
                         alias,
                         "Imported function {} is not defined in module {}!",
                         name,
@@ -95,7 +95,7 @@ impl NameResolver {
                 }
 
                 if is_std_function(name) {
-                    return top_level_error!(
+                    return top_level_with_module!(
                         alias,
                         "Function {} is already defined in stdlib!",
                         name
@@ -104,7 +104,7 @@ impl NameResolver {
             }
             for (module, typename) in get_typenames_origins(file) {
                 if !self.typenames[&module].contains_key(typename) {
-                    return top_level_error!(
+                    return top_level_with_module!(
                         alias,
                         "Imported type {} is not defined in module {}!",
                         typename,
@@ -117,10 +117,10 @@ impl NameResolver {
     }
 }
 
-fn check_module_does_not_import_itself(file: &LoadedFile) -> SemanticResult<()> {
+fn check_module_does_not_import_itself(file: &LoadedFile) -> SemanticResultWithModule<()> {
     for import in &file.ast.imports {
         if generate_alias(&import.module_path) == file.module_alias {
-            return top_level_error!(
+            return top_level_with_module!(
                 file.module_alias,
                 "Module {} is importing itself!",
                 file.module_alias
@@ -133,7 +133,7 @@ fn check_module_does_not_import_itself(file: &LoadedFile) -> SemanticResult<()> 
 fn get_origins<'a, I, T>(
     symbols_origins: I,
     compile_symbol: &dyn Fn(&ModuleAlias, &'a str) -> T,
-) -> SemanticResult<SingleFileMapping<T>>
+) -> SemanticResultWithModule<SingleFileMapping<T>>
 where
     I: Iterator<Item = (ModuleAlias, &'a str)>,
 {
@@ -141,7 +141,7 @@ where
 
     for (module_alias, symbol) in symbols_origins {
         if mapping.contains_key(symbol) {
-            return top_level_error!(module_alias, "Symbol {} introduces more than once", symbol,);
+            return top_level_with_module!(module_alias, "Symbol {} introduces more than once", symbol,);
         }
         mapping.insert(symbol.to_owned(), compile_symbol(&module_alias, symbol));
     }
@@ -192,7 +192,7 @@ mod test {
     use crate::test_utils::{new_alias, setup_and_load_program};
 
     #[test]
-    pub fn check_resolver_mappings() -> SemanticResult<()> {
+    pub fn check_resolver_mappings() {
         let wp = setup_and_load_program(
             r#"
             ===== file: main.frisbee
@@ -204,7 +204,7 @@ mod test {
         "#,
         );
 
-        let resolver = NameResolver::create(&wp)?;
+        let resolver = NameResolver::create(&wp).unwrap();
 
         let main_alias = new_alias("main");
         let mod_alias = new_alias("mod");
@@ -225,7 +225,6 @@ mod test {
             mod_functions_resolver(&String::from("somefun")),
             SymbolFunc::new(&mod_alias, &String::from("somefun"))
         );
-        Ok(())
     }
 
     #[test]
