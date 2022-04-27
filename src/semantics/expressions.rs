@@ -1,13 +1,12 @@
 use std::collections::HashMap;
 
 use crate::ast::*;
-use crate::loader::ModuleAlias;
 use crate::semantics::errors::expression_error;
 use crate::types::Type;
 
 use super::aggregate::{ProgramAggregate, RawFunction};
 use super::annotations::CustomType;
-use super::errors::SemanticResult;
+use super::errors::{SemanticError, SemanticResult};
 use super::light_ast::{LExpr, LExprTyped};
 use super::operators::{calculate_binaryop, calculate_unaryop};
 use super::resolvers::{NameResolver, SymbolResolver};
@@ -33,7 +32,6 @@ fn if_as_expected(
 }
 
 pub struct LightExpressionsGenerator<'a, 'b, 'c> {
-    module: ModuleAlias,
     scope: &'a RawFunction,
     aggregate: &'b ProgramAggregate,
     variables_types: HashMap<String, Type>,
@@ -52,7 +50,6 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
         'd: 'c,
     {
         LightExpressionsGenerator {
-            module: scope.defined_at.clone(),
             scope,
             aggregate,
             variables_types: HashMap::new(),
@@ -122,13 +119,16 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
 
             Expr::UnaryOp { op, operand } => {
                 let operand = self.calculate(&operand, None)?;
-                Ok(calculate_unaryop(&op, operand))
+                calculate_unaryop(&op, operand).or_else(SemanticError::add_expr(expr))
             }
-            Expr::BinOp { left, right, op } => Ok(calculate_binaryop(
-                op,
-                self.calculate(&left, None)?,
-                self.calculate(&right, None)?,
-            )),
+            Expr::BinOp { left, right, op } => {
+                let binary_res = calculate_binaryop(
+                    op,
+                    self.calculate(&left, None)?,
+                    self.calculate(&right, None)?,
+                );
+                binary_res.or_else(SemanticError::add_expr(expr))
+            }
 
             Expr::FunctionCall { function, args } => {
                 if is_std_function(function) {
