@@ -15,6 +15,21 @@ fn std_print(stack: &mut [u64], memory: &mut Heap) {
     io::stdout().flush().unwrap();
 }
 
+fn std_range(stack: &mut [u64], memory: &mut Heap) {
+    let start = stack[1] as i64;
+    let end = stack[2] as i64;
+    println!(">> generating range from {} to {}", start, end - 1);
+
+    let mut list_object = HeapObject::new_list(1, 0, &[]);
+    let mut list_inner = list_object.extract_list();
+    list_inner.size = (end - start) as usize;
+    list_inner.data.resize(list_inner.size, 0);
+    for i in start..end {
+        list_inner.data[i as usize - start as usize] = i as u64;
+    }
+    stack[0] = memory.insert(list_object);
+}
+
 fn std_get_input(stack: &mut [u64], memory: &mut Heap) {
     let mut input = String::new();
     io::stdin().read_line(&mut input).expect("Failed to read line");
@@ -99,7 +114,7 @@ fn noop(_stack: &mut [u64], _memory: &mut Heap) {
 pub static STD_RAW_FUNCTION_RUNNERS: [(&'static str, RawStdRunner); 21] = [
     ("std::print", std_print),
     ("std::println", std_println),
-    ("std::range", noop),
+    ("std::range", std_range),
     ("std::get_input", std_get_input),
 
     ("std::Bool::to_string", std_bool_to_string),

@@ -1,11 +1,12 @@
 fun void main() {
-    [Int] x= [1, 2, 3];
+    [Int] x = [1, 1, 2, 3, 5, 8];
+    
     println("First is " + x[0].to_string());
     println("Second is " + x[1].to_string());
     println("Third is " + x[2].to_string());
-    //for i in range(2, 20) {
-    foreach i in x {
-        println(i.to_string());
+
+    foreach i in range(1, x.len() - 1) {
+        println("Item " + i.to_string() + " is " + x[i].to_string());
     }
     return;
 }

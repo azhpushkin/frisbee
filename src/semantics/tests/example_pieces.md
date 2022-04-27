@@ -13,6 +13,7 @@
 * check and implement something for cases when index is bigger than list
 * check that initial list size is no more than 255
 * check different variations of name collisions with (for i in ..)
+* check range() start and end (only pos? negative allowed?)
 * check that tuple size is no more than 255
 * ensure that return is REQUIRED, but constructor must not have one
 * check how single-item tuples work!
