@@ -15,26 +15,10 @@ pub fn check_import_from_same_module_is_fine() {
     "#,
     );
 
-    NameResolver::create(&mut wp);
-    // assert!(info.is_ok(), "{:?}", info.unwrap_err());
-
-    // let funcs_mapping: SemanticResult<SymbolOriginsMapping> =
-    //     Ok([("somefun".into(), new_symbol("mod", "somefun"))].into());
-    // let types_mapping: SemanticResult<SymbolOriginsMapping> =
-    //     Ok([("Type".into(), new_symbol("mod", "Type"))].into());
-
-    // // Types and functions mappings are the same
-    // let main_file = get_file(&wp, "main");
-    // let mod_file = get_file(&wp, "mod");
-    // assert_eq!(modules::get_functions_origins(main_file), funcs_mapping);
-    // assert_eq!(modules::get_functions_origins(mod_file), funcs_mapping);
-
-    // assert_eq!(modules::get_typenames_origins(main_file), types_mapping);
-    // assert_eq!(modules::get_typenames_origins(mod_file), types_mapping);
+    NameResolver::create(&mut wp).unwrap();
 }
 
 #[test]
-#[should_panic]
 pub fn check_import_of_same_function_are_not_allowed() {
     let mut wp = setup_and_load_program(
         r#"
@@ -48,11 +32,10 @@ pub fn check_import_of_same_function_are_not_allowed() {
     "#,
     );
 
-    NameResolver::create(&mut wp);
+    assert!(NameResolver::create(&mut wp).is_err());
 }
 
 #[test]
-#[should_panic]
 pub fn check_import_function_name_collision() {
     let mut wp = setup_and_load_program(
         r#"
@@ -65,11 +48,10 @@ pub fn check_import_function_name_collision() {
     "#,
     );
 
-    NameResolver::create(&mut wp);
+    assert!(NameResolver::create(&mut wp).is_err());
 }
 
 #[test]
-#[should_panic]
 pub fn check_import_active_type_name_collision() {
     let mut wp = setup_and_load_program(
         r#"
@@ -82,11 +64,10 @@ pub fn check_import_active_type_name_collision() {
     "#,
     );
 
-    NameResolver::create(&mut wp);
+    assert!(NameResolver::create(&mut wp).is_err());
 }
 
 #[test]
-#[should_panic]
 pub fn check_active_and_class_name_collision() {
     let mut wp = setup_and_load_program(
         r#"
@@ -96,11 +77,10 @@ pub fn check_active_and_class_name_collision() {
     "#,
     );
 
-    NameResolver::create(&mut wp);
+    assert!(NameResolver::create(&mut wp).is_err());
 }
 
 #[test]
-#[should_panic]
 pub fn check_method_name_collisions() {
     let mut wp = setup_and_load_program(
         r#"
@@ -112,7 +92,7 @@ pub fn check_method_name_collisions() {
     "#,
     );
 
-    NameResolver::create(&mut wp);
+    assert!(NameResolver::create(&mut wp).is_err());
 }
 
 #[test]
@@ -131,51 +111,9 @@ pub fn check_same_function_names_are_fine() {
     "#,
     );
     NameResolver::create(&mut wp);
-
-    // assert!(check_and_annotate_symbols(&mut wp).is_ok());
-
-    // assert_eq!(
-    //     modules::get_functions_origins(get_file(&wp, "main")).unwrap(),
-    //     HashMap::from([
-    //         ("hello".into(), new_symbol("mod", "hello")),
-    //         ("samename".into(), new_symbol("main", "samename")),
-    //     ])
-    // );
-    // assert_eq!(
-    //     modules::get_functions_origins(get_file(&wp, "mod")).unwrap(),
-    //     HashMap::from([
-    //         ("hello".into(), new_symbol("mod", "hello")),
-    //         ("samename".into(), new_symbol("mod", "samename")),
-    //     ])
-    // );
-
-    // let samename_main = FunctionSignature {
-    //     rettype: Type::Nil,
-    //     args: vec![(
-    //         "someone".into(),
-    //         Type::IdentQualified(new_alias("mod"), "Person".into()),
-    //     )],
-    // };
-    // let samename_mod = FunctionSignature {
-    //     rettype: Type::IdentQualified(new_alias("mod"), "Person".into()),
-    //     args: vec![],
-    // };
-    // let hello_mod = FunctionSignature { rettype: Type::Nil, args: vec![] };
-    // assert_eq!(
-    //     modules::get_functions_signatures(get_file(&wp, "main")),
-    //     HashMap::from([(new_symbol("main", "samename"), samename_main)])
-    // );
-    // assert_eq!(
-    //     modules::get_functions_signatures(get_file(&wp, "mod")),
-    //     HashMap::from([
-    //         (new_symbol("mod", "samename"), samename_mod),
-    //         (new_symbol("mod", "hello"), hello_mod),
-    //     ])
-    // );
 }
 
 #[test]
-#[should_panic]
 pub fn check_no_self_referrings_in_imports() {
     let mut wp = setup_and_load_program(
         r#"
@@ -184,11 +122,10 @@ pub fn check_no_self_referrings_in_imports() {
     "#,
     );
 
-    NameResolver::create(&mut wp);
+    assert!(NameResolver::create(&mut wp).is_err());
 }
 
 #[test]
-#[should_panic]
 pub fn check_imported_types_are_existing() {
     let mut wp = setup_and_load_program(
         r#"
@@ -199,11 +136,10 @@ pub fn check_imported_types_are_existing() {
     "#,
     );
 
-    NameResolver::create(&mut wp);
+    assert!(NameResolver::create(&mut wp).is_err());
 }
 
 #[test]
-#[should_panic]
 pub fn check_imported_functions_are_existing() {
     let mut wp = setup_and_load_program(
         r#"
@@ -214,5 +150,5 @@ pub fn check_imported_functions_are_existing() {
     "#,
     );
 
-    NameResolver::create(&mut wp);
+    assert!(NameResolver::create(&mut wp).is_err());
 }

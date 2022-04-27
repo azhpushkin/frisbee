@@ -26,7 +26,7 @@ pub fn add_default_constructors(wp: &mut WholeProgram) {
 pub fn perform_semantic_analysis(
     wp: &WholeProgram,
 ) -> errors::SemanticResult<aggregate::ProgramAggregate> {
-    let names_resolver = resolvers::NameResolver::create(wp);
+    let names_resolver = resolvers::NameResolver::create(wp)?;
     let mut aggregate = aggregate::create_basic_aggregate(wp, &names_resolver);
 
     let functions_mapping =

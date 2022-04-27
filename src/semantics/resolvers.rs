@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
 use crate::loader::{generate_alias, LoadedFile, ModuleAlias, WholeProgram};
+use crate::semantics::errors::SemanticError;
 
+use super::errors::SemanticResult;
 use super::std_definitions::is_std_function;
 use super::symbols::{SymbolFunc, SymbolType};
 
@@ -23,27 +25,27 @@ pub struct NameResolver {
 }
 
 impl NameResolver {
-    pub fn create(wp: &WholeProgram) -> NameResolver {
+    pub fn create(wp: &WholeProgram) -> SemanticResult<NameResolver> {
         let mut resolver = NameResolver { typenames: HashMap::new(), functions: HashMap::new() };
 
         for (file_name, file) in wp.files.iter() {
-            check_module_does_not_import_itself(file);
+            check_module_does_not_import_itself(file)?;
 
             let function_origins = get_functions_origins(file);
-            let functions_mapping = get_origins(function_origins, &SymbolFunc::new)
-                .unwrap_or_else(|x| panic!("Function {} defined twice in {}", x, file_name));
+            let functions_mapping: SingleFileMapping<SymbolFunc> =
+                get_origins(function_origins, &SymbolFunc::new)?;
 
             let typename_origins = get_typenames_origins(file);
-            let typenames_mapping = get_origins(typename_origins, &SymbolType::new)
-                .unwrap_or_else(|x| panic!("Type {} defined twice in {}", x, file_name));
+            let typenames_mapping: SingleFileMapping<SymbolType> =
+                get_origins(typename_origins, &SymbolType::new)?;
 
             resolver.functions.insert(file_name.clone(), functions_mapping);
             resolver.typenames.insert(file_name.clone(), typenames_mapping);
         }
 
-        resolver.validate(&wp);
+        resolver.validate(&wp)?;
 
-        resolver
+        Ok(resolver)
     }
 
     pub fn get_typenames_resolver<'a, 'b, 'c>(
@@ -80,46 +82,52 @@ impl NameResolver {
         })
     }
 
-    fn validate(&self, wp: &WholeProgram) {
+    fn validate(&self, wp: &WholeProgram) -> SemanticResult<()> {
         for (_, file) in wp.files.iter() {
-            check_module_does_not_import_itself(file);
-
             for (module, name) in get_functions_origins(file) {
                 if !self.functions[&module].contains_key(name) {
-                    panic!(
-                        "Expected function {} to be defined in module {:?}!",
+                    return SemanticError::top_level(format!(
+                        "Expected function {} to be defined in module {}!",
                         name, module
-                    );
+                    ));
                 }
 
                 if is_std_function(name) {
-                    panic!("Function {} is already defined in stdlib!", name);
+                    return SemanticError::top_level(format!(
+                        "Function {} is already defined in stdlib!",
+                        name
+                    ));
                 }
             }
             for (module, typename) in get_typenames_origins(file) {
                 if !self.typenames[&module].contains_key(typename) {
-                    panic!(
-                        "Expected type {} to be defined in module {:?}!",
+                    return SemanticError::top_level(format!(
+                        "Expected type {} to be defined in module {}!",
                         typename, module
-                    );
+                    ));
                 }
             }
         }
+        Ok(())
     }
 }
 
-fn check_module_does_not_import_itself(file: &LoadedFile) {
+fn check_module_does_not_import_itself(file: &LoadedFile) -> SemanticResult<()> {
     for import in &file.ast.imports {
         if generate_alias(&import.module_path) == file.module_alias {
-            panic!("Module {:?} is importing itself!", file.module_alias);
+            return SemanticError::top_level(format!(
+                "Module {} is importing itself!",
+                file.module_alias
+            ));
         }
     }
+    Ok(())
 }
 
 fn get_origins<'a, I, T>(
     symbols_origins: I,
     compile_symbol: &dyn Fn(&ModuleAlias, &'a str) -> T,
-) -> Result<SingleFileMapping<T>, String>
+) -> SemanticResult<SingleFileMapping<T>>
 where
     I: Iterator<Item = (ModuleAlias, &'a str)>,
 {
@@ -127,7 +135,10 @@ where
 
     for (module_alias, symbol) in symbols_origins {
         if mapping.contains_key(symbol) {
-            return Err(symbol.to_owned());
+            return SemanticError::top_level(format!(
+                "Symbol {} defined twice in {}",
+                symbol, module_alias
+            ));
         }
         mapping.insert(symbol.to_owned(), compile_symbol(&module_alias, symbol));
     }
@@ -178,7 +189,7 @@ mod test {
     use crate::test_utils::{new_alias, setup_and_load_program};
 
     #[test]
-    pub fn check_resolver_mappings() {
+    pub fn check_resolver_mappings() -> SemanticResult<()> {
         let wp = setup_and_load_program(
             r#"
             ===== file: main.frisbee
@@ -190,7 +201,7 @@ mod test {
         "#,
         );
 
-        let resolver = NameResolver::create(&wp);
+        let resolver = NameResolver::create(&wp)?;
 
         let main_alias = new_alias("main");
         let mod_alias = new_alias("mod");
@@ -211,10 +222,10 @@ mod test {
             mod_functions_resolver(&String::from("somefun")),
             SymbolFunc::new(&mod_alias, &String::from("somefun"))
         );
+        Ok(())
     }
 
     #[test]
-    #[should_panic]
     pub fn check_validate() {
         let wp = setup_and_load_program(
             r#"
@@ -224,6 +235,6 @@ mod test {
             fun Nil somefun() {}
         "#,
         );
-        NameResolver::create(&wp);
+        assert!(NameResolver::create(&wp).is_err());
     }
 }
