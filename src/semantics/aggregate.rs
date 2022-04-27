@@ -5,7 +5,7 @@ use crate::loader::{ModuleAlias, WholeProgram};
 use crate::types::Type;
 
 use super::annotations::{annotate_type, annotate_typednamed_vec, CustomType, TypedFields};
-use super::errors::{SemanticError, SemanticResult};
+use super::errors::{top_level_error, SemanticError, SemanticResult};
 use super::light_ast::LStatement;
 use super::resolvers::NameResolver;
 use super::symbols::{SymbolFunc, SymbolType};
@@ -77,9 +77,11 @@ pub fn fill_aggregate_with_funcs<'a>(
             for method in class_decl.methods.iter() {
                 let method_full_name = type_full_name.method(&method.name);
                 if aggregate.functions.contains_key(&method_full_name) {
-                    panic!(
-                        "Method {} defined twice in {}.{}",
-                        method.name, file_alias, class_decl.name
+                    return top_level_error!(
+                        file_alias,
+                        "Method {} defined twice in {}",
+                        method.name,
+                        class_decl.name
                     );
                 }
 
@@ -131,13 +133,19 @@ pub fn fill_aggregate_with_funcs<'a>(
 
     if let Some(raw_entry) = aggregate.functions.get(&aggregate.entry) {
         if raw_entry.return_type != Type::Tuple(vec![]) {
-            return SemanticError::top_level(format!(
+            return top_level_error!(
+                wp.main_module,
                 "Entry function {} must return void, but it returns {}",
-                aggregate.entry, raw_entry.return_type,
-            ));
+                aggregate.entry,
+                raw_entry.return_type,
+            );
         }
     } else {
-        return SemanticError::top_level(format!("Entry function {} not found", aggregate.entry));
+        return top_level_error!(
+            wp.main_module,
+            "Entry function {} not found",
+            aggregate.entry
+        );
     }
 
     Ok(mapping_to_og_funcs)

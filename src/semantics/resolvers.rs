@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::loader::{generate_alias, LoadedFile, ModuleAlias, WholeProgram};
 use crate::semantics::errors::SemanticError;
 
-use super::errors::SemanticResult;
+use super::errors::{top_level_error, SemanticResult};
 use super::std_definitions::is_std_function;
 use super::symbols::{SymbolFunc, SymbolType};
 
@@ -83,28 +83,33 @@ impl NameResolver {
     }
 
     fn validate(&self, wp: &WholeProgram) -> SemanticResult<()> {
-        for (_, file) in wp.files.iter() {
+        for (alias, file) in wp.files.iter() {
             for (module, name) in get_functions_origins(file) {
                 if !self.functions[&module].contains_key(name) {
-                    return SemanticError::top_level(format!(
-                        "Expected function {} to be defined in module {}!",
-                        name, module
-                    ));
+                    return top_level_error!(
+                        alias,
+                        "Imported function {} is not defined in module {}!",
+                        name,
+                        module
+                    );
                 }
 
                 if is_std_function(name) {
-                    return SemanticError::top_level(format!(
+                    return top_level_error!(
+                        alias,
                         "Function {} is already defined in stdlib!",
                         name
-                    ));
+                    );
                 }
             }
             for (module, typename) in get_typenames_origins(file) {
                 if !self.typenames[&module].contains_key(typename) {
-                    return SemanticError::top_level(format!(
-                        "Expected type {} to be defined in module {}!",
-                        typename, module
-                    ));
+                    return top_level_error!(
+                        alias,
+                        "Imported type {} is not defined in module {}!",
+                        typename,
+                        module
+                    );
                 }
             }
         }
@@ -115,10 +120,11 @@ impl NameResolver {
 fn check_module_does_not_import_itself(file: &LoadedFile) -> SemanticResult<()> {
     for import in &file.ast.imports {
         if generate_alias(&import.module_path) == file.module_alias {
-            return SemanticError::top_level(format!(
+            return top_level_error!(
+                file.module_alias,
                 "Module {} is importing itself!",
                 file.module_alias
-            ));
+            );
         }
     }
     Ok(())
@@ -135,10 +141,7 @@ where
 
     for (module_alias, symbol) in symbols_origins {
         if mapping.contains_key(symbol) {
-            return SemanticError::top_level(format!(
-                "Symbol {} defined twice in {}",
-                symbol, module_alias
-            ));
+            return top_level_error!(module_alias, "Symbol {} introduces more than once", symbol,);
         }
         mapping.insert(symbol.to_owned(), compile_symbol(&module_alias, symbol));
     }
@@ -168,19 +171,19 @@ fn get_typenames_origins<'a>(
 fn get_functions_origins<'a>(
     file: &'a LoadedFile,
 ) -> Box<dyn Iterator<Item = (ModuleAlias, &'a str)> + 'a> {
-    let defined_types = file
+    let defined_functions = file
         .ast
         .functions
         .iter()
         .map(move |f| (file.module_alias.clone(), f.name.as_str()));
 
-    let imported_types = file.ast.imports.iter().flat_map(|i| {
+    let imported_functions = file.ast.imports.iter().flat_map(|i| {
         i.functions
             .iter()
             .map(move |funcname| (generate_alias(&i.module_path), funcname.as_str()))
     });
 
-    Box::new(defined_types.chain(imported_types))
+    Box::new(defined_functions.chain(imported_functions))
 }
 
 #[cfg(test)]

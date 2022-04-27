@@ -110,7 +110,7 @@ pub fn check_same_function_names_are_fine() {
         class Person {}
     "#,
     );
-    NameResolver::create(&mut wp);
+    NameResolver::create(&mut wp).unwrap();
 }
 
 #[test]
