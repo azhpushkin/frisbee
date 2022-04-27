@@ -61,7 +61,7 @@ pub enum Statement {
         body: Vec<StatementWithPos>,
     },
     Foreach {
-        itemname: String,
+        item_name: String,
         iterable: ExprWithPos,
         body: Vec<StatementWithPos>,
     },

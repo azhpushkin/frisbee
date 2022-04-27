@@ -1,6 +1,11 @@
 fun void main() {
+    [Int] x= [1, 2, 3];
+    println("First is " + x[0].to_string());
+    println("Second is " + x[1].to_string());
+    println("Third is " + x[2].to_string());
     //for i in range(2, 20) {
-    for i in [1, 2, 3] {
+    foreach i in x {
         println(i.to_string());
     }
+    return;
 }

@@ -88,7 +88,7 @@ fn std_list_len(stack: &mut [u64], memory: &mut Heap) {
     let list_obj = memory.get_mut(stack[1]);
     let list = list_obj.extract_list();
 
-    stack[0] = list.item_size as u64;
+    stack[0] = list.size as u64;
 }
 
 fn noop(_stack: &mut [u64], _memory: &mut Heap) {

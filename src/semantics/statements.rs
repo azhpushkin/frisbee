@@ -4,8 +4,9 @@ use crate::types::Type;
 use super::aggregate::{ProgramAggregate, RawFunction};
 use super::annotations::annotate_type;
 use super::expressions::LightExpressionsGenerator;
-use super::light_ast::{LExpr, LExprTyped, LStatement};
+use super::light_ast::{LExpr, LExprTyped, LStatement, RawOperator};
 use super::resolvers::NameResolver;
+use super::symbols::SymbolFunc;
 
 struct LightStatementsGenerator<'a: 'd, 'b, 'c: 'd, 'd> {
     scope: &'a RawFunction,
@@ -79,7 +80,7 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
         }
 
         for statement in statements {
-            res.extend(self.generate_single(&statement.statement));
+            res.extend(self.generate_single(&statement));
         }
 
         if self.is_constructor() {
@@ -120,8 +121,8 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
         LStatement::IfElse { condition, if_body, else_body }
     }
 
-    fn generate_single(&mut self, statement: &Statement) -> Vec<LStatement> {
-        let light_statement = match statement {
+    fn generate_single(&mut self, statement: &StatementWithPos) -> Vec<LStatement> {
+        let light_statement = match &statement.statement {
             Statement::Expr(e) => LStatement::Expression(self.check_expr(e, None)),
             Statement::VarDecl(var_type, name) => {
                 self.lexpr_generator
@@ -187,21 +188,99 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
                 let body = self.generate(body);
                 LStatement::While { condition, body }
             }
-            Statement::Foreach { itemname, iterable, body } => {
-                // TODO: check that iterable is of type [List]
-                let var_type: Type = todo!();
-                // TODO: proper random index name generation
-                let index_name = format!("{}__{}__index", self.scope.short_name, itemname.clone());
+            Statement::Foreach { item_name, iterable, body } => {
+                let iterable_calculated = self.check_expr(iterable, None);
+                let iterable_type = iterable_calculated.expr_type.clone();
 
-                let add_item_var = LStatement::DeclareVar { var_type, name: itemname.clone() };
-                let add_index_var = LStatement::DeclareAndAssignVar {
+                let item_type = match &iterable_type {
+                    Type::List(i) => i.as_ref().clone(),
+                    _ => panic!("Expected list type"),
+                };
+                // index name is muffled to avoid collisions (@ is used to avoid same user-named variables)
+                // TODO: still check that original name does not overlap with anything
+                let index_name = format!("{}@index_{}", item_name, statement.pos);
+                let iterable_name = format!("{}@iterable_{}", item_name, statement.pos);
+
+                self.lexpr_generator
+                    .add_variable(item_name.clone(), item_type.clone());
+                self.lexpr_generator.add_variable(index_name.clone(), Type::Int);
+                self.lexpr_generator
+                    .add_variable(iterable_name.clone(), iterable_type.clone());
+
+                let get_iterable_var = || LExprTyped {
+                    expr_type: iterable_type.clone(),
+                    expr: LExpr::GetVar(iterable_name.clone()),
+                };
+                let get_index_var =
+                    || LExprTyped { expr_type: Type::Int, expr: LExpr::GetVar(index_name.clone()) };
+
+                let define_item_var =
+                    LStatement::DeclareVar { var_type: item_type.clone(), name: item_name.clone() };
+                let define_index_var = LStatement::DeclareAndAssignVar {
                     var_type: Type::Int,
                     name: index_name.clone(),
                     value: LExprTyped::int(0),
                 };
+                let defined_iterator_var = LStatement::DeclareAndAssignVar {
+                    var_type: iterable_calculated.expr_type.clone(),
+                    name: iterable_name.clone(),
+                    value: iterable_calculated,
+                };
+
+                // Condition to check if all good
+                let condition = LExprTyped {
+                    expr_type: Type::Bool,
+                    expr: LExpr::ApplyOp {
+                        operator: RawOperator::LessInts,
+                        operands: vec![
+                            get_index_var(),
+                            LExprTyped {
+                                expr_type: Type::Int,
+                                expr: LExpr::CallFunction {
+                                    name: SymbolFunc::new_std_method(&iterable_type, "len"),
+                                    return_type: Type::Int,
+                                    args: vec![get_iterable_var()],
+                                },
+                            },
+                        ],
+                    },
+                };
+                let get_by_index_from_iterable = LExprTyped {
+                    expr_type: item_type.clone(),
+                    expr: LExpr::AccessListItem {
+                        list: Box::new(get_iterable_var()),
+                        index: Box::new(get_index_var()),
+                    },
+                };
+                let set_item_statement = LStatement::AssignLocal {
+                    name: item_name.clone(),
+                    tuple_indexes: vec![],
+                    value: get_by_index_from_iterable,
+                };
+
+                let increase_index_statement = LStatement::AssignLocal {
+                    name: index_name.clone(),
+                    tuple_indexes: vec![],
+                    value: LExprTyped {
+                        expr_type: Type::Int,
+                        expr: LExpr::ApplyOp {
+                            operator: RawOperator::AddInts,
+                            operands: vec![get_index_var(), LExprTyped::int(1)],
+                        },
+                    },
+                };
+
+                let mut calculated_body = self.generate(body);
+                calculated_body.insert(0, increase_index_statement);
+                calculated_body.insert(0, set_item_statement);
 
                 // and so on
-                return vec![add_item_var, add_index_var];
+                return vec![
+                    define_item_var,
+                    define_index_var,
+                    defined_iterator_var,
+                    LStatement::While { condition, body: calculated_body },
+                ];
             }
 
             f => todo!("not implemented {:?}", f),
@@ -224,7 +303,10 @@ fn split_left_part_of_assignment(lexpr: LExprTyped) -> Result<(LExprTyped, Vec<u
     // GetVar and AccessField (and AccessListItem) are considered a base part of the assignment
     // which point to the memory part, which will be updated
     // vec![] part is used as an offset which should be added to the memory address
-    if matches!(&lexpr.expr, LExpr::GetVar(..) | LExpr::AccessField { .. } | LExpr::AccessListItem { .. }) {
+    if matches!(
+        &lexpr.expr,
+        LExpr::GetVar(..) | LExpr::AccessField { .. } | LExpr::AccessListItem { .. }
+    ) {
         return Ok((lexpr, vec![]));
     }
     if let LExpr::AccessTupleItem { tuple, index } = lexpr.expr {

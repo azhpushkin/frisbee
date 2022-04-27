@@ -118,10 +118,7 @@ impl Parser {
     }
 
     fn stmt_with_pos(&self, stmt: Statement, pos: usize) -> ParseResult<StatementWithPos> {
-        Ok(StatementWithPos {
-            statement: stmt,
-            pos: self.tokens[pos].first,
-        })
+        Ok(StatementWithPos { statement: stmt, pos: self.tokens[pos].first })
     }
 
     fn consume_token(&mut self) -> &Token {
@@ -350,7 +347,10 @@ impl Parser {
         if consume_if_matches_one_of!(self, [Token::Else]) {
             else_body = self.parse_statements_in_curly_block()?;
         }
-        self.stmt_with_pos(Statement::IfElse { condition, if_body, elif_bodies, else_body }, start)
+        self.stmt_with_pos(
+            Statement::IfElse { condition, if_body, elif_bodies, else_body },
+            start,
+        )
     }
 
     pub fn parse_while_loop_stmt(&mut self) -> ParseResult<StatementWithPos> {
@@ -364,21 +364,28 @@ impl Parser {
     pub fn parse_foreach_loop_stmt(&mut self) -> ParseResult<StatementWithPos> {
         let start = self.position;
         consume_and_check!(self, Token::Foreach);
-        let itemname = consume_and_check_ident!(self);
+        let item_name = consume_and_check_ident!(self);
         consume_and_check!(self, Token::In);
         let iterable = self.parse_expr()?;
         let body = self.parse_statements_in_curly_block()?;
-        self.stmt_with_pos(Statement::Foreach { itemname, iterable, body }, start)
+        self.stmt_with_pos(Statement::Foreach { item_name, iterable, body }, start)
     }
 
-    pub fn parse_var_declaration_continuation(&mut self, typedecl: Type, start: usize) -> ParseResult<StatementWithPos> {
+    pub fn parse_var_declaration_continuation(
+        &mut self,
+        typedecl: Type,
+        start: usize,
+    ) -> ParseResult<StatementWithPos> {
         let varname = consume_and_check_ident!(self);
         if consume_if_matches_one_of!(self, [Token::Semicolon]) {
             return self.stmt_with_pos(Statement::VarDecl(typedecl, varname), start);
         } else if consume_if_matches_one_of!(self, [Token::Equal]) {
             let value = self.parse_expr()?;
             consume_and_check!(self, Token::Semicolon);
-            return self.stmt_with_pos(Statement::VarDeclWithAssign(typedecl, varname, value), start);
+            return self.stmt_with_pos(
+                Statement::VarDeclWithAssign(typedecl, varname, value),
+                start,
+            );
         } else {
             return perr_with_expected(
                 self.full_token(0),
@@ -446,7 +453,8 @@ impl Parser {
             let method = consume_and_check_ident!(self);
             let args = self.parse_function_call_args()?;
             consume_and_check!(self, Token::Semicolon);
-            return self.stmt_with_pos(Statement::SendMessage { active: expr, method, args }, start);
+            return self
+                .stmt_with_pos(Statement::SendMessage { active: expr, method, args }, start);
         } else {
             return perr_with_expected(
                 self.full_token(0),
@@ -541,7 +549,7 @@ impl Parser {
         } else {
             // There is at least one expr here after check above
             consume_and_check!(self, Token::LeftParenthesis);
-            let mut args_expr = vec![self.parse_expr()?, ];
+            let mut args_expr = vec![self.parse_expr()?];
 
             while consume_if_matches_one_of!(self, [Token::Comma]) {
                 if self.rel_token_check(0, Token::RightParenthesis) {

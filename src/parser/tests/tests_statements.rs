@@ -127,7 +127,7 @@ fn stmt_foreach() {
     assert_stmt_parses(
         "foreach obj in (objects) {}",
         Statement::Foreach {
-            itemname: "obj".into(),
+            item_name: "obj".into(),
             iterable: expr_raw(Expr::Identifier("objects".into()), 16, 22),
             body: vec![],
         },
