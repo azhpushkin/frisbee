@@ -67,7 +67,7 @@ impl Heap {
     }
 
     pub fn insert(&mut self, object: Box<HeapObject>) -> u64 {
-        let index = self.counter;
+        let index = u64::MAX - self.counter;
         self.counter += 1;
 
         self.data.insert(index, ((false, index), object));
