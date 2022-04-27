@@ -30,7 +30,10 @@ pub struct RawFunction {
 }
 
 /// Creates basic aggregate, that contains only types
-pub fn create_basic_aggregate(wp: &WholeProgram, resolver: &NameResolver) -> ProgramAggregate {
+pub fn create_basic_aggregate(
+    wp: &WholeProgram,
+    resolver: &NameResolver,
+) -> SemanticResultWithModule<ProgramAggregate> {
     let mut aggregate: ProgramAggregate = ProgramAggregate {
         types: HashMap::new(),
         functions: HashMap::new(),
@@ -47,13 +50,22 @@ pub fn create_basic_aggregate(wp: &WholeProgram, resolver: &NameResolver) -> Pro
                 CustomType {
                     name: full_name,
                     is_active: class_decl.is_active,
-                    fields: annotate_typednamed_vec(&class_decl.fields, &file_resolver),
+                    fields: annotate_typednamed_vec(&class_decl.fields, &file_resolver).or_else(
+                        |e| {
+                            top_level_with_module!(
+                                file_alias,
+                                "Error in {} class field types: {}",
+                                class_decl.name,
+                                e
+                            )
+                        },
+                    )?,
                 },
             );
         }
     }
 
-    aggregate
+    Ok(aggregate)
 }
 
 pub fn fill_aggregate_with_funcs<'a>(
@@ -66,8 +78,25 @@ pub fn fill_aggregate_with_funcs<'a>(
     for (file_alias, file) in wp.files.iter() {
         let file_resolver = resolver.get_typenames_resolver(&file_alias);
 
+        let return_type_err = |funcname, e| {
+            top_level_with_module!(
+                file_alias,
+                "Bad return type of function {}: {}",
+                funcname,
+                e
+            )
+        };
+        let args_type_err = |funcname, e| {
+            top_level_with_module!(
+                file_alias,
+                "Bad argument type in function {}: {}",
+                funcname,
+                e
+            )
+        };
+
         let get_return_type = |t: &_| match t {
-            None => Type::Tuple(vec![]),
+            None => Ok(Type::Tuple(vec![])),
             Some(t) => annotate_type(t, &file_resolver),
         };
 
@@ -99,8 +128,10 @@ pub fn fill_aggregate_with_funcs<'a>(
                     method_full_name.clone(),
                     RawFunction {
                         name: method_full_name.clone(),
-                        return_type: get_return_type(&method.rettype),
-                        args: annotate_typednamed_vec(&args, &file_resolver),
+                        return_type: get_return_type(&method.rettype)
+                            .or_else(|e| return_type_err(&method.name, e))?,
+                        args: annotate_typednamed_vec(&args, &file_resolver)
+                            .or_else(|e| args_type_err(&method.name, e))?,
                         body: vec![],
                         short_name: method.name.clone(),
                         method_of: Some(type_full_name.clone()),
@@ -119,8 +150,10 @@ pub fn fill_aggregate_with_funcs<'a>(
                 full_name.clone(),
                 RawFunction {
                     name: full_name.clone(),
-                    return_type: get_return_type(&function_decl.rettype),
-                    args: annotate_typednamed_vec(&function_decl.args, &file_resolver),
+                    return_type: get_return_type(&function_decl.rettype)
+                        .or_else(|e| return_type_err(&function_decl.name, e))?,
+                    args: annotate_typednamed_vec(&function_decl.args, &file_resolver)
+                        .or_else(|e| args_type_err(&function_decl.name, e))?,
                     body: vec![],
                     short_name: function_decl.name.clone(),
                     method_of: None,

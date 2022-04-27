@@ -27,7 +27,7 @@ pub fn perform_semantic_analysis(
     wp: &WholeProgram,
 ) -> errors::SemanticResultWithModule<aggregate::ProgramAggregate> {
     let names_resolver = resolvers::NameResolver::create(wp)?;
-    let mut aggregate = aggregate::create_basic_aggregate(wp, &names_resolver);
+    let mut aggregate = aggregate::create_basic_aggregate(wp, &names_resolver)?;
 
     let functions_mapping =
         aggregate::fill_aggregate_with_funcs(wp, &mut aggregate, &names_resolver)?;

@@ -10,7 +10,7 @@ type SymbolLookupMapping<T> = HashMap<ModuleAlias, HashMap<String, T>>;
 
 type SingleFileMapping<T> = HashMap<String, T>;
 
-pub type SymbolResolver<'a, T> = Box<dyn Fn(&String) -> T + 'a>;
+pub type SymbolResolver<'a, T> = Box<dyn Fn(&String) -> Result<T, String> + 'a>;
 
 trait Symbol {}
 
@@ -58,8 +58,8 @@ impl NameResolver {
         Box::new(move |name: &String| {
             let typename: Option<&SymbolType> = self.typenames[&alias].get(name);
             match typename {
-                Some(t) => t.clone(),
-                None => panic!("Type {} not found in {}", name, alias),
+                Some(t) => Ok(t.clone()),
+                None => Err(format!("Type {} not found in {}", name, alias)),
             }
         })
     }
@@ -75,8 +75,8 @@ impl NameResolver {
         Box::new(move |name: &String| {
             let function: Option<&SymbolFunc> = self.functions[&alias].get(name);
             match function {
-                Some(f) => f.clone(),
-                None => panic!("Function {} not found in {}", name, alias),
+                Some(f) => Ok(f.clone()),
+                None => Err(format!("Function {} not found in {}", name, alias)),
             }
         })
     }
@@ -214,20 +214,23 @@ mod test {
 
         let main_types_resolver = resolver.get_typenames_resolver(&main_alias);
         assert_eq!(
-            main_types_resolver(&String::from("SomeType")),
+            main_types_resolver(&String::from("SomeType")).unwrap(),
             SymbolType::new(&main_alias, &String::from("SomeType"))
         );
 
         let main_functions_resolver = resolver.get_functions_resolver(&main_alias);
         let mod_functions_resolver = resolver.get_functions_resolver(&mod_alias);
         assert_eq!(
-            main_functions_resolver(&String::from("somefun")),
+            main_functions_resolver(&String::from("somefun")).unwrap(),
             SymbolFunc::new(&mod_alias, &String::from("somefun"))
         );
         assert_eq!(
-            mod_functions_resolver(&String::from("somefun")),
+            mod_functions_resolver(&String::from("somefun")).unwrap(),
             SymbolFunc::new(&mod_alias, &String::from("somefun"))
         );
+
+        assert!(mod_functions_resolver(&String::from("wrong_name")).is_err());
+        assert!(main_types_resolver(&String::from("BadType")).is_err());
     }
 
     #[test]

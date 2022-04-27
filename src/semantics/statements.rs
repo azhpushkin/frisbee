@@ -35,11 +35,12 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
         Ok(())
     }
 
-    fn annotate_type(&self, t: &Type) -> Type {
+    fn annotate_type(&self, t: &Type, stmt: &StatementWithPos) -> SemanticResult<Type> {
         annotate_type(
             t,
             &self.resolver.get_typenames_resolver(&self.scope.defined_at),
         )
+        .or_else(SemanticError::add_statement(stmt))
     }
 
     fn is_constructor(&self) -> bool {
@@ -137,13 +138,12 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
         let light_statement = match &statement.statement {
             Statement::Expr(e) => LStatement::Expression(self.check_expr(e, None)?),
             Statement::VarDecl(var_type, name) => {
+                let var_type = self.annotate_type(var_type, statement)?;
+
                 self.lexpr_generator
-                    .add_variable(name.clone(), self.annotate_type(var_type))
+                    .add_variable(name.clone(), var_type.clone())
                     .or_else(stmt_err)?;
-                LStatement::DeclareVar {
-                    var_type: self.annotate_type(var_type),
-                    name: name.clone(),
-                }
+                LStatement::DeclareVar { var_type, name: name.clone() }
             }
             Statement::Assign { left, right } => {
                 let left_calculated = self.check_expr(left, None)?;
@@ -176,7 +176,7 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
                 }
             }
             Statement::VarDeclWithAssign(var_type, name, value) => {
-                let var_type = self.annotate_type(var_type);
+                let var_type = self.annotate_type(var_type, statement)?;
                 let value = self.check_expr(value, Some(&var_type))?;
 
                 self.lexpr_generator

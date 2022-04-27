@@ -27,37 +27,45 @@ impl TypedFields {
     }
 }
 
-pub fn annotate_type(source_type: &Type, custom_resolver: &SymbolResolver<SymbolType>) -> Type {
-    match source_type {
+pub fn annotate_type(
+    source_type: &Type,
+    custom_resolver: &SymbolResolver<SymbolType>,
+) -> Result<Type, String> {
+    let t = match source_type {
         Type::Int => Type::Int,
         Type::Float => Type::Float,
         Type::Bool => Type::Bool,
         Type::String => Type::String,
 
-        Type::List(inner) => Type::List(Box::new(annotate_type(inner.as_ref(), custom_resolver))),
+        Type::List(inner) => {
+            let real_inner = annotate_type(inner.as_ref(), custom_resolver)?;
+            Type::List(Box::new(real_inner))
+        }
         Type::Tuple(items) => {
-            let real_items = items.iter().map(|t| annotate_type(t, custom_resolver));
-            Type::Tuple(real_items.collect())
+            let real_items: Result<Vec<_>, _> =
+                items.iter().map(|t| annotate_type(t, custom_resolver)).collect();
+            Type::Tuple(real_items?)
         }
         Type::Maybe(inner) => {
-            let real_inner = annotate_type(inner.as_ref(), custom_resolver);
+            let real_inner = annotate_type(inner.as_ref(), custom_resolver)?;
             Type::Tuple(vec![Type::Bool, real_inner])
         }
-        Type::Ident(ident) => (&custom_resolver(ident)).into(),
-    }
+        Type::Ident(ident) => (&custom_resolver(ident)?).into(),
+    };
+    Ok(t)
 }
 
 pub fn annotate_typednamed_vec(
     v: &Vec<TypedNamedObject>,
     resolver: &SymbolResolver<SymbolType>,
-) -> TypedFields {
+) -> Result<TypedFields, String> {
     let mut typed_fields = TypedFields { names: HashMap::new(), types: vec![] };
 
     for (i, old_type) in v.iter().enumerate() {
-        let real_type = annotate_type(&old_type.typename, resolver);
+        let real_type = annotate_type(&old_type.typename, resolver)?;
 
         typed_fields.names.insert(i, old_type.name.clone());
         typed_fields.types.push(real_type);
     }
-    typed_fields
+    Ok(typed_fields)
 }

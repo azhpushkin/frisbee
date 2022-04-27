@@ -69,8 +69,11 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
         Ok(())
     }
 
-    fn resolve_func(&self, name: &String) -> &'b RawFunction {
-        self.aggregate.functions.get(&(self.func_resolver)(name)).unwrap()
+    fn resolve_func(&self, name: &String) -> Result<&'b RawFunction, String> {
+        let func = (self.func_resolver)(name)?;
+        // TODO: check for errors to be sure
+        // Resolver oly returns verified functions so it is safe to unwrap from aggregate
+        Ok(self.aggregate.functions.get(&func).unwrap())
     }
 
     fn resolve_method(&self, t: &SymbolType, method: &String) -> &'b RawFunction {
@@ -135,7 +138,8 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                     let std_raw = get_std_function_raw(function);
                     self.calculate_function_call(expr, &std_raw, expected, &args, None)
                 } else {
-                    let raw_called = self.resolve_func(&function);
+                    let raw_called =
+                        self.resolve_func(&function).or_else(SemanticError::add_expr(expr))?;
                     self.calculate_function_call(expr, &raw_called, expected, &args, None)
                 }
             }
@@ -179,7 +183,8 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                 self.calculate_function_call(expr, &raw_method, expected, &args, Some(this_object))
             }
             Expr::NewClassInstance { typename, args } => {
-                let symbol = &(self.type_resolver)(typename);
+                let symbol =
+                    &(self.type_resolver)(typename).or_else(SemanticError::add_expr(expr))?;
                 let raw_type = &self.aggregate.types[&symbol];
                 let raw_constructor = self.resolve_method(&raw_type.name, typename);
                 self.calculate_function_call(expr, &raw_constructor, expected, &args, None)

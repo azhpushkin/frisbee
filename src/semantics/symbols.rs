@@ -48,6 +48,12 @@ impl Display for SymbolFunc {
     }
 }
 
+impl Display for SymbolType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+        write!(f, "{}", self.0)
+    }
+}
+
 impl SymbolType {
     pub fn new<S>(alias: &ModuleAlias, name: S) -> Self
     where
