@@ -14,7 +14,20 @@ pub mod vm;
 // TODO: color output?
 
 fn main() {
-    let file_path_s = std::env::args().last().unwrap();
+    let args: Vec<String> = std::env::args().collect();
+    let file_path_s: String;
+    let mut show_debug: bool = false;
+    let mut stepbystep: bool = false;
+
+    let last_arg = args.last().unwrap();
+    if last_arg.contains(".frisbee") {
+        file_path_s = last_arg.clone();
+    } else {
+        file_path_s = args[args.len() - 2].clone();
+        show_debug = last_arg == "debug" || last_arg == "stepbystep";
+        stepbystep = last_arg == "stepbystep"
+    }
+
     let file_path = Path::new(&file_path_s);
     if !file_path.is_file() {
         println!("{} is not a file!", file_path_s);
@@ -32,5 +45,5 @@ fn main() {
     println!("{}", codegen::disassemble(&bytecode));
 
     let mut vm = vm::Vm::new(bytecode);
-    vm.run(false, true);
+    vm.run(stepbystep, show_debug);
 }
