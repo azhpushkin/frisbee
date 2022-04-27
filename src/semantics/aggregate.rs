@@ -5,7 +5,7 @@ use crate::loader::{ModuleAlias, WholeProgram};
 use crate::types::Type;
 
 use super::annotations::{annotate_type, annotate_typednamed_vec, CustomType, TypedFields};
-use super::errors::{top_level_with_module, SemanticError, SemanticResultWithModule};
+use super::errors::{top_level_with_module, SemanticResultWithModule};
 use super::light_ast::LStatement;
 use super::resolvers::NameResolver;
 use super::symbols::{SymbolFunc, SymbolType};

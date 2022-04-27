@@ -6,7 +6,7 @@ use crate::types::Type;
 
 use super::aggregate::{ProgramAggregate, RawFunction};
 use super::annotations::CustomType;
-use super::errors::{top_level_error, SemanticError, SemanticResult};
+use super::errors::{top_level_error, SemanticResult};
 use super::light_ast::{LExpr, LExprTyped};
 use super::operators::{calculate_binaryop, calculate_unaryop};
 use super::resolvers::{NameResolver, SymbolResolver};

@@ -1,10 +1,9 @@
-use crate::ast::{ExprWithPos, StatementWithPos};
 use crate::loader::ModuleAlias;
 
 #[derive(Debug)]
 pub enum SemanticError {
-    ExprError { expr: ExprWithPos, message: String },
-    StmtError { stmt: StatementWithPos, message: String },
+    ExprError { pos_first: usize, pos_last: usize, message: String },
+    StmtError { pos: usize, message: String },
     TopLevelError { message: String },
 }
 
@@ -13,25 +12,34 @@ pub type SemanticResultWithModule<T> = Result<T, (ModuleAlias, SemanticError)>;
 
 macro_rules! top_level_with_module {
     ($module:expr, $($arg:tt)*) => {
-        Err((($module).clone(), SemanticError::TopLevelError { message: format!($($arg)*) }))
+        Err((($module).clone(), crate::semantics::errors::SemanticError::TopLevelError { message: format!($($arg)*) }))
     };
 }
 macro_rules! top_level_error {
     ($($arg:tt)*) => {
-        Err(SemanticError::TopLevelError { message: format!($($arg)*)})
+        Err(crate::semantics::errors::SemanticError::TopLevelError {
+            message: format!($($arg)*)
+        })
     };
 }
 macro_rules! statement_error {
     ($statement:expr, $($arg:tt)*) => {
-        Err(SemanticError::Stmt { message: format!($($arg)*), stmt: $statement })
+        Err(crate::semantics::errors::SemanticError::StmtError {
+            message: format!($($arg)*),
+            pos: ($statement).pos
+        })
     };
 }
-macro_rules! expresion_error {
+macro_rules! expression_error {
     ($expression:expr, $($arg:tt)*) => {
-        Err(SemanticError::ExprError { message: format!($($arg)*), expr: $expression })
+        Err(crate::semantics::errors::SemanticError::ExprError {
+            message: format!($($arg)*),
+            pos_first: ($expression).pos_first,
+            pos_last: ($expression).pos_last,
+        })
     };
 }
-pub(crate) use expresion_error;
+pub(crate) use expression_error;
 pub(crate) use statement_error;
 pub(crate) use top_level_error;
 pub(crate) use top_level_with_module;

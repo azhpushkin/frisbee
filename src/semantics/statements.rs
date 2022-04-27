@@ -3,7 +3,7 @@ use crate::types::Type;
 
 use super::aggregate::{ProgramAggregate, RawFunction};
 use super::annotations::annotate_type;
-use super::errors::SemanticResult;
+use super::errors::{expression_error, statement_error, SemanticResult};
 use super::expressions::LightExpressionsGenerator;
 use super::light_ast::{LExpr, LExprTyped, LStatement, RawOperator};
 use super::resolvers::NameResolver;
@@ -147,8 +147,7 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
                 let right_calculated = self.check_expr(right, Some(&left_calculated.expr_type))?;
 
                 // TODO: emit error based on left pos
-                let (base_object, tuple_indexes) =
-                    split_left_part_of_assignment(left_calculated).unwrap();
+                let (base_object, tuple_indexes) = split_left_part_of_assignment(left_calculated);
                 match base_object.expr {
                     LExpr::GetVar(name) => {
                         LStatement::AssignLocal { name, tuple_indexes, value: right_calculated }
@@ -165,10 +164,12 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
                         tuple_indexes,
                         value: right_calculated,
                     },
-                    e => panic!(
-                        "Did not expected {:?} here, should be checked by split_left...",
-                        e
-                    ),
+                    _ => {
+                        return statement_error!(
+                            statement,
+                            "Assigning to temporary value is not allowed!",
+                        )
+                    }
                 }
             }
             Statement::VarDeclWithAssign(var_type, name, value) => {
@@ -204,7 +205,13 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
 
                 let item_type = match &iterable_type {
                     Type::List(i) => i.as_ref().clone(),
-                    _ => panic!("Expected list type"),
+                    _ => {
+                        return expression_error!(
+                            iterable,
+                            "List is required in foreach, got {}",
+                            iterable_type
+                        )
+                    }
                 };
                 // index name is muffled to avoid collisions (@ is used to avoid same user-named variables)
                 // TODO: still check that original name does not overlap with anything
@@ -311,21 +318,15 @@ pub fn generate_light_statements(
     gen.generate(&og_statements)
 }
 
-fn split_left_part_of_assignment(lexpr: LExprTyped) -> Result<(LExprTyped, Vec<usize>), String> {
+fn split_left_part_of_assignment(lexpr: LExprTyped) -> (LExprTyped, Vec<usize>) {
     // GetVar and AccessField (and AccessListItem) are considered a base part of the assignment
     // which point to the memory part, which will be updated
     // vec![] part is used as an offset which should be added to the memory address
-    if matches!(
-        &lexpr.expr,
-        LExpr::GetVar(..) | LExpr::AccessField { .. } | LExpr::AccessListItem { .. }
-    ) {
-        return Ok((lexpr, vec![]));
-    }
     if let LExpr::AccessTupleItem { tuple, index } = lexpr.expr {
-        let (base, mut indexes) = split_left_part_of_assignment(*tuple)?;
+        let (base, mut indexes) = split_left_part_of_assignment(*tuple);
         indexes.push(index);
-        Ok((base, indexes))
+        (base, indexes)
     } else {
-        Err(format!("Cant assign to {:?}", lexpr.expr))
+        (lexpr, vec![])
     }
 }

@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use crate::loader::{generate_alias, LoadedFile, ModuleAlias, WholeProgram};
-use crate::semantics::errors::SemanticError;
 
 use super::errors::{top_level_with_module, SemanticResultWithModule};
 use super::std_definitions::is_std_function;
