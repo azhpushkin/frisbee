@@ -141,7 +141,11 @@ where
 
     for (module_alias, symbol) in symbols_origins {
         if mapping.contains_key(symbol) {
-            return top_level_with_module!(module_alias, "Symbol {} introduces more than once", symbol,);
+            return top_level_with_module!(
+                module_alias,
+                "Symbol {} introduces more than once",
+                symbol,
+            );
         }
         mapping.insert(symbol.to_owned(), compile_symbol(&module_alias, symbol));
     }

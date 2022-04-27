@@ -6,6 +6,7 @@ use crate::types::Type;
 
 use super::aggregate::{ProgramAggregate, RawFunction};
 use super::annotations::CustomType;
+use super::errors::{top_level_error, SemanticError, SemanticResult};
 use super::light_ast::{LExpr, LExprTyped};
 use super::operators::{calculate_binaryop, calculate_unaryop};
 use super::resolvers::{NameResolver, SymbolResolver};
@@ -49,11 +50,16 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
         }
     }
 
-    pub fn add_variable(&mut self, name: String, t: Type) {
+    pub fn add_variable(&mut self, name: String, t: Type) -> SemanticResult<()> {
         if self.variables_types.contains_key(&name) {
-            panic!("Variable {} already declared", name);
+            return top_level_error!(
+                "Variable {} defined multiple times in function {}",
+                name,
+                self.scope.short_name
+            );
         }
         self.variables_types.insert(name, t);
+        Ok(())
     }
 
     fn resolve_func(&self, name: &String) -> &'b RawFunction {

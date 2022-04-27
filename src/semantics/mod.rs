@@ -41,7 +41,14 @@ pub fn perform_semantic_analysis(
             &aggregate,
             &names_resolver,
         );
-        ls_mapping.insert(name.clone(), light_statements);
+        match light_statements {
+            Ok(statements) => {
+                ls_mapping.insert(name.clone(), statements);
+            }
+            Err(e) => {
+                return Err((raw_function.defined_at.clone(), e));
+            }
+        }
     }
 
     for (name, raw_function) in aggregate.functions.iter_mut() {
