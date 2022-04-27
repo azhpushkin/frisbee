@@ -25,21 +25,6 @@ pub struct Heap {
 // TODO: check performance gains from using unreachable_unchecked or smth like that
 
 impl HeapObject {
-    pub fn new_custom(size: usize) -> Box<Self> {
-        Box::new(HeapObject::Custom(vec![0; size]))
-    }
-    pub fn new_string(s: String) -> Box<Self> {
-        Box::new(HeapObject::String(s))
-    }
-    pub fn new_list(item_size: usize, initial_list_size: usize, copy_from: &[u64]) -> Box<Self> {
-        let memory_size = item_size * initial_list_size;
-        let mut list = vec![0; memory_size];
-        for i in 0..memory_size {
-            list[i] = copy_from[i];
-        }
-        Box::new(HeapObject::List(List{ item_size, size: initial_list_size, data: list }))
-    }
-
     pub fn extract_string(&self) -> &String {
         // String are immutable so no &mut self needed
         match self {
@@ -66,12 +51,39 @@ impl Heap {
         Self { data: HashMap::new(), counter: 0 }
     }
 
-    pub fn insert(&mut self, object: Box<HeapObject>) -> u64 {
+    pub fn new_custom(&mut self, size: usize) -> (u64, &mut HeapObject) {
+        let obj = Box::new(HeapObject::Custom(vec![0; size]));
+        self.insert(obj)
+    }
+    pub fn new_string(&mut self, s: String) -> (u64, &mut HeapObject) {
+        let obj = Box::new(HeapObject::String(s));
+        self.insert(obj)
+    }
+    pub fn new_list(
+        &mut self,
+        item_size: usize,
+        initial_list_size: usize,
+        copy_from: &[u64],
+    ) -> (u64, &mut HeapObject) {
+        let memory_size = item_size * initial_list_size;
+        let mut list = vec![0; memory_size];
+        for i in 0..memory_size {
+            list[i] = copy_from[i];
+        }
+        let obj = Box::new(HeapObject::List(List {
+            item_size,
+            size: initial_list_size,
+            data: list,
+        }));
+        self.insert(obj)
+    }
+
+    fn insert(&mut self, object: Box<HeapObject>) -> (u64, &mut HeapObject) {
         let index = u64::MAX - self.counter;
         self.counter += 1;
 
         self.data.insert(index, ((false, index), object));
-        index
+        (index, self.get_mut(index))
     }
 
     pub fn get_mut(&mut self, index: u64) -> &mut HeapObject {
@@ -99,25 +111,30 @@ impl Heap {
 }
 
 impl List {
-    pub fn get_item_mem(&mut self, index: usize) -> &mut [u64]{
-        &mut self.data[index*self.item_size..]
+    pub fn get_item_mem(&mut self, index: usize) -> &mut [u64] {
+        &mut self.data[index * self.item_size..]
     }
 
     pub fn normalize_index(&self, index: i64) -> usize {
         if index < 0 {
             if index.abs() > self.size as i64 {
-                panic!("Negative out of bounds: list of size {} but {} requested", self.size, index);
+                panic!(
+                    "Negative out of bounds: list of size {} but {} requested",
+                    self.size, index
+                );
             }
             (self.size as i64 + index) as usize
         } else {
             if index >= self.size as i64 {
-                panic!("Out of bounds: list of size {} but {} requested", self.size, index);
+                panic!(
+                    "Out of bounds: list of size {} but {} requested",
+                    self.size, index
+                );
             }
             index as usize
         }
     }
 }
-
 
 #[cfg(test)]
 mod test {

@@ -20,36 +20,34 @@ fn std_range(stack: &mut [u64], memory: &mut Heap) {
     let end = stack[2] as i64;
     println!(">> generating range from {} to {}", start, end - 1);
 
-    let mut list_object = HeapObject::new_list(1, 0, &[]);
+    let (list_pos, list_object) = memory.new_list(1, 0, &[]);
     let mut list_inner = list_object.extract_list();
     list_inner.size = (end - start) as usize;
     list_inner.data.resize(list_inner.size, 0);
     for i in start..end {
         list_inner.data[i as usize - start as usize] = i as u64;
     }
-    stack[0] = memory.insert(list_object);
+
+    stack[0] = list_pos;
 }
 
 fn std_get_input(stack: &mut [u64], memory: &mut Heap) {
     let mut input = String::new();
     io::stdin().read_line(&mut input).expect("Failed to read line");
 
-    let obj_pos = memory.insert(HeapObject::new_string(input.trim().into()));
-    stack[0] = obj_pos;
+    stack[0] = memory.new_string(input.trim().into()).0;
 }
 
 fn std_bool_to_string(stack: &mut [u64], memory: &mut Heap) {
     let s = if stack[1] > 0 { "true" } else { "false" };
 
-    let obj_pos = memory.insert(HeapObject::new_string(s.into()));
-    stack[0] = obj_pos;
+    stack[0] = memory.new_string(s.into()).0;
 }
 
 fn std_int_to_string(stack: &mut [u64], memory: &mut Heap) {
     let s = (stack[1] as i64).to_string();
 
-    let obj_pos = memory.insert(HeapObject::new_string(s));
-    stack[0] = obj_pos;
+    stack[0] = memory.new_string(s).0;
 }
 
 fn std_int_to_float(stack: &mut [u64], _memory: &mut Heap) {
@@ -67,8 +65,7 @@ fn std_float_round(stack: &mut [u64], _memory: &mut Heap) {
 fn std_float_to_string(stack: &mut [u64], memory: &mut Heap) {
     let s = u64_to_f64(stack[1]).to_string();
 
-    let obj_pos = memory.insert(HeapObject::new_string(s));
-    stack[0] = obj_pos;
+    stack[0] = memory.new_string(s).0;
 }
 
 fn std_float_abs(stack: &mut [u64], _memory: &mut Heap) {

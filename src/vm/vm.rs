@@ -141,8 +141,8 @@ impl Vm {
                     let str_len = u16::from_be_bytes(self.read_several::<2>());
                     let str_bytes = self.read_bytes(str_len as usize);
                     let s = String::from_utf8(str_bytes).unwrap();
-                    let obj_pos = self.memory.insert(heap::HeapObject::new_string(s));
-
+                    
+                    let (obj_pos, _) = self.memory.new_string(s);
                     self.constants.push(obj_pos);
                 }
                 op::CONST_END_FLAG => break,
@@ -244,8 +244,7 @@ impl Vm {
                     let s2 = self.memory.get(b).extract_string();
 
                     let res = format!("{}{}", s1, s2);
-                    let new_obj = heap::HeapObject::new_string(res);
-                    let new_obj_pos = self.memory.insert(new_obj);
+                    let (new_obj_pos, _) = self.memory.new_string(res);
                     push!(self, new_obj_pos);
                 }
                 op::EQ_STRINGS => {
@@ -350,8 +349,7 @@ impl Vm {
                 op::ALLOCATE => {
                     let size = self.read_opcode() as usize;
                     // TODO: should
-                    let new_obj = heap::HeapObject::new_custom(size);
-                    let new_obj_pos = self.memory.insert(new_obj);
+                    let (new_obj_pos, _) = self.memory.new_custom(size);
                     push!(self, new_obj_pos);
                 }
                 op::ALLOCATE_LIST => {
@@ -360,12 +358,11 @@ impl Vm {
 
                     self.stack_pointer -= item_size * initial_items_amount;
 
-                    let new_obj = heap::HeapObject::new_list(
+                    let (new_obj_pos, _) = self.memory.new_list(
                         item_size,
                         initial_items_amount,
                         &self.stack[self.stack_pointer..],
                     );
-                    let new_obj_pos = self.memory.insert(new_obj);
                     push!(self, new_obj_pos);
                 }
                 op::RESERVE => {
