@@ -47,21 +47,6 @@ where
     }
 }
 
-impl<T> Type<T> {
-    pub fn get_size(&self) -> u8 {
-        match self {
-            Type::Int => 1,
-            Type::Float => 1,
-            Type::Bool => 1,
-            Type::String => 1,
-            Type::Maybe(inner) => inner.as_ref().get_size() + 1,
-            Type::Tuple(items) => items.iter().map(|t| t.get_size()).sum(),
-            Type::List(_) => 1,
-            Type::Custom(_) => 1,
-        }
-    }
-}
-
 pub fn verify_parsed_type<R, M>(source_type: &ParsedType, mapper: &M) -> Result<VerifiedType, R>
 where
     M: Fn(&str) -> Result<SymbolType, R>,

@@ -1,6 +1,6 @@
 use super::constants::Constant;
 use super::generator::BytecodeGenerator;
-use super::utils::{extract_custom_type, get_tuple_offset, get_type_from_tuple};
+use super::utils::{extract_custom_type, get_tuple_offset, get_type_from_tuple, get_type_size};
 use crate::semantics::light_ast::{LExpr, LExprTyped, RawOperator};
 use crate::symbols::SymbolFunc;
 use crate::vm::opcodes::op;
@@ -87,17 +87,17 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 for arg in args.iter() {
                     self.push_expr(arg);
                 }
-                let func_locals_size: u8 = args.iter().map(|arg| arg.expr_type.get_size()).sum();
+                let func_locals_size: u8 = args.iter().map(|arg| get_type_size(&arg.expr_type)).sum();
 
                 if name.is_std() {
                     self.push(op::CALL_STD);
-                    self.push(return_type.get_size());
+                    self.push_type_size(return_type);
                     self.push(func_locals_size);
                     self.push(0);
                     self.push(match_std_function(name));
                 } else {
                     self.push(op::CALL);
-                    self.push(return_type.get_size());
+                    self.push_type_size(return_type);
                     self.push(func_locals_size);
                     self.push_function_placeholder(name);
                 }
@@ -112,7 +112,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                     self.push_expr(item);
                 }
                 self.push(op::ALLOCATE_LIST);
-                self.push(item_type.get_size());
+                self.push_type_size(item_type);
                 self.push(items.len() as u8);
             }
             LExpr::AccessTupleItem { tuple, index } => {
@@ -123,9 +123,9 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
 
                 let offset = get_tuple_offset(tuple_type, &[*index]);
                 self.push(op::GET_TUPLE_ITEM);
-                self.push(tuple_type.get_size());
+                self.push_type_size(tuple_type);
                 self.push(offset);
-                self.push(item_type.get_size());
+                self.push_type_size(item_type);
             }
             LExpr::AccessField { object, field } => {
                 let object_type = extract_custom_type(&object.expr_type);

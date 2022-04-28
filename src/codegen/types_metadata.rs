@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use crate::semantics::annotations::CustomType;
 use crate::symbols::SymbolType;
 
+use super::utils::get_type_size;
+
 pub struct TypeMetadata {
     pub size: u8,
     pub field_offsets: HashMap<String, u8>,
@@ -15,8 +17,8 @@ pub struct TypeMetadataTable {
 }
 
 fn metadata_for_type(definition: &CustomType) -> TypeMetadata {
-    let type_size: u8 = definition.fields.types.iter().map(|t| t.get_size()).sum();
-    let field_sizes: Vec<u8> = definition.fields.types.iter().map(|t| t.get_size()).collect();
+    let type_size: u8 = definition.fields.types.iter().map(|t| get_type_size(t)).sum();
+    let field_sizes: Vec<u8> = definition.fields.types.iter().map(|t| get_type_size(t)).collect();
 
     let mut field_offsets = vec![0; field_sizes.len()];
     for (i, _) in field_sizes.iter().enumerate().skip(1) {

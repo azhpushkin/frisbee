@@ -1,4 +1,4 @@
-use crate::loader::ModuleAlias;
+use crate::alias::ModuleAlias;
 use crate::parser;
 
 pub fn get_position_coordinates(data: &String, pos: usize) -> (usize, usize) {

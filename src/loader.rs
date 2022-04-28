@@ -1,17 +1,9 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
+use crate::alias::ModuleAlias;
 use crate::ast::*;
 use crate::{errors, parser};
-
-#[derive(Debug, PartialEq, Clone, Eq, Hash)]
-pub struct ModuleAlias(String);
-
-impl std::fmt::Display for ModuleAlias {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
 
 #[derive(Debug)]
 pub struct LoadedFile {
@@ -28,10 +20,6 @@ pub struct WholeProgram {
     pub files: HashMap<ModuleAlias, LoadedFile>,
 }
 
-pub fn generate_alias(path: &Vec<String>) -> ModuleAlias {
-    ModuleAlias(path.join("."))
-}
-
 fn load_file(workdir: &PathBuf, module_path: &Vec<String>) -> Option<LoadedFile> {
     if module_path.first().unwrap() == "std" {
         println!("Error loading {:?}: std is reserved", module_path);
@@ -45,7 +33,7 @@ fn load_file(workdir: &PathBuf, module_path: &Vec<String>) -> Option<LoadedFile>
     file_path.set_extension("frisbee");
 
     let contents = std::fs::read_to_string(&file_path).expect("Cant read file");
-    let alias = generate_alias(module_path);
+    let alias = ModuleAlias::new(module_path);
 
     let tokens = parser::scanner::scan_tokens(&contents);
     if let Err(scan_error) = tokens {
@@ -80,7 +68,7 @@ pub fn load_program(entry_file_path: &Path) -> Option<WholeProgram> {
 
     let mut whole_program = WholeProgram {
         workdir: workdir.to_owned(),
-        main_module: ModuleAlias(main_module.to_owned()),
+        main_module: ModuleAlias::new(&[main_module.to_owned()]),
         files: HashMap::new(),
     };
 
@@ -96,7 +84,7 @@ pub fn load_program(entry_file_path: &Path) -> Option<WholeProgram> {
         }
 
         let loaded_file = loaded_file.unwrap();
-        let alias = generate_alias(&module_path);
+        let alias = ModuleAlias::new(&module_path);
 
         whole_program.files.insert(alias.clone(), loaded_file);
 
@@ -104,12 +92,12 @@ pub fn load_program(entry_file_path: &Path) -> Option<WholeProgram> {
 
         for import in &loaded_file.ast.imports {
             // todo swap [0] to correct path forming
-            let alias = generate_alias(&import.module_path);
+            let alias = ModuleAlias::new(&import.module_path);
 
             if whole_program.files.get(&alias).is_none() {
                 modules_to_load.push(import.module_path.clone());
             } else {
-                println!("Using cache for {}", alias.0);
+                println!("Using cache for {}", alias);
             }
         }
     }
@@ -145,8 +133,8 @@ mod test {
         );
         assert_eq!(wp.files.len(), 2);
 
-        let main_module_alias = generate_alias(&vec!["main".into()]);
-        let sub_mod_module_alias = generate_alias(&vec!["sub".into(), "mod".into()]);
+        let main_module_alias = ModuleAlias::new(&["main".into()]);
+        let sub_mod_module_alias = ModuleAlias::new(&["sub".into(), "mod".into()]);
         assert_eq!(wp.main_module, main_module_alias);
 
         let main_file = &wp.files[&main_module_alias];

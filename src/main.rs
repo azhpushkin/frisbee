@@ -11,6 +11,7 @@ pub mod symbols;
 pub mod test_utils;
 pub mod types;
 pub mod vm;
+pub mod alias;
 
 // TODO: color output?
 

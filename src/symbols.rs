@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::loader::ModuleAlias;
+use crate::alias::ModuleAlias;
 use crate::types::Type;
 
 #[derive(Debug, PartialEq, Clone, Eq, Hash)]
@@ -65,31 +65,3 @@ impl SymbolType {
         SymbolFunc(format!("{}::{}", self.0, method))
     }
 }
-
-// impl Into<Type> for &SymbolType {
-//     #![allow(clippy::from_over_into)]
-//     fn into(self) -> Type {
-//         Type::Custom(self.0.clone())
-//     }
-// }
-
-// impl From<&Type> for SymbolType {
-//     fn from(t: &Type) -> Self {
-//         if let Type::Custom(name) = t {
-//             // check that ident is a correct SymbolType
-//             if !name.contains("::") {
-//                 panic!("{} is not a valid SymbolType", name);
-//             }
-//             let (module, typename) = name.rsplit_once("::").unwrap();
-//             assert!(!module.contains("::"), "Bad module name: {}", module);
-//             assert!(
-//                 typename.chars().next().unwrap().is_ascii_uppercase(),
-//                 "Bad SymbolType: {}",
-//                 name
-//             );
-//             SymbolType(name.clone())
-//         } else {
-//             panic!("Type {} can't be coersed to SymbolType!", t);
-//         }
-//     }
-// }

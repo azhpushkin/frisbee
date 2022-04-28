@@ -1,5 +1,18 @@
 use crate::types::Type;
 
+pub fn get_type_size<T>(t: &Type<T>) -> u8 {
+    match t {
+        Type::Int => 1,
+        Type::Float => 1,
+        Type::Bool => 1,
+        Type::String => 1,
+        Type::Maybe(inner) => get_type_size(inner) + 1,
+        Type::Tuple(items) => items.iter().map(|t| get_type_size(t)).sum(),
+        Type::List(_) => 1,
+        Type::Custom(_) => 1,
+    }
+}
+
 pub fn get_type_from_tuple<T>(t: &Type<T>, i: usize) -> &Type<T> {
     match t {
         Type::Tuple(items) => &items[i],
@@ -24,7 +37,7 @@ pub fn get_tuple_offset<T>(tuple_type: &Type<T>, tuple_indexes: &[usize]) -> u8 
             let mut offset: u8 = 0;
             let current_index = tuple_indexes[0];
             for i in 0..current_index {
-                offset += items[i].get_size();
+                offset += get_type_size(&items[i]);
             }
             offset += get_tuple_offset(&items[current_index], &tuple_indexes[1..]) as u8;
             offset
@@ -35,7 +48,7 @@ pub fn get_tuple_offset<T>(tuple_type: &Type<T>, tuple_indexes: &[usize]) -> u8 
 
 pub fn get_tuple_subitem_size<T>(tuple_type: &Type<T>, tuple_indexes: &[usize]) -> u8 {
     if tuple_indexes.is_empty() {
-        return tuple_type.get_size();
+        return get_type_size(tuple_type);
     } else {
         return get_tuple_subitem_size(
             &get_type_from_tuple(tuple_type, tuple_indexes[0]),

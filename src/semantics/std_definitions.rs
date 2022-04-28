@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::loader::generate_alias;
+use crate::alias::ModuleAlias;
 use crate::stdlib;
 use crate::types::{Type, VerifiedType};
 
@@ -43,7 +43,7 @@ pub fn get_std_method(t: &VerifiedType, method_name: &str) -> RawFunction {
         body: vec![],
         short_name: method_name.into(),
         method_of: None,
-        defined_at: generate_alias(&vec!["std".into()]),
+        defined_at: ModuleAlias::std(),
     }
 }
 
@@ -59,6 +59,6 @@ pub fn get_std_function_raw(name: &str) -> RawFunction {
         body: vec![],
         short_name: name.into(),
         method_of: None,
-        defined_at: generate_alias(&vec!["std".into()]),
+        defined_at: ModuleAlias::std(),
     }
 }

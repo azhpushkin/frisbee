@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use crate::loader::{generate_alias, LoadedFile, ModuleAlias, WholeProgram};
+use crate::alias::ModuleAlias;
+use crate::loader::{LoadedFile, WholeProgram};
 
 use super::errors::{top_level_with_module, SemanticErrorWithModule};
 use super::std_definitions::is_std_function;
@@ -118,7 +119,7 @@ impl NameResolver {
 
 fn check_module_does_not_import_itself(file: &LoadedFile) -> Result<(), SemanticErrorWithModule> {
     for import in &file.ast.imports {
-        if generate_alias(&import.module_path) == file.module_alias {
+        if ModuleAlias::new(&import.module_path) == file.module_alias {
             return top_level_with_module!(
                 file.module_alias,
                 "Module {} is importing itself!",
@@ -164,7 +165,7 @@ fn get_typenames_origins<'a>(
     let imported_types = file.ast.imports.iter().flat_map(|i| {
         i.typenames
             .iter()
-            .map(move |typename| (generate_alias(&i.module_path), typename.as_str()))
+            .map(move |typename| (ModuleAlias::new(&i.module_path), typename.as_str()))
     });
     // TODO: we might have some more complex std types as well as functions
 
@@ -183,7 +184,7 @@ fn get_functions_origins<'a>(
     let imported_functions = file.ast.imports.iter().flat_map(|i| {
         i.functions
             .iter()
-            .map(move |funcname| (generate_alias(&i.module_path), funcname.as_str()))
+            .map(move |funcname| (ModuleAlias::new(&i.module_path), funcname.as_str()))
     });
 
     Box::new(defined_functions.chain(imported_functions))

@@ -6,7 +6,7 @@ use crate::vm::opcodes::op;
 
 use super::constants::{Constant, ConstantsTable};
 use super::types_metadata::TypeMetadataTable;
-use super::utils::{get_tuple_offset, get_tuple_subitem_size};
+use super::utils::{get_tuple_offset, get_tuple_subitem_size, get_type_size};
 
 pub type CallPlaceholders = (usize, SymbolFunc);
 
@@ -36,12 +36,12 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
         return_type: &'a VerifiedType,
     ) -> Self {
         let mut locals: HashMap<&'a String, u8> = HashMap::new();
-        let mut locals_offset: u8 = return_type.get_size();
+        let mut locals_offset: u8 = get_type_size(return_type);
         let mut locals_types = HashMap::new();
 
         for (local_name, local_type) in initial_locals {
             locals.insert(local_name, locals_offset);
-            locals_offset += local_type.get_size();
+            locals_offset += get_type_size(local_type);
             locals_types.insert(local_name, local_type);
         }
 
@@ -59,14 +59,14 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
     pub fn add_local(&mut self, varname: &'a String, t: &'a VerifiedType) {
         self.locals.insert(varname, self.locals_offset);
         self.locals_types.insert(varname, t);
-        self.locals_offset += t.get_size();
+        self.locals_offset += get_type_size(t);
     }
 
     pub fn push_get_local(&mut self, varname: &String) {
         let var_pos = *self.locals.get(varname).unwrap();
         self.push(op::GET_LOCAL);
         self.push(var_pos);
-        self.push(self.locals_types[varname].get_size());
+        self.push_type_size(&self.locals_types[varname]);
     }
 
     pub fn push_set_local(&mut self, varname: &String, tuple_indexes: &Vec<usize>) {
@@ -83,7 +83,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
     pub fn push_set_return(&mut self) {
         self.push(op::SET_LOCAL);
         self.push(0);
-        self.push(self.return_type.get_size());
+        self.push_type_size(&self.return_type);
     }
 
     pub fn push_constant(&mut self, constant: Constant) {
@@ -95,19 +95,23 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
         self.bytecode.bytecode.push(opcode);
     }
 
+    pub fn push_type_size(&mut self, t: &VerifiedType) {
+        self.push(get_type_size(t))
+    }
+
     pub fn push_reserve(&mut self, for_type: &VerifiedType) {
-        let reserve_size = for_type.get_size();
+        let reserve_size = get_type_size(for_type);
         if reserve_size > 0 {
             self.push(op::RESERVE);
-            self.push(reserve_size);
+            self.push_type_size(for_type);
         }
     }
 
     pub fn push_pop(&mut self, for_type: &VerifiedType) {
-        let pop_size = for_type.get_size();
+        let pop_size = get_type_size(for_type);
         if pop_size > 0 {
             self.push(op::POP);
-            self.push(pop_size);
+            self.push_type_size(for_type);
         }
     }
 

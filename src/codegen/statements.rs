@@ -62,7 +62,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
 
                 self.push(op::SET_OBJ_FIELD);
                 self.push(field_offset + tuple_offset);
-                self.push(value.expr_type.get_size());
+                self.push_type_size(&value.expr_type);
             }
             LStatement::AssignToList { list, index, tuple_indexes, value } => {
                 let list_type = get_list_inner_type(&list.expr_type);
@@ -74,7 +74,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
 
                 self.push(op::SET_LIST_ITEM);
                 self.push(tuple_offset);
-                self.push(value.expr_type.get_size());
+                self.push_type_size(&value.expr_type);
             }
             LStatement::Return(expr) => {
                 self.push_expr(expr);
