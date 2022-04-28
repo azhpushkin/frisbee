@@ -716,7 +716,7 @@ impl Parser {
             Token::LeftSquareBrackets => return self.parse_list_literal(),
             Token::TypeIdentifier(_) => return self.parse_new_class_instance_expr(),
             Token::Spawn => return self.parse_spawn_active_expr(),
-            t => {
+            _ => {
                 return perr(self.full_token(0), "Can't parse expression");
             }
         };

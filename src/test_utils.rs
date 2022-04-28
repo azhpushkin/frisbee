@@ -57,9 +57,10 @@ impl TestFilesCreator {
     }
 
     pub fn load_program(&self) -> WholeProgram {
-        let p = load_program(self.get_main_path());
-        assert!(p.is_some(), "Loading error!");
-        p.unwrap()
+        match load_program(self.get_main_path()) {
+            Ok(whole_program) => whole_program,
+            Err(e) => panic!("Error loading program in {}: {}", e.0, e.2.get_message()),
+        }
     }
 }
 

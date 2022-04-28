@@ -3,7 +3,8 @@ use std::path::{Path, PathBuf};
 
 use crate::alias::ModuleAlias;
 use crate::ast::*;
-use crate::{errors, parser};
+use crate::errors::CompileError;
+use crate::parser;
 
 #[derive(Debug)]
 pub struct LoadedFile {
@@ -26,10 +27,13 @@ impl WholeProgram {
     }
 }
 
-fn load_file(workdir: &PathBuf, module_path: &Vec<String>) -> Option<LoadedFile> {
+fn load_file<'a>(
+    workdir: &PathBuf,
+    module_path: &Vec<String>,
+) -> Result<LoadedFile, (ModuleAlias, String, Box<dyn CompileError>)> {
     if module_path.first().unwrap() == "std" {
-        println!("Error loading {:?}: std is reserved", module_path);
-        return None;
+        // TODO: do something with this?
+        panic!("Error loading {:?}: std is reserved", module_path);
     }
     // TODO: implement logging system for this
     let mut file_path = workdir.to_owned();
@@ -39,26 +43,27 @@ fn load_file(workdir: &PathBuf, module_path: &Vec<String>) -> Option<LoadedFile>
     file_path.set_extension("frisbee");
 
     let contents = std::fs::read_to_string(&file_path).expect("Cant read file");
-    let alias = ModuleAlias::new(module_path);
+    let module_alias = ModuleAlias::new(module_path);
 
     let tokens = parser::scanner::scan_tokens(&contents);
-    if let Err(scan_error) = tokens {
-        errors::show_scan_error(&contents, &alias, scan_error);
-        return None;
-    }
+    let tokens = match tokens {
+        Ok(tokens) => tokens,
+        Err(e) => return Err((module_alias, contents, Box::new(e))),
+    };
 
-    let ast: parser::ParseResult<FileAst> = parser::parse(tokens.unwrap());
+    let ast = parser::parse(tokens);
+    let ast = match ast {
+        Ok(ast) => ast,
+        Err(e) => return Err((module_alias, contents, Box::new(e))),
+    };
 
-    if let Err(parse_error) = ast {
-        errors::show_parse_error(&contents, &alias, parse_error);
-        return None;
-    }
-
-    Some(LoadedFile { path: file_path, module_alias: alias, contents, ast: ast.unwrap() })
+    Ok(LoadedFile { path: file_path, module_alias, contents, ast })
 }
 
 // TODO:  ensure both windows and Unix are working file
-pub fn load_program(entry_file_path: &Path) -> Option<WholeProgram> {
+pub fn load_program<'a>(
+    entry_file_path: &Path,
+) -> Result<WholeProgram, (ModuleAlias, String, Box<dyn CompileError>)> {
     let workdir = entry_file_path.parent().unwrap();
 
     if entry_file_path.extension().unwrap() != "frisbee" {
@@ -84,12 +89,8 @@ pub fn load_program(entry_file_path: &Path) -> Option<WholeProgram> {
         let module_path = modules_to_load.pop().unwrap();
 
         // TODO: check error reporting over here
-        let loaded_file = load_file(&whole_program.workdir, &module_path);
-        if loaded_file.is_none() {
-            return None;
-        }
+        let loaded_file = load_file(&whole_program.workdir, &module_path)?;
 
-        let loaded_file = loaded_file.unwrap();
         let alias = ModuleAlias::new(&module_path);
 
         whole_program.files.insert(alias.clone(), loaded_file);
@@ -107,7 +108,7 @@ pub fn load_program(entry_file_path: &Path) -> Option<WholeProgram> {
             }
         }
     }
-    Some(whole_program)
+    Ok(whole_program)
 }
 
 #[cfg(test)]

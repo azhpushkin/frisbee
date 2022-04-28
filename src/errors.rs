@@ -3,7 +3,7 @@ use crate::parser::scanner::ScanningError;
 use crate::parser::ParseError;
 use crate::semantics::errors::SemanticError;
 
-pub trait CompileError {
+pub trait CompileError: std::fmt::Debug {
     fn get_position_window(&self) -> (usize, usize);
     fn get_message(&self) -> String;
 }
@@ -24,7 +24,7 @@ impl CompileError for ParseError {
     }
 
     fn get_message(&self) -> String {
-        match self.expected {
+        match &self.expected {
             Some(token) => format!("{} (Expected token <{:?}>)", self.error_msg, token),
             None => self.error_msg.to_string(),
         }
@@ -49,6 +49,7 @@ impl CompileError for SemanticError {
     }
 }
 
+#[derive(Debug)]
 struct ErrorCoordinates {
     pub line: usize,
     pub start: usize,
@@ -99,21 +100,22 @@ fn adjust_error_window(source: &str, start: usize, end: usize) -> ErrorCoordinat
             end: lines_length[start_line],
         };
     }
+
     let (end_line, end_offset) = get_position_coordinates(source, end);
 
-    let line = start_line;
-    let start = start_offset;
     let end = if start_line != end_line {
         lines_length[start_line]
     } else {
         end_offset + 1
     };
-    ErrorCoordinates { line: start_line, start, end }
+    ErrorCoordinates { line: start_line, start: start_offset, end }
 }
 
 fn show_error(contents: &String, alias: &ModuleAlias, pos: ErrorCoordinates, error_msg: String) {
     // TODO: add path here somehow, maybe just pass as an argument...
-    println!("Error at line {} (in {}):\n----------\n", pos.line, alias);
+    let header = format!("Error at line {} (in {}):", pos.line, alias);
+    let header_underscore = vec!["="; header.len() - 1];
+    println!("{}\n{}\n", header, header_underscore.join(""));
 
     let lines: Vec<&str> = contents.split('\n').collect();
     let spaces: String = vec![' '; pos.start].into_iter().collect();
@@ -121,16 +123,14 @@ fn show_error(contents: &String, alias: &ModuleAlias, pos: ErrorCoordinates, err
 
     // Print lines of code, 2 if possible
 
-    for i in (pos.line - 2).max(0)..pos.line {
+    let first_list = (pos.line as i64 - 2).max(0) as usize;
+    for i in first_list..pos.line + 1 {
         println!("{}", lines[i]);
     }
     println!("{}^{}\n{}{}\n", spaces, underscored, spaces, error_msg);
 }
 
-pub fn show_error_in_file<E>(alias: &ModuleAlias, source: &String, error: &E)
-where
-    E: CompileError,
-{
+pub fn show_error_in_file(alias: &ModuleAlias, source: &String, error: Box<dyn CompileError>) {
     let (start, end) = error.get_position_window();
     let error_window = adjust_error_window(&source, start, end);
     let error_msg = error.get_message();

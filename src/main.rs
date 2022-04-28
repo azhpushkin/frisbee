@@ -36,7 +36,10 @@ fn main() {
         println!("{} is not a file!", file_path_s);
     }
 
-    let mut wp = loader::load_program(file_path).expect("Error loading!");
+    let mut wp = loader::load_program(file_path).unwrap_or_else(|(alias, source, error)| {
+        errors::show_error_in_file(&alias, &source, error);
+        panic!("See the error above!");
+    });
 
     semantics::add_default_constructors(
         wp.files
@@ -45,8 +48,12 @@ fn main() {
     );
     let modules: Vec<_> = wp.iter().collect();
 
-    let aggregate = semantics::perform_semantic_analysis(&modules, &wp.main_module)
-        .expect("Error generating bytecode!");
+    let aggregate = semantics::perform_semantic_analysis(&modules, &wp.main_module).unwrap_or_else(
+        |(alias, error)| {
+            errors::show_error_in_file(&alias, &wp.files[&alias].contents, Box::new(error));
+            panic!("See the error above!");
+        },
+    );
 
     let types: Vec<_> = aggregate.types.iter().map(|(_, value)| value).collect();
     let functions: Vec<_> = aggregate.functions.iter().map(|(_, value)| value).collect();
