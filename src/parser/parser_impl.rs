@@ -384,10 +384,9 @@ impl Parser {
                 start,
             )
         } else {
-            perr_with_expected(
+            perr(
                 self.full_token(0),
-                "Wrong variable declaration",
-                Token::Semicolon,
+                "Expected assignment or semicolon to finish declaration",
             )
         }
     }
@@ -718,7 +717,7 @@ impl Parser {
             Token::TypeIdentifier(_) => return self.parse_new_class_instance_expr(),
             Token::Spawn => return self.parse_spawn_active_expr(),
             t => {
-                return perr_with_expected(self.full_token(0), "Unexpected expression", t.clone());
+                return perr(self.full_token(0), "Can't parse expression");
             }
         };
 
