@@ -1,5 +1,38 @@
+use std::collections::HashMap;
+
+use crate::alias::ModuleAlias;
 use crate::symbols::{SymbolFunc, SymbolType};
 use crate::types::VerifiedType;
+
+
+#[derive(Debug)]
+pub struct CustomType {
+    pub name: SymbolType,
+    pub is_active: bool,
+    pub fields: TypedFields,
+}
+
+#[derive(Debug)]
+pub struct RawFunction {
+    pub name: SymbolFunc,
+    pub return_type: VerifiedType,
+    pub args: TypedFields,
+    pub body: Vec<VStatement>,
+
+    pub short_name: String,
+    pub method_of: Option<SymbolType>,
+    pub defined_at: ModuleAlias,
+}
+
+/// Simple ordered HashMap for typed and ordered fields
+/// (used by function arguments and class types)
+#[derive(Debug)]
+pub struct TypedFields {
+    // TODO: remove pub, add methods for iter(), len() and add_this
+    pub types: Vec<VerifiedType>,
+    pub names: HashMap<usize, String>,
+}
+
 
 #[derive(Debug)]
 pub enum VStatement {
@@ -106,4 +139,10 @@ pub enum VExpr {
 
     Allocate { typename: SymbolType },
     // TODO: spawn!
+}
+
+impl TypedFields {
+    pub fn iter(&self) -> impl Iterator<Item = (&String, &VerifiedType)> {
+        self.types.iter().enumerate().map(move |(i, t)| (&self.names[&i], t))
+    }
 }

@@ -2,9 +2,9 @@ use std::collections::HashMap;
 
 use crate::alias::ModuleAlias;
 use crate::ast::{ClassDecl, FileAst};
+use crate::verified_ast;
 
 pub mod aggregate;
-pub mod annotations;
 mod default_constructors;
 pub mod errors;
 mod expressions;
@@ -13,7 +13,6 @@ mod resolvers;
 mod statements;
 mod std_definitions;
 mod tests;
-pub mod verified_ast;
 
 pub fn add_default_constructors<'a, I>(classes: I)
 where

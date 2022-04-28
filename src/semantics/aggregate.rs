@@ -3,30 +3,18 @@ use std::collections::HashMap;
 use crate::alias::ModuleAlias;
 use crate::ast::{ClassDecl, FileAst, FunctionDecl, TypedItem};
 use crate::symbols::{SymbolFunc, SymbolType, MAIN_FUNCTION_NAME};
-use crate::types::{verify_parsed_type, Type, VerifiedType};
+use crate::types::{verify_parsed_type, Type};
+use crate::verified_ast::{CustomType, RawFunction, TypedFields};
 
-use super::annotations::{annotate_typednamed_vec, CustomType, TypedFields};
 use super::errors::{top_level_with_module, SemanticErrorWithModule};
-use super::resolvers::NameResolver;
-use super::verified_ast::VStatement;
+use super::resolvers::{NameResolver, SymbolResolver};
+
 
 #[derive(Debug)]
 pub struct ProgramAggregate {
     pub types: HashMap<SymbolType, CustomType>,
     pub functions: HashMap<SymbolFunc, RawFunction>,
     pub entry: SymbolFunc,
-}
-
-#[derive(Debug)]
-pub struct RawFunction {
-    pub name: SymbolFunc,
-    pub return_type: VerifiedType,
-    pub args: TypedFields,
-    pub body: Vec<VStatement>,
-
-    pub short_name: String,
-    pub method_of: Option<SymbolType>,
-    pub defined_at: ModuleAlias,
 }
 
 /// Creates basic aggregate, that contains only types
@@ -181,4 +169,20 @@ pub fn fill_aggregate_with_funcs<'a>(
     }
 
     Ok(mapping_to_og_funcs)
+}
+
+
+pub fn annotate_typednamed_vec(
+    v: &[TypedItem],
+    resolver: &SymbolResolver<SymbolType>,
+) -> Result<TypedFields, String> {
+    let mut typed_fields = TypedFields { names: HashMap::new(), types: vec![] };
+
+    for (i, old_type) in v.iter().enumerate() {
+        let real_type = verify_parsed_type(&old_type.typename, resolver)?;
+
+        typed_fields.names.insert(i, old_type.name.clone());
+        typed_fields.types.push(real_type);
+    }
+    Ok(typed_fields)
 }

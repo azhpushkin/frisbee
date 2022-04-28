@@ -1,5 +1,4 @@
-use crate::semantics::aggregate::RawFunction;
-use crate::semantics::verified_ast::VStatement;
+use crate::verified_ast::{VStatement, RawFunction};
 use crate::vm::opcodes::op;
 
 use super::constants::ConstantsTable;

@@ -1,12 +1,12 @@
 use crate::ast::*;
 use crate::symbols::SymbolFunc;
 use crate::types::{verify_parsed_type, ParsedType, Type, VerifiedType};
+use crate::verified_ast::{RawFunction, RawOperator, VExpr, VExprTyped, VStatement};
 
-use super::aggregate::{ProgramAggregate, RawFunction};
+use super::aggregate::ProgramAggregate;
 use super::errors::{expression_error, statement_error, SemanticError, SemanticResult};
 use super::expressions::ExpressionsVerifier;
 use super::resolvers::NameResolver;
-use super::verified_ast::{RawOperator, VExpr, VExprTyped, VStatement};
 
 struct StatementsVerifier<'a: 'd, 'b, 'c: 'd, 'd> {
     scope: &'a RawFunction,

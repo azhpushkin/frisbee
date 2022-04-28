@@ -3,14 +3,13 @@ use std::collections::HashMap;
 use crate::ast::*;
 use crate::symbols::{SymbolFunc, SymbolType};
 use crate::types::{Type, VerifiedType};
+use crate::verified_ast::{VExpr, VExprTyped, RawFunction, CustomType};
 
-use super::aggregate::{ProgramAggregate, RawFunction};
-use super::annotations::CustomType;
+use super::aggregate::ProgramAggregate;
 use super::errors::{expression_error, SemanticError, SemanticResult};
 use super::operators::{calculate_binaryop, calculate_unaryop};
 use super::resolvers::{NameResolver, SymbolResolver};
 use super::std_definitions::{get_std_function_raw, get_std_method, is_std_function};
-use super::verified_ast::{VExpr, VExprTyped};
 
 fn if_as_expected(
     expected: Option<&VerifiedType>,

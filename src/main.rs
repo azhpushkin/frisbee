@@ -2,6 +2,7 @@ use std::path::Path;
 
 pub mod alias;
 pub mod ast;
+pub mod verified_ast;
 pub mod codegen;
 pub mod errors;
 pub mod loader;
