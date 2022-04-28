@@ -64,7 +64,7 @@ impl Scanner {
 
     fn char_ahead(&self, ahead: usize) -> char {
         // returns char ahead of current position without moving position
-        self.chars.get(self.position + ahead).unwrap_or(&'\0').clone()
+        *self.chars.get(self.position + ahead).unwrap_or(&'\0')
     }
 
     fn check_ahead(&self, ahead: usize, expected: char) -> bool {
@@ -126,22 +126,22 @@ fn identifier_to_token(s: String) -> Token {
     }
 }
 
-fn scan_string(scanner: &mut Scanner, start: usize, quote: char) -> Option<ScanningError> {
+fn scan_string(scanner: &mut Scanner, start: usize, quote: char) -> Result<(), ScanningError> {
     while !(scanner.is_finished() || scanner.check_ahead(0, quote)) {
         scanner.consume_char();
         if scanner.char_ahead(0) == '\n' {
-            return Some(("String must be terminated at the same newline!", start));
+            return Err(("String must be terminated at the same newline!", start));
         }
     }
     if scanner.is_finished() {
-        return Some(("String is not terminated!", start));
+        return Err(("String is not terminated!", start));
     } else {
         let content: String = scanner.chars[start + 1..scanner.position].iter().collect();
         scanner.consume_char();
         scanner.add_token_with_position(Token::String(content), start);
     }
 
-    None
+    Ok(())
 }
 
 fn scan_identifier(scanner: &mut Scanner, start: usize) -> Token {
@@ -246,18 +246,8 @@ pub fn scan_tokens(data: &str) -> Result<Vec<ScannedToken>, ScanningError> {
             '!' if scanner.check_next('=') => scanner.add_token(Token::BangEqual),
             '!' => scanner.add_token(Token::Bang),
             // TODO: think about <=! for send-and-wait pattern
-            '"' => {
-                let scan_res = scan_string(&mut scanner, start, '"');
-                if scan_res.is_some() {
-                    return Err(scan_res.unwrap());
-                }
-            }
-            '\'' => {
-                let scan_res = scan_string(&mut scanner, start, '\'');
-                if scan_res.is_some() {
-                    return Err(scan_res.unwrap());
-                }
-            }
+            '"' => scan_string(&mut scanner, start, '"')?,
+            '\'' => scan_string(&mut scanner, start, '\'')?,
 
             d if d.is_digit(10) => {
                 let mut is_float = false;
@@ -281,7 +271,7 @@ pub fn scan_tokens(data: &str) -> Result<Vec<ScannedToken>, ScanningError> {
             }
 
             c if c.is_alphabetic() => {
-                let token = scan_identifier(&mut scanner, start.clone());
+                let token = scan_identifier(&mut scanner, start);
 
                 scanner.add_token_with_position(token, start);
             }

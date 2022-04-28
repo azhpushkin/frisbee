@@ -84,8 +84,8 @@ impl Vm {
 
     fn read_several<const N: usize>(&mut self) -> [u8; N] {
         let mut bytes: [u8; N] = [0; N];
-        for i in 0..N {
-            bytes[i] = self.read_opcode();
+        for byte in bytes.iter_mut() {
+            *byte = self.read_opcode();
         }
         bytes
     }
@@ -259,11 +259,10 @@ impl Vm {
                 op::GET_LOCAL => {
                     let value_pos = self.read_opcode() as usize;
                     let value_size = self.read_opcode() as usize;
+
+                    let total_offset = self.current_frame().stack_start + value_pos;
                     for i in 0..value_size {
-                        push!(
-                            self,
-                            self.stack[self.current_frame().stack_start + value_pos + i]
-                        );
+                        push!(self, self.stack[total_offset + i]);
                     }
                 }
                 op::SET_LOCAL => {
@@ -285,8 +284,8 @@ impl Vm {
                     let heap_obj = self.memory.get_mut(pointer);
                     let memory_chunk = heap_obj.extract_object_memory();
 
-                    for i in 0..size {
-                        push!(self, memory_chunk[offset + i]);
+                    for value in memory_chunk.iter().skip(offset).take(size) {
+                        push!(self, *value);
                     }
                 }
                 op::SET_OBJ_FIELD => {
@@ -314,8 +313,8 @@ impl Vm {
                     let item_size = list.item_size;
                     let item_memory = list.get_item_mem(index);
 
-                    for i in 0..item_size {
-                        push!(self, item_memory[i]);
+                    for item in item_memory.iter().take(item_size) {
+                        push!(self, *item);
                     }
                 }
                 op::SET_LIST_ITEM => {
@@ -392,7 +391,7 @@ impl Vm {
                 }
                 op::RETURN => {
                     self.return_op();
-                    if self.frames.len() == 0 {
+                    if self.frames.is_empty() {
                         println!(
                             "VM finished, stack is {:?}",
                             &self.stack[0..self.stack_pointer]

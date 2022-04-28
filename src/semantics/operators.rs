@@ -34,7 +34,7 @@ pub fn calculate_binaryop(
     );
 
     let ensure_same_types = || {
-        if &left.expr_type != &right.expr_type {
+        if left.expr_type != right.expr_type {
             Err(binaryop_error.clone())
         } else {
             Ok(())

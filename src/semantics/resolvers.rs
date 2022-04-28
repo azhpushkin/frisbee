@@ -42,7 +42,7 @@ impl NameResolver {
             resolver.typenames.insert(file_name.clone(), typenames_mapping);
         }
 
-        resolver.validate(&wp)?;
+        resolver.validate(wp)?;
 
         Ok(resolver)
     }
@@ -56,7 +56,7 @@ impl NameResolver {
         'b: 'c,
     {
         Box::new(move |name: &String| {
-            let typename: Option<&SymbolType> = self.typenames[&alias].get(name);
+            let typename: Option<&SymbolType> = self.typenames[alias].get(name);
             match typename {
                 Some(t) => Ok(t.clone()),
                 None => Err(format!("Type {} not found in {}", name, alias)),
@@ -73,7 +73,7 @@ impl NameResolver {
         'b: 'c,
     {
         Box::new(move |name: &String| {
-            let function: Option<&SymbolFunc> = self.functions[&alias].get(name);
+            let function: Option<&SymbolFunc> = self.functions[alias].get(name);
             match function {
                 Some(f) => Ok(f.clone()),
                 None => Err(format!("Function {} not found in {}", name, alias)),

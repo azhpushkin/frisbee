@@ -248,23 +248,20 @@ impl Parser {
             _ => Some(self.parse_type()?),
         };
 
-        let name: String;
-        if member_of.is_some() && self.rel_token_check(0, Token::LeftParenthesis) {
+        let name: String = if self.rel_token_check(0, Token::LeftParenthesis) {
             // LeftParenthesis means that this is a constuctor
             // So check if the constructor name is correct and return error if not
-            name = match &rettype {
-                Some(Type::Ident(s)) if s != member_of.unwrap() => {
-                    return perr(
-                        self.full_token(0),
-                        "Wrong typename is used for constructor-like method",
-                    )
+            if let Some(member_of) = member_of {
+                match &rettype {
+                    Some(Type::Ident(s)) if s == member_of => s.clone(),
+                    _ => return perr(self.full_token(0), "Method name is missing"),
                 }
-                Some(Type::Ident(s)) => s.clone(),
-                _ => return perr(self.full_token(0), "Expected method name"),
-            };
+            } else {
+                return perr(self.full_token(0), "Function is missing name");
+            }
         } else {
-            name = consume_and_check_ident!(self);
-        }
+            consume_and_check_ident!(self)
+        };
 
         let mut args: Vec<TypedNamedObject> = vec![];
 
@@ -378,20 +375,20 @@ impl Parser {
     ) -> ParseResult<StatementWithPos> {
         let varname = consume_and_check_ident!(self);
         if consume_if_matches_one_of!(self, [Token::Semicolon]) {
-            return self.stmt_with_pos(Statement::VarDecl(typedecl, varname), start);
+            self.stmt_with_pos(Statement::VarDecl(typedecl, varname), start)
         } else if consume_if_matches_one_of!(self, [Token::Equal]) {
             let value = self.parse_expr()?;
             consume_and_check!(self, Token::Semicolon);
-            return self.stmt_with_pos(
+            self.stmt_with_pos(
                 Statement::VarDeclWithAssign(typedecl, varname, value),
                 start,
-            );
+            )
         } else {
-            return perr_with_expected(
+            perr_with_expected(
                 self.full_token(0),
                 "Wrong variable declaration",
                 Token::Semicolon,
-            );
+            )
         }
     }
 
@@ -427,8 +424,8 @@ impl Parser {
         // If Type is parsed correctly - then this must be some kind of variable declaration
         let current_pos = self.position;
         let parsed_type = self.parse_type();
-        if parsed_type.is_ok() {
-            return self.parse_var_declaration_continuation(parsed_type.unwrap(), start);
+        if let Ok(parsed_type) = parsed_type {
+            return self.parse_var_declaration_continuation(parsed_type, start);
         }
 
         // If type is not parsed, than fallback to other statement types
@@ -444,28 +441,27 @@ impl Parser {
             // entirely as they have no effect.
             // However, in frisbee this is not true, as this is more OOP-like language
             // and expression like object method call might change its state
-            return self.stmt_with_pos(Statement::Expr(expr), start);
+            self.stmt_with_pos(Statement::Expr(expr), start)
         } else if consume_if_matches_one_of!(self, [Token::Equal]) {
             let value = self.parse_expr()?;
             consume_and_check!(self, Token::Semicolon);
-            return self.stmt_with_pos(Statement::Assign { left: expr, right: value }, start);
+            self.stmt_with_pos(Statement::Assign { left: expr, right: value }, start)
         } else if consume_if_matches_one_of!(self, [Token::Bang]) {
             let method = consume_and_check_ident!(self);
             let args = self.parse_function_call_args()?;
             consume_and_check!(self, Token::Semicolon);
-            return self
-                .stmt_with_pos(Statement::SendMessage { active: expr, method, args }, start);
+            self.stmt_with_pos(Statement::SendMessage { active: expr, method, args }, start)
         } else {
-            return perr_with_expected(
+            perr_with_expected(
                 self.full_token(0),
                 "Expression abruptly ended",
                 Token::Semicolon,
-            );
+            )
         }
     }
 
     pub fn parse_expr(&mut self) -> ParseResult<ExprWithPos> {
-        return self.parse_expr_equality();
+        self.parse_expr_equality()
     }
 
     pub fn parse_expr_comparison(&mut self) -> ParseResult<ExprWithPos> {
@@ -537,7 +533,7 @@ impl Parser {
             return self.expr_with_pos(inner, start, self.position - 1);
         }
 
-        return self.parse_method_or_field_access();
+        self.parse_method_or_field_access()
     }
 
     pub fn parse_function_call_args(&mut self) -> ParseResult<Vec<ExprWithPos>> {
@@ -709,8 +705,8 @@ impl Parser {
         let start = self.position;
         let expr = match self.rel_token(0) {
             Token::This => Expr::This,
-            Token::Float(f) => Expr::Float(f.clone()),
-            Token::Integer(i) => Expr::Int(i.clone()),
+            Token::Float(f) => Expr::Float(*f),
+            Token::Integer(i) => Expr::Int(*i),
             Token::String(s) => Expr::String(s.clone()),
             Token::Nil => Expr::Nil,
             Token::True => Expr::Bool(true),
