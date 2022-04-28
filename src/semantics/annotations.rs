@@ -3,7 +3,7 @@ use crate::types::Type;
 use std::collections::HashMap;
 
 use super::resolvers::SymbolResolver;
-use super::symbols::SymbolType;
+use crate::symbols::SymbolType;
 
 #[derive(Debug)]
 pub struct CustomType {

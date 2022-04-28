@@ -1,6 +1,6 @@
 use crate::semantics::aggregate::RawFunction;
 use crate::semantics::light_ast::LStatement;
-use crate::semantics::symbols::SymbolType;
+use crate::symbols::SymbolType;
 use crate::vm::opcodes::op;
 
 use super::constants::ConstantsTable;

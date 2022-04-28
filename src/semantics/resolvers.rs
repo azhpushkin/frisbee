@@ -4,7 +4,7 @@ use crate::loader::{generate_alias, LoadedFile, ModuleAlias, WholeProgram};
 
 use super::errors::{top_level_with_module, SemanticErrorWithModule};
 use super::std_definitions::is_std_function;
-use super::symbols::{SymbolFunc, SymbolType};
+use crate::symbols::{SymbolFunc, SymbolType};
 
 type SymbolLookupMapping<T> = HashMap<ModuleAlias, HashMap<String, T>>;
 

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::semantics::symbols::SymbolFunc;
+use crate::symbols::SymbolFunc;
 use crate::types::Type;
 use crate::vm::opcodes::op;
 

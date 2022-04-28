@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::semantics::aggregate::ProgramAggregate;
-use crate::semantics::symbols::SymbolFunc;
+use crate::symbols::SymbolFunc;
 
 use self::generator::FunctionBytecode;
 

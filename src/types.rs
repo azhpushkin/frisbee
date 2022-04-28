@@ -15,6 +15,7 @@ pub enum Type {
 
     // User-defined type
     Ident(String),
+    // IdentQualified(SymbolType)
 }
 
 impl fmt::Display for Type {

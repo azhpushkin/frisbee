@@ -7,7 +7,7 @@ use super::errors::{expression_error, statement_error, SemanticError, SemanticRe
 use super::expressions::LightExpressionsGenerator;
 use super::light_ast::{LExpr, LExprTyped, LStatement, RawOperator};
 use super::resolvers::NameResolver;
-use super::symbols::SymbolFunc;
+use crate::symbols::SymbolFunc;
 
 struct LightStatementsGenerator<'a: 'd, 'b, 'c: 'd, 'd> {
     scope: &'a RawFunction,

@@ -12,7 +12,6 @@ mod operators;
 mod resolvers;
 mod statements;
 mod std_definitions;
-pub mod symbols;
 mod tests;
 
 pub fn add_default_constructors(wp: &mut WholeProgram) {
@@ -32,7 +31,7 @@ pub fn perform_semantic_analysis(
     let functions_mapping =
         aggregate::fill_aggregate_with_funcs(wp, &mut aggregate, &names_resolver)?;
 
-    let mut ls_mapping: HashMap<symbols::SymbolFunc, Vec<light_ast::LStatement>> = HashMap::new();
+    let mut ls_mapping: HashMap<crate::symbols::SymbolFunc, Vec<light_ast::LStatement>> = HashMap::new();
 
     for (name, raw_function) in aggregate.functions.iter() {
         let light_statements = statements::generate_light_statements(

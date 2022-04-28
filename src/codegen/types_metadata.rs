@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::semantics::annotations::CustomType;
-use crate::semantics::symbols::SymbolType;
+use crate::symbols::SymbolType;
 
 pub struct TypeMetadata {
     pub size: u8,

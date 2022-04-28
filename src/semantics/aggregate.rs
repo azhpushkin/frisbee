@@ -8,7 +8,7 @@ use super::annotations::{annotate_type, annotate_typednamed_vec, CustomType, Typ
 use super::errors::{top_level_with_module, SemanticErrorWithModule};
 use super::light_ast::LStatement;
 use super::resolvers::NameResolver;
-use super::symbols::{SymbolFunc, SymbolType};
+use crate::symbols::{SymbolFunc, SymbolType};
 
 #[derive(Debug)]
 pub struct ProgramAggregate {

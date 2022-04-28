@@ -11,7 +11,7 @@ use super::light_ast::{LExpr, LExprTyped};
 use super::operators::{calculate_binaryop, calculate_unaryop};
 use super::resolvers::{NameResolver, SymbolResolver};
 use super::std_definitions::{get_std_function_raw, get_std_method, is_std_function};
-use super::symbols::{SymbolFunc, SymbolType};
+use crate::symbols::{SymbolFunc, SymbolType};
 
 fn if_as_expected(
     expected: Option<&Type>,

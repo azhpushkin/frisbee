@@ -1,6 +1,6 @@
 use crate::types::Type;
 
-use super::symbols::{SymbolFunc, SymbolType};
+use crate::symbols::{SymbolFunc, SymbolType};
 
 #[derive(Debug)]
 pub enum LStatement {

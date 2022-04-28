@@ -2,7 +2,7 @@ use super::constants::Constant;
 use super::generator::BytecodeGenerator;
 use super::utils::{get_tuple_offset, get_type_from_tuple};
 use crate::semantics::light_ast::{LExpr, LExprTyped, RawOperator};
-use crate::semantics::symbols::{SymbolFunc, SymbolType};
+use crate::symbols::{SymbolFunc, SymbolType};
 use crate::vm::opcodes::op;
 use crate::vm::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
 
@@ -149,8 +149,8 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
 
 #[cfg(test)]
 mod test {
-    use crate::semantics::symbols::SymbolFunc;
     use crate::stdlib;
+    use crate::symbols::SymbolFunc;
     use crate::types::Type;
     use crate::vm::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
 
