@@ -122,38 +122,3 @@ pub fn calculate_binaryop(
 
     Ok(wrap_binary(exact_operator, vec![left, right], result_type))
 }
-
-// #[cfg(test)]
-// pub mod tests {
-//     use super::*;
-
-//     #[test]
-//     pub fn check_binary_plus() {
-//         let t = T::List(Box::new(T::Bool));
-//         assert_eq!(calculate_binaryop_type(&BinaryOp::Plus, &t, &t).unwrap(), t);
-
-//         assert!(calculate_binaryop_type(&BinaryOp::Plus, &t, &T::List(Box::new(T::Int)),).is_err());
-//     }
-
-//     #[test]
-//     pub fn check_binary_equal() {
-//         assert_eq!(
-//             calculate_binaryop_type(&BinaryOp::IsEqual, &T::Maybe(Box::new(T::Bool)), &T::Nil)
-//                 .unwrap(),
-//             T::Bool
-//         );
-
-//         assert_eq!(
-//             calculate_binaryop_type(&BinaryOp::IsEqual, &T::Bool, &T::Maybe(Box::new(T::Bool)),)
-//                 .unwrap(),
-//             T::Bool
-//         );
-
-//         assert!(calculate_binaryop_type(
-//             &BinaryOp::IsEqual,
-//             &T::Bool,
-//             &T::Maybe(Box::new(T::String)),
-//         )
-//         .is_err());
-//     }
-// }

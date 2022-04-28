@@ -72,17 +72,20 @@ impl<'a, 'b, 'c> ExpressionsVerifier<'a, 'b, 'c> {
         Ok(self.aggregate.functions.get(&func).unwrap())
     }
 
-    fn resolve_method(&self, t: &SymbolType, method: &str) -> &'b RawFunction {
+    fn resolve_method(&self, t: &SymbolType, method: &str) -> Result<&'b RawFunction, String> {
         let method_func: SymbolFunc = t.method(method);
-        self.aggregate.functions.get(&method_func).unwrap()
+        self.aggregate
+            .functions
+            .get(&method_func)
+            .ok_or_else(|| format!("No method {} in type {}", method, t))
     }
 
-    fn resolve_field<'q>(&self, t: &'q CustomType, f: &str) -> &'q VerifiedType {
-        let field_type = t.fields.iter().find(|(name, _)| *name == f);
-        match field_type {
-            Some((_, t)) => t,
-            None => panic!("No field {} in type {:?}", f, t.name),
-        }
+    fn resolve_field<'q>(&self, t: &'q CustomType, f: &str) -> Result<&'q VerifiedType, String> {
+        t.fields
+            .iter()
+            .find(|(name, _)| *name == f)
+            .map(|(_, t)| t)
+            .ok_or_else(|| format!("No field {} in type {}", f, t.name))
     }
 
     pub fn calculate(
@@ -158,34 +161,36 @@ impl<'a, 'b, 'c> ExpressionsVerifier<'a, 'b, 'c> {
                         );
                     }
 
-                    Type::Custom(symbol_type) => self.resolve_method(&symbol_type, method),
+                    Type::Custom(symbol_type) => {
+                        self.resolve_method(&symbol_type, method).map_err(&with_expr)?
+                    }
                     t => {
-                        std_method = Box::new(get_std_method(t, method));
+                        std_method = get_std_method(t, method).map_err(with_expr)?;
                         std_method.as_ref()
                     }
                 };
                 // TODO: check if maybe type
-                // TODO: check if tuple type
                 self.calculate_function_call(expr, raw_method, expected, args, Some(le_object))
             }
             Expr::OwnMethodCall { method, args } => {
-                if self.scope.method_of.is_none() {
-                    return expression_error!(expr, "Calling own method outside of method scope!");
-                }
+                let type_of_scope = match &self.scope.method_of {
+                    Some(t) => t,
+                    _ => expression_error!(expr, "Calling own method outside of class!")?,
+                };
                 // TODO: review exprwithpos for this, maybe too strange tbh
                 let this_object = self.calculate(
                     &ExprWithPos { expr: Expr::This, pos_first: 0, pos_last: 0 },
                     None,
                 )?;
-                let raw_method =
-                    self.resolve_method(self.scope.method_of.as_ref().unwrap(), method);
+                let raw_method = self.resolve_method(type_of_scope, method).map_err(with_expr)?;
                 self.calculate_function_call(expr, raw_method, expected, args, Some(this_object))
             }
             Expr::NewClassInstance { typename, args } => {
                 let symbol =
                     &(self.type_resolver)(typename).map_err(SemanticError::add_expr(expr))?;
                 let raw_type = &self.aggregate.types[symbol];
-                let raw_constructor = self.resolve_method(&raw_type.name, typename);
+                let raw_constructor =
+                    self.resolve_method(&raw_type.name, typename).map_err(with_expr)?;
                 self.calculate_function_call(expr, raw_constructor, expected, args, None)
             }
 
@@ -279,13 +284,14 @@ impl<'a, 'b, 'c> ExpressionsVerifier<'a, 'b, 'c> {
                 match &object_calculated.expr_type {
                     Type::Custom(type_symbol) => {
                         let object_definition = &self.aggregate.types[type_symbol];
-                        let field_type = self.resolve_field(object_definition, field);
+                        let field_type =
+                            self.resolve_field(object_definition, field).map_err(&with_expr)?;
 
                         let vexpr = VExpr::AccessField {
                             object: Box::new(object_calculated),
                             field: field.clone(),
                         };
-                        if_as_expected(expected, field_type, vexpr).map_err(with_expr)
+                        if_as_expected(expected, field_type, vexpr).map_err(&with_expr)
                     }
                     _ => {
                         expression_error!(
@@ -297,10 +303,10 @@ impl<'a, 'b, 'c> ExpressionsVerifier<'a, 'b, 'c> {
                 }
             }
             Expr::OwnFieldAccess { field } => {
-                if self.scope.method_of.is_none() {
-                    return expression_error!(expr, "Accessing own field outside of method scope!");
-                }
-                let scope_type = self.scope.method_of.as_ref().unwrap();
+                let scope_type = match &self.scope.method_of {
+                    Some(t) => t,
+                    _ => expression_error!(expr, "Accessing own field outside of method scope!")?,
+                };
                 // TODO: review exprwithpos for this, maybe too strange tbh
                 let this_object = self.calculate(
                     &ExprWithPos {
@@ -312,11 +318,12 @@ impl<'a, 'b, 'c> ExpressionsVerifier<'a, 'b, 'c> {
                 )?;
 
                 let object_definition = self.aggregate.types.get(scope_type).unwrap();
-                let field_type = self.resolve_field(object_definition, field);
+                let field_type =
+                    self.resolve_field(object_definition, field).map_err(&with_expr)?;
 
                 let vexpr =
                     VExpr::AccessField { object: Box::new(this_object), field: field.clone() };
-                if_as_expected(expected, field_type, vexpr).map_err(with_expr)
+                if_as_expected(expected, field_type, vexpr).map_err(&with_expr)
             }
 
             // Expr::SpawnActive { typename, args } => {
@@ -363,7 +370,7 @@ impl<'a, 'b, 'c> ExpressionsVerifier<'a, 'b, 'c> {
             .zip(expected_args.iter())
             .map(|(arg, expected_type)| self.calculate(arg, Some(expected_type)))
             .collect();
-        let mut processed_args = processed_args.unwrap();
+        let mut processed_args = processed_args?;
         if let Some(this_object) = implicit_this {
             processed_args.insert(0, this_object);
         }
