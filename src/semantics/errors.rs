@@ -1,5 +1,5 @@
-use crate::ast::{ExprWithPos, StatementWithPos};
 use crate::alias::ModuleAlias;
+use crate::ast::{ExprWithPos, StatementWithPos};
 
 #[derive(Debug)]
 pub enum SemanticError {

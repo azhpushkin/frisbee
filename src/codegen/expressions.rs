@@ -1,7 +1,7 @@
 use super::constants::Constant;
 use super::generator::BytecodeGenerator;
 use super::utils::{extract_custom_type, get_tuple_offset, get_type_from_tuple, get_type_size};
-use crate::semantics::light_ast::{LExpr, LExprTyped, RawOperator};
+use crate::semantics::verified_ast::{RawOperator, VExpr, VExprTyped};
 use crate::symbols::SymbolFunc;
 use crate::vm::opcodes::op;
 use crate::vm::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
@@ -48,10 +48,10 @@ pub fn match_std_function(symbol: &SymbolFunc) -> u8 {
 }
 
 impl<'a, 'b> BytecodeGenerator<'a, 'b> {
-    pub fn push_expr(&mut self, expr: &LExprTyped) {
-        let LExprTyped { expr, .. } = expr;
+    pub fn push_expr(&mut self, expr: &VExprTyped) {
+        let VExprTyped { expr, .. } = expr;
         match expr {
-            LExpr::Int(i) => {
+            VExpr::Int(i) => {
                 if 0 <= *i && *i < 256 {
                     // TODO: check how 255 and 0 and -255 is handled
                     self.push(op::LOAD_SMALL_INT);
@@ -61,33 +61,34 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                     self.push_constant(Constant::Int(*i as i64));
                 }
             }
-            LExpr::Float(f) => {
+            VExpr::Float(f) => {
                 self.push(op::LOAD_CONST);
                 self.push_constant(Constant::Float(*f as f64));
             }
-            LExpr::String(s) => {
+            VExpr::String(s) => {
                 self.push(op::LOAD_CONST);
                 self.push_constant(Constant::String(s.clone()));
             }
-            LExpr::Bool(b) if *b => self.push(op::LOAD_TRUE),
-            LExpr::Bool(_) => self.push(op::LOAD_FALSE),
+            VExpr::Bool(b) if *b => self.push(op::LOAD_TRUE),
+            VExpr::Bool(_) => self.push(op::LOAD_FALSE),
 
-            LExpr::ApplyOp { operator, operands } => {
+            VExpr::ApplyOp { operator, operands } => {
                 for operand in operands.iter() {
                     self.push_expr(operand);
                 }
                 self.push(match_operator(operator));
             }
-            LExpr::GetVar(varname) => {
+            VExpr::GetVar(varname) => {
                 self.push_get_local(varname);
             }
-            LExpr::CallFunction { name, return_type, args } => {
+            VExpr::CallFunction { name, return_type, args } => {
                 // TODO: review this, as args_num now can have variable length
                 self.push_reserve(return_type);
                 for arg in args.iter() {
                     self.push_expr(arg);
                 }
-                let func_locals_size: u8 = args.iter().map(|arg| get_type_size(&arg.expr_type)).sum();
+                let func_locals_size: u8 =
+                    args.iter().map(|arg| get_type_size(&arg.expr_type)).sum();
 
                 if name.is_std() {
                     self.push(op::CALL_STD);
@@ -102,12 +103,12 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                     self.push_function_placeholder(name);
                 }
             }
-            LExpr::TupleValue(items) => {
+            VExpr::TupleValue(items) => {
                 for item in items.iter() {
                     self.push_expr(item);
                 }
             }
-            LExpr::ListValue { item_type, items } => {
+            VExpr::ListValue { item_type, items } => {
                 for item in items.iter() {
                     self.push_expr(item);
                 }
@@ -115,7 +116,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 self.push_type_size(item_type);
                 self.push(items.len() as u8);
             }
-            LExpr::AccessTupleItem { tuple, index } => {
+            VExpr::AccessTupleItem { tuple, index } => {
                 let tuple_type = &tuple.as_ref().expr_type;
                 let item_type = get_type_from_tuple(tuple_type, *index);
                 self.push_reserve(item_type);
@@ -127,19 +128,19 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 self.push(offset);
                 self.push_type_size(item_type);
             }
-            LExpr::AccessField { object, field } => {
+            VExpr::AccessField { object, field } => {
                 let object_type = extract_custom_type(&object.expr_type);
                 self.push_expr(object);
                 self.push(op::GET_OBJ_FIELD);
                 self.push(self.types_meta.get(object_type).field_offsets[field]);
                 self.push(self.types_meta.get(object_type).field_sizes[field]);
             }
-            LExpr::AccessListItem { list, index } => {
+            VExpr::AccessListItem { list, index } => {
                 self.push_expr(index);
                 self.push_expr(list);
                 self.push(op::GET_LIST_ITEM);
             }
-            LExpr::Allocate { typename } => {
+            VExpr::Allocate { typename } => {
                 self.push(op::ALLOCATE);
                 self.push(self.types_meta.get(typename).size);
             }

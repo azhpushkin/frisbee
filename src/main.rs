@@ -1,5 +1,6 @@
 use std::path::Path;
 
+pub mod alias;
 pub mod ast;
 pub mod codegen;
 pub mod errors;
@@ -11,7 +12,6 @@ pub mod symbols;
 pub mod test_utils;
 pub mod types;
 pub mod vm;
-pub mod alias;
 
 // TODO: color output?
 

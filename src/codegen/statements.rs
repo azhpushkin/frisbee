@@ -1,5 +1,5 @@
 use crate::semantics::aggregate::RawFunction;
-use crate::semantics::light_ast::LStatement;
+use crate::semantics::verified_ast::VStatement;
 use crate::vm::opcodes::op;
 
 use super::constants::ConstantsTable;
@@ -29,28 +29,28 @@ pub fn generate_function_bytecode(
 impl<'a, 'b> BytecodeGenerator<'a, 'b> {
     pub fn push_statement(
         &mut self,
-        statement: &'a LStatement,
+        statement: &'a VStatement,
         loop_start: Option<usize>,
     ) -> Vec<JumpPlaceholder> {
         let mut outer_break_placeholders = vec![];
         match statement {
-            LStatement::Expression(expr) => {
+            VStatement::Expression(expr) => {
                 self.push_expr(expr);
                 self.push_pop(&expr.expr_type);
             }
-            LStatement::DeclareVar { var_type, name } => {
+            VStatement::DeclareVar { var_type, name } => {
                 self.add_local(name, var_type);
                 self.push_reserve(var_type);
             }
-            LStatement::AssignLocal { name, tuple_indexes, value } => {
+            VStatement::AssignLocal { name, tuple_indexes, value } => {
                 self.push_expr(value);
                 self.push_set_local(name, tuple_indexes);
             }
-            LStatement::DeclareAndAssignVar { var_type, name, value } => {
+            VStatement::DeclareAndAssignVar { var_type, name, value } => {
                 self.add_local(name, var_type);
                 self.push_expr(value);
             }
-            LStatement::AssignToField { object, field, tuple_indexes, value } => {
+            VStatement::AssignToField { object, field, tuple_indexes, value } => {
                 let object_type = extract_custom_type(&object.expr_type);
                 // Push value before object, as we need to first pop a pointer
                 // to access the memory before writing value to it
@@ -64,7 +64,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 self.push(field_offset + tuple_offset);
                 self.push_type_size(&value.expr_type);
             }
-            LStatement::AssignToList { list, index, tuple_indexes, value } => {
+            VStatement::AssignToList { list, index, tuple_indexes, value } => {
                 let list_type = get_list_inner_type(&list.expr_type);
                 self.push_expr(value);
                 self.push_expr(index);
@@ -76,12 +76,12 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 self.push(tuple_offset);
                 self.push_type_size(&value.expr_type);
             }
-            LStatement::Return(expr) => {
+            VStatement::Return(expr) => {
                 self.push_expr(expr);
                 self.push_set_return();
                 self.push(op::RETURN);
             }
-            LStatement::IfElse { condition, if_body, else_body } if else_body.is_empty() => {
+            VStatement::IfElse { condition, if_body, else_body } if else_body.is_empty() => {
                 self.push_expr(condition);
                 self.push(op::JUMP_IF_FALSE);
 
@@ -93,7 +93,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 }
                 self.fill_placeholder(&placeholder_to_skip_ifbody);
             }
-            LStatement::IfElse { condition, if_body, else_body } => {
+            VStatement::IfElse { condition, if_body, else_body } => {
                 self.push_expr(condition);
                 self.push(op::JUMP_IF_FALSE);
 
@@ -113,7 +113,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 }
                 self.fill_placeholder(&placeholder_to_skip_elsebody);
             }
-            LStatement::While { condition, body } => {
+            VStatement::While { condition, body } => {
                 let mut loop_breaks = vec![];
                 let start_pos = self.get_position();
                 self.push_expr(condition);
@@ -137,11 +137,11 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                     self.fill_placeholder(&break_placeholder);
                 }
             }
-            LStatement::Break => {
+            VStatement::Break => {
                 self.push(op::JUMP);
                 outer_break_placeholders.push(self.push_placeholder());
             }
-            LStatement::Continue => {
+            VStatement::Continue => {
                 self.push(op::JUMP_BACK);
                 let placeholder_to_jump_back = self.push_placeholder();
                 self.fill_placeholder_backward(&placeholder_to_jump_back, loop_start.unwrap());

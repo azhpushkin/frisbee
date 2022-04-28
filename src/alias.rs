@@ -1,4 +1,3 @@
-
 #[derive(Debug, PartialEq, Clone, Eq, Hash)]
 pub struct ModuleAlias(String);
 
@@ -9,8 +8,7 @@ impl std::fmt::Display for ModuleAlias {
 }
 
 impl ModuleAlias {
-    pub fn new(path: &[String]) -> Self
-    {
+    pub fn new(path: &[String]) -> Self {
         Self(path.join("."))
     }
 

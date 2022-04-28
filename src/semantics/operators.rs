@@ -1,9 +1,9 @@
 use crate::ast::*;
 use crate::types::{Type, VerifiedType};
 
-use super::light_ast::{LExpr, LExprTyped, RawOperator};
+use super::verified_ast::{RawOperator, VExpr, VExprTyped};
 
-pub fn calculate_unaryop(operator: &UnaryOp, operand: LExprTyped) -> Result<LExprTyped, String> {
+pub fn calculate_unaryop(operator: &UnaryOp, operand: VExprTyped) -> Result<VExprTyped, String> {
     let exact_operator: RawOperator = match (operator, &operand.expr_type) {
         (UnaryOp::Negate, Type::Int) => RawOperator::UnaryNegateInt,
         (UnaryOp::Negate, Type::Float) => RawOperator::UnaryNegateFloat,
@@ -13,21 +13,21 @@ pub fn calculate_unaryop(operator: &UnaryOp, operand: LExprTyped) -> Result<LExp
         (UnaryOp::Not, t) => return Err(format!("Can't apply NOT to {} type", t)),
     };
     let expr_type = operand.expr_type.clone();
-    Ok(LExprTyped {
-        expr: LExpr::ApplyOp { operator: exact_operator, operands: vec![operand] },
+    Ok(VExprTyped {
+        expr: VExpr::ApplyOp { operator: exact_operator, operands: vec![operand] },
         expr_type,
     })
 }
 
-fn wrap_binary(op: RawOperator, operands: Vec<LExprTyped>, res_type: VerifiedType) -> LExprTyped {
-    LExprTyped { expr: LExpr::ApplyOp { operator: op, operands }, expr_type: res_type }
+fn wrap_binary(op: RawOperator, operands: Vec<VExprTyped>, res_type: VerifiedType) -> VExprTyped {
+    VExprTyped { expr: VExpr::ApplyOp { operator: op, operands }, expr_type: res_type }
 }
 
 pub fn calculate_binaryop(
     operator: &BinaryOp,
-    left: LExprTyped,
-    right: LExprTyped,
-) -> Result<LExprTyped, String> {
+    left: VExprTyped,
+    right: VExprTyped,
+) -> Result<VExprTyped, String> {
     let binaryop_error = format!(
         "Cant apply {:?} to {} and {}",
         &operator, &left.expr_type, &right.expr_type

@@ -7,12 +7,12 @@ pub mod annotations;
 mod default_constructors;
 pub mod errors;
 mod expressions;
-pub mod light_ast;
 mod operators;
 mod resolvers;
 mod statements;
 mod std_definitions;
 mod tests;
+pub mod verified_ast;
 
 pub fn add_default_constructors(wp: &mut WholeProgram) {
     for file in wp.files.values_mut() {
@@ -31,11 +31,11 @@ pub fn perform_semantic_analysis(
     let functions_mapping =
         aggregate::fill_aggregate_with_funcs(wp, &mut aggregate, &names_resolver)?;
 
-    let mut ls_mapping: HashMap<crate::symbols::SymbolFunc, Vec<light_ast::LStatement>> =
+    let mut ls_mapping: HashMap<crate::symbols::SymbolFunc, Vec<verified_ast::VStatement>> =
         HashMap::new();
 
     for (name, raw_function) in aggregate.functions.iter() {
-        let light_statements = statements::generate_light_statements(
+        let verified_statements = statements::verify_statements(
             &functions_mapping[name].statements,
             raw_function,
             &aggregate,
@@ -43,12 +43,12 @@ pub fn perform_semantic_analysis(
         )
         .map_err(|err| (raw_function.defined_at.clone(), err))?;
 
-        ls_mapping.insert(name.clone(), light_statements);
+        ls_mapping.insert(name.clone(), verified_statements);
     }
 
     for (name, raw_function) in aggregate.functions.iter_mut() {
-        let light_statements = ls_mapping.remove(name).unwrap();
-        raw_function.body = light_statements;
+        let verified_statements = ls_mapping.remove(name).unwrap();
+        raw_function.body = verified_statements;
     }
 
     Ok(aggregate)

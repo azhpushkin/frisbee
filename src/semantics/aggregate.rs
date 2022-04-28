@@ -7,8 +7,8 @@ use crate::types::{verify_parsed_type, Type, VerifiedType};
 
 use super::annotations::{annotate_typednamed_vec, CustomType, TypedFields};
 use super::errors::{top_level_with_module, SemanticErrorWithModule};
-use super::light_ast::LStatement;
 use super::resolvers::NameResolver;
+use super::verified_ast::VStatement;
 use crate::symbols::{SymbolFunc, SymbolType};
 
 #[derive(Debug)]
@@ -23,7 +23,7 @@ pub struct RawFunction {
     pub name: SymbolFunc,
     pub return_type: VerifiedType,
     pub args: TypedFields,
-    pub body: Vec<LStatement>,
+    pub body: Vec<VStatement>,
 
     pub short_name: String,
     pub method_of: Option<SymbolType>,

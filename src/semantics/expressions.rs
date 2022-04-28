@@ -7,17 +7,17 @@ use crate::types::{Type, VerifiedType};
 use super::aggregate::{ProgramAggregate, RawFunction};
 use super::annotations::CustomType;
 use super::errors::{SemanticError, SemanticResult};
-use super::light_ast::{LExpr, LExprTyped};
 use super::operators::{calculate_binaryop, calculate_unaryop};
 use super::resolvers::{NameResolver, SymbolResolver};
 use super::std_definitions::{get_std_function_raw, get_std_method, is_std_function};
+use super::verified_ast::{VExpr, VExprTyped};
 use crate::symbols::{SymbolFunc, SymbolType};
 
 fn if_as_expected(
     expected: Option<&VerifiedType>,
     calculated: &VerifiedType,
-    le: LExpr,
-) -> Result<LExprTyped, String> {
+    le: VExpr,
+) -> Result<VExprTyped, String> {
     if expected.is_some() && expected.unwrap() != calculated {
         Err(format!(
             "Expected type {} but got {}",
@@ -25,11 +25,11 @@ fn if_as_expected(
             calculated
         ))
     } else {
-        Ok(LExprTyped { expr: le, expr_type: calculated.clone() })
+        Ok(VExprTyped { expr: le, expr_type: calculated.clone() })
     }
 }
 
-pub struct LightExpressionsGenerator<'a, 'b, 'c> {
+pub struct ExpressionsVerifier<'a, 'b, 'c> {
     scope: &'a RawFunction,
     aggregate: &'b ProgramAggregate,
     variables_types: HashMap<String, VerifiedType>,
@@ -37,17 +37,17 @@ pub struct LightExpressionsGenerator<'a, 'b, 'c> {
     type_resolver: SymbolResolver<'c, SymbolType>,
 }
 
-impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
+impl<'a, 'b, 'c> ExpressionsVerifier<'a, 'b, 'c> {
     pub fn new<'d>(
         scope: &'a RawFunction,
         aggregate: &'b ProgramAggregate,
         resolver: &'d NameResolver,
-    ) -> LightExpressionsGenerator<'a, 'b, 'c>
+    ) -> ExpressionsVerifier<'a, 'b, 'c>
     where
         'a: 'c,
         'd: 'c,
     {
-        LightExpressionsGenerator {
+        ExpressionsVerifier {
             scope,
             aggregate,
             variables_types: HashMap::new(),
@@ -91,18 +91,18 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
         &self,
         expr: &ExprWithPos,
         expected: Option<&VerifiedType>,
-    ) -> SemanticResult<LExprTyped> {
+    ) -> SemanticResult<VExprTyped> {
         let with_expr = SemanticError::add_expr(expr);
         match &expr.expr {
-            Expr::Int(i) => if_as_expected(expected, &Type::Int, LExpr::Int(*i)).map_err(with_expr),
+            Expr::Int(i) => if_as_expected(expected, &Type::Int, VExpr::Int(*i)).map_err(with_expr),
             Expr::Float(f) => {
-                if_as_expected(expected, &Type::Float, LExpr::Float(*f)).map_err(with_expr)
+                if_as_expected(expected, &Type::Float, VExpr::Float(*f)).map_err(with_expr)
             }
             Expr::Bool(b) => {
-                if_as_expected(expected, &Type::Bool, LExpr::Bool(*b)).map_err(with_expr)
+                if_as_expected(expected, &Type::Bool, VExpr::Bool(*b)).map_err(with_expr)
             }
             Expr::String(s) => {
-                if_as_expected(expected, &Type::String, LExpr::String(s.clone())).map_err(with_expr)
+                if_as_expected(expected, &Type::String, VExpr::String(s.clone())).map_err(with_expr)
             }
 
             Expr::Identifier(i) => {
@@ -111,14 +111,14 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                     .get(i)
                     .ok_or_else(|| with_expr(format!("Variable {} not defined yet!", i)))?;
 
-                if_as_expected(expected, identifier_type, LExpr::GetVar(i.clone()))
+                if_as_expected(expected, identifier_type, VExpr::GetVar(i.clone()))
                     .map_err(with_expr)
             }
             Expr::This => match &self.scope.method_of {
                 Some(t) => if_as_expected(
                     expected,
                     &Type::Custom(t.clone()),
-                    LExpr::GetVar("this".into()),
+                    VExpr::GetVar("this".into()),
                 )
                 .map_err(with_expr),
                 None => expression_error!(expr, "Using \"this\" is not allowed outside of methods"),
@@ -193,7 +193,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
 
             Expr::TupleValue(items) => {
                 let item_types: Vec<VerifiedType>;
-                let calculated: Vec<LExprTyped>;
+                let calculated: Vec<VExprTyped>;
                 match expected {
                     None => {
                         let calculated_result: SemanticResult<Vec<_>> =
@@ -214,8 +214,8 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                         return expression_error!(expr, "Unexpected tuple value (expected {})", t)
                     }
                 }
-                Ok(LExprTyped {
-                    expr: LExpr::TupleValue(calculated),
+                Ok(VExprTyped {
+                    expr: VExpr::TupleValue(calculated),
                     expr_type: Type::Tuple(item_types),
                 })
             }
@@ -224,8 +224,8 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                 Some(Type::List(item_type)) => {
                     let item_type = item_type.as_ref().clone();
 
-                    Ok(LExprTyped {
-                        expr: LExpr::ListValue { item_type, items: vec![] },
+                    Ok(VExprTyped {
+                        expr: VExpr::ListValue { item_type, items: vec![] },
                         expr_type: expected.unwrap().clone(),
                     })
                 }
@@ -265,8 +265,8 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                 let item_type =
                     expected_item_type.unwrap_or(&calculated_items[0].expr_type).clone();
 
-                Ok(LExprTyped {
-                    expr: LExpr::ListValue {
+                Ok(VExprTyped {
+                    expr: VExpr::ListValue {
                         item_type: item_type.clone(),
                         items: calculated_items,
                     },
@@ -283,11 +283,11 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                         let object_definition = &self.aggregate.types[type_symbol];
                         let field_type = self.resolve_field(object_definition, field);
 
-                        let lexpr = LExpr::AccessField {
+                        let vexpr = VExpr::AccessField {
                             object: Box::new(object_calculated),
                             field: field.clone(),
                         };
-                        if_as_expected(expected, field_type, lexpr).map_err(with_expr)
+                        if_as_expected(expected, field_type, vexpr).map_err(with_expr)
                     }
                     _ => {
                         expression_error!(
@@ -316,9 +316,9 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                 let object_definition = self.aggregate.types.get(scope_type).unwrap();
                 let field_type = self.resolve_field(object_definition, field);
 
-                let lexpr =
-                    LExpr::AccessField { object: Box::new(this_object), field: field.clone() };
-                if_as_expected(expected, field_type, lexpr).map_err(with_expr)
+                let vexpr =
+                    VExpr::AccessField { object: Box::new(this_object), field: field.clone() };
+                if_as_expected(expected, field_type, vexpr).map_err(with_expr)
             }
 
             // Expr::SpawnActive { typename, args } => {
@@ -342,8 +342,8 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
         raw_called: &'b RawFunction,
         expected_return: Option<&VerifiedType>,
         given_args: &[ExprWithPos],
-        implicit_this: Option<LExprTyped>,
-    ) -> SemanticResult<LExprTyped> {
+        implicit_this: Option<VExprTyped>,
+    ) -> SemanticResult<VExprTyped> {
         let expected_args: &[VerifiedType] = if implicit_this.is_some() {
             &raw_called.args.types[1..]
         } else {
@@ -360,7 +360,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
             );
         }
 
-        let processed_args: SemanticResult<Vec<LExprTyped>> = given_args
+        let processed_args: SemanticResult<Vec<VExprTyped>> = given_args
             .iter()
             .zip(expected_args.iter())
             .map(|(arg, expected_type)| self.calculate(arg, Some(expected_type)))
@@ -370,13 +370,13 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
             processed_args.insert(0, this_object);
         }
 
-        let lexpr_call = LExpr::CallFunction {
+        let vexpr_call = VExpr::CallFunction {
             name: raw_called.name.clone(),
             return_type: raw_called.return_type.clone(),
             args: processed_args,
         };
 
-        if_as_expected(expected_return, &raw_called.return_type, lexpr_call)
+        if_as_expected(expected_return, &raw_called.return_type, vexpr_call)
             .map_err(SemanticError::add_expr(original))
     }
 
@@ -386,7 +386,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
         object: &ExprWithPos,
         index: &ExprWithPos,
         expected: Option<&VerifiedType>,
-    ) -> SemanticResult<LExprTyped> {
+    ) -> SemanticResult<VExprTyped> {
         let calculated_object = self.calculate(object, None)?;
 
         match calculated_object.expr_type.clone() {
@@ -399,18 +399,18 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                     )
                 }
                 Expr::Int(i) => {
-                    let lexpr = LExpr::AccessTupleItem {
+                    let vexpr = VExpr::AccessTupleItem {
                         tuple: Box::new(calculated_object),
                         index: i as usize,
                     };
-                    if_as_expected(expected, &item_types[i as usize], lexpr)
+                    if_as_expected(expected, &item_types[i as usize], vexpr)
                         .map_err(SemanticError::add_expr(original))
                 }
                 _ => expression_error!(index, "Only integer allowed in tuple access!"),
             },
             Type::List(inner) => {
                 let calculated_index = self.calculate(index, Some(&Type::Int))?;
-                let new_expr = LExpr::AccessListItem {
+                let new_expr = VExpr::AccessListItem {
                     list: Box::new(calculated_object),
                     index: Box::new(calculated_index),
                 };
