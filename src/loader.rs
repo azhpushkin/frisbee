@@ -123,7 +123,7 @@ mod test {
         let mut files_dir = TestFilesCreator::new();
         files_dir.set_mainfile("from mod import somefun;");
 
-        load_program(files_dir.get_main_path());
+        load_program(files_dir.get_main_path()).unwrap();
     }
 
     #[test]
