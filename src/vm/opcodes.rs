@@ -1,3 +1,9 @@
+const ZERO_ARG_START: u8 = 0;
+const SINGLE_ARG_START: u8 = 128;
+const DOUBLE_ARG_START: u8 = 192;
+const TRIPLE_ARG_START: u8 = 224;
+const QUATRO_ARG_START: u8 = 240;
+
 macro_rules! opcodes_list {
     ($s:expr, $c:ident ) => {
         pub const $c: u8 = $s;
@@ -9,10 +15,28 @@ macro_rules! opcodes_list {
     };
 }
 
+macro_rules! opcodes_with_0_args {
+    ($ ( $more:ident ),+ ) => { opcodes_list!(ZERO_ARG_START, $(  $more ),+ ); };
+}
+macro_rules! opcodes_with_1_arg {
+    ($ ( $more:ident ),+ ) => { opcodes_list!(SINGLE_ARG_START, $(  $more ),+ ); };
+}
+macro_rules! opcodes_with_2_args {
+    ($ ( $more:ident ),+ ) => { opcodes_list!(DOUBLE_ARG_START, $(  $more ),+ ); };
+}
+macro_rules! opcodes_with_3_args {
+    ($ ( $more:ident ),+ ) => { opcodes_list!(TRIPLE_ARG_START, $(  $more ),+ ); };
+}
+macro_rules! opcodes_with_4_args {
+    ($ ( $more:ident ),+ ) => { opcodes_list!(QUATRO_ARG_START, $(  $more ),+ ); };
+}
+
 #[rustfmt::skip]
 pub mod op {
+    use super::*;
+
     // Opcode without arguments
-    opcodes_list!(0,
+    opcodes_with_0_args!(
         LOAD_TRUE,
         LOAD_FALSE,
 
@@ -48,7 +72,7 @@ pub mod op {
     );
 
     // Opcodes with single operand
-    opcodes_list!(100,
+    opcodes_with_1_arg!(
         ALLOCATE,
 
         RESERVE,
@@ -59,7 +83,7 @@ pub mod op {
     );
 
     // Opcodes with two operands
-    opcodes_list!(180,
+    opcodes_with_2_args!(
         ALLOCATE_LIST,  // item_size + initial_size
 
         JUMP,
@@ -76,13 +100,15 @@ pub mod op {
     );
 
     // Opcodes with three operands
-    opcodes_list!(200,
+    opcodes_with_3_args!(
         GET_TUPLE_ITEM
     );
 
-    // Both have 4 operands: return size, total offset, call po
-    pub const CALL: u8 = 240;
-    pub const CALL_STD: u8 = 241;
+    // Both have 4 operands: return size, total offset, call position
+    opcodes_with_4_args! (
+        CALL,
+        CALL_STD
+    );
 
     pub const CONST_END_FLAG: u8 = u8::MAX;
     pub const CONST_INT_FLAG: u8 = 1;    
@@ -91,15 +117,15 @@ pub mod op {
 }
 
 pub fn get_args_num(op: u8) -> usize {
-    if op == op::CALL || op == op::CALL_STD {
-        return 4;
-    } else if op < 100 {
-        return 0;
-    } else if op < 180 {
-        return 1;
-    } else if op < 200 {
-        return 2;
+    if op >= QUATRO_ARG_START {
+        4
+    } else if op >= TRIPLE_ARG_START {
+        3
+    } else if op >= DOUBLE_ARG_START {
+        2
+    } else if op >= SINGLE_ARG_START {
+        1
     } else {
-        return 3;
+        0
     }
 }
