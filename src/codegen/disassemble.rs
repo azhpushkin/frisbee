@@ -120,7 +120,7 @@ impl<'a> Disassembler<'a> {
     }
 
     fn read_constants(&mut self) {
-        self.result.push(format!("Constants table:"));
+        self.result.push("Constants table:".to_string());
         let mut i: usize = 0;
 
         loop {

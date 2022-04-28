@@ -238,35 +238,35 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                 None => return expression_error!(expr, "Can't figure out list type over here!"),
             },
             Expr::ListValue(items) => {
+                // Due to previous check, we know that in this branch items are not empty
                 let expected_item_type = match expected {
                     None => None,
-                    Some(Type::List(item_type)) => Some(item_type.as_ref().clone()),
+                    Some(Type::List(item_type)) => Some(item_type.as_ref()),
                     Some(t) => {
                         return expression_error!(expr, "Unexpected list value (expected {})", t)
                     }
                 };
                 let calculated_items: SemanticResult<Vec<_>> = items
                     .iter()
-                    .map(|expr| self.calculate(expr, expected_item_type.as_ref()))
+                    .map(|expr| self.calculate(expr, expected_item_type))
                     .collect();
                 let calculated_items = calculated_items?;
 
-                let item_type: Type;
-                if expected_item_type.is_none() {
-                    item_type = calculated_items[0].expr_type.clone();
-                    for LExprTyped { expr_type, .. } in &calculated_items[1..] {
-                        if expr_type != &item_type {
-                            return expression_error!(
-                                expr,
-                                "Item types mismatch in a list: {} and {}",
-                                item_type,
-                                expr_type
-                            );
-                        }
-                    }
-                } else {
-                    item_type = expected_item_type.unwrap().clone()
-                };
+                // Check if all items are of same type using sliding window
+                // (if there is just one element - window will have 0 iterations)
+                let mismatched_pair =
+                    calculated_items.windows(2).find(|p| p[0].expr_type != p[1].expr_type);
+                if let Some(pair) = mismatched_pair {
+                    return expression_error!(
+                        expr,
+                        "All items in list must be of same type, but both {} and {} are found",
+                        pair[0].expr_type,
+                        pair[1].expr_type
+                    );
+                }
+
+                let item_type =
+                    expected_item_type.unwrap_or(&calculated_items[0].expr_type).clone();
 
                 Ok(LExprTyped {
                     expr: LExpr::ListValue {

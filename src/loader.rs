@@ -48,15 +48,15 @@ fn load_file(workdir: &PathBuf, module_path: &Vec<String>) -> Option<LoadedFile>
     let alias = generate_alias(module_path);
 
     let tokens = parser::scanner::scan_tokens(&contents);
-    if tokens.is_err() {
-        errors::show_scan_error(&contents, &alias, tokens.unwrap_err());
+    if let Err(scan_error) = tokens {
+        errors::show_scan_error(&contents, &alias, scan_error);
         return None;
     }
 
     let ast: parser::ParseResult<FileAst> = parser::parse(tokens.unwrap());
 
-    if ast.is_err() {
-        errors::show_parse_error(&contents, &alias, ast.unwrap_err());
+    if let Err(parse_error) = ast {
+        errors::show_parse_error(&contents, &alias, parse_error);
         return None;
     }
 

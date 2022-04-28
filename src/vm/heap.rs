@@ -66,16 +66,16 @@ impl Heap {
         copy_from: &[u64],
     ) -> (u64, &mut HeapObject) {
         let memory_size = item_size * initial_list_size;
-        
+
         let mut list = vec![0; memory_size];
         list[..memory_size].clone_from_slice(&copy_from[..memory_size]);
-        
+
         let obj = Box::new(HeapObject::List(List {
             item_size,
             size: initial_list_size,
             data: list,
         }));
-        
+
         self.insert(obj)
     }
 

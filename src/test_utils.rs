@@ -46,7 +46,8 @@ impl TestFilesCreator {
 
         create_dir_all(file_path.parent().unwrap()).unwrap();
         let mut file = File::create(file_path).unwrap();
-        file.write(contents.into().as_bytes()).unwrap();
+        file.write_all(contents.into().as_bytes())
+            .expect("Error on writing test file");
     }
 
     pub fn get_main_path(&self) -> &Path {

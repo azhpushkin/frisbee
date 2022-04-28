@@ -1,6 +1,6 @@
 use crate::types::Type;
 
-pub fn get_type_from_tuple<'a>(t: &'a Type, i: usize) -> &'a Type {
+pub fn get_type_from_tuple(t: &Type, i: usize) -> &Type {
     match t {
         Type::Tuple(items) => &items[i],
         _ => panic!("something is wrong, semantics should have checked this.."),

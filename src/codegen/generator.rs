@@ -63,14 +63,14 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
     }
 
     pub fn push_get_local(&mut self, varname: &String) {
-        let var_pos = self.locals.get(varname).unwrap().clone();
+        let var_pos = *self.locals.get(varname).unwrap();
         self.push(op::GET_LOCAL);
         self.push(var_pos);
         self.push(self.locals_types[varname].get_size());
     }
 
     pub fn push_set_local(&mut self, varname: &String, tuple_indexes: &Vec<usize>) {
-        let var_pos = self.locals.get(varname).unwrap().clone();
+        let var_pos = *self.locals.get(varname).unwrap();
         let offset = get_tuple_offset(&self.locals_types[varname], &tuple_indexes);
         self.push(op::SET_LOCAL);
         self.push(var_pos + offset);

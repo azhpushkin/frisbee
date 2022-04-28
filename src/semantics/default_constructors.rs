@@ -2,7 +2,7 @@ use crate::ast::{ClassDecl, Expr, ExprWithPos, FunctionDecl, Statement, Statemen
 use crate::types::Type;
 
 pub fn add_default_constructor(class: &mut ClassDecl) {
-    if class.methods.iter().find(|x| x.name == class.name).is_some() {
+    if class.methods.iter().any(|x| x.name == class.name) {
         // Constructor already exist, move on
         return;
     }

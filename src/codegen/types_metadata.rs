@@ -79,13 +79,13 @@ mod test {
 
         assert_eq!(metadata.size, 4);
         assert_eq!(metadata.field_offsets.len(), 3);
-        assert_eq!(metadata.field_offsets["a".into()], 0);
-        assert_eq!(metadata.field_offsets["b".into()], 1);
-        assert_eq!(metadata.field_offsets["c".into()], 3);
+        assert_eq!(metadata.field_offsets["a"], 0);
+        assert_eq!(metadata.field_offsets["b"], 1);
+        assert_eq!(metadata.field_offsets["c"], 3);
 
         assert_eq!(metadata.field_sizes.len(), 3);
-        assert_eq!(metadata.field_sizes["a".into()], 1);
-        assert_eq!(metadata.field_sizes["b".into()], 2);
-        assert_eq!(metadata.field_sizes["c".into()], 1);
+        assert_eq!(metadata.field_sizes["a"], 1);
+        assert_eq!(metadata.field_sizes["b"], 2);
+        assert_eq!(metadata.field_sizes["c"], 1);
     }
 }

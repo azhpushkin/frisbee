@@ -80,7 +80,7 @@ impl From<Type> for SymbolType {
                 panic!("{} is not a valid SymbolType", name);
             }
             let (module, typename) = name.rsplit_once("::").unwrap();
-            assert!(module.find("::").is_none(), "Bad module name: {}", module);
+            assert!(!module.contains("::"), "Bad module name: {}", module);
             assert!(
                 typename.chars().next().unwrap().is_ascii_uppercase(),
                 "Bad SymbolType: {}",

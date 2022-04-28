@@ -9,7 +9,7 @@ use super::annotations::TypedFields;
 use super::symbols::SymbolFunc;
 
 pub fn is_std_function(func_name: &str) -> bool {
-    stdlib::STD_FUNCTIONS.iter().find(|(k, _)| *k == func_name).is_some()
+    stdlib::STD_FUNCTIONS.iter().any(|(k, _)| *k == func_name)
 }
 
 fn std_function_signatures() -> HashMap<&'static str, (Vec<Type>, Type)> {
