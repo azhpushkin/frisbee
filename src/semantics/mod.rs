@@ -40,15 +40,10 @@ pub fn perform_semantic_analysis(
             raw_function,
             &aggregate,
             &names_resolver,
-        );
-        match light_statements {
-            Ok(statements) => {
-                ls_mapping.insert(name.clone(), statements);
-            }
-            Err(e) => {
-                return Err((raw_function.defined_at.clone(), e));
-            }
-        }
+        )
+        .map_err(|err| (raw_function.defined_at.clone(), err))?;
+
+        ls_mapping.insert(name.clone(), light_statements);
     }
 
     for (name, raw_function) in aggregate.functions.iter_mut() {

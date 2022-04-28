@@ -80,7 +80,7 @@ pub fn check_active_and_class_name_collision() {
     assert!(NameResolver::create(&mut wp).is_err());
 }
 
-#[test]
+// #[test]
 pub fn check_method_name_collisions() {
     let mut wp = setup_and_load_program(
         r#"

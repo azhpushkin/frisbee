@@ -14,20 +14,18 @@ use super::std_definitions::{get_std_function_raw, get_std_method, is_std_functi
 use super::symbols::{SymbolFunc, SymbolType};
 
 fn if_as_expected(
-    original: &ExprWithPos,
     expected: Option<&Type>,
-    real: &Type,
+    calculated: &Type,
     le: LExpr,
-) -> SemanticResult<LExprTyped> {
-    if expected.is_some() && expected.unwrap() != real {
-        expression_error!(
-            original,
+) -> Result<LExprTyped, String> {
+    if expected.is_some() && expected.unwrap() != calculated {
+        Err(format!(
             "Expected type {} but got {}",
             expected.unwrap(),
-            real
-        )
+            calculated
+        ))
     } else {
-        Ok(LExprTyped { expr: le, expr_type: real.clone() })
+        Ok(LExprTyped { expr: le, expr_type: calculated.clone() })
     }
 }
 
@@ -94,12 +92,17 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
         expr: &ExprWithPos,
         expected: Option<&Type>,
     ) -> SemanticResult<LExprTyped> {
+        let with_expr = SemanticError::add_expr(expr);
         match &expr.expr {
-            Expr::Int(i) => if_as_expected(expr, expected, &Type::Int, LExpr::Int(*i)),
-            Expr::Float(f) => if_as_expected(expr, expected, &Type::Float, LExpr::Float(*f)),
-            Expr::Bool(b) => if_as_expected(expr, expected, &Type::Bool, LExpr::Bool(*b)),
+            Expr::Int(i) => if_as_expected(expected, &Type::Int, LExpr::Int(*i)).map_err(with_expr),
+            Expr::Float(f) => {
+                if_as_expected(expected, &Type::Float, LExpr::Float(*f)).map_err(with_expr)
+            }
+            Expr::Bool(b) => {
+                if_as_expected(expected, &Type::Bool, LExpr::Bool(*b)).map_err(with_expr)
+            }
             Expr::String(s) => {
-                if_as_expected(expr, expected, &Type::String, LExpr::String(s.clone()))
+                if_as_expected(expected, &Type::String, LExpr::String(s.clone())).map_err(with_expr)
             }
 
             Expr::Identifier(i) => {
@@ -107,7 +110,8 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                     .variables_types
                     .get(i)
                     .expect(&format!("No identifier {} found", i));
-                if_as_expected(expr, expected, identifier_type, LExpr::GetVar(i.clone()))
+                if_as_expected(expected, identifier_type, LExpr::GetVar(i.clone()))
+                    .map_err(with_expr)
             }
             Expr::This => {
                 if self.scope.method_of.is_none() {
@@ -117,12 +121,12 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                     );
                 }
                 let obj_type: Type = self.scope.method_of.as_ref().unwrap().into();
-                if_as_expected(expr, expected, &obj_type, LExpr::GetVar("this".into()))
+                if_as_expected(expected, &obj_type, LExpr::GetVar("this".into())).map_err(with_expr)
             }
 
             Expr::UnaryOp { op, operand } => {
                 let operand = self.calculate(&operand, None)?;
-                calculate_unaryop(&op, operand).map_err(SemanticError::add_expr(expr))
+                calculate_unaryop(&op, operand).map_err(with_expr)
             }
             Expr::BinOp { left, right, op } => {
                 let binary_res = calculate_binaryop(
@@ -130,7 +134,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                     self.calculate(&left, None)?,
                     self.calculate(&right, None)?,
                 );
-                binary_res.map_err(SemanticError::add_expr(expr))
+                binary_res.map_err(with_expr)
             }
 
             Expr::FunctionCall { function, args } => {
@@ -288,7 +292,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                             object: Box::new(object_calculated),
                             field: field.clone(),
                         };
-                        if_as_expected(expr, expected, &field_type, lexpr)
+                        if_as_expected(expected, &field_type, lexpr).map_err(with_expr)
                     }
                     _ => {
                         expression_error!(
@@ -319,7 +323,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
 
                 let lexpr =
                     LExpr::AccessField { object: Box::new(this_object), field: field.clone() };
-                if_as_expected(expr, expected, &field_type, lexpr)
+                if_as_expected(expected, &field_type, lexpr).map_err(with_expr)
             }
 
             // Expr::SpawnActive { typename, args } => {
@@ -377,12 +381,8 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
             args: processed_args,
         };
 
-        if_as_expected(
-            original,
-            expected_return,
-            &raw_called.return_type,
-            lexpr_call,
-        )
+        if_as_expected(expected_return, &raw_called.return_type, lexpr_call)
+            .map_err(SemanticError::add_expr(original))
     }
 
     fn calculate_access_by_index(
@@ -395,38 +395,32 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
         let calculated_object = self.calculate(&object, None)?;
 
         match calculated_object.expr_type.clone() {
-            Type::Tuple(item_types) => {
-                let index_value: usize;
-                match index.expr {
-                    Expr::Int(i) if i >= item_types.len() as i64 => {
-                        return expression_error!(
-                            index,
-                            "Index of tuple is out of bounds (must be between 0 and {})",
-                            item_types.len()
-                        );
-                    }
-                    Expr::Int(i) => {
-                        index_value = i as usize;
-                    }
-                    _ => return expression_error!(index, "Only integer allowed in tuple access!"),
+            Type::Tuple(item_types) => match index.expr {
+                Expr::Int(i) if i >= item_types.len() as i64 => {
+                    expression_error!(
+                        index,
+                        "Index of tuple is out of bounds (must be between 0 and {})",
+                        item_types.len()
+                    )
                 }
-                return if_as_expected(
-                    original,
-                    expected,
-                    &item_types[index_value],
-                    LExpr::AccessTupleItem {
+                Expr::Int(i) => {
+                    let lexpr = LExpr::AccessTupleItem {
                         tuple: Box::new(calculated_object),
-                        index: index_value,
-                    },
-                );
-            }
+                        index: i as usize,
+                    };
+                    if_as_expected(expected, &item_types[i as usize], lexpr)
+                        .map_err(SemanticError::add_expr(original))
+                }
+                _ => expression_error!(index, "Only integer allowed in tuple access!"),
+            },
             Type::List(inner) => {
                 let calculated_index = self.calculate(index, Some(&Type::Int))?;
                 let new_expr = LExpr::AccessListItem {
                     list: Box::new(calculated_object),
                     index: Box::new(calculated_index),
                 };
-                return if_as_expected(original, expected, inner.as_ref(), new_expr);
+                if_as_expected(expected, inner.as_ref(), new_expr)
+                    .map_err(SemanticError::add_expr(original))
             }
             t => expression_error!(
                 object,

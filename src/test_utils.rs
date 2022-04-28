@@ -15,7 +15,7 @@ pub struct TestFilesCreator {
 impl TestFilesCreator {
     pub fn new() -> TestFilesCreator {
         let workdir = tempdir().unwrap();
-        let main_path = workdir.path().clone().join("main.frisbee");
+        let main_path = workdir.path().join("main.frisbee");
         TestFilesCreator { temp_workdir: workdir, main_path }
     }
 
