@@ -9,26 +9,26 @@ pub enum SemanticError {
 }
 
 impl SemanticError {
-    pub fn add_statement<'a, T>(
+    pub fn add_statement<'a>(
         stmt: &'a StatementWithPos,
-    ) -> Box<dyn Fn(String) -> SemanticResult<T> + 'a> {
-        Box::new(move |msg: String| -> SemanticResult<T> {
-            Err(SemanticError::StmtError { pos: stmt.pos, message: msg })
+    ) -> Box<dyn Fn(String) -> SemanticError + 'a> {
+        Box::new(move |msg: String| -> SemanticError {
+            SemanticError::StmtError { pos: stmt.pos, message: msg }
         })
     }
 
-    pub fn add_expr<'a, T>(expr: &'a ExprWithPos) -> Box<dyn Fn(String) -> SemanticResult<T> + 'a> {
-        Box::new(move |msg: String| -> SemanticResult<T> {
-            Err(SemanticError::ExprError {
+    pub fn add_expr<'a>(expr: &'a ExprWithPos) -> Box<dyn Fn(String) -> SemanticError + 'a> {
+        Box::new(move |msg: String| -> SemanticError {
+            SemanticError::ExprError {
                 pos_first: expr.pos_first,
                 pos_last: expr.pos_last,
                 message: msg,
-            })
+            }
         })
     }
 
-    pub fn to_top_level<T>(s: String) -> SemanticResult<T> {
-        Err(SemanticError::TopLevelError { message: s })
+    pub fn to_top_level(s: String) -> SemanticError {
+        SemanticError::TopLevelError { message: s }
     }
 }
 

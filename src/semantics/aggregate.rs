@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::ast::{FunctionDecl, TypedNamedObject};
+use crate::ast::{ClassDecl, FunctionDecl, TypedNamedObject};
 use crate::loader::{ModuleAlias, WholeProgram};
 use crate::types::Type;
 
@@ -43,6 +43,15 @@ pub fn create_basic_aggregate(
     for (file_alias, file) in wp.files.iter() {
         let file_resolver = resolver.get_typenames_resolver(&file_alias);
 
+        let field_type_error = |err: String, class: &ClassDecl| {
+            top_level_with_module!(
+                file_alias,
+                "Error in {} class field types: {}",
+                class.name,
+                err
+            )
+        };
+
         for class_decl in file.ast.types.iter() {
             let full_name = SymbolType::new(file_alias, &class_decl.name);
             aggregate.types.insert(
@@ -50,16 +59,8 @@ pub fn create_basic_aggregate(
                 CustomType {
                     name: full_name,
                     is_active: class_decl.is_active,
-                    fields: annotate_typednamed_vec(&class_decl.fields, &file_resolver).or_else(
-                        |e| {
-                            top_level_with_module!(
-                                file_alias,
-                                "Error in {} class field types: {}",
-                                class_decl.name,
-                                e
-                            )
-                        },
-                    )?,
+                    fields: annotate_typednamed_vec(&class_decl.fields, &file_resolver)
+                        .or_else(|err| field_type_error(err, &class_decl))?,
                 },
             );
         }

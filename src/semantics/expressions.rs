@@ -122,7 +122,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
 
             Expr::UnaryOp { op, operand } => {
                 let operand = self.calculate(&operand, None)?;
-                calculate_unaryop(&op, operand).or_else(SemanticError::add_expr(expr))
+                calculate_unaryop(&op, operand).map_err(SemanticError::add_expr(expr))
             }
             Expr::BinOp { left, right, op } => {
                 let binary_res = calculate_binaryop(
@@ -130,7 +130,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                     self.calculate(&left, None)?,
                     self.calculate(&right, None)?,
                 );
-                binary_res.or_else(SemanticError::add_expr(expr))
+                binary_res.map_err(SemanticError::add_expr(expr))
             }
 
             Expr::FunctionCall { function, args } => {
@@ -139,7 +139,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                     self.calculate_function_call(expr, &std_raw, expected, &args, None)
                 } else {
                     let raw_called =
-                        self.resolve_func(&function).or_else(SemanticError::add_expr(expr))?;
+                        self.resolve_func(&function).map_err(SemanticError::add_expr(expr))?;
                     self.calculate_function_call(expr, &raw_called, expected, &args, None)
                 }
             }
@@ -184,7 +184,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
             }
             Expr::NewClassInstance { typename, args } => {
                 let symbol =
-                    &(self.type_resolver)(typename).or_else(SemanticError::add_expr(expr))?;
+                    &(self.type_resolver)(typename).map_err(SemanticError::add_expr(expr))?;
                 let raw_type = &self.aggregate.types[&symbol];
                 let raw_constructor = self.resolve_method(&raw_type.name, typename);
                 self.calculate_function_call(expr, &raw_constructor, expected, &args, None)

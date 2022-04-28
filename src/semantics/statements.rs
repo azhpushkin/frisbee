@@ -30,7 +30,7 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
         for (name, typename) in self.scope.args.iter() {
             self.lexpr_generator
                 .add_variable(name.clone(), typename.clone())
-                .or_else(SemanticError::to_top_level)?;
+                .map_err(SemanticError::to_top_level)?;
         }
         Ok(())
     }
@@ -40,7 +40,7 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
             t,
             &self.resolver.get_typenames_resolver(&self.scope.defined_at),
         )
-        .or_else(SemanticError::add_statement(stmt))
+        .map_err(SemanticError::add_statement(stmt))
     }
 
     fn is_constructor(&self) -> bool {
@@ -142,7 +142,7 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
 
                 self.lexpr_generator
                     .add_variable(name.clone(), var_type.clone())
-                    .or_else(stmt_err)?;
+                    .map_err(stmt_err)?;
                 LStatement::DeclareVar { var_type, name: name.clone() }
             }
             Statement::Assign { left, right } => {
@@ -181,7 +181,7 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
 
                 self.lexpr_generator
                     .add_variable(name.clone(), var_type.clone())
-                    .or_else(stmt_err)?;
+                    .map_err(stmt_err)?;
 
                 LStatement::DeclareAndAssignVar { var_type, name: name.clone(), value }
             }
@@ -225,13 +225,13 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
 
                 self.lexpr_generator
                     .add_variable(item_name.clone(), item_type.clone())
-                    .or_else(&stmt_err)?;
+                    .map_err(&stmt_err)?;
                 self.lexpr_generator
                     .add_variable(index_name.clone(), Type::Int)
-                    .or_else(&stmt_err)?;
+                    .map_err(&stmt_err)?;
                 self.lexpr_generator
                     .add_variable(iterable_name.clone(), iterable_type.clone())
-                    .or_else(&stmt_err)?;
+                    .map_err(&stmt_err)?;
 
                 let get_iterable_var = || LExprTyped {
                     expr_type: iterable_type.clone(),
