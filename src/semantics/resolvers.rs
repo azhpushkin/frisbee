@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::loader::{generate_alias, LoadedFile, ModuleAlias, WholeProgram};
 
-use super::errors::{top_level_with_module, SemanticResultWithModule};
+use super::errors::{top_level_with_module, SemanticErrorWithModule};
 use super::std_definitions::is_std_function;
 use super::symbols::{SymbolFunc, SymbolType};
 
@@ -24,7 +24,7 @@ pub struct NameResolver {
 }
 
 impl NameResolver {
-    pub fn create(wp: &WholeProgram) -> SemanticResultWithModule<NameResolver> {
+    pub fn create(wp: &WholeProgram) -> Result<NameResolver, SemanticErrorWithModule> {
         let mut resolver = NameResolver { typenames: HashMap::new(), functions: HashMap::new() };
 
         for (file_name, file) in wp.files.iter() {
@@ -81,7 +81,7 @@ impl NameResolver {
         })
     }
 
-    fn validate(&self, wp: &WholeProgram) -> SemanticResultWithModule<()> {
+    fn validate(&self, wp: &WholeProgram) -> Result<(), SemanticErrorWithModule> {
         for (alias, file) in wp.files.iter() {
             for (module, name) in get_functions_origins(file) {
                 if !self.functions[&module].contains_key(name) {
@@ -116,7 +116,7 @@ impl NameResolver {
     }
 }
 
-fn check_module_does_not_import_itself(file: &LoadedFile) -> SemanticResultWithModule<()> {
+fn check_module_does_not_import_itself(file: &LoadedFile) -> Result<(), SemanticErrorWithModule> {
     for import in &file.ast.imports {
         if generate_alias(&import.module_path) == file.module_alias {
             return top_level_with_module!(
@@ -132,7 +132,7 @@ fn check_module_does_not_import_itself(file: &LoadedFile) -> SemanticResultWithM
 fn get_origins<'a, I, T>(
     symbols_origins: I,
     compile_symbol: &dyn Fn(&ModuleAlias, &'a str) -> T,
-) -> SemanticResultWithModule<SingleFileMapping<T>>
+) -> Result<SingleFileMapping<T>, SemanticErrorWithModule>
 where
     I: Iterator<Item = (ModuleAlias, &'a str)>,
 {

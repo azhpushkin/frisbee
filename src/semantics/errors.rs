@@ -33,7 +33,7 @@ impl SemanticError {
 }
 
 pub type SemanticResult<T> = Result<T, SemanticError>;
-pub type SemanticResultWithModule<T> = Result<T, (ModuleAlias, SemanticError)>;
+pub type SemanticErrorWithModule = (ModuleAlias, SemanticError);
 
 macro_rules! top_level_with_module {
     ($module:expr, $($arg:tt)*) => {

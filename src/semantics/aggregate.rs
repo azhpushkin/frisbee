@@ -5,7 +5,7 @@ use crate::loader::{ModuleAlias, WholeProgram};
 use crate::types::Type;
 
 use super::annotations::{annotate_type, annotate_typednamed_vec, CustomType, TypedFields};
-use super::errors::{top_level_with_module, SemanticResultWithModule};
+use super::errors::{top_level_with_module, SemanticErrorWithModule};
 use super::light_ast::LStatement;
 use super::resolvers::NameResolver;
 use super::symbols::{SymbolFunc, SymbolType};
@@ -33,7 +33,7 @@ pub struct RawFunction {
 pub fn create_basic_aggregate(
     wp: &WholeProgram,
     resolver: &NameResolver,
-) -> SemanticResultWithModule<ProgramAggregate> {
+) -> Result<ProgramAggregate, SemanticErrorWithModule> {
     let mut aggregate: ProgramAggregate = ProgramAggregate {
         types: HashMap::new(),
         functions: HashMap::new(),
@@ -73,7 +73,7 @@ pub fn fill_aggregate_with_funcs<'a>(
     wp: &'a WholeProgram,
     aggregate: &mut ProgramAggregate,
     resolver: &NameResolver,
-) -> SemanticResultWithModule<HashMap<SymbolFunc, &'a FunctionDecl>> {
+) -> Result<HashMap<SymbolFunc, &'a FunctionDecl>, SemanticErrorWithModule> {
     let mut mapping_to_og_funcs = HashMap::new();
 
     for (file_alias, file) in wp.files.iter() {
