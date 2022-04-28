@@ -2,9 +2,9 @@ use std::collections::HashMap;
 
 use crate::ast::{ClassDecl, FunctionDecl, TypedNamedObject};
 use crate::loader::{ModuleAlias, WholeProgram};
-use crate::types::Type;
+use crate::types::{verify_parsed_type, Type, VerifiedType};
 
-use super::annotations::{annotate_type, annotate_typednamed_vec, CustomType, TypedFields};
+use super::annotations::{annotate_typednamed_vec, CustomType, TypedFields};
 use super::errors::{top_level_with_module, SemanticErrorWithModule};
 use super::light_ast::LStatement;
 use super::resolvers::NameResolver;
@@ -20,7 +20,7 @@ pub struct ProgramAggregate {
 #[derive(Debug)]
 pub struct RawFunction {
     pub name: SymbolFunc,
-    pub return_type: Type,
+    pub return_type: VerifiedType,
     pub args: TypedFields,
     pub body: Vec<LStatement>,
 
@@ -98,7 +98,7 @@ pub fn fill_aggregate_with_funcs<'a>(
 
         let get_return_type = |t: &_| match t {
             None => Ok(Type::Tuple(vec![])),
-            Some(t) => annotate_type(t, &file_resolver),
+            Some(t) => verify_parsed_type(t, &file_resolver),
         };
 
         for class_decl in file.ast.types.iter() {
@@ -121,7 +121,7 @@ pub fn fill_aggregate_with_funcs<'a>(
                         0,
                         TypedNamedObject {
                             name: "this".to_string(),
-                            typename: Type::Ident(class_decl.name.clone()),
+                            typename: Type::Custom(class_decl.name.clone()),
                         },
                     );
                 };

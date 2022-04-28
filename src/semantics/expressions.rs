@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::ast::*;
 use crate::semantics::errors::expression_error;
-use crate::types::Type;
+use crate::types::{Type, VerifiedType};
 
 use super::aggregate::{ProgramAggregate, RawFunction};
 use super::annotations::CustomType;
@@ -14,8 +14,8 @@ use super::std_definitions::{get_std_function_raw, get_std_method, is_std_functi
 use crate::symbols::{SymbolFunc, SymbolType};
 
 fn if_as_expected(
-    expected: Option<&Type>,
-    calculated: &Type,
+    expected: Option<&VerifiedType>,
+    calculated: &VerifiedType,
     le: LExpr,
 ) -> Result<LExprTyped, String> {
     if expected.is_some() && expected.unwrap() != calculated {
@@ -32,7 +32,7 @@ fn if_as_expected(
 pub struct LightExpressionsGenerator<'a, 'b, 'c> {
     scope: &'a RawFunction,
     aggregate: &'b ProgramAggregate,
-    variables_types: HashMap<String, Type>,
+    variables_types: HashMap<String, VerifiedType>,
     func_resolver: SymbolResolver<'c, SymbolFunc>,
     type_resolver: SymbolResolver<'c, SymbolType>,
 }
@@ -56,7 +56,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
         }
     }
 
-    pub fn add_variable(&mut self, name: String, t: Type) -> Result<(), String> {
+    pub fn add_variable(&mut self, name: String, t: VerifiedType) -> Result<(), String> {
         if self.variables_types.contains_key(&name) {
             return Err(format!(
                 "Variable {} defined multiple times in function {}",
@@ -79,7 +79,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
         self.aggregate.functions.get(&method_func).unwrap()
     }
 
-    fn resolve_field<'q>(&self, t: &'q CustomType, f: &str) -> &'q Type {
+    fn resolve_field<'q>(&self, t: &'q CustomType, f: &str) -> &'q VerifiedType {
         let field_type = t.fields.iter().find(|(name, _)| *name == f);
         match field_type {
             Some((_, t)) => t,
@@ -90,7 +90,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
     pub fn calculate(
         &self,
         expr: &ExprWithPos,
-        expected: Option<&Type>,
+        expected: Option<&VerifiedType>,
     ) -> SemanticResult<LExprTyped> {
         let with_expr = SemanticError::add_expr(expr);
         match &expr.expr {
@@ -115,11 +115,12 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                     .map_err(with_expr)
             }
             Expr::This => match &self.scope.method_of {
-                Some(t) => {
-                    let obj_type: Type = t.into();
-                    if_as_expected(expected, &obj_type, LExpr::GetVar("this".into()))
-                        .map_err(with_expr)
-                }
+                Some(t) => if_as_expected(
+                    expected,
+                    &Type::Custom(t.clone()),
+                    LExpr::GetVar("this".into()),
+                )
+                .map_err(with_expr),
                 None => expression_error!(expr, "Using \"this\" is not allowed outside of methods"),
             },
 
@@ -159,10 +160,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                         );
                     }
 
-                    Type::Ident(_) => {
-                        let object_symbol = SymbolType::from(&le_object.expr_type);
-                        self.resolve_method(&object_symbol, method)
-                    }
+                    Type::Custom(symbol_type) => self.resolve_method(&symbol_type, method),
                     t => {
                         std_method = Box::new(get_std_method(t, method));
                         std_method.as_ref()
@@ -194,7 +192,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
             }
 
             Expr::TupleValue(items) => {
-                let item_types: Vec<Type>;
+                let item_types: Vec<VerifiedType>;
                 let calculated: Vec<LExprTyped>;
                 match expected {
                     None => {
@@ -281,10 +279,8 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
             Expr::FieldAccess { object, field } => {
                 let object_calculated = self.calculate(object, None)?;
                 match &object_calculated.expr_type {
-                    Type::Ident(_) => {
-                        let type_symbol = SymbolType::from(&object_calculated.expr_type);
-
-                        let object_definition = &self.aggregate.types[&type_symbol];
+                    Type::Custom(type_symbol) => {
+                        let object_definition = &self.aggregate.types[type_symbol];
                         let field_type = self.resolve_field(object_definition, field);
 
                         let lexpr = LExpr::AccessField {
@@ -306,6 +302,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                 if self.scope.method_of.is_none() {
                     return expression_error!(expr, "Accessing own field outside of method scope!");
                 }
+                let scope_type = self.scope.method_of.as_ref().unwrap();
                 // TODO: review exprwithpos for this, maybe too strange tbh
                 let this_object = self.calculate(
                     &ExprWithPos {
@@ -316,8 +313,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                     None,
                 )?;
 
-                let object_symbol = SymbolType::from(&this_object.expr_type);
-                let object_definition = self.aggregate.types.get(&object_symbol).unwrap();
+                let object_definition = self.aggregate.types.get(scope_type).unwrap();
                 let field_type = self.resolve_field(object_definition, field);
 
                 let lexpr =
@@ -344,11 +340,11 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
         &self,
         original: &ExprWithPos,
         raw_called: &'b RawFunction,
-        expected_return: Option<&Type>,
+        expected_return: Option<&VerifiedType>,
         given_args: &[ExprWithPos],
         implicit_this: Option<LExprTyped>,
     ) -> SemanticResult<LExprTyped> {
-        let expected_args: &[Type] = if implicit_this.is_some() {
+        let expected_args: &[VerifiedType] = if implicit_this.is_some() {
             &raw_called.args.types[1..]
         } else {
             &raw_called.args.types[..]
@@ -389,7 +385,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
         original: &ExprWithPos,
         object: &ExprWithPos,
         index: &ExprWithPos,
-        expected: Option<&Type>,
+        expected: Option<&VerifiedType>,
     ) -> SemanticResult<LExprTyped> {
         let calculated_object = self.calculate(object, None)?;
 

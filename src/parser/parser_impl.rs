@@ -1,6 +1,6 @@
 use super::scanner::*;
 use crate::ast::*;
-use crate::types::Type;
+use crate::types::ParsedType;
 
 use super::helpers::{bin_op_from_token, unary_op_from_token};
 
@@ -192,15 +192,15 @@ impl Parser {
         Ok(ImportDecl { module_path, typenames, functions })
     }
 
-    pub fn parse_type(&mut self) -> ParseResult<Type> {
+    pub fn parse_type(&mut self) -> ParseResult<ParsedType> {
         let mut result_type = match self.consume_token() {
             Token::LeftSquareBrackets => {
                 let item_type = self.parse_type()?;
                 consume_and_check!(self, Token::RightSquareBrackets);
-                Type::List(Box::new(item_type))
+                ParsedType::List(Box::new(item_type))
             }
             Token::LeftParenthesis => {
-                let mut tuple_items: Vec<Type> = vec![];
+                let mut tuple_items: Vec<ParsedType> = vec![];
 
                 until_closes!(self, Token::RightParenthesis, {
                     tuple_items.push(self.parse_type()?);
@@ -212,15 +212,15 @@ impl Parser {
                 match tuple_items.len() {
                     0 => return perr(self.full_token(0), "Empty tuple is not allowed"),
                     1 => tuple_items.pop().unwrap(),
-                    _ => Type::Tuple(tuple_items),
+                    _ => ParsedType::Tuple(tuple_items),
                 }
             }
             Token::TypeIdentifier(s) => match s.as_str() {
-                "Int" => Type::Int,
-                "Float" => Type::Float,
-                "Bool" => Type::Bool,
-                "String" => Type::String,
-                _ => Type::Ident(s.clone()),
+                "Int" => ParsedType::Int,
+                "Float" => ParsedType::Float,
+                "Bool" => ParsedType::Bool,
+                "String" => ParsedType::String,
+                _ => ParsedType::Custom(s.clone()),
             },
             _ => {
                 return perr(self.full_token(-1), "Wrong token for type definition");
@@ -229,7 +229,7 @@ impl Parser {
 
         while self.rel_token_check(0, Token::Question) {
             self.consume_token();
-            result_type = Type::Maybe(Box::new(result_type));
+            result_type = ParsedType::Maybe(Box::new(result_type));
         }
 
         Ok(result_type)
@@ -253,7 +253,7 @@ impl Parser {
             // So check if the constructor name is correct and return error if not
             if let Some(member_of) = member_of {
                 match &rettype {
-                    Some(Type::Ident(s)) if s == member_of => s.clone(),
+                    Some(ParsedType::Custom(s)) if s == member_of => s.clone(),
                     _ => return perr(self.full_token(0), "Method name is missing"),
                 }
             } else {
@@ -370,7 +370,7 @@ impl Parser {
 
     pub fn parse_var_declaration_continuation(
         &mut self,
-        typedecl: Type,
+        typedecl: ParsedType,
         start: usize,
     ) -> ParseResult<StatementWithPos> {
         let varname = consume_and_check_ident!(self);

@@ -1,5 +1,5 @@
 use crate::ast::*;
-use crate::types::Type;
+use crate::types::{Type, VerifiedType};
 
 use super::light_ast::{LExpr, LExprTyped, RawOperator};
 
@@ -19,7 +19,7 @@ pub fn calculate_unaryop(operator: &UnaryOp, operand: LExprTyped) -> Result<LExp
     })
 }
 
-fn wrap_binary(op: RawOperator, operands: Vec<LExprTyped>, res_type: Type) -> LExprTyped {
+fn wrap_binary(op: RawOperator, operands: Vec<LExprTyped>, res_type: VerifiedType) -> LExprTyped {
     LExprTyped { expr: LExpr::ApplyOp { operator: op, operands }, expr_type: res_type }
 }
 

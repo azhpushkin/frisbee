@@ -1,4 +1,4 @@
-use crate::types::Type;
+use crate::types::VerifiedType;
 
 use crate::symbols::{SymbolFunc, SymbolType};
 
@@ -17,11 +17,11 @@ pub enum LStatement {
     Continue,
     Return(LExprTyped),
     DeclareVar {
-        var_type: Type,
+        var_type: VerifiedType,
         name: String,
     },
     DeclareAndAssignVar {
-        var_type: Type,
+        var_type: VerifiedType,
         name: String,
         value: LExprTyped,
     },
@@ -83,21 +83,21 @@ pub enum RawOperator {
 #[derive(Debug)]
 pub struct LExprTyped {
     pub expr: LExpr,
-    pub expr_type: Type,
+    pub expr_type: VerifiedType,
 }
 
 impl LExprTyped {
     pub fn int(value: i64) -> Self {
-        LExprTyped { expr: LExpr::Int(value), expr_type: Type::Int }
+        LExprTyped { expr: LExpr::Int(value), expr_type: VerifiedType::Int }
     }
     pub fn float(value: f64) -> Self {
-        LExprTyped { expr: LExpr::Float(value), expr_type: Type::Float }
+        LExprTyped { expr: LExpr::Float(value), expr_type: VerifiedType::Float }
     }
     pub fn bool(value: bool) -> Self {
-        LExprTyped { expr: LExpr::Bool(value), expr_type: Type::Bool }
+        LExprTyped { expr: LExpr::Bool(value), expr_type: VerifiedType::Bool }
     }
     pub fn string(value: String) -> Self {
-        LExprTyped { expr: LExpr::String(value), expr_type: Type::String }
+        LExprTyped { expr: LExpr::String(value), expr_type: VerifiedType::String }
     }
 }
 
@@ -112,10 +112,10 @@ pub enum LExpr {
     AccessTupleItem { tuple: Box<LExprTyped>, index: usize },
 
     TupleValue(Vec<LExprTyped>),
-    ListValue { item_type: Type, items: Vec<LExprTyped> },
+    ListValue { item_type: VerifiedType, items: Vec<LExprTyped> },
 
     ApplyOp { operator: RawOperator, operands: Vec<LExprTyped> },
-    CallFunction { name: SymbolFunc, return_type: Type, args: Vec<LExprTyped> },
+    CallFunction { name: SymbolFunc, return_type: VerifiedType, args: Vec<LExprTyped> },
 
     AccessField { object: Box<LExprTyped>, field: String },
     AccessListItem { list: Box<LExprTyped>, index: Box<LExprTyped> },

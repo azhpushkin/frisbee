@@ -1,4 +1,4 @@
-use crate::types::Type;
+use crate::types::ParsedType;
 
 #[derive(Debug, PartialEq)]
 pub struct FileAst {
@@ -20,7 +20,7 @@ pub struct ImportDecl {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct TypedNamedObject {
-    pub typename: Type,
+    pub typename: ParsedType,
     pub name: String,
 }
 
@@ -36,7 +36,7 @@ pub struct ClassDecl {
 
 #[derive(Debug, PartialEq)]
 pub struct FunctionDecl {
-    pub rettype: Option<Type>,
+    pub rettype: Option<ParsedType>,
     pub name: String,
     pub args: Vec<TypedNamedObject>,
     pub statements: Vec<StatementWithPos>,
@@ -72,8 +72,8 @@ pub enum Statement {
         left: ExprWithPos,
         right: ExprWithPos,
     },
-    VarDecl(Type, String),
-    VarDeclWithAssign(Type, String, ExprWithPos),
+    VarDecl(ParsedType, String),
+    VarDeclWithAssign(ParsedType, String, ExprWithPos),
     SendMessage {
         active: ExprWithPos,
         method: String,

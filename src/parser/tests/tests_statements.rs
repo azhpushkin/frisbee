@@ -157,7 +157,7 @@ fn stmt_var_decl() {
 
     assert_stmt_parses(
         "Actor x;",
-        Statement::VarDecl(Type::Ident("Actor".into()), "x".into()),
+        Statement::VarDecl(Type::Custom("Actor".into()), "x".into()),
     );
 }
 
@@ -169,7 +169,7 @@ fn stmt_var_decl_equal() {
     assert_stmt_parses(
         "Actor x = asd;",
         Statement::VarDeclWithAssign(
-            Type::Ident("Actor".into()),
+            Type::Custom("Actor".into()),
             "x".into(),
             expr_raw(Expr::Identifier("asd".into()), 10, 12),
         ),

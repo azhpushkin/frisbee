@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::symbols::SymbolFunc;
-use crate::types::Type;
+use crate::types::VerifiedType;
 use crate::vm::opcodes::op;
 
 use super::constants::{Constant, ConstantsTable};
@@ -23,8 +23,8 @@ pub struct BytecodeGenerator<'a, 'b> {
     constants: &'b mut ConstantsTable,
     locals: HashMap<&'a String, u8>,
     locals_offset: u8,
-    locals_types: HashMap<&'a String, &'a Type>,
-    return_type: &'a Type,
+    locals_types: HashMap<&'a String, &'a VerifiedType>,
+    return_type: &'a VerifiedType,
     bytecode: FunctionBytecode,
 }
 
@@ -32,8 +32,8 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
     pub fn new(
         types_meta: &'a TypeMetadataTable,
         constants: &'b mut ConstantsTable,
-        initial_locals: Vec<(&'a String, &'a Type)>,
-        return_type: &'a Type,
+        initial_locals: Vec<(&'a String, &'a VerifiedType)>,
+        return_type: &'a VerifiedType,
     ) -> Self {
         let mut locals: HashMap<&'a String, u8> = HashMap::new();
         let mut locals_offset: u8 = return_type.get_size();
@@ -56,7 +56,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
         }
     }
 
-    pub fn add_local(&mut self, varname: &'a String, t: &'a Type) {
+    pub fn add_local(&mut self, varname: &'a String, t: &'a VerifiedType) {
         self.locals.insert(varname, self.locals_offset);
         self.locals_types.insert(varname, t);
         self.locals_offset += t.get_size();
@@ -95,7 +95,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
         self.bytecode.bytecode.push(opcode);
     }
 
-    pub fn push_reserve(&mut self, for_type: &Type) {
+    pub fn push_reserve(&mut self, for_type: &VerifiedType) {
         let reserve_size = for_type.get_size();
         if reserve_size > 0 {
             self.push(op::RESERVE);
@@ -103,7 +103,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
         }
     }
 
-    pub fn push_pop(&mut self, for_type: &Type) {
+    pub fn push_pop(&mut self, for_type: &VerifiedType) {
         let pop_size = for_type.get_size();
         if pop_size > 0 {
             self.push(op::POP);

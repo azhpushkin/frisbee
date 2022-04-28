@@ -1,13 +1,20 @@
 use crate::types::Type;
 
-pub fn get_type_from_tuple(t: &Type, i: usize) -> &Type {
+pub fn get_type_from_tuple<T>(t: &Type<T>, i: usize) -> &Type<T> {
     match t {
         Type::Tuple(items) => &items[i],
         _ => panic!("something is wrong, semantics should have checked this.."),
     }
 }
 
-pub fn get_tuple_offset(tuple_type: &Type, tuple_indexes: &[usize]) -> u8 {
+pub fn extract_custom_type<T>(t: &Type<T>) -> &T {
+    match t {
+        Type::Custom(s) => s,
+        _ => panic!("something is wrong, semantics should have checked this.."),
+    }
+}
+
+pub fn get_tuple_offset<T>(tuple_type: &Type<T>, tuple_indexes: &[usize]) -> u8 {
     if tuple_indexes.is_empty() {
         return 0;
     }
@@ -26,7 +33,7 @@ pub fn get_tuple_offset(tuple_type: &Type, tuple_indexes: &[usize]) -> u8 {
     }
 }
 
-pub fn get_tuple_subitem_size(tuple_type: &Type, tuple_indexes: &[usize]) -> u8 {
+pub fn get_tuple_subitem_size<T>(tuple_type: &Type<T>, tuple_indexes: &[usize]) -> u8 {
     if tuple_indexes.is_empty() {
         return tuple_type.get_size();
     } else {
@@ -37,7 +44,7 @@ pub fn get_tuple_subitem_size(tuple_type: &Type, tuple_indexes: &[usize]) -> u8 
     }
 }
 
-pub fn get_list_inner_type(list_type: &Type) -> &Type {
+pub fn get_list_inner_type<T>(list_type: &Type<T>) -> &Type<T> {
     match list_type {
         Type::List(inner_type) => inner_type.as_ref(),
         _ => panic!("something is wrong, semantics should have checked this.."),
@@ -55,12 +62,12 @@ mod test {
         let test_type = Type::Tuple(vec![
             Type::Int,
             Type::Tuple(vec![
-                Type::Tuple(vec![Type::Float, Type::Ident("SomeType".into())]),
+                Type::Tuple(vec![Type::Float, Type::Custom("SomeType")]),
                 Type::String,
             ]),
             Type::Tuple(vec![
                 Type::Tuple(vec![]),
-                Type::List(Box::new(Type::Ident("SomeType".into()))),
+                Type::List(Box::new(Type::Custom("SomeType"))),
             ]),
         ]);
 

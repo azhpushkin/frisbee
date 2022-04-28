@@ -1,8 +1,7 @@
 use crate::ast::*;
-use crate::types::Type;
+use crate::types::{verify_parsed_type, ParsedType, Type, VerifiedType};
 
 use super::aggregate::{ProgramAggregate, RawFunction};
-use super::annotations::annotate_type;
 use super::errors::{expression_error, statement_error, SemanticError, SemanticResult};
 use super::expressions::LightExpressionsGenerator;
 use super::light_ast::{LExpr, LExprTyped, LStatement, RawOperator};
@@ -35,8 +34,12 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
         Ok(())
     }
 
-    fn annotate_type(&self, t: &Type, stmt: &StatementWithPos) -> SemanticResult<Type> {
-        annotate_type(
+    fn annotate_type(
+        &self,
+        t: &ParsedType,
+        stmt: &StatementWithPos,
+    ) -> SemanticResult<VerifiedType> {
+        verify_parsed_type(
             t,
             &self.resolver.get_typenames_resolver(&self.scope.defined_at),
         )
@@ -61,11 +64,11 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
         let class_name = self.scope.method_of.as_ref().unwrap();
 
         LStatement::DeclareAndAssignVar {
-            var_type: class_name.into(),
+            var_type: Type::Custom(class_name.clone()),
             name: "this".into(),
             value: LExprTyped {
                 expr: LExpr::Allocate { typename: class_name.clone() },
-                expr_type: class_name.into(),
+                expr_type: Type::Custom(class_name.clone()),
             },
         }
     }
@@ -75,7 +78,7 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
 
         LStatement::Return(LExprTyped {
             expr: LExpr::GetVar("this".into()),
-            expr_type: class_name.into(),
+            expr_type: Type::Custom(class_name.clone()),
         })
     }
 
@@ -101,7 +104,7 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
     fn check_expr(
         &self,
         expr: &ExprWithPos,
-        expected: Option<&Type>,
+        expected: Option<&VerifiedType>,
     ) -> SemanticResult<LExprTyped> {
         self.lexpr_generator.calculate(expr, expected)
     }

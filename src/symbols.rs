@@ -1,4 +1,4 @@
-use std::fmt::{Display, Error, Formatter};
+use std::fmt;
 
 use crate::loader::ModuleAlias;
 use crate::types::Type;
@@ -21,7 +21,7 @@ impl SymbolFunc {
         Self(format!("std::{}", name))
     }
 
-    pub fn new_std_method(t: &Type, name: &str) -> Self {
+    pub fn new_std_method<T: fmt::Display>(t: &Type<T>, name: &str) -> Self {
         match t {
             Type::Int => Self(format!("std::Int::{}", name)),
             Type::Float => Self(format!("std::Float::{}", name)),
@@ -41,14 +41,14 @@ impl SymbolFunc {
     }
 }
 
-impl Display for SymbolFunc {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+impl fmt::Display for SymbolFunc {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "{}", self.0)
     }
 }
 
-impl Display for SymbolType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
+impl fmt::Display for SymbolType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         write!(f, "{}", self.0)
     }
 }
@@ -66,30 +66,30 @@ impl SymbolType {
     }
 }
 
-impl Into<Type> for &SymbolType {
-    #![allow(clippy::from_over_into)]
-    fn into(self) -> Type {
-        Type::Ident(self.0.clone())
-    }
-}
+// impl Into<Type> for &SymbolType {
+//     #![allow(clippy::from_over_into)]
+//     fn into(self) -> Type {
+//         Type::Custom(self.0.clone())
+//     }
+// }
 
-impl From<&Type> for SymbolType {
-    fn from(t: &Type) -> Self {
-        if let Type::Ident(name) = t {
-            // check that ident is a correct SymbolType
-            if !name.contains("::") {
-                panic!("{} is not a valid SymbolType", name);
-            }
-            let (module, typename) = name.rsplit_once("::").unwrap();
-            assert!(!module.contains("::"), "Bad module name: {}", module);
-            assert!(
-                typename.chars().next().unwrap().is_ascii_uppercase(),
-                "Bad SymbolType: {}",
-                name
-            );
-            SymbolType(name.clone())
-        } else {
-            panic!("Type {} can't be coersed to SymbolType!", t);
-        }
-    }
-}
+// impl From<&Type> for SymbolType {
+//     fn from(t: &Type) -> Self {
+//         if let Type::Custom(name) = t {
+//             // check that ident is a correct SymbolType
+//             if !name.contains("::") {
+//                 panic!("{} is not a valid SymbolType", name);
+//             }
+//             let (module, typename) = name.rsplit_once("::").unwrap();
+//             assert!(!module.contains("::"), "Bad module name: {}", module);
+//             assert!(
+//                 typename.chars().next().unwrap().is_ascii_uppercase(),
+//                 "Bad SymbolType: {}",
+//                 name
+//             );
+//             SymbolType(name.clone())
+//         } else {
+//             panic!("Type {} can't be coersed to SymbolType!", t);
+//         }
+//     }
+// }

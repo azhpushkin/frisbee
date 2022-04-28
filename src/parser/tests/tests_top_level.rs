@@ -119,7 +119,7 @@ fn active_object_and_fields() {
             fields: vec![
                 TypedNamedObject { typename: Type::String, name: "name".into() },
                 TypedNamedObject {
-                    typename: Type::Ident(String::from("Actor")),
+                    typename: Type::Custom(String::from("Actor")),
                     name: "lol".into()
                 },
             ],
@@ -171,7 +171,7 @@ fn class_object_constructor_method() {
             name: String::from("Data"),
             fields: vec![],
             methods: vec![FunctionDecl {
-                rettype: Some(Type::Ident(String::from("Data"))),
+                rettype: Some(Type::Custom(String::from("Data"))),
                 name: String::from("Data"),
                 args: vec![],
                 statements: vec![],
@@ -202,7 +202,7 @@ fn active_object_constructor_method() {
             name: String::from("Actor"),
             fields: vec![],
             methods: vec![FunctionDecl {
-                rettype: Some(Type::Ident(String::from("Actor"))),
+                rettype: Some(Type::Custom(String::from("Actor"))),
                 name: String::from("Actor"),
                 args: vec![],
                 statements: vec![],

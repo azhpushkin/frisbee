@@ -7,10 +7,10 @@ pub mod loader;
 pub mod parser;
 pub mod semantics;
 pub mod stdlib;
+pub mod symbols;
 pub mod test_utils;
 pub mod types;
 pub mod vm;
-pub mod symbols;
 
 // TODO: color output?
 

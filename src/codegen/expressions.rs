@@ -1,8 +1,8 @@
 use super::constants::Constant;
 use super::generator::BytecodeGenerator;
-use super::utils::{get_tuple_offset, get_type_from_tuple};
+use super::utils::{extract_custom_type, get_tuple_offset, get_type_from_tuple};
 use crate::semantics::light_ast::{LExpr, LExprTyped, RawOperator};
-use crate::symbols::{SymbolFunc, SymbolType};
+use crate::symbols::SymbolFunc;
 use crate::vm::opcodes::op;
 use crate::vm::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
 
@@ -128,11 +128,11 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 self.push(item_type.get_size());
             }
             LExpr::AccessField { object, field } => {
-                let object_type: SymbolType = SymbolType::from(&object.expr_type);
+                let object_type = extract_custom_type(&object.expr_type);
                 self.push_expr(object);
                 self.push(op::GET_OBJ_FIELD);
-                self.push(self.types_meta.get(&object_type).field_offsets[field]);
-                self.push(self.types_meta.get(&object_type).field_sizes[field]);
+                self.push(self.types_meta.get(object_type).field_offsets[field]);
+                self.push(self.types_meta.get(object_type).field_sizes[field]);
             }
             LExpr::AccessListItem { list, index } => {
                 self.push_expr(index);
@@ -151,7 +151,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
 mod test {
     use crate::stdlib;
     use crate::symbols::SymbolFunc;
-    use crate::types::Type;
+    use crate::types::{Type, VerifiedType};
     use crate::vm::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
 
     #[test]
@@ -159,7 +159,7 @@ mod test {
         let mut std_symbols: Vec<SymbolFunc> = vec![];
 
         std_symbols.extend(stdlib::STD_FUNCTIONS.map(|(s, _)| SymbolFunc::new_std_function(s)));
-        let method_pairs = [
+        let method_pairs: [(_, VerifiedType); 5] = [
             (stdlib::STD_BOOL_METHODS.iter(), Type::Bool),
             (stdlib::STD_INT_METHODS.iter(), Type::Int),
             (stdlib::STD_FLOAT_METHODS.iter(), Type::Float),

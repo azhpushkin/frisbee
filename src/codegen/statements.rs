@@ -1,12 +1,11 @@
 use crate::semantics::aggregate::RawFunction;
 use crate::semantics::light_ast::LStatement;
-use crate::symbols::SymbolType;
 use crate::vm::opcodes::op;
 
 use super::constants::ConstantsTable;
 use super::generator::{BytecodeGenerator, FunctionBytecode, JumpPlaceholder};
 use super::types_metadata::TypeMetadataTable;
-use super::utils::{get_list_inner_type, get_tuple_offset};
+use super::utils::{extract_custom_type, get_list_inner_type, get_tuple_offset};
 
 pub fn generate_function_bytecode(
     func: &RawFunction,
@@ -52,15 +51,15 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 self.push_expr(value);
             }
             LStatement::AssignToField { object, field, tuple_indexes, value } => {
-                let object_type = SymbolType::from(&object.expr_type);
+                let object_type = extract_custom_type(&object.expr_type);
                 // Push value before object, as we need to first pop a pointer
                 // to access the memory before writing value to it
                 self.push_expr(value);
                 self.push_expr(&object);
 
-                let field_offset = self.types_meta.get(&object_type).field_offsets[field];
+                let field_offset = self.types_meta.get(object_type).field_offsets[field];
                 let tuple_offset = get_tuple_offset(&value.expr_type, &tuple_indexes);
-                // let field_size = self.types_meta.get(&object_type).field_sizes[field];
+
                 self.push(op::SET_OBJ_FIELD);
                 self.push(field_offset + tuple_offset);
                 self.push(value.expr_type.get_size());

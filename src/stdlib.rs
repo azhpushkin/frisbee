@@ -1,8 +1,11 @@
-use crate::types::Type;
+use crate::types::{Type, VerifiedType};
 
-pub type StdFunction<'a> = (&'a str, fn() -> (Vec<Type>, Type));
-pub type StdMethod<'a> = (&'a str, fn(&Type) -> (Vec<Type>, Type));
-const VOID_TYPE: Type = Type::Tuple(vec![]);
+pub type StdFunction<'a> = (&'a str, fn() -> (Vec<VerifiedType>, VerifiedType));
+pub type StdMethod<'a> = (
+    &'a str,
+    fn(&VerifiedType) -> (Vec<VerifiedType>, VerifiedType),
+);
+const VOID_TYPE: VerifiedType = Type::Tuple(vec![]);
 
 pub const STD_FUNCTIONS: [StdFunction; 4] = [
     ("print", || (vec![Type::String], VOID_TYPE)),

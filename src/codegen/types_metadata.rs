@@ -53,15 +53,17 @@ impl TypeMetadataTable {
 #[cfg(test)]
 mod test {
     use crate::semantics::annotations::TypedFields;
+    use crate::test_utils::new_alias;
     use crate::types::Type;
 
     use super::*;
 
     #[test]
     fn check_offsets_and_sizes() {
+        let gen_symbol_type = || SymbolType::new(&new_alias("somemodule"), "Type");
         let field_types = vec![
             Type::Int,
-            Type::Tuple(vec![Type::Ident("Some".into()), Type::String]),
+            Type::Tuple(vec![Type::Custom(gen_symbol_type()), Type::String]),
             Type::Bool,
         ];
         let field_names: Vec<String> = vec!["a".into(), "b".into(), "c".into()];
@@ -69,11 +71,7 @@ mod test {
             types: field_types,
             names: field_names.into_iter().enumerate().collect(),
         };
-        let custom_type = CustomType {
-            name: SymbolType::from(&Type::Ident("module::MyType".into())),
-            is_active: false,
-            fields,
-        };
+        let custom_type = CustomType { name: gen_symbol_type(), is_active: false, fields };
 
         let metadata = metadata_for_type(&custom_type);
 

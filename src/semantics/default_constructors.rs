@@ -20,7 +20,7 @@ pub fn add_default_constructor(class: &mut ClassDecl) {
     }
     let default_constructor = FunctionDecl {
         name: class.name.clone(),
-        rettype: Some(Type::Ident(class.name.clone())),
+        rettype: Some(Type::Custom(class.name.clone())),
         args: class.fields.clone(),
         statements: statements
             .into_iter()

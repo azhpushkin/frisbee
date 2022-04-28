@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::loader::generate_alias;
 use crate::stdlib;
-use crate::types::Type;
+use crate::types::{Type, VerifiedType};
 
 use super::aggregate::RawFunction;
 use super::annotations::TypedFields;
@@ -12,12 +12,12 @@ pub fn is_std_function(func_name: &str) -> bool {
     stdlib::STD_FUNCTIONS.iter().any(|(k, _)| *k == func_name)
 }
 
-fn std_function_signatures() -> HashMap<&'static str, (Vec<Type>, Type)> {
+fn std_function_signatures() -> HashMap<&'static str, (Vec<VerifiedType>, VerifiedType)> {
     // TODO: review return types when void is done!
     HashMap::from(stdlib::STD_FUNCTIONS.map(|(k, v)| (k, v())))
 }
 
-pub fn get_std_method(t: &Type, method_name: &str) -> RawFunction {
+pub fn get_std_method(t: &VerifiedType, method_name: &str) -> RawFunction {
     let mut type_methods = match t {
         Type::Bool => stdlib::STD_BOOL_METHODS.iter(),
         Type::Int => stdlib::STD_INT_METHODS.iter(),
