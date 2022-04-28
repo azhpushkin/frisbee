@@ -1,17 +1,16 @@
 use std::collections::HashMap;
 
 use crate::ast::*;
-use crate::semantics::errors::expression_error;
+use crate::symbols::{SymbolFunc, SymbolType};
 use crate::types::{Type, VerifiedType};
 
 use super::aggregate::{ProgramAggregate, RawFunction};
 use super::annotations::CustomType;
-use super::errors::{SemanticError, SemanticResult};
+use super::errors::{expression_error, SemanticError, SemanticResult};
 use super::operators::{calculate_binaryop, calculate_unaryop};
 use super::resolvers::{NameResolver, SymbolResolver};
 use super::std_definitions::{get_std_function_raw, get_std_method, is_std_function};
 use super::verified_ast::{VExpr, VExprTyped};
-use crate::symbols::{SymbolFunc, SymbolType};
 
 fn if_as_expected(
     expected: Option<&VerifiedType>,

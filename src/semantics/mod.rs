@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use crate::loader::WholeProgram;
+use crate::alias::ModuleAlias;
+use crate::ast::{ClassDecl, FileAst};
 
 pub mod aggregate;
 pub mod annotations;
@@ -14,22 +15,24 @@ mod std_definitions;
 mod tests;
 pub mod verified_ast;
 
-pub fn add_default_constructors(wp: &mut WholeProgram) {
-    for file in wp.files.values_mut() {
-        for class in file.ast.types.iter_mut() {
-            default_constructors::add_default_constructor(class);
-        }
+pub fn add_default_constructors<'a, I>(classes: I)
+where
+    I: Iterator<Item = &'a mut ClassDecl>,
+{
+    for class in classes {
+        default_constructors::add_default_constructor(class);
     }
 }
 
 pub fn perform_semantic_analysis(
-    wp: &WholeProgram,
+    modules: &[(&ModuleAlias, &FileAst)],
+    entry_module: &ModuleAlias,
 ) -> Result<aggregate::ProgramAggregate, errors::SemanticErrorWithModule> {
-    let names_resolver = resolvers::NameResolver::create(wp)?;
-    let mut aggregate = aggregate::create_basic_aggregate(wp, &names_resolver)?;
+    let names_resolver = resolvers::NameResolver::create(modules)?;
+    let mut aggregate = aggregate::create_basic_aggregate(modules, entry_module, &names_resolver)?;
 
     let functions_mapping =
-        aggregate::fill_aggregate_with_funcs(wp, &mut aggregate, &names_resolver)?;
+        aggregate::fill_aggregate_with_funcs(modules, &mut aggregate, &names_resolver)?;
 
     let mut ls_mapping: HashMap<crate::symbols::SymbolFunc, Vec<verified_ast::VStatement>> =
         HashMap::new();

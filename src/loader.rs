@@ -20,6 +20,12 @@ pub struct WholeProgram {
     pub files: HashMap<ModuleAlias, LoadedFile>,
 }
 
+impl WholeProgram {
+    pub fn iter(&self) -> impl Iterator<Item = (&ModuleAlias, &FileAst)> {
+        self.files.iter().map(|(k, v)| (k, &v.ast))
+    }
+}
+
 fn load_file(workdir: &PathBuf, module_path: &Vec<String>) -> Option<LoadedFile> {
     if module_path.first().unwrap() == "std" {
         println!("Error loading {:?}: std is reserved", module_path);

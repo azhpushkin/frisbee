@@ -3,6 +3,8 @@ use std::fmt;
 use crate::alias::ModuleAlias;
 use crate::types::Type;
 
+pub static MAIN_FUNCTION_NAME: &str = "main";
+
 #[derive(Debug, PartialEq, Clone, Eq, Hash)]
 pub struct SymbolType(String);
 

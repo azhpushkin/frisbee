@@ -37,10 +37,15 @@ fn main() {
 
     let mut wp = loader::load_program(file_path).expect("Error loading!");
 
-    semantics::add_default_constructors(&mut wp);
+    semantics::add_default_constructors(
+        wp.files
+            .iter_mut()
+            .flat_map(|(_, loaded_file)| loaded_file.ast.types.iter_mut()),
+    );
+    let modules: Vec<_> = wp.iter().collect();
 
-    let aggregate = semantics::perform_semantic_analysis(&wp).expect("Error generating bytecode!");
-    // println!("{:#?}", aggregate);
+    let aggregate = semantics::perform_semantic_analysis(&modules, &wp.main_module)
+        .expect("Error generating bytecode!");
 
     let bytecode = codegen::generate(&aggregate);
 

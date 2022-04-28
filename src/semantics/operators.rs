@@ -1,4 +1,4 @@
-use crate::ast::*;
+use crate::ast::{BinaryOp, UnaryOp};
 use crate::types::{Type, VerifiedType};
 
 use super::verified_ast::{RawOperator, VExpr, VExprTyped};

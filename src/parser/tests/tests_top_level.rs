@@ -118,10 +118,7 @@ fn active_object_and_fields() {
             name: String::from("Actor"),
             fields: vec![
                 TypedItem { typename: Type::String, name: "name".into() },
-                TypedItem {
-                    typename: Type::Custom(String::from("Actor")),
-                    name: "lol".into()
-                },
+                TypedItem { typename: Type::Custom(String::from("Actor")), name: "lol".into() },
             ],
             methods: vec![],
         }

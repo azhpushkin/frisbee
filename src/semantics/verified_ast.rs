@@ -1,6 +1,5 @@
-use crate::types::VerifiedType;
-
 use crate::symbols::{SymbolFunc, SymbolType};
+use crate::types::VerifiedType;
 
 #[derive(Debug)]
 pub enum VStatement {

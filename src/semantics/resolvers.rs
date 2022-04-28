@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
 use crate::alias::ModuleAlias;
-use crate::loader::{LoadedFile, WholeProgram};
+use crate::ast::FileAst;
+use crate::symbols::{SymbolFunc, SymbolType};
 
 use super::errors::{top_level_with_module, SemanticErrorWithModule};
 use super::std_definitions::is_std_function;
-use crate::symbols::{SymbolFunc, SymbolType};
 
 type SymbolLookupMapping<T> = HashMap<ModuleAlias, HashMap<String, T>>;
 
@@ -25,25 +25,27 @@ pub struct NameResolver {
 }
 
 impl NameResolver {
-    pub fn create(wp: &WholeProgram) -> Result<NameResolver, SemanticErrorWithModule> {
+    pub fn create(
+        modules: &[(&ModuleAlias, &FileAst)],
+    ) -> Result<NameResolver, SemanticErrorWithModule> {
         let mut resolver = NameResolver { typenames: HashMap::new(), functions: HashMap::new() };
 
-        for (file_name, file) in wp.files.iter() {
-            check_module_does_not_import_itself(file)?;
+        for (alias, file_ast) in modules.iter() {
+            check_module_does_not_import_itself(alias, file_ast)?;
 
-            let function_origins = get_functions_origins(file);
+            let function_origins = get_functions_origins(alias, file_ast);
             let functions_mapping: SingleFileMapping<SymbolFunc> =
                 get_origins(function_origins, &SymbolFunc::new)?;
 
-            let typename_origins = get_typenames_origins(file);
+            let typename_origins = get_typenames_origins(alias, file_ast);
             let typenames_mapping: SingleFileMapping<SymbolType> =
                 get_origins(typename_origins, &SymbolType::new)?;
 
-            resolver.functions.insert(file_name.clone(), functions_mapping);
-            resolver.typenames.insert(file_name.clone(), typenames_mapping);
+            resolver.functions.insert((*alias).to_owned(), functions_mapping);
+            resolver.typenames.insert((*alias).to_owned(), typenames_mapping);
         }
 
-        resolver.validate(wp)?;
+        resolver.validate(modules)?;
 
         Ok(resolver)
     }
@@ -82,12 +84,15 @@ impl NameResolver {
         })
     }
 
-    fn validate(&self, wp: &WholeProgram) -> Result<(), SemanticErrorWithModule> {
-        for (alias, file) in wp.files.iter() {
-            for (module, name) in get_functions_origins(file) {
+    fn validate(
+        &self,
+        modules: &[(&ModuleAlias, &FileAst)],
+    ) -> Result<(), SemanticErrorWithModule> {
+        for (alias, file_ast) in modules.iter() {
+            for (module, name) in get_functions_origins(alias, file_ast) {
                 if !self.functions[&module].contains_key(name) {
                     return top_level_with_module!(
-                        alias,
+                        *alias,
                         "Imported function {} is not defined in module {}!",
                         name,
                         module
@@ -96,16 +101,16 @@ impl NameResolver {
 
                 if is_std_function(name) {
                     return top_level_with_module!(
-                        alias,
+                        *alias,
                         "Function {} is already defined in stdlib!",
                         name
                     );
                 }
             }
-            for (module, typename) in get_typenames_origins(file) {
+            for (module, typename) in get_typenames_origins(alias, file_ast) {
                 if !self.typenames[&module].contains_key(typename) {
                     return top_level_with_module!(
-                        alias,
+                        *alias,
                         "Imported type {} is not defined in module {}!",
                         typename,
                         module
@@ -117,14 +122,13 @@ impl NameResolver {
     }
 }
 
-fn check_module_does_not_import_itself(file: &LoadedFile) -> Result<(), SemanticErrorWithModule> {
-    for import in &file.ast.imports {
-        if ModuleAlias::new(&import.module_path) == file.module_alias {
-            return top_level_with_module!(
-                file.module_alias,
-                "Module {} is importing itself!",
-                file.module_alias
-            );
+fn check_module_does_not_import_itself(
+    alias: &ModuleAlias,
+    file_ast: &FileAst,
+) -> Result<(), SemanticErrorWithModule> {
+    for import in &file_ast.imports {
+        if &ModuleAlias::new(&import.module_path) == alias {
+            return top_level_with_module!(alias, "Module {} is importing itself!", alias);
         }
     }
     Ok(())
@@ -154,15 +158,12 @@ where
 }
 
 fn get_typenames_origins<'a>(
-    file: &'a LoadedFile,
+    alias: &'a ModuleAlias,
+    file_ast: &'a FileAst,
 ) -> Box<dyn Iterator<Item = (ModuleAlias, &'a str)> + 'a> {
-    let defined_types = file
-        .ast
-        .types
-        .iter()
-        .map(move |d| (file.module_alias.clone(), d.name.as_str()));
+    let defined_types = file_ast.types.iter().map(move |d| (alias.clone(), d.name.as_str()));
 
-    let imported_types = file.ast.imports.iter().flat_map(|i| {
+    let imported_types = file_ast.imports.iter().flat_map(|i| {
         i.typenames
             .iter()
             .map(move |typename| (ModuleAlias::new(&i.module_path), typename.as_str()))
@@ -173,15 +174,15 @@ fn get_typenames_origins<'a>(
 }
 
 fn get_functions_origins<'a>(
-    file: &'a LoadedFile,
+    alias: &'a ModuleAlias,
+    file_ast: &'a FileAst,
 ) -> Box<dyn Iterator<Item = (ModuleAlias, &'a str)> + 'a> {
-    let defined_functions = file
-        .ast
+    let defined_functions = file_ast
         .functions
         .iter()
-        .map(move |f| (file.module_alias.clone(), f.name.as_str()));
+        .map(move |f| (alias.clone(), f.name.as_str()));
 
-    let imported_functions = file.ast.imports.iter().flat_map(|i| {
+    let imported_functions = file_ast.imports.iter().flat_map(|i| {
         i.functions
             .iter()
             .map(move |funcname| (ModuleAlias::new(&i.module_path), funcname.as_str()))
@@ -207,8 +208,8 @@ mod test {
             fun Nil somefun() {}
         "#,
         );
-
-        let resolver = NameResolver::create(&wp).unwrap();
+        let modules_with_ast: Vec<_> = wp.iter().collect();
+        let resolver = NameResolver::create(&modules_with_ast).unwrap();
 
         let main_alias = new_alias("main");
         let mod_alias = new_alias("mod");
@@ -244,6 +245,7 @@ mod test {
             fun Nil somefun() {}
         "#,
         );
-        assert!(NameResolver::create(&wp).is_err());
+        let modules_with_ast: Vec<_> = wp.iter().collect();
+        assert!(NameResolver::create(&modules_with_ast).is_err());
     }
 }

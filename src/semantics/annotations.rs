@@ -1,5 +1,5 @@
 use crate::ast::TypedItem;
-use crate::types::{VerifiedType, verify_parsed_type};
+use crate::types::{verify_parsed_type, VerifiedType};
 use std::collections::HashMap;
 
 use super::resolvers::SymbolResolver;
@@ -26,8 +26,6 @@ impl TypedFields {
         self.types.iter().enumerate().map(move |(i, t)| (&self.names[&i], t))
     }
 }
-
-
 
 pub fn annotate_typednamed_vec(
     v: &[TypedItem],
