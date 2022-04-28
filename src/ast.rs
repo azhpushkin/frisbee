@@ -19,7 +19,7 @@ pub struct ImportDecl {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct TypedNamedObject {
+pub struct TypedItem {
     pub typename: ParsedType,
     pub name: String,
 }
@@ -30,7 +30,7 @@ pub struct TypedNamedObject {
 pub struct ClassDecl {
     pub is_active: bool,
     pub name: String,
-    pub fields: Vec<TypedNamedObject>,
+    pub fields: Vec<TypedItem>,
     pub methods: Vec<FunctionDecl>,
 }
 
@@ -38,7 +38,7 @@ pub struct ClassDecl {
 pub struct FunctionDecl {
     pub rettype: Option<ParsedType>,
     pub name: String,
-    pub args: Vec<TypedNamedObject>,
+    pub args: Vec<TypedItem>,
     pub statements: Vec<StatementWithPos>,
 }
 

@@ -1,5 +1,5 @@
-use crate::ast::TypedNamedObject;
-use crate::types::{verify_parsed_type, VerifiedType};
+use crate::ast::TypedItem;
+use crate::types::{VerifiedType, verify_parsed_type};
 use std::collections::HashMap;
 
 use super::resolvers::SymbolResolver;
@@ -27,8 +27,10 @@ impl TypedFields {
     }
 }
 
+
+
 pub fn annotate_typednamed_vec(
-    v: &[TypedNamedObject],
+    v: &[TypedItem],
     resolver: &SymbolResolver<SymbolType>,
 ) -> Result<TypedFields, String> {
     let mut typed_fields = TypedFields { names: HashMap::new(), types: vec![] };

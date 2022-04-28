@@ -97,8 +97,8 @@ fn parse_function_definition() {
                 rettype: None,
                 name: String::from("get_person"),
                 args: vec![
-                    TypedNamedObject { typename: Type::Int, name: "age".into() },
-                    TypedNamedObject { typename: Type::String, name: "name".into() }
+                    TypedItem { typename: Type::Int, name: "age".into() },
+                    TypedItem { typename: Type::String, name: "name".into() }
                 ],
                 statements: vec![StatementWithPos { statement: var_decl_statement, pos: 44 }],
             }]
@@ -117,8 +117,8 @@ fn active_object_and_fields() {
             is_active: true,
             name: String::from("Actor"),
             fields: vec![
-                TypedNamedObject { typename: Type::String, name: "name".into() },
-                TypedNamedObject {
+                TypedItem { typename: Type::String, name: "name".into() },
+                TypedItem {
                     typename: Type::Custom(String::from("Actor")),
                     name: "lol".into()
                 },
@@ -143,8 +143,8 @@ fn class_object_and_methods() {
                 rettype: Some(Type::Bool),
                 name: String::from("get_person"),
                 args: vec![
-                    TypedNamedObject { typename: Type::Int, name: "age".into() },
-                    TypedNamedObject { typename: Type::String, name: "name".into() },
+                    TypedItem { typename: Type::Int, name: "age".into() },
+                    TypedItem { typename: Type::String, name: "name".into() },
                 ],
                 statements: vec![StatementWithPos {
                     statement: Statement::Expr(ExprWithPos {

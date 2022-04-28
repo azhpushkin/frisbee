@@ -263,7 +263,7 @@ impl Parser {
             consume_and_check_ident!(self)
         };
 
-        let mut args: Vec<TypedNamedObject> = vec![];
+        let mut args: Vec<TypedItem> = vec![];
 
         consume_and_check!(self, Token::LeftParenthesis);
         until_closes!(self, Token::RightParenthesis, {
@@ -273,7 +273,7 @@ impl Parser {
             if self.rel_token_check(0, Token::Comma) {
                 self.consume_token();
             }
-            args.push(TypedNamedObject { typename: argtype, name: argname })
+            args.push(TypedItem { typename: argtype, name: argname })
         });
 
         let stmts = self.parse_statements_in_curly_block()?;
@@ -289,7 +289,7 @@ impl Parser {
         }
 
         let new_object_name = consume_and_check_type_ident!(self);
-        let mut fields: Vec<TypedNamedObject> = vec![];
+        let mut fields: Vec<TypedItem> = vec![];
         let mut methods: Vec<FunctionDecl> = vec![];
 
         consume_and_check!(self, Token::LeftCurlyBrackets);
@@ -302,7 +302,7 @@ impl Parser {
             let typename = self.parse_type()?;
             let name = consume_and_check_ident!(self);
             consume_and_check!(self, Token::Semicolon);
-            fields.push(TypedNamedObject { typename, name });
+            fields.push(TypedItem { typename, name });
         }
 
         // Parse object methods

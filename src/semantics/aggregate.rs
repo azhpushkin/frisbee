@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::alias::ModuleAlias;
-use crate::ast::{ClassDecl, FunctionDecl, TypedNamedObject};
+use crate::ast::{ClassDecl, FunctionDecl, TypedItem};
 use crate::loader::WholeProgram;
 use crate::types::{verify_parsed_type, Type, VerifiedType};
 
@@ -120,7 +120,7 @@ pub fn fill_aggregate_with_funcs<'a>(
                 if method.name != class_decl.name {
                     args.insert(
                         0,
-                        TypedNamedObject {
+                        TypedItem {
                             name: "this".to_string(),
                             typename: Type::Custom(class_decl.name.clone()),
                         },
