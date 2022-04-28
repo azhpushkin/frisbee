@@ -36,15 +36,14 @@ fn match_operator(raw_op: &RawOperator) -> u8 {
     }
 }
 
-pub fn match_std_function(name: &SymbolFunc) -> u8 {
-    let name_s: String = name.into();
+pub fn match_std_function(symbol: &SymbolFunc) -> u8 {
     let matched_std_function = STD_RAW_FUNCTION_RUNNERS
         .iter()
         .enumerate()
-        .find(|(_, (name, _))| *name == name_s.as_str());
+        .find(|(_, (name, _))| symbol.is_eq_to_str(*name));
     match matched_std_function {
         Some((index, (_, _))) => index as u8,
-        None => panic!("No std function {} found", name_s),
+        None => panic!("No std function {} found", symbol),
     }
 }
 
@@ -174,16 +173,16 @@ mod test {
             std_symbols.extend(methods.map(|(s, _)| SymbolFunc::new_std_method(&t, s)));
         }
 
-        let mut implemented_std_functions: Vec<String> = STD_RAW_FUNCTION_RUNNERS
+        let mut std_runner_names: Vec<String> = STD_RAW_FUNCTION_RUNNERS
             .iter()
             .map(|(s, _)| String::from(*s))
             .collect();
-        let mut typechecked_std_functions: Vec<String> =
-            std_symbols.iter().map(|s| s.into()).collect();
 
-        implemented_std_functions.sort();
-        typechecked_std_functions.sort();
+        std_runner_names.sort();
+        std_symbols.sort();
 
-        assert_eq!(implemented_std_functions, typechecked_std_functions);
+        for (runner_name, symbol) in std_runner_names.iter().zip(std_symbols.iter()) {
+            assert!(symbol.is_eq_to_str(runner_name));
+        }
     }
 }

@@ -34,7 +34,7 @@ pub fn assemble_chunks(
     let mut encoded_symbols_info: HashMap<usize, &SymbolFunc> = HashMap::new();
 
     for function_name in functions.keys() {
-        let name_s: String = function_name.into();
+        let name_s: String = format!("{}", function_name);
         bytecode.extend((name_s.len() as u16).to_be_bytes());
         bytecode.extend(name_s.as_bytes());
 

@@ -67,19 +67,19 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
         Ok(())
     }
 
-    fn resolve_func(&self, name: &String) -> Result<&'b RawFunction, String> {
+    fn resolve_func(&self, name: &str) -> Result<&'b RawFunction, String> {
         let func = (self.func_resolver)(name)?;
         // TODO: check for errors to be sure
         // Resolver oly returns verified functions so it is safe to unwrap from aggregate
         Ok(self.aggregate.functions.get(&func).unwrap())
     }
 
-    fn resolve_method(&self, t: &SymbolType, method: &String) -> &'b RawFunction {
+    fn resolve_method(&self, t: &SymbolType, method: &str) -> &'b RawFunction {
         let method_func: SymbolFunc = t.method(method);
         self.aggregate.functions.get(&method_func).unwrap()
     }
 
-    fn resolve_field<'q>(&self, t: &'q CustomType, f: &String) -> &'q Type {
+    fn resolve_field<'q>(&self, t: &'q CustomType, f: &str) -> &'q Type {
         let field_type = t.fields.iter().find(|(name, _)| *name == f);
         match field_type {
             Some((_, t)) => t,
@@ -125,7 +125,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
 
             Expr::UnaryOp { op, operand } => {
                 let operand = self.calculate(operand, None)?;
-                calculate_unaryop(&op, operand).map_err(with_expr)
+                calculate_unaryop(op, operand).map_err(with_expr)
             }
             Expr::BinOp { left, right, op } => {
                 let binary_res = calculate_binaryop(
@@ -142,13 +142,13 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                     self.calculate_function_call(expr, &std_raw, expected, args, None)
                 } else {
                     let raw_called =
-                        self.resolve_func(&function).map_err(SemanticError::add_expr(expr))?;
+                        self.resolve_func(function).map_err(SemanticError::add_expr(expr))?;
                     self.calculate_function_call(expr, raw_called, expected, args, None)
                 }
             }
             Expr::MethodCall { object, method, args } => {
                 let le_object = self.calculate(object, None)?;
-                
+
                 let std_method: Box<RawFunction>;
                 let raw_method = match &le_object.expr_type {
                     Type::Tuple(..) => return expression_error!(expr, "Tuples have no methods"),
@@ -164,7 +164,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                         self.resolve_method(&object_symbol, method)
                     }
                     t => {
-                        std_method = Box::new(get_std_method(&t, method));
+                        std_method = Box::new(get_std_method(t, method));
                         std_method.as_ref()
                     }
                 };
@@ -188,7 +188,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
             Expr::NewClassInstance { typename, args } => {
                 let symbol =
                     &(self.type_resolver)(typename).map_err(SemanticError::add_expr(expr))?;
-                let raw_type = &self.aggregate.types[&symbol];
+                let raw_type = &self.aggregate.types[symbol];
                 let raw_constructor = self.resolve_method(&raw_type.name, typename);
                 self.calculate_function_call(expr, raw_constructor, expected, args, None)
             }
@@ -318,7 +318,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
 
                 let object_symbol = SymbolType::from(&this_object.expr_type);
                 let object_definition = self.aggregate.types.get(&object_symbol).unwrap();
-                let field_type = self.resolve_field(object_definition, &field);
+                let field_type = self.resolve_field(object_definition, field);
 
                 let lexpr =
                     LExpr::AccessField { object: Box::new(this_object), field: field.clone() };

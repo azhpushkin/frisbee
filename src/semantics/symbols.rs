@@ -35,10 +35,9 @@ impl SymbolFunc {
     pub fn is_std(&self) -> bool {
         self.0.starts_with("std::")
     }
-}
-impl Into<String> for &SymbolFunc {
-    fn into(self) -> String {
-        self.0.clone()
+
+    pub fn is_eq_to_str(&self, other: &str) -> bool {
+        self.0 == other
     }
 }
 
@@ -62,16 +61,18 @@ impl SymbolType {
         Self(format!("{}::{}", alias, name.into()))
     }
 
-    pub fn method(&self, method: &String) -> SymbolFunc {
+    pub fn method(&self, method: &str) -> SymbolFunc {
         SymbolFunc(format!("{}::{}", self.0, method))
     }
 }
 
 impl Into<Type> for &SymbolType {
+    #![allow(clippy::from_over_into)]
     fn into(self) -> Type {
         Type::Ident(self.0.clone())
     }
 }
+
 impl From<&Type> for SymbolType {
     fn from(t: &Type) -> Self {
         if let Type::Ident(name) = t {
@@ -92,4 +93,3 @@ impl From<&Type> for SymbolType {
         }
     }
 }
-

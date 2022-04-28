@@ -56,7 +56,7 @@ pub fn annotate_type(
 }
 
 pub fn annotate_typednamed_vec(
-    v: &Vec<TypedNamedObject>,
+    v: &[TypedNamedObject],
     resolver: &SymbolResolver<SymbolType>,
 ) -> Result<TypedFields, String> {
     let mut typed_fields = TypedFields { names: HashMap::new(), types: vec![] };

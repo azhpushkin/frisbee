@@ -10,7 +10,7 @@ type SymbolLookupMapping<T> = HashMap<ModuleAlias, HashMap<String, T>>;
 
 type SingleFileMapping<T> = HashMap<String, T>;
 
-pub type SymbolResolver<'a, T> = Box<dyn Fn(&String) -> Result<T, String> + 'a>;
+pub type SymbolResolver<'a, T> = Box<dyn Fn(&str) -> Result<T, String> + 'a>;
 
 trait Symbol {}
 
@@ -55,7 +55,7 @@ impl NameResolver {
         'a: 'c,
         'b: 'c,
     {
-        Box::new(move |name: &String| {
+        Box::new(move |name: &str| {
             let typename: Option<&SymbolType> = self.typenames[alias].get(name);
             match typename {
                 Some(t) => Ok(t.clone()),
@@ -72,7 +72,7 @@ impl NameResolver {
         'a: 'c,
         'b: 'c,
     {
-        Box::new(move |name: &String| {
+        Box::new(move |name: &str| {
             let function: Option<&SymbolFunc> = self.functions[alias].get(name);
             match function {
                 Some(f) => Ok(f.clone()),
