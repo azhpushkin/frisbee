@@ -4,7 +4,6 @@ use crate::alias::ModuleAlias;
 use crate::symbols::{SymbolFunc, SymbolType};
 use crate::types::VerifiedType;
 
-
 #[derive(Debug)]
 pub struct CustomType {
     pub name: SymbolType,
@@ -32,7 +31,6 @@ pub struct TypedFields {
     pub types: Vec<VerifiedType>,
     pub names: HashMap<usize, String>,
 }
-
 
 #[derive(Debug)]
 pub enum VStatement {

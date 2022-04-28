@@ -1,5 +1,5 @@
 use crate::ast::{Expr, Type};
-use crate::parser::parser_impl::Parser;  // TODO: do not depend on parser here!
+use crate::parser::parser_impl::Parser; // TODO: do not depend on parser here!
 use crate::scanner::scan_tokens;
 use crate::semantic_checker::check_and_annotate_symbols;
 use crate::semantic_checker::expressions::ExprTypeChecker;

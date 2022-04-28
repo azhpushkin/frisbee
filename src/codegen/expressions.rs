@@ -1,8 +1,8 @@
 use super::constants::Constant;
 use super::generator::BytecodeGenerator;
 use super::utils::{extract_custom_type, get_tuple_offset, get_type_from_tuple, get_type_size};
-use crate::verified_ast::{RawOperator, VExpr, VExprTyped};
 use crate::symbols::SymbolFunc;
+use crate::verified_ast::{RawOperator, VExpr, VExprTyped};
 use crate::vm::opcodes::op;
 use crate::vm::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
 

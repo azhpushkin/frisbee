@@ -15,7 +15,7 @@ r:
 
 g:
 	# only show uses to check for cycles and god modules
-	cargo modules generate graph --layout sfdp  --with-uses | grep -vwE owns | xdot -
+	cargo modules generate graph --layout fdp  --with-uses | grep -vwE owns | xdot -
 
 check: t
 	 { echo Anton; echo Zhdan; } | cargo run -- examples/tuples.frisbee > /dev/null

@@ -34,14 +34,14 @@ fn metadata_for_type(definition: &CustomType) -> TypeMetadata {
 }
 
 impl TypeMetadataTable {
-    pub fn new(types: &HashMap<SymbolType, CustomType>) -> Self {
+    pub fn new(types: &[&CustomType]) -> Self {
         let mut indexes = HashMap::new();
         let mut metadata = vec![];
 
-        for (typename, definition) in types.iter() {
+        for custom_type in types.into_iter() {
             let index = indexes.len();
-            indexes.insert(typename.clone(), index);
-            metadata.push(metadata_for_type(definition));
+            indexes.insert(custom_type.name.clone(), index);
+            metadata.push(metadata_for_type(custom_type));
         }
 
         TypeMetadataTable { indexes, metadata }

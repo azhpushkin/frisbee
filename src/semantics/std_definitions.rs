@@ -6,7 +6,6 @@ use crate::symbols::SymbolFunc;
 use crate::types::{Type, VerifiedType};
 use crate::verified_ast::{RawFunction, TypedFields};
 
-
 pub fn is_std_function(func_name: &str) -> bool {
     stdlib::STD_FUNCTIONS.iter().any(|(k, _)| *k == func_name)
 }

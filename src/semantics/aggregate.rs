@@ -9,7 +9,6 @@ use crate::verified_ast::{CustomType, RawFunction, TypedFields};
 use super::errors::{top_level_with_module, SemanticErrorWithModule};
 use super::resolvers::{NameResolver, SymbolResolver};
 
-
 #[derive(Debug)]
 pub struct ProgramAggregate {
     pub types: HashMap<SymbolType, CustomType>,
@@ -170,7 +169,6 @@ pub fn fill_aggregate_with_funcs<'a>(
 
     Ok(mapping_to_og_funcs)
 }
-
 
 pub fn annotate_typednamed_vec(
     v: &[TypedItem],

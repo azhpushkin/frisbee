@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::ast::*;
 use crate::symbols::{SymbolFunc, SymbolType};
 use crate::types::{Type, VerifiedType};
-use crate::verified_ast::{VExpr, VExprTyped, RawFunction, CustomType};
+use crate::verified_ast::{CustomType, RawFunction, VExpr, VExprTyped};
 
 use super::aggregate::ProgramAggregate;
 use super::errors::{expression_error, SemanticError, SemanticResult};

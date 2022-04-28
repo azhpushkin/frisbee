@@ -2,7 +2,6 @@ use std::path::Path;
 
 pub mod alias;
 pub mod ast;
-pub mod verified_ast;
 pub mod codegen;
 pub mod errors;
 pub mod loader;
@@ -12,6 +11,7 @@ pub mod stdlib;
 pub mod symbols;
 pub mod test_utils;
 pub mod types;
+pub mod verified_ast;
 pub mod vm;
 
 // TODO: color output?
@@ -48,7 +48,9 @@ fn main() {
     let aggregate = semantics::perform_semantic_analysis(&modules, &wp.main_module)
         .expect("Error generating bytecode!");
 
-    let bytecode = codegen::generate(&aggregate);
+    let types: Vec<_> = aggregate.types.iter().map(|(_, value)| value).collect();
+    let functions: Vec<_> = aggregate.functions.iter().map(|(_, value)| value).collect();
+    let bytecode = codegen::generate(&types, &functions, &aggregate.entry);
 
     println!("{}", codegen::disassemble(&bytecode));
 
