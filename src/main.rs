@@ -25,7 +25,7 @@ fn main() {
     } else {
         file_path_s = args[args.len() - 2].clone();
         show_debug = last_arg == "debug" || last_arg == "stepbystep";
-        stepbystep = last_arg == "stepbystep"
+        stepbystep = last_arg == "stepbystep";
     }
 
     let file_path = Path::new(&file_path_s);

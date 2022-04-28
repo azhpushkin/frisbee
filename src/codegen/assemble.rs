@@ -69,5 +69,5 @@ pub fn assemble_chunks(
         bytecode[*pos + 1] = start[1];
     }
 
-    return bytecode;
+    bytecode
 }

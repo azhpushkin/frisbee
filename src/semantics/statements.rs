@@ -44,7 +44,7 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
     }
 
     fn is_constructor(&self) -> bool {
-        if let Some(_) = &self.scope.method_of {
+        if self.scope.method_of.is_some() {
             let first_arg = self.scope.args.names.get(&0);
             // For each method, first argument is "this", which is implicitly passed
             // So if there is no arguments or first argument is not "this" - then we assume
@@ -54,7 +54,7 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
                 return true;
             }
         }
-        return false;
+        false
     }
 
     fn allocate_object_for_constructor(&self) -> LStatement {
@@ -88,7 +88,7 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
         }
 
         for statement in statements {
-            res.extend(self.generate_single(&statement)?);
+            res.extend(self.generate_single(statement)?);
         }
 
         if self.is_constructor() {
@@ -115,20 +115,19 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
     ) -> SemanticResult<LStatement> {
         let condition = self.check_expr(condition, Some(&Type::Bool))?;
         let if_body = self.generate(if_body_input)?;
-        let else_body;
 
-        if elif_bodies_input.is_empty() {
-            else_body = self.generate(else_body_input)?;
-        } else {
-            let (first_elif_condition, first_elif_body) = &elif_bodies_input[0];
-            let other_elifs = &elif_bodies_input[1..];
-            else_body = vec![self.generate_if_elif_else(
-                first_elif_condition,
-                first_elif_body,
-                other_elifs,
-                else_body_input,
-            )?];
-        }
+        let else_body = match elif_bodies_input {
+            [] => self.generate(else_body_input)?,
+            [(first_condition, first_body), other_elifs @ ..] => {
+                let elif_else_body = self.generate_if_elif_else(
+                    first_condition,
+                    first_body,
+                    other_elifs,
+                    else_body_input,
+                )?;
+                vec![elif_else_body]
+            }
+        };
 
         Ok(LStatement::IfElse { condition, if_body, else_body })
     }
@@ -316,7 +315,7 @@ impl<'a, 'b, 'c, 'd> LightStatementsGenerator<'a, 'b, 'c, 'd> {
 }
 
 pub fn generate_light_statements(
-    og_statements: &Vec<StatementWithPos>,
+    og_statements: &[StatementWithPos],
     scope: &RawFunction,
     aggregate: &ProgramAggregate,
     resolver: &NameResolver,
@@ -324,7 +323,7 @@ pub fn generate_light_statements(
     let mut gen = LightStatementsGenerator::new(scope, aggregate, resolver);
 
     gen.init_function_arguments()?;
-    gen.generate(&og_statements)
+    gen.generate(og_statements)
 }
 
 fn split_left_part_of_assignment(lexpr: LExprTyped) -> (LExprTyped, Vec<usize>) {

@@ -13,6 +13,7 @@ pub struct TestFilesCreator {
 }
 
 impl TestFilesCreator {
+    #![allow(clippy::new_without_default)]
     pub fn new() -> TestFilesCreator {
         let workdir = tempdir().unwrap();
         let main_path = workdir.path().join("main.frisbee");
@@ -79,15 +80,16 @@ pub fn setup_and_load_program(s: &str) -> WholeProgram {
     // Note that temporary dir is removed together with TestFeildCreator, meaning
     // that after returning Whole
     let files = split_to_files(s);
-    if !files.contains_key("main.frisbee") {
-        panic!("Please make sure main.frisbee is loaded!");
-    }
+    assert!(
+        files.contains_key("main.frisbee"),
+        "Please make sure main.frisbee is loaded!"
+    );
 
     let mut t = TestFilesCreator::new();
     for (key, value) in files {
         t.set_file(key, value);
     }
-    return t.load_program();
+    t.load_program()
 }
 
 pub fn new_alias(module: &str) -> ModuleAlias {

@@ -70,7 +70,7 @@ mod test {
             names: field_names.into_iter().enumerate().collect(),
         };
         let custom_type = CustomType {
-            name: Type::Ident("module::MyType".into()).into(),
+            name: SymbolType::from(&Type::Ident("module::MyType".into())),
             is_active: false,
             fields,
         };

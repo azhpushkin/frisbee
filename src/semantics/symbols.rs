@@ -72,8 +72,8 @@ impl Into<Type> for &SymbolType {
         Type::Ident(self.0.clone())
     }
 }
-impl From<Type> for SymbolType {
-    fn from(t: Type) -> Self {
+impl From<&Type> for SymbolType {
+    fn from(t: &Type) -> Self {
         if let Type::Ident(name) = t {
             // check that ident is a correct SymbolType
             if !name.contains("::") {
@@ -92,3 +92,4 @@ impl From<Type> for SymbolType {
         }
     }
 }
+

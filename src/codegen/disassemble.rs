@@ -68,7 +68,7 @@ pub struct Disassembler<'a> {
 }
 
 impl<'a> Disassembler<'a> {
-    pub fn new(program: &'a Vec<u8>) -> Self {
+    pub fn new(program: &'a [u8]) -> Self {
         Disassembler {
             program_iter: Box::new(program.iter().enumerate()),
             result: vec![],
@@ -88,7 +88,7 @@ impl<'a> Disassembler<'a> {
         self.read_header("Start of functions");
         self.read_functions();
 
-        return self.result.join("\n");
+        self.result.join("\n")
     }
 
     fn get_byte(&mut self) -> (usize, u8) {
@@ -107,8 +107,8 @@ impl<'a> Disassembler<'a> {
 
     fn get_bytes<const N: usize>(&mut self) -> [u8; N] {
         let mut bytes = [0; N];
-        for j in 0..N {
-            bytes[j] = self.get_byte().1;
+        for byte in bytes.iter_mut() {
+            *byte = self.get_byte().1;
         }
         bytes
     }
@@ -141,7 +141,7 @@ impl<'a> Disassembler<'a> {
     fn read_symbol_names(&mut self) {
         loop {
             let symbol_name = self.get_str();
-            if symbol_name.len() == 0 {
+            if symbol_name.is_empty() {
                 break;
             }
 

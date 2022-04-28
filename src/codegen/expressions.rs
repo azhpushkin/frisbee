@@ -2,7 +2,7 @@ use super::constants::Constant;
 use super::generator::BytecodeGenerator;
 use super::utils::{get_tuple_offset, get_type_from_tuple};
 use crate::semantics::light_ast::{LExpr, LExprTyped, RawOperator};
-use crate::semantics::symbols::SymbolFunc;
+use crate::semantics::symbols::{SymbolFunc, SymbolType};
 use crate::vm::opcodes::op;
 use crate::vm::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
 
@@ -75,7 +75,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
 
             LExpr::ApplyOp { operator, operands } => {
                 for operand in operands.iter() {
-                    self.push_expr(&operand);
+                    self.push_expr(operand);
                 }
                 self.push(match_operator(operator));
             }
@@ -86,7 +86,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 // TODO: review this, as args_num now can have variable length
                 self.push_reserve(return_type);
                 for arg in args.iter() {
-                    self.push_expr(&arg);
+                    self.push_expr(arg);
                 }
                 let func_locals_size: u8 = args.iter().map(|arg| arg.expr_type.get_size()).sum();
 
@@ -105,12 +105,12 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
             }
             LExpr::TupleValue(items) => {
                 for item in items.iter() {
-                    self.push_expr(&item);
+                    self.push_expr(item);
                 }
             }
             LExpr::ListValue { item_type, items } => {
                 for item in items.iter() {
-                    self.push_expr(&item);
+                    self.push_expr(item);
                 }
                 self.push(op::ALLOCATE_LIST);
                 self.push(item_type.get_size());
@@ -129,8 +129,8 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 self.push(item_type.get_size());
             }
             LExpr::AccessField { object, field } => {
-                let object_type = object.expr_type.clone().into();
-                self.push_expr(&object);
+                let object_type: SymbolType = SymbolType::from(&object.expr_type);
+                self.push_expr(object);
                 self.push(op::GET_OBJ_FIELD);
                 self.push(self.types_meta.get(&object_type).field_offsets[field]);
                 self.push(self.types_meta.get(&object_type).field_sizes[field]);

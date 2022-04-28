@@ -52,7 +52,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 self.push_expr(value);
             }
             LStatement::AssignToField { object, field, tuple_indexes, value } => {
-                let object_type: SymbolType = object.expr_type.clone().into();
+                let object_type = SymbolType::from(&object.expr_type);
                 // Push value before object, as we need to first pop a pointer
                 // to access the memory before writing value to it
                 self.push_expr(value);

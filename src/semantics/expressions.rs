@@ -109,30 +109,29 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                 let identifier_type = self
                     .variables_types
                     .get(i)
-                    .expect(&format!("No identifier {} found", i));
+                    .ok_or_else(|| with_expr(format!("Variable {} not defined yet!", i)))?;
+
                 if_as_expected(expected, identifier_type, LExpr::GetVar(i.clone()))
                     .map_err(with_expr)
             }
-            Expr::This => {
-                if self.scope.method_of.is_none() {
-                    return expression_error!(
-                        expr,
-                        "Using \"this\" is not allowed outside of methods"
-                    );
+            Expr::This => match &self.scope.method_of {
+                Some(t) => {
+                    let obj_type: Type = t.into();
+                    if_as_expected(expected, &obj_type, LExpr::GetVar("this".into()))
+                        .map_err(with_expr)
                 }
-                let obj_type: Type = self.scope.method_of.as_ref().unwrap().into();
-                if_as_expected(expected, &obj_type, LExpr::GetVar("this".into())).map_err(with_expr)
-            }
+                None => expression_error!(expr, "Using \"this\" is not allowed outside of methods"),
+            },
 
             Expr::UnaryOp { op, operand } => {
-                let operand = self.calculate(&operand, None)?;
+                let operand = self.calculate(operand, None)?;
                 calculate_unaryop(&op, operand).map_err(with_expr)
             }
             Expr::BinOp { left, right, op } => {
                 let binary_res = calculate_binaryop(
                     op,
-                    self.calculate(&left, None)?,
-                    self.calculate(&right, None)?,
+                    self.calculate(left, None)?,
+                    self.calculate(right, None)?,
                 );
                 binary_res.map_err(with_expr)
             }
@@ -140,18 +139,18 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
             Expr::FunctionCall { function, args } => {
                 if is_std_function(function) {
                     let std_raw = get_std_function_raw(function);
-                    self.calculate_function_call(expr, &std_raw, expected, &args, None)
+                    self.calculate_function_call(expr, &std_raw, expected, args, None)
                 } else {
                     let raw_called =
                         self.resolve_func(&function).map_err(SemanticError::add_expr(expr))?;
-                    self.calculate_function_call(expr, &raw_called, expected, &args, None)
+                    self.calculate_function_call(expr, raw_called, expected, args, None)
                 }
             }
             Expr::MethodCall { object, method, args } => {
                 let le_object = self.calculate(object, None)?;
-                let object_type = le_object.expr_type.clone();
+                
                 let std_method: Box<RawFunction>;
-                let raw_method = match &object_type {
+                let raw_method = match &le_object.expr_type {
                     Type::Tuple(..) => return expression_error!(expr, "Tuples have no methods"),
                     Type::Maybe(..) => {
                         return expression_error!(
@@ -161,7 +160,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                     }
 
                     Type::Ident(_) => {
-                        let object_symbol: SymbolType = object_type.into();
+                        let object_symbol = SymbolType::from(&le_object.expr_type);
                         self.resolve_method(&object_symbol, method)
                     }
                     t => {
@@ -171,7 +170,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                 };
                 // TODO: check if maybe type
                 // TODO: check if tuple type
-                self.calculate_function_call(expr, &raw_method, expected, &args, Some(le_object))
+                self.calculate_function_call(expr, raw_method, expected, args, Some(le_object))
             }
             Expr::OwnMethodCall { method, args } => {
                 if self.scope.method_of.is_none() {
@@ -184,14 +183,14 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                 )?;
                 let raw_method =
                     self.resolve_method(self.scope.method_of.as_ref().unwrap(), method);
-                self.calculate_function_call(expr, &raw_method, expected, &args, Some(this_object))
+                self.calculate_function_call(expr, raw_method, expected, args, Some(this_object))
             }
             Expr::NewClassInstance { typename, args } => {
                 let symbol =
                     &(self.type_resolver)(typename).map_err(SemanticError::add_expr(expr))?;
                 let raw_type = &self.aggregate.types[&symbol];
                 let raw_constructor = self.resolve_method(&raw_type.name, typename);
-                self.calculate_function_call(expr, &raw_constructor, expected, &args, None)
+                self.calculate_function_call(expr, raw_constructor, expected, args, None)
             }
 
             Expr::TupleValue(items) => {
@@ -280,19 +279,19 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                 self.calculate_access_by_index(expr, list, index, expected)
             }
             Expr::FieldAccess { object, field } => {
-                let object_calculated = self.calculate(&object, None)?;
+                let object_calculated = self.calculate(object, None)?;
                 match &object_calculated.expr_type {
                     Type::Ident(_) => {
-                        let type_symbol: SymbolType = object_calculated.expr_type.clone().into();
+                        let type_symbol = SymbolType::from(&object_calculated.expr_type);
 
                         let object_definition = &self.aggregate.types[&type_symbol];
-                        let field_type = self.resolve_field(object_definition, &field);
+                        let field_type = self.resolve_field(object_definition, field);
 
                         let lexpr = LExpr::AccessField {
                             object: Box::new(object_calculated),
                             field: field.clone(),
                         };
-                        if_as_expected(expected, &field_type, lexpr).map_err(with_expr)
+                        if_as_expected(expected, field_type, lexpr).map_err(with_expr)
                     }
                     _ => {
                         expression_error!(
@@ -317,13 +316,13 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
                     None,
                 )?;
 
-                let object_symbol: SymbolType = this_object.expr_type.clone().into();
+                let object_symbol = SymbolType::from(&this_object.expr_type);
                 let object_definition = self.aggregate.types.get(&object_symbol).unwrap();
                 let field_type = self.resolve_field(object_definition, &field);
 
                 let lexpr =
                     LExpr::AccessField { object: Box::new(this_object), field: field.clone() };
-                if_as_expected(expected, &field_type, lexpr).map_err(with_expr)
+                if_as_expected(expected, field_type, lexpr).map_err(with_expr)
             }
 
             // Expr::SpawnActive { typename, args } => {
@@ -346,7 +345,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
         original: &ExprWithPos,
         raw_called: &'b RawFunction,
         expected_return: Option<&Type>,
-        given_args: &Vec<ExprWithPos>,
+        given_args: &[ExprWithPos],
         implicit_this: Option<LExprTyped>,
     ) -> SemanticResult<LExprTyped> {
         let expected_args: &[Type] = if implicit_this.is_some() {
@@ -392,7 +391,7 @@ impl<'a, 'b, 'c> LightExpressionsGenerator<'a, 'b, 'c> {
         index: &ExprWithPos,
         expected: Option<&Type>,
     ) -> SemanticResult<LExprTyped> {
-        let calculated_object = self.calculate(&object, None)?;
+        let calculated_object = self.calculate(object, None)?;
 
         match calculated_object.expr_type.clone() {
             Type::Tuple(item_types) => match index.expr {

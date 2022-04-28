@@ -1,7 +1,7 @@
 use crate::types::Type;
 
-pub type StdFunction = (&'static str, fn() -> (Vec<Type>, Type));
-pub type StdMethod = (&'static str, fn(&Type) -> (Vec<Type>, Type));
+pub type StdFunction<'a> = (&'a str, fn() -> (Vec<Type>, Type));
+pub type StdMethod<'a> = (&'a str, fn(&Type) -> (Vec<Type>, Type));
 const VOID_TYPE: Type = Type::Tuple(vec![]);
 
 pub const STD_FUNCTIONS: [StdFunction; 4] = [

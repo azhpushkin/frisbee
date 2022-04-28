@@ -17,7 +17,7 @@ fn std_function_signatures() -> HashMap<&'static str, (Vec<Type>, Type)> {
     HashMap::from(stdlib::STD_FUNCTIONS.map(|(k, v)| (k, v())))
 }
 
-pub fn get_std_method(t: &Type, method_name: &String) -> RawFunction {
+pub fn get_std_method(t: &Type, method_name: &str) -> RawFunction {
     let mut type_methods = match t {
         Type::Bool => stdlib::STD_BOOL_METHODS.iter(),
         Type::Int => stdlib::STD_INT_METHODS.iter(),
@@ -27,37 +27,37 @@ pub fn get_std_method(t: &Type, method_name: &String) -> RawFunction {
         _ => panic!("Unsupported type for std method: {}", t),
     };
 
-    let (mut args, return_type) = match type_methods.find(|(k, _)| k == method_name) {
+    let (mut args, return_type) = match type_methods.find(|(k, _)| *k == method_name) {
         Some((_, v)) => v(t),
         None => panic!("Not found method {} for type {}", method_name, t),
     };
     args.insert(0, t.clone());
 
     RawFunction {
-        name: SymbolFunc::new_std_method(t, method_name.as_str()),
+        name: SymbolFunc::new_std_method(t, method_name),
         return_type: return_type.clone(),
         args: TypedFields {
             types: args.clone(),
             names: args.iter().enumerate().map(|(i, _)| (i, "".into())).collect(),
         },
         body: vec![],
-        short_name: method_name.clone(),
+        short_name: method_name.into(),
         method_of: None,
         defined_at: generate_alias(&vec!["std".into()]),
     }
 }
 
-pub fn get_std_function_raw(name: &String) -> RawFunction {
-    let (args, return_type) = &std_function_signatures()[name.as_str()];
+pub fn get_std_function_raw(name: &str) -> RawFunction {
+    let (args, return_type) = &std_function_signatures()[name];
     RawFunction {
-        name: SymbolFunc::new_std_function(name.as_str()),
+        name: SymbolFunc::new_std_function(name),
         return_type: return_type.clone(),
         args: TypedFields {
             types: args.clone(),
             names: args.iter().enumerate().map(|(i, _)| (i, "".into())).collect(),
         },
         body: vec![],
-        short_name: name.clone(),
+        short_name: name.into(),
         method_of: None,
         defined_at: generate_alias(&vec!["std".into()]),
     }
