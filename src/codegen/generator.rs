@@ -78,6 +78,8 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
         self.locals.remove(name).unwrap();
         let q = self.locals_types.remove(name).unwrap();
         self.locals_offset -= get_type_size(q);
+
+        self.push_pop(q); // remove local from stack
     }
 
     pub fn push_get_local(&mut self, varname: &String) {

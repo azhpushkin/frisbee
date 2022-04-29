@@ -12,7 +12,7 @@ macro_rules! push {
     };
 }
 
-const STACK_SIZE: usize = 20;
+const STACK_SIZE: usize = 256; // TODO: maybe grow??
 
 struct CallFrame {
     pub return_ip: usize,

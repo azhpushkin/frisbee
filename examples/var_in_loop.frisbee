@@ -3,6 +3,14 @@ fun void main() {
     while i < 10 {
         Int q = i + 1;
         i = q;
+        if true {
+            Int b = 123;
+        }
+        foreach ss in range(0, 4) {
+            String sss = ss.to_string();
+            print(sss);
+        }
+        
         println(i.to_string());
     }
     return;

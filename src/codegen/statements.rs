@@ -148,6 +148,13 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 let placeholder_to_jump_back = self.push_placeholder();
                 self.fill_placeholder_backward(&placeholder_to_jump_back, loop_start.unwrap());
             }
+            VStatement::LoopGroup(statements) => {
+                for statement in statements.iter() {
+                    let breaks = self.push_statement(statement, loop_start);
+                    outer_break_placeholders.extend(breaks);
+                }
+            }
+            VStatement::DoNothing => (),
         };
         outer_break_placeholders
     }

@@ -81,7 +81,10 @@ pub enum VStatement {
     },
 
     Expression(VExprTyped),
-    // TODO: send message
+
+    LoopGroup(Vec<VStatement>), // Used do group var declarations of loops
+    DoNothing,                  // used for various reasons, see usages
+                                // TODO: send message
 }
 
 #[derive(Debug)]
