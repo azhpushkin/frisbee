@@ -1,7 +1,6 @@
-use crate::ast::{BinaryOp, UnaryOp};
+use crate::ast::parsed::{BinaryOp, UnaryOp};
+use crate::ast::verified::{RawOperator, VExpr, VExprTyped};
 use crate::types::{Type, VerifiedType};
-
-use super::verified_ast::{RawOperator, VExpr, VExprTyped};
 
 pub fn calculate_unaryop(operator: &UnaryOp, operand: VExprTyped) -> Result<VExprTyped, String> {
     let exact_operator: RawOperator = match (operator, &operand.expr_type) {

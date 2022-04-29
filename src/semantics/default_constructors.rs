@@ -1,4 +1,4 @@
-use crate::ast::{ClassDecl, Expr, ExprWithPos, FunctionDecl, Statement, StatementWithPos};
+use crate::ast::parsed::{ClassDecl, Expr, ExprWithPos, FunctionDecl, Statement, StatementWithPos};
 use crate::types::Type;
 
 pub fn add_default_constructor(class: &mut ClassDecl) {

@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
 use crate::alias::ModuleAlias;
-use crate::ast::{ClassDecl, FileAst};
-use crate::verified_ast;
+use crate::ast;
 
 pub mod aggregate;
 mod default_constructors;
@@ -16,7 +15,7 @@ mod tests;
 
 pub fn add_default_constructors<'a, I>(classes: I)
 where
-    I: Iterator<Item = &'a mut ClassDecl>,
+    I: Iterator<Item = &'a mut ast::parsed::ClassDecl>,
 {
     for class in classes {
         default_constructors::add_default_constructor(class);
@@ -24,7 +23,7 @@ where
 }
 
 pub fn perform_semantic_analysis(
-    modules: &[(&ModuleAlias, &FileAst)],
+    modules: &[(&ModuleAlias, &ast::parsed::FileAst)],
     entry_module: &ModuleAlias,
 ) -> Result<aggregate::ProgramAggregate, errors::SemanticErrorWithModule> {
     let names_resolver = resolvers::NameResolver::create(modules)?;
@@ -33,7 +32,7 @@ pub fn perform_semantic_analysis(
     let functions_mapping =
         aggregate::fill_aggregate_with_funcs(modules, &mut aggregate, &names_resolver)?;
 
-    let mut ls_mapping: HashMap<crate::symbols::SymbolFunc, Vec<verified_ast::VStatement>> =
+    let mut ls_mapping: HashMap<crate::symbols::SymbolFunc, Vec<ast::verified::VStatement>> =
         HashMap::new();
 
     for (name, raw_function) in aggregate.functions.iter() {

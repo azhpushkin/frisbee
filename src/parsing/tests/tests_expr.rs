@@ -1,4 +1,4 @@
-use crate::ast::*;
+use crate::ast::parsed::*;
 
 use super::super::parser::*;
 use super::tests_helpers::*;

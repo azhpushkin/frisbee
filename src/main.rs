@@ -11,7 +11,6 @@ pub mod stdlib;
 pub mod symbols;
 #[rustfmt::skip] #[cfg(test)] pub mod test_utils;
 pub mod types;
-pub mod verified_ast;
 pub mod vm;
 
 // TODO: color output?

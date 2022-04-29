@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
-use crate::ast::*;
+use crate::ast::parsed::*;
+use crate::ast::verified::{CustomType, RawFunction, VExpr, VExprTyped};
 use crate::symbols::{SymbolFunc, SymbolType};
 use crate::types::{Type, VerifiedType};
-use crate::verified_ast::{CustomType, RawFunction, VExpr, VExprTyped};
 
 use super::aggregate::ProgramAggregate;
 use super::errors::{expression_error, SemanticError, SemanticResult};

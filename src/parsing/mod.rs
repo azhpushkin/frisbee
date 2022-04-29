@@ -1,4 +1,4 @@
-use crate::ast::FileAst;
+use crate::ast::parsed::FileAst;
 
 mod helpers;
 pub mod parser;

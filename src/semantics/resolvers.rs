@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::alias::ModuleAlias;
-use crate::ast::FileAst;
+use crate::ast::parsed::FileAst;
 use crate::symbols::{SymbolFunc, SymbolType};
 
 use super::errors::{top_level_with_module, SemanticErrorWithModule};

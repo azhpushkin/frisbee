@@ -1,4 +1,4 @@
-use crate::ast::{Expr, ExprWithPos, Statement, StatementWithPos};
+use crate::ast::parsed::{Expr, ExprWithPos, Statement, StatementWithPos};
 
 use super::super::parser::*;
 use super::super::scanner::scan_tokens;

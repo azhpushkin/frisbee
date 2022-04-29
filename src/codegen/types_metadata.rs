@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
+use crate::ast::verified::CustomType;
 use crate::symbols::SymbolType;
-use crate::verified_ast::CustomType;
 
 use super::utils::get_type_size;
 
@@ -54,9 +54,9 @@ impl TypeMetadataTable {
 
 #[cfg(test)]
 mod test {
+    use crate::ast::verified::TypedFields;
     use crate::test_utils::new_alias;
     use crate::types::Type;
-    use crate::verified_ast::TypedFields;
 
     use super::*;
 

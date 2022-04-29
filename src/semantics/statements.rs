@@ -1,7 +1,7 @@
-use crate::ast::*;
+use crate::ast::parsed::*;
+use crate::ast::verified::{RawFunction, RawOperator, VExpr, VExprTyped, VStatement};
 use crate::symbols::SymbolFunc;
 use crate::types::{verify_parsed_type, ParsedType, Type, VerifiedType};
-use crate::verified_ast::{RawFunction, RawOperator, VExpr, VExprTyped, VStatement};
 
 use super::aggregate::ProgramAggregate;
 use super::errors::{expression_error, statement_error, SemanticError, SemanticResult};

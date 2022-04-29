@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
 use crate::alias::ModuleAlias;
-use crate::ast::{ClassDecl, FileAst, FunctionDecl, TypedItem};
+use crate::ast::parsed::{ClassDecl, FileAst, FunctionDecl, TypedItem};
+use crate::ast::verified::{CustomType, RawFunction, TypedFields};
 use crate::symbols::{SymbolFunc, SymbolType, MAIN_FUNCTION_NAME};
 use crate::types::{verify_parsed_type, Type};
-use crate::verified_ast::{CustomType, RawFunction, TypedFields};
 
 use super::errors::{top_level_with_module, SemanticErrorWithModule};
 use super::resolvers::{NameResolver, SymbolResolver};

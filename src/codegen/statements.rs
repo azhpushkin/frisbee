@@ -1,4 +1,4 @@
-use crate::verified_ast::{RawFunction, VStatement};
+use crate::ast::verified::{RawFunction, VStatement};
 use crate::vm::opcodes::op;
 
 use super::constants::ConstantsTable;

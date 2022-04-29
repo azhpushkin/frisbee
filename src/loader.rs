@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use crate::alias::ModuleAlias;
-use crate::ast::*;
+use crate::ast::parsed::*;
 use crate::errors::CompileError;
 use crate::parsing;
 
