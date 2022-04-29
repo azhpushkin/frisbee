@@ -1,5 +1,4 @@
-use crate::parsing::scanner::{scan_tokens, Token, ScannedToken};
-
+use crate::parsing::scanner::{scan_tokens, ScannedToken, Token};
 
 fn scan_tokens_helper(s: &str) -> Vec<Token> {
     let res = scan_tokens(s);

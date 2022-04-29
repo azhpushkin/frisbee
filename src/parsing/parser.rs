@@ -235,7 +235,7 @@ impl Parser {
         Ok(result_type)
     }
 
-    pub fn parse_function_definition(
+    fn parse_function_definition(
         &mut self,
         member_of: Option<&String>,
     ) -> ParseResult<FunctionDecl> {
@@ -317,7 +317,7 @@ impl Parser {
         Ok(ClassDecl { is_active, name: new_object_name, fields, methods })
     }
 
-    pub fn parse_statements_in_curly_block(&mut self) -> ParseResult<Vec<StatementWithPos>> {
+    fn parse_statements_in_curly_block(&mut self) -> ParseResult<Vec<StatementWithPos>> {
         let mut statements: Vec<StatementWithPos> = vec![];
         consume_and_check!(self, Token::LeftCurlyBrackets);
         until_closes!(self, Token::RightCurlyBrackets, {
@@ -326,7 +326,7 @@ impl Parser {
         Ok(statements)
     }
 
-    pub fn parse_if_else_stmt(&mut self) -> ParseResult<StatementWithPos> {
+    fn parse_if_else_stmt(&mut self) -> ParseResult<StatementWithPos> {
         let start = self.position;
         consume_and_check!(self, Token::If);
         let condition = self.parse_expr()?;
@@ -350,7 +350,7 @@ impl Parser {
         )
     }
 
-    pub fn parse_while_loop_stmt(&mut self) -> ParseResult<StatementWithPos> {
+    fn parse_while_loop_stmt(&mut self) -> ParseResult<StatementWithPos> {
         let start = self.position;
         consume_and_check!(self, Token::While);
         let condition = self.parse_expr()?;
@@ -358,7 +358,7 @@ impl Parser {
         self.stmt_with_pos(Statement::While { condition, body }, start)
     }
 
-    pub fn parse_foreach_loop_stmt(&mut self) -> ParseResult<StatementWithPos> {
+    fn parse_foreach_loop_stmt(&mut self) -> ParseResult<StatementWithPos> {
         let start = self.position;
         consume_and_check!(self, Token::Foreach);
         let item_name = consume_and_check_ident!(self);
@@ -368,7 +368,7 @@ impl Parser {
         self.stmt_with_pos(Statement::Foreach { item_name, iterable, body }, start)
     }
 
-    pub fn parse_var_declaration_continuation(
+    fn parse_var_declaration_continuation(
         &mut self,
         typedecl: ParsedType,
         start: usize,
@@ -463,7 +463,7 @@ impl Parser {
         self.parse_expr_equality()
     }
 
-    pub fn parse_expr_comparison(&mut self) -> ParseResult<ExprWithPos> {
+    fn parse_expr_comparison(&mut self) -> ParseResult<ExprWithPos> {
         let start = self.position;
         let mut res_expr = self.parse_expr_plus_minus()?;
         while consume_if_matches_one_of!(
@@ -480,7 +480,7 @@ impl Parser {
         Ok(res_expr)
     }
 
-    pub fn parse_expr_plus_minus(&mut self) -> ParseResult<ExprWithPos> {
+    fn parse_expr_plus_minus(&mut self) -> ParseResult<ExprWithPos> {
         let start = self.position;
         let mut res_expr = self.parse_expr_mul_div()?;
         while consume_if_matches_one_of!(self, [Token::Minus, Token::Plus]) {
@@ -494,7 +494,7 @@ impl Parser {
         Ok(res_expr)
     }
 
-    pub fn parse_expr_mul_div(&mut self) -> ParseResult<ExprWithPos> {
+    fn parse_expr_mul_div(&mut self) -> ParseResult<ExprWithPos> {
         let start = self.position;
         let mut res_expr = self.parse_expr_unary()?;
         while consume_if_matches_one_of!(self, [Token::Star, Token::Slash]) {
@@ -508,7 +508,7 @@ impl Parser {
         Ok(res_expr)
     }
 
-    pub fn parse_expr_equality(&mut self) -> ParseResult<ExprWithPos> {
+    fn parse_expr_equality(&mut self) -> ParseResult<ExprWithPos> {
         let start = self.position;
         let mut res_expr = self.parse_expr_comparison()?;
         while consume_if_matches_one_of!(self, [Token::EqualEqual, Token::BangEqual]) {
@@ -522,7 +522,7 @@ impl Parser {
         Ok(res_expr)
     }
 
-    pub fn parse_expr_unary(&mut self) -> ParseResult<ExprWithPos> {
+    fn parse_expr_unary(&mut self) -> ParseResult<ExprWithPos> {
         let start = self.position;
         if consume_if_matches_one_of!(self, [Token::Minus, Token::Not]) {
             let op = unary_op_from_token(self.rel_token(-1));
@@ -535,7 +535,7 @@ impl Parser {
         self.parse_method_or_field_access()
     }
 
-    pub fn parse_function_call_args(&mut self) -> ParseResult<Vec<ExprWithPos>> {
+    fn parse_function_call_args(&mut self) -> ParseResult<Vec<ExprWithPos>> {
         if self.rel_token_check(1, Token::RightParenthesis) {
             // Consume both left and right parenthesis
             self.consume_token();
@@ -557,7 +557,7 @@ impl Parser {
         }
     }
 
-    pub fn parse_method_or_field_access(&mut self) -> ParseResult<ExprWithPos> {
+    fn parse_method_or_field_access(&mut self) -> ParseResult<ExprWithPos> {
         let start = self.position;
         let mut res_expr = self.parse_expr_primary()?;
 
@@ -631,7 +631,7 @@ impl Parser {
         Ok(res_expr)
     }
 
-    pub fn parse_group_or_tuple(&mut self) -> ParseResult<ExprWithPos> {
+    fn parse_group_or_tuple(&mut self) -> ParseResult<ExprWithPos> {
         let start = self.position;
         consume_and_check!(self, Token::LeftParenthesis);
         let mut result_expr = self.parse_expr()?;
@@ -664,7 +664,7 @@ impl Parser {
         Ok(result_expr)
     }
 
-    pub fn parse_list_literal(&mut self) -> ParseResult<ExprWithPos> {
+    fn parse_list_literal(&mut self) -> ParseResult<ExprWithPos> {
         let start = self.position;
         consume_and_check!(self, Token::LeftSquareBrackets);
         let mut list_items: Vec<ExprWithPos> = vec![];

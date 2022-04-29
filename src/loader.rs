@@ -51,7 +51,7 @@ fn load_file<'a>(
         Err(e) => return Err((module_alias, contents, Box::new(e))),
     };
 
-    let ast = parsing::parse(tokens);
+    let ast = parsing::parse_file(tokens);
     let ast = match ast {
         Ok(ast) => ast,
         Err(e) => return Err((module_alias, contents, Box::new(e))),
