@@ -4,12 +4,12 @@ use crate::types::Type;
 use super::super::parser::*;
 use super::tests_helpers::*;
 
-fn assert_stmt_parses(s: &str, stmt: Statement) {
+fn assert_stmt_parses(s: &'static str, stmt: Statement) {
     let res = parse_and_unwrap(Parser::parse_statement, s);
     assert_eq!(res.statement, stmt);
 }
 
-fn assert_stmt_invalid(s: &str) {
+fn assert_stmt_invalid(s: &'static str) {
     assert_parsing_fails(Parser::parse_statement, s);
 }
 

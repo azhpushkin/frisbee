@@ -45,13 +45,12 @@ fn load_file<'a>(
     let contents = std::fs::read_to_string(&file_path).expect("Cant read file");
     let module_alias = ModuleAlias::new(module_path);
 
-    let tokens = parsing::scanner::scan_tokens(&contents);
-    let tokens = match tokens {
-        Ok(tokens) => tokens,
-        Err(e) => return Err((module_alias, contents, Box::new(e))),
-    };
+    let (tokens, scan_status) = parsing::scanner::scan_tokens(&contents);
+    if let Err(e) = scan_status {
+        return Err((module_alias, contents, Box::new(e)));
+    }    
 
-    let ast = parsing::parse_file(tokens);
+    let ast = parsing::parse_file(&tokens);
     let ast = match ast {
         Ok(ast) => ast,
         Err(e) => return Err((module_alias, contents, Box::new(e))),

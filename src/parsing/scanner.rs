@@ -41,14 +41,14 @@ pub struct ScannedToken {
 }
 pub type ScanningError = (&'static str, usize);
 
-struct Scanner {
-    chars: Vec<char>,
+struct Scanner<'a> {
+    chars: &'a [char],
     tokens: Vec<ScannedToken>,
     position: usize,
 }
 
-impl Scanner {
-    fn create(chars: Vec<char>) -> Scanner {
+impl<'a> Scanner<'a> {
+    fn create(chars: &'a [char]) -> Scanner {
         Scanner { chars, tokens: Vec::new(), position: 0 }
     }
 
@@ -158,131 +158,145 @@ fn scan_identifier(scanner: &mut Scanner, start: usize) -> Token {
     identifier_to_token(s)
 }
 
-pub fn scan_tokens(data: &str) -> Result<Vec<ScannedToken>, ScanningError> {
-    let mut scanner = Scanner::create(data.chars().collect::<Vec<_>>());
+fn scan_and_add_token(scanner: &mut Scanner) -> Result<(), ScanningError> {
+    let start = scanner.position;
+    match scanner.consume_char() {
+        '(' => scanner.add_token(Token::LeftParenthesis),
+        ')' => scanner.add_token(Token::RightParenthesis),
+        '[' => scanner.add_token(Token::LeftSquareBrackets),
+        ']' => scanner.add_token(Token::RightSquareBrackets),
+        '{' => scanner.add_token(Token::LeftCurlyBrackets),
+        '}' => scanner.add_token(Token::RightCurlyBrackets),
 
-    while !scanner.is_finished() {
-        let start = scanner.position;
-        match scanner.consume_char() {
-            '(' => scanner.add_token(Token::LeftParenthesis),
-            ')' => scanner.add_token(Token::RightParenthesis),
-            '[' => scanner.add_token(Token::LeftSquareBrackets),
-            ']' => scanner.add_token(Token::RightSquareBrackets),
-            '{' => scanner.add_token(Token::LeftCurlyBrackets),
-            '}' => scanner.add_token(Token::RightCurlyBrackets),
-
-            ',' => scanner.add_token(Token::Comma),
-            '.' => scanner.add_token(Token::Dot),
-            ';' => scanner.add_token(Token::Semicolon),
-            '+' => scanner.add_token(Token::Plus),
-            '-' => scanner.add_token(Token::Minus),
-            '*' => scanner.add_token(Token::Star),
-            '/' => {
-                if scanner.check_next('/') {
-                    // comment found, skip everything until newline
-                    while !scanner.is_finished() && !scanner.check_ahead(0, '\n') {
-                        scanner.consume_char();
-                    }
-
-                    // Consume trailing \n
+        ',' => scanner.add_token(Token::Comma),
+        '.' => scanner.add_token(Token::Dot),
+        ';' => scanner.add_token(Token::Semicolon),
+        '+' => scanner.add_token(Token::Plus),
+        '-' => scanner.add_token(Token::Minus),
+        '*' => scanner.add_token(Token::Star),
+        '/' => {
+            if scanner.check_next('/') {
+                // comment found, skip everything until newline
+                while !scanner.is_finished() && !scanner.check_ahead(0, '\n') {
                     scanner.consume_char();
-                } else if scanner.check_next('*') {
-                    let is_commend_end =
-                        |s: &Scanner| s.check_ahead(0, '*') && s.check_ahead(1, '/');
-                    while !scanner.is_finished() && !is_commend_end(&scanner) {
-                        scanner.consume_char();
-                    }
+                }
 
-                    // Consume both Start and Slash
+                // Consume trailing \n
+                scanner.consume_char();
+            } else if scanner.check_next('*') {
+                let is_commend_end =
+                    |s: &Scanner| s.check_ahead(0, '*') && s.check_ahead(1, '/');
+                while !scanner.is_finished() && !is_commend_end(&scanner) {
                     scanner.consume_char();
-                    scanner.consume_char();
-                } else {
-                    scanner.add_token(Token::Slash)
                 }
+
+                // Consume both Start and Slash
+                scanner.consume_char();
+                scanner.consume_char();
+            } else {
+                scanner.add_token(Token::Slash)
             }
-            '?' => {
-                let next_char = scanner.char_ahead(0);
-                if next_char == '?' {
-                    return Err((
-                        "Double-question mark has no sense (nillable is either ON or OFF)",
-                        scanner.position - 1,
-                    ));
-                }
-                if !(next_char.is_whitespace()
-                    || next_char == ','
-                    || next_char == ']'
-                    || next_char == ')'
-                    || next_char == '\0')
-                {
-                    return Err((
-                        "Symbol is not allowed right after questionmark",
-                        scanner.position - 1,
-                    ));
-                }
-                scanner.add_token(Token::Question)
+        }
+        '?' => {
+            let next_char = scanner.char_ahead(0);
+            if next_char == '?' {
+                return Err((
+                    "Double-question mark has no sense (nillable is either ON or OFF)",
+                    scanner.position - 1,
+                ));
             }
-            '@' => {
-                if !scanner.char_ahead(0).is_alphabetic() {
-                    return Err(("Identifier required after @", scanner.position));
-                }
-                let token = scan_identifier(&mut scanner, start + 1);
-                match token {
-                    Token::Identifier(s) => {
-                        scanner.add_token_with_position(Token::OwnIdentifier(s), start)
-                    }
-                    _ => return Err(("Identifier required after @", scanner.position)),
-                }
+            if !(next_char.is_whitespace()
+                || next_char == ','
+                || next_char == ']'
+                || next_char == ')'
+                || next_char == '\0')
+            {
+                return Err((
+                    "Symbol is not allowed right after questionmark",
+                    scanner.position - 1,
+                ));
             }
+            scanner.add_token(Token::Question)
+        }
+        '@' => {
+            if !scanner.char_ahead(0).is_alphabetic() {
+                return Err(("Identifier required after @", scanner.position));
+            }
+            let token = scan_identifier(scanner, start + 1);
+            match token {
+                Token::Identifier(s) => {
+                    scanner.add_token_with_position(Token::OwnIdentifier(s), start)
+                }
+                _ => return Err(("Identifier required after @", scanner.position)),
+            }
+        }
 
-            '=' if scanner.check_next('=') => scanner.add_token(Token::EqualEqual),
-            '=' => scanner.add_token(Token::Equal),
+        '=' if scanner.check_next('=') => scanner.add_token(Token::EqualEqual),
+        '=' => scanner.add_token(Token::Equal),
 
-            '<' if scanner.check_next('=') => scanner.add_token(Token::LessEqual),
-            '<' => scanner.add_token(Token::Less),
+        '<' if scanner.check_next('=') => scanner.add_token(Token::LessEqual),
+        '<' => scanner.add_token(Token::Less),
 
-            '>' if scanner.check_next('=') => scanner.add_token(Token::GreaterEqual),
-            '>' => scanner.add_token(Token::Greater),
+        '>' if scanner.check_next('=') => scanner.add_token(Token::GreaterEqual),
+        '>' => scanner.add_token(Token::Greater),
 
-            '!' if scanner.check_next('=') => scanner.add_token(Token::BangEqual),
-            '!' => scanner.add_token(Token::Bang),
-            // TODO: think about <=! for send-and-wait pattern
-            '"' => scan_string(&mut scanner, start, '"')?,
-            '\'' => scan_string(&mut scanner, start, '\'')?,
+        '!' if scanner.check_next('=') => scanner.add_token(Token::BangEqual),
+        '!' => scanner.add_token(Token::Bang),
+        // TODO: think about <=! for send-and-wait pattern
+        '"' => scan_string(scanner, start, '"')?,
+        '\'' => scan_string(scanner, start, '\'')?,
 
-            d if d.is_digit(10) => {
-                let mut is_float = false;
+        d if d.is_digit(10) => {
+            let mut is_float = false;
+            while scanner.char_ahead(0).is_digit(10) {
+                scanner.consume_char();
+            }
+            if scanner.check_ahead(0, '.') && scanner.char_ahead(1).is_digit(10) {
+                is_float = true;
+                scanner.consume_char();
                 while scanner.char_ahead(0).is_digit(10) {
                     scanner.consume_char();
                 }
-                if scanner.check_ahead(0, '.') && scanner.char_ahead(1).is_digit(10) {
-                    is_float = true;
-                    scanner.consume_char();
-                    while scanner.char_ahead(0).is_digit(10) {
-                        scanner.consume_char();
-                    }
-                }
-
-                let content: String = scanner.chars[start..scanner.position].iter().collect();
-                let token = match is_float {
-                    true => Token::Float(content.parse().unwrap()),
-                    _ => Token::Integer(content.parse().unwrap()),
-                };
-                scanner.add_token_with_position(token, start);
             }
 
-            c if c.is_alphabetic() => {
-                let token = scan_identifier(&mut scanner, start);
+            let content: String = scanner.chars[start..scanner.position].iter().collect();
+            let token = match is_float {
+                true => Token::Float(content.parse().unwrap()),
+                _ => Token::Integer(content.parse().unwrap()),
+            };
+            scanner.add_token_with_position(token, start);
+        }
 
-                scanner.add_token_with_position(token, start);
-            }
-            c if c.is_whitespace() => (),
+        c if c.is_alphabetic() => {
+            let token = scan_identifier(scanner, start);
 
-            _ => {
-                return Err(("Unknown symbol occured", scanner.position - 1));
-            }
+            scanner.add_token_with_position(token, start);
+        }
+        c if c.is_whitespace() => (),
+
+        _ => {
+            return Err(("Unknown symbol occured", scanner.position - 1));
         }
     }
-    scanner.add_token_with_position(Token::EOF, data.len() - 1);
 
-    Ok(scanner.tokens)
+    
+
+    Ok(())
+}
+
+
+pub fn scan_tokens(data: &str) -> (Vec<ScannedToken>, Result<(), ScanningError>){
+    let chars = data.chars().collect::<Vec<char>>();
+    let mut scanner = Scanner::create(&chars);
+
+    while !scanner.is_finished() {
+        let scan_result = scan_and_add_token(&mut scanner);
+        if let Err(e) = scan_result {
+            return (scanner.tokens, Err(e));
+        }
+        
+    }
+    scanner.add_token_with_position(Token::EOF, scanner.chars.len() - 1);
+    
+    (scanner.tokens, Ok(()))
 }

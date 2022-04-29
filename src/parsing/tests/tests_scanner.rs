@@ -1,24 +1,25 @@
 use crate::parsing::scanner::{scan_tokens, ScannedToken, Token};
 
 fn scan_tokens_helper(s: &str) -> Vec<Token> {
-    let res = scan_tokens(s);
-    assert!(res.is_ok(), "Error on scanning: {:?}", res.unwrap_err());
-    let res = res.unwrap();
+    let (tokens, scan_status) = scan_tokens(s);
+    assert!(scan_status.is_ok(), "Error on scanning: {:?}", scan_status);
 
-    let mut tokens = res.iter().map(|t| t.token.clone()).collect::<Vec<Token>>();
-    assert_eq!(tokens.last().unwrap(), &Token::EOF);
+    let mut tokens_without_pos = tokens.iter().map(|t| t.token.clone()).collect::<Vec<Token>>();
+    assert_eq!(tokens_without_pos.last().unwrap(), &Token::EOF);
 
-    tokens.truncate(tokens.len() - 1);
-    tokens
+    tokens_without_pos.truncate(tokens_without_pos.len() - 1);
+    tokens_without_pos
 }
 
 #[test]
 fn test_positions() {
     let test_string = r#" 123 . [] "hey" 888.888 "#;
-    let res = scan_tokens(test_string);
+    let (res, status) = scan_tokens(test_string);
+
+    assert!(status.is_ok());
 
     assert_eq!(
-        res.unwrap(),
+        res,
         vec![
             ScannedToken { token: Token::Integer(123), first: 1, last: 3 },
             ScannedToken { token: Token::Dot, first: 5, last: 5 },
@@ -178,11 +179,11 @@ fn test_own_identifiers() {
         ]
     );
 
-    assert!(scan_tokens("@").is_err());
-    assert!(scan_tokens("@ field").is_err());
-    assert!(scan_tokens("(@)field").is_err());
-    assert!(scan_tokens("@.field").is_err());
-    assert!(scan_tokens("@2field").is_err());
+    assert!(scan_tokens("@").1.is_err());
+    assert!(scan_tokens("@ field").1.is_err());
+    assert!(scan_tokens("(@)field").1.is_err());
+    assert!(scan_tokens("@.field").1.is_err());
+    assert!(scan_tokens("@2field").1.is_err());
 }
 
 #[test]
@@ -240,40 +241,40 @@ fn test_question_next_token() {
 
 #[test]
 fn ensure_not_alpha_after_question() {
-    let res = scan_tokens(&String::from("Int?asd"));
-    assert!(res.is_err());
+    let (_, scan_status) = scan_tokens(&String::from("Int?asd"));
+    assert!(scan_status.is_err());
     assert_eq!(
-        res.unwrap_err().0,
+        scan_status.unwrap_err().0,
         "Symbol is not allowed right after questionmark"
     );
 }
 
 #[test]
 fn ensure_not_number_after_question() {
-    let res = scan_tokens(&String::from("Int?123"));
-    assert!(res.is_err());
+    let (_, scan_status) = scan_tokens(&String::from("Int?123"));
+    assert!(scan_status.is_err());
     assert_eq!(
-        res.unwrap_err().0,
+        scan_status.unwrap_err().0,
         "Symbol is not allowed right after questionmark"
     );
 }
 
 #[test]
 fn ensure_not_dot_after_question() {
-    let res = scan_tokens(&String::from("Int?."));
-    assert!(res.is_err());
+    let (_, scan_status) = scan_tokens(&String::from("Int?."));
+    assert!(scan_status.is_err());
     assert_eq!(
-        res.unwrap_err().0,
+        scan_status.unwrap_err().0,
         "Symbol is not allowed right after questionmark"
     );
 }
 
 #[test]
 fn ensure_no_double_questionmark() {
-    let res = scan_tokens(&String::from("Int??"));
-    assert!(res.is_err());
+    let (_, scan_status) = scan_tokens(&String::from("Int??"));
+    assert!(scan_status.is_err());
     assert_eq!(
-        res.unwrap_err().0,
+        scan_status.unwrap_err().0,
         "Double-question mark has no sense (nillable is either ON or OFF)"
     );
 }

@@ -3,7 +3,7 @@ use super::tests_helpers::*;
 
 type T = crate::types::ParsedType;
 
-fn assert_type_parses(s: &str, t: T) {
+fn assert_type_parses(s: &'static str, t: T) {
     assert_eq!(parse_and_unwrap(Parser::parse_type, s), t);
 }
 
