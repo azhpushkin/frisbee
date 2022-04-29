@@ -14,6 +14,8 @@
 * check that initial list size is no more than 255
 * check different variations of tuple typecheck (items should match)
 * check different variations of name collisions with (for i in ..)
+* check how defining inside of if-else branches works 
+* check how it works if variable is defined inside of the while loop
 * check range() start and end (only pos? negative allowed?)
 * check that tuple size is no more than 255
 * ensure that return is REQUIRED, but constructor must not have one

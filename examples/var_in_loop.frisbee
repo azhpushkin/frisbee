@@ -1,0 +1,31 @@
+fun void main() {
+    Int i = 0;
+    while i < 10 {
+        Int q = i + 1;
+        i = q;
+        println(i.to_string());
+    }
+    return;
+}
+
+
+## Function var_in_loop::main
+ 22   load_small_int [00]
+ 24   get_local [00, 01]
+ 27   load_small_int [0a]
+ 29   less_int []
+ 2a   jump_if_false [00, 1e] (jumps to 4b) 
+ 2d   get_local [00, 01]
+ 30   load_small_int [01]
+ 32   add_int []
+ 33   get_local [01, 01]
+ 36   set_local [00, 01]
+ 39   reserve [01]
+ 3b   get_local [00, 01]
+ 3e   call_std [01, 01, 00, 06]
+ 43   call_std [00, 01, 00, 01]
+ 48   jump_back [00, 27] (jumps to 24) 
+ 4b   set_local [00, 00]
+ 4e   return []
+Loaded constants: []
+>> preparing to exec pc: 22

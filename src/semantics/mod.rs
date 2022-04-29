@@ -7,6 +7,7 @@ pub mod aggregate;
 mod default_constructors;
 pub mod errors;
 mod expressions;
+mod insights;
 mod operators;
 mod resolvers;
 mod statements;

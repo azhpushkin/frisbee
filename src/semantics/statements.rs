@@ -1,37 +1,45 @@
+use std::collections::HashMap;
+
 use crate::ast::parsed::*;
 use crate::ast::verified::{RawFunction, RawOperator, VExpr, VExprTyped, VStatement};
-use crate::symbols::SymbolFunc;
+use crate::symbols::{SymbolFunc, SymbolType};
 use crate::types::{verify_parsed_type, ParsedType, Type, VerifiedType};
 
 use super::aggregate::ProgramAggregate;
 use super::errors::{expression_error, statement_error, SemanticError, SemanticResult};
 use super::expressions::ExpressionsVerifier;
-use super::resolvers::NameResolver;
+use super::insights::Insights;
+use super::resolvers::{NameResolver, SymbolResolver};
 
-struct StatementsVerifier<'a: 'd, 'b, 'c: 'd, 'd> {
+struct StatementsVerifier<'a, 'b, 'c> {
     scope: &'a RawFunction,
-    resolver: &'c NameResolver,
-    expr_verified: ExpressionsVerifier<'a, 'b, 'd>,
+    type_resolver: SymbolResolver<'c, SymbolType>,
+    expr_verified: ExpressionsVerifier<'a, 'b, 'c>,
 }
 
-impl<'a, 'b, 'c, 'd> StatementsVerifier<'a, 'b, 'c, 'd> {
-    fn new(
+impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
+    fn new<'d>(
         scope: &'a RawFunction,
         aggregate: &'b ProgramAggregate,
-        resolver: &'c NameResolver,
-    ) -> Self {
-        let expr_verified = ExpressionsVerifier::new(scope, aggregate, resolver);
+        resolver: &'d NameResolver,
+    ) -> Self
+    where
+        'd: 'c,
+        'a: 'c
 
-        Self { scope, resolver, expr_verified }
-    }
+    {
+        let expr_verified = ExpressionsVerifier::new(
+            scope,
+            aggregate,
+            resolver.get_typenames_resolver(&scope.defined_at),
+            resolver.get_functions_resolver(&scope.defined_at),
+        );
 
-    pub fn init_function_arguments(&mut self) -> SemanticResult<()> {
-        for (name, typename) in self.scope.args.iter() {
-            self.expr_verified
-                .add_variable(name.clone(), typename.clone())
-                .map_err(SemanticError::to_top_level)?;
+        Self {
+            scope,
+            type_resolver: resolver.get_typenames_resolver(&scope.defined_at),
+            expr_verified,
         }
-        Ok(())
     }
 
     fn annotate_type(
@@ -39,11 +47,7 @@ impl<'a, 'b, 'c, 'd> StatementsVerifier<'a, 'b, 'c, 'd> {
         t: &ParsedType,
         stmt: &StatementWithPos,
     ) -> SemanticResult<VerifiedType> {
-        verify_parsed_type(
-            t,
-            &self.resolver.get_typenames_resolver(&self.scope.defined_at),
-        )
-        .map_err(SemanticError::add_statement(stmt))
+        verify_parsed_type(t, &self.type_resolver).map_err(SemanticError::add_statement(stmt))
     }
 
     fn is_constructor(&self) -> bool {
@@ -82,7 +86,11 @@ impl<'a, 'b, 'c, 'd> StatementsVerifier<'a, 'b, 'c, 'd> {
         })
     }
 
-    pub fn generate(&mut self, statements: &[StatementWithPos]) -> SemanticResult<Vec<VStatement>> {
+    pub fn generate(
+        &mut self,
+        statements: &[StatementWithPos],
+        insights: &mut Insights,
+    ) -> SemanticResult<Vec<VStatement>> {
         let mut res = vec![];
 
         if self.is_constructor() {
@@ -91,7 +99,7 @@ impl<'a, 'b, 'c, 'd> StatementsVerifier<'a, 'b, 'c, 'd> {
         }
 
         for statement in statements {
-            res.extend(self.generate_single(statement)?);
+            res.extend(self.generate_single(statement, insights)?);
         }
 
         if self.is_constructor() {
@@ -115,18 +123,20 @@ impl<'a, 'b, 'c, 'd> StatementsVerifier<'a, 'b, 'c, 'd> {
         if_body_input: &[StatementWithPos],
         elif_bodies_input: &[(ExprWithPos, Vec<StatementWithPos>)],
         else_body_input: &[StatementWithPos],
+        insights: &mut Insights,
     ) -> SemanticResult<VStatement> {
         let condition = self.check_expr(condition, Some(&Type::Bool))?;
-        let if_body = self.generate(if_body_input)?;
+        let if_body = self.generate(if_body_input, insights)?;
 
         let else_body = match elif_bodies_input {
-            [] => self.generate(else_body_input)?,
+            [] => self.generate(else_body_input, insights)?,
             [(first_condition, first_body), other_elifs @ ..] => {
                 let elif_else_body = self.generate_if_elif_else(
                     first_condition,
                     first_body,
                     other_elifs,
                     else_body_input,
+                    insights,
                 )?;
                 vec![elif_else_body]
             }
@@ -135,16 +145,18 @@ impl<'a, 'b, 'c, 'd> StatementsVerifier<'a, 'b, 'c, 'd> {
         Ok(VStatement::IfElse { condition, if_body, else_body })
     }
 
-    fn generate_single(&mut self, statement: &StatementWithPos) -> SemanticResult<Vec<VStatement>> {
+    fn generate_single(
+        &mut self,
+        statement: &StatementWithPos,
+        insights: &mut Insights,
+    ) -> SemanticResult<Vec<VStatement>> {
         let stmt_err = SemanticError::add_statement(statement);
         let verified_statement = match &statement.statement {
             Statement::Expr(e) => VStatement::Expression(self.check_expr(e, None)?),
             Statement::VarDecl(var_type, name) => {
                 let var_type = self.annotate_type(var_type, statement)?;
 
-                self.expr_verified
-                    .add_variable(name.clone(), var_type.clone())
-                    .map_err(stmt_err)?;
+                insights.add_variable(name, &var_type).map_err(stmt_err)?;
                 VStatement::DeclareVar { var_type, name: name.clone() }
             }
             Statement::Assign { left, right } => {
@@ -181,9 +193,7 @@ impl<'a, 'b, 'c, 'd> StatementsVerifier<'a, 'b, 'c, 'd> {
                 let var_type = self.annotate_type(var_type, statement)?;
                 let value = self.check_expr(value, Some(&var_type))?;
 
-                self.expr_verified
-                    .add_variable(name.clone(), var_type.clone())
-                    .map_err(stmt_err)?;
+                insights.add_variable(name, &var_type).map_err(stmt_err)?;
 
                 VStatement::DeclareAndAssignVar { var_type, name: name.clone(), value }
             }
@@ -199,11 +209,11 @@ impl<'a, 'b, 'c, 'd> StatementsVerifier<'a, 'b, 'c, 'd> {
             Statement::Break => VStatement::Break,
             Statement::Continue => VStatement::Continue,
             Statement::IfElse { condition, if_body, elif_bodies, else_body } => {
-                self.generate_if_elif_else(condition, if_body, elif_bodies, else_body)?
+                self.generate_if_elif_else(condition, if_body, elif_bodies, else_body, insights)?
             }
             Statement::While { condition, body } => {
                 let condition = self.check_expr(condition, Some(&Type::Bool))?;
-                let body = self.generate(body)?;
+                let body = self.generate(body, insights)?;
                 VStatement::While { condition, body }
             }
             Statement::Foreach { item_name, iterable, body } => {
@@ -225,14 +235,10 @@ impl<'a, 'b, 'c, 'd> StatementsVerifier<'a, 'b, 'c, 'd> {
                 let index_name = format!("{}@index_{}", item_name, statement.pos);
                 let iterable_name = format!("{}@iterable_{}", item_name, statement.pos);
 
-                self.expr_verified
-                    .add_variable(item_name.clone(), item_type.clone())
-                    .map_err(&stmt_err)?;
-                self.expr_verified
-                    .add_variable(index_name.clone(), Type::Int)
-                    .map_err(&stmt_err)?;
-                self.expr_verified
-                    .add_variable(iterable_name.clone(), iterable_type.clone())
+                insights.add_variable(item_name, &item_type).map_err(&stmt_err)?;
+                insights.add_variable(&index_name, &Type::Int).map_err(&stmt_err)?;
+                insights
+                    .add_variable(&iterable_name, &iterable_type)
                     .map_err(&stmt_err)?;
 
                 let get_iterable_var = || VExprTyped {
@@ -301,7 +307,7 @@ impl<'a, 'b, 'c, 'd> StatementsVerifier<'a, 'b, 'c, 'd> {
                     },
                 };
 
-                let mut calculated_body = self.generate(body)?;
+                let mut calculated_body = self.generate(body, insights)?;
                 calculated_body.insert(0, increase_index_statement);
                 calculated_body.insert(0, set_item_statement);
 
@@ -328,8 +334,9 @@ pub fn verify_statements(
 ) -> SemanticResult<Vec<VStatement>> {
     let mut gen = StatementsVerifier::new(scope, aggregate, resolver);
 
-    gen.init_function_arguments()?;
-    gen.generate(og_statements)
+    let mut insights = Insights::from_function_arguments(&scope.args);
+
+    gen.generate(og_statements, &mut insights)
 }
 
 fn split_left_part_of_assignment(vexpr: VExprTyped) -> (VExprTyped, Vec<usize>) {

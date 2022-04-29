@@ -8,7 +8,7 @@ use crate::types::{Type, VerifiedType};
 use super::aggregate::ProgramAggregate;
 use super::errors::{expression_error, SemanticError, SemanticResult};
 use super::operators::{calculate_binaryop, calculate_unaryop};
-use super::resolvers::{NameResolver, SymbolResolver};
+use super::resolvers::SymbolResolver;
 use super::std_definitions::{get_std_function_raw, get_std_method, is_std_function};
 
 fn if_as_expected(
@@ -31,38 +31,24 @@ pub struct ExpressionsVerifier<'a, 'b, 'c> {
     scope: &'a RawFunction,
     aggregate: &'b ProgramAggregate,
     variables_types: HashMap<String, VerifiedType>,
-    func_resolver: SymbolResolver<'c, SymbolFunc>,
     type_resolver: SymbolResolver<'c, SymbolType>,
+    func_resolver: SymbolResolver<'c, SymbolFunc>,
 }
 
 impl<'a, 'b, 'c> ExpressionsVerifier<'a, 'b, 'c> {
     pub fn new<'d>(
         scope: &'a RawFunction,
         aggregate: &'b ProgramAggregate,
-        resolver: &'d NameResolver,
-    ) -> ExpressionsVerifier<'a, 'b, 'c>
-    where
-        'a: 'c,
-        'd: 'c,
-    {
+        type_resolver: SymbolResolver<'c, SymbolType>,
+        func_resolver: SymbolResolver<'c, SymbolFunc>,
+    ) -> ExpressionsVerifier<'a, 'b, 'c> {
         ExpressionsVerifier {
             scope,
             aggregate,
             variables_types: HashMap::new(),
-            func_resolver: resolver.get_functions_resolver(&scope.defined_at),
-            type_resolver: resolver.get_typenames_resolver(&scope.defined_at),
+            func_resolver,
+            type_resolver,
         }
-    }
-
-    pub fn add_variable(&mut self, name: String, t: VerifiedType) -> Result<(), String> {
-        if self.variables_types.contains_key(&name) {
-            return Err(format!(
-                "Variable {} defined multiple times in function {}",
-                name, self.scope.short_name
-            ));
-        }
-        self.variables_types.insert(name, t);
-        Ok(())
     }
 
     fn resolve_func(&self, name: &str) -> Result<&'b RawFunction, String> {
