@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::ast::parsed::*;
 use crate::ast::verified::{CustomType, RawFunction, VExpr, VExprTyped};
 use crate::symbols::{SymbolFunc, SymbolType};

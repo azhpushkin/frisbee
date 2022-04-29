@@ -1,6 +1,6 @@
 use crate::ast::parsed::*;
 use crate::ast::verified::{RawFunction, RawOperator, VExpr, VExprTyped, VStatement};
-use crate::symbols::{SymbolFunc, SymbolType};
+use crate::symbols::SymbolFunc;
 use crate::types::{verify_parsed_type, ParsedType, Type, VerifiedType};
 
 use super::aggregate::ProgramAggregate;
@@ -41,23 +41,13 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
         statements: &[StatementWithPos],
         insights: &mut Insights,
     ) -> SemanticResult<Vec<VStatement>> {
+        let last_existing = insights.new_variables.last().cloned();
+
         let mut res = vec![];
 
         for statement in statements {
             res.push(self.generate_single(statement, insights)?);
         }
-
-        Ok(res)
-    }
-
-    pub fn generate_block_and_drop_locals(
-        &mut self,
-        statements: &[StatementWithPos],
-        insights: &mut Insights,
-    ) -> SemanticResult<Vec<VStatement>> {
-        let last_existing = insights.new_variables.last().cloned();
-
-        let mut res = self.generate_block(statements, insights)?;
 
         while insights.new_variables.last() != last_existing.as_ref() {
             let dropped_var = insights.drop_last_local();
@@ -92,10 +82,10 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
         insights: &mut Insights,
     ) -> SemanticResult<VStatement> {
         let condition = self.check_expr(condition, Some(&Type::Bool), insights)?;
-        let if_body = self.generate_block_and_drop_locals(if_body_input, insights)?;
+        let if_body = self.generate_block(if_body_input, insights)?;
 
         let else_body = match elif_bodies_input {
-            [] => self.generate_block_and_drop_locals(else_body_input, insights)?,
+            [] => self.generate_block(else_body_input, insights)?,
             [(first_condition, first_body), other_elifs @ ..] => {
                 let elif_else_body = self.generate_if_elif_else(
                     first_condition,
@@ -180,7 +170,7 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
             }
             Statement::While { condition, body } => {
                 let condition = self.check_expr(condition, Some(&Type::Bool), insights)?;
-                let body = self.generate_block_and_drop_locals(body, insights)?;
+                let body = self.generate_block(body, insights)?;
                 VStatement::While { condition, body }
             }
             Statement::Foreach { item_name, iterable, body } => {
@@ -275,11 +265,11 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
                 };
 
                 // NOTE: this is the only place which performs the calculations of the body!
-                let mut calculated_body = self.generate_block_and_drop_locals(body, insights)?;
+                let mut calculated_body = self.generate_block(body, insights)?;
                 calculated_body.insert(0, increase_index_statement);
                 calculated_body.insert(0, set_item_statement);
 
-                let mut loop_group = vec![
+                let loop_group = vec![
                     define_item_var,
                     define_index_var,
                     defined_iterator_var,
@@ -379,54 +369,4 @@ fn allocate_object_for_constructor(scope: &RawFunction) -> VStatement {
             expr_type: Type::Custom(class_name.clone()),
         },
     }
-}
-
-fn move_variables_out_of_while(
-    condition: VExprTyped,
-    mut body: Vec<VStatement>,
-    insights: &mut Insights,
-) -> Vec<VStatement> {
-    let mut statements = vec![];
-    let mut to_drop = vec![];
-
-    // Iterate over first-level of statements
-    for statement in body.iter_mut() {
-        match statement {
-            VStatement::DeclareVar { var_type, name } => {
-                to_drop.push(name.clone());
-
-                let mut dummy_statement = VStatement::DoNothing;
-                std::mem::swap(statement, &mut dummy_statement);
-                statements.push(dummy_statement);
-            }
-            VStatement::DeclareAndAssignVar { var_type, name, value } => {
-                to_drop.push(name.clone());
-
-                let mut dummy_expr = VExprTyped { expr: VExpr::Int(1), expr_type: Type::Int };
-                std::mem::swap(value, &mut dummy_expr);
-
-                statements.push(VStatement::DeclareVar {
-                    var_type: var_type.clone(),
-                    name: name.clone(),
-                });
-
-                let assign_stmt = VStatement::AssignLocal {
-                    name: name.clone(),
-                    tuple_indexes: vec![],
-                    value: dummy_expr,
-                };
-                *statement = assign_stmt;
-            }
-            _ => (),
-        }
-    }
-    statements.push(VStatement::While { condition, body });
-
-    for name in to_drop.iter().rev() {
-        statements.push(VStatement::DropLocal { name: name.clone() });
-        let dropped = insights.drop_last_local();
-        assert_eq!(name, &dropped, "Dropped something wrong...");
-    }
-
-    statements
 }
