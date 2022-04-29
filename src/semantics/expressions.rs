@@ -7,6 +7,7 @@ use crate::types::{Type, VerifiedType};
 
 use super::aggregate::ProgramAggregate;
 use super::errors::{expression_error, SemanticError, SemanticResult};
+use super::insights::Insights;
 use super::operators::{calculate_binaryop, calculate_unaryop};
 use super::resolvers::SymbolResolver;
 use super::std_definitions::{get_std_function_raw, get_std_method, is_std_function};
@@ -27,28 +28,23 @@ fn if_as_expected(
     }
 }
 
-pub struct ExpressionsVerifier<'a, 'b, 'c> {
+pub struct ExpressionsVerifier<'a, 'b, 'c, 'i> {
     scope: &'a RawFunction,
     aggregate: &'b ProgramAggregate,
-    variables_types: HashMap<String, VerifiedType>,
+    insights: &'i Insights,
     type_resolver: SymbolResolver<'c, SymbolType>,
     func_resolver: SymbolResolver<'c, SymbolFunc>,
 }
 
-impl<'a, 'b, 'c> ExpressionsVerifier<'a, 'b, 'c> {
-    pub fn new<'d>(
+impl<'a, 'b, 'c, 'i> ExpressionsVerifier<'a, 'b, 'c, 'i> {
+    pub fn new(
         scope: &'a RawFunction,
         aggregate: &'b ProgramAggregate,
+        insights: &'i Insights,
         type_resolver: SymbolResolver<'c, SymbolType>,
         func_resolver: SymbolResolver<'c, SymbolFunc>,
-    ) -> ExpressionsVerifier<'a, 'b, 'c> {
-        ExpressionsVerifier {
-            scope,
-            aggregate,
-            variables_types: HashMap::new(),
-            func_resolver,
-            type_resolver,
-        }
+    ) -> ExpressionsVerifier<'a, 'b, 'c, 'i> {
+        ExpressionsVerifier { scope, aggregate, insights, func_resolver, type_resolver }
     }
 
     fn resolve_func(&self, name: &str) -> Result<&'b RawFunction, String> {
@@ -93,10 +89,7 @@ impl<'a, 'b, 'c> ExpressionsVerifier<'a, 'b, 'c> {
             }
 
             Expr::Identifier(i) => {
-                let identifier_type = self
-                    .variables_types
-                    .get(i)
-                    .ok_or_else(|| with_expr(format!("Variable {} not defined yet!", i)))?;
+                let identifier_type = self.insights.get_variable(i).map_err(&with_expr)?;
 
                 if_as_expected(expected, identifier_type, VExpr::GetVar(i.clone()))
                     .map_err(with_expr)

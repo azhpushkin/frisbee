@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::ast::parsed::*;
 use crate::ast::verified::{RawFunction, RawOperator, VExpr, VExprTyped, VStatement};
 use crate::symbols::{SymbolFunc, SymbolType};
@@ -9,37 +7,21 @@ use super::aggregate::ProgramAggregate;
 use super::errors::{expression_error, statement_error, SemanticError, SemanticResult};
 use super::expressions::ExpressionsVerifier;
 use super::insights::Insights;
-use super::resolvers::{NameResolver, SymbolResolver};
+use super::resolvers::NameResolver;
 
 struct StatementsVerifier<'a, 'b, 'c> {
     scope: &'a RawFunction,
-    type_resolver: SymbolResolver<'c, SymbolType>,
-    expr_verified: ExpressionsVerifier<'a, 'b, 'c>,
+    aggregate: &'b ProgramAggregate,
+    resolver: &'c NameResolver,
 }
 
 impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
-    fn new<'d>(
+    fn new(
         scope: &'a RawFunction,
         aggregate: &'b ProgramAggregate,
-        resolver: &'d NameResolver,
-    ) -> Self
-    where
-        'd: 'c,
-        'a: 'c
-
-    {
-        let expr_verified = ExpressionsVerifier::new(
-            scope,
-            aggregate,
-            resolver.get_typenames_resolver(&scope.defined_at),
-            resolver.get_functions_resolver(&scope.defined_at),
-        );
-
-        Self {
-            scope,
-            type_resolver: resolver.get_typenames_resolver(&scope.defined_at),
-            expr_verified,
-        }
+        resolver: &'c NameResolver,
+    ) -> Self {
+        Self { scope, aggregate, resolver }
     }
 
     fn annotate_type(
@@ -47,65 +29,24 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
         t: &ParsedType,
         stmt: &StatementWithPos,
     ) -> SemanticResult<VerifiedType> {
-        verify_parsed_type(t, &self.type_resolver).map_err(SemanticError::add_statement(stmt))
+        verify_parsed_type(
+            t,
+            &self.resolver.get_typenames_resolver(&self.scope.defined_at),
+        )
+        .map_err(SemanticError::add_statement(stmt))
     }
 
-    fn is_constructor(&self) -> bool {
-        if self.scope.method_of.is_some() {
-            let first_arg = self.scope.args.names.get(&0);
-            // For each method, first argument is "this", which is implicitly passed
-            // So if there is no arguments or first argument is not "this" - then we assume
-            // that this method is a constructor
-
-            if first_arg.is_none() || first_arg.unwrap() != "this" {
-                return true;
-            }
-        }
-        false
-    }
-
-    fn allocate_object_for_constructor(&self) -> VStatement {
-        let class_name = self.scope.method_of.as_ref().unwrap();
-
-        VStatement::DeclareAndAssignVar {
-            var_type: Type::Custom(class_name.clone()),
-            name: "this".into(),
-            value: VExprTyped {
-                expr: VExpr::Allocate { typename: class_name.clone() },
-                expr_type: Type::Custom(class_name.clone()),
-            },
-        }
-    }
-
-    fn return_new_object_for_constructor(&self) -> VStatement {
-        let class_name = self.scope.method_of.as_ref().unwrap();
-
-        VStatement::Return(VExprTyped {
-            expr: VExpr::GetVar("this".into()),
-            expr_type: Type::Custom(class_name.clone()),
-        })
-    }
-
-    pub fn generate(
+    pub fn generate_block(
         &mut self,
         statements: &[StatementWithPos],
         insights: &mut Insights,
     ) -> SemanticResult<Vec<VStatement>> {
         let mut res = vec![];
 
-        if self.is_constructor() {
-            // Allocate "this" right at the start of the method
-            res.push(self.allocate_object_for_constructor());
-        }
-
         for statement in statements {
             res.extend(self.generate_single(statement, insights)?);
         }
 
-        if self.is_constructor() {
-            // Allocate "this" right at the start of the method
-            res.push(self.return_new_object_for_constructor());
-        }
         Ok(res)
     }
 
@@ -113,8 +54,16 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
         &self,
         expr: &ExprWithPos,
         expected: Option<&VerifiedType>,
+        insights: &Insights,
     ) -> SemanticResult<VExprTyped> {
-        self.expr_verified.calculate(expr, expected)
+        let expr_verified = ExpressionsVerifier::new(
+            self.scope,
+            self.aggregate,
+            insights,
+            self.resolver.get_typenames_resolver(&self.scope.defined_at),
+            self.resolver.get_functions_resolver(&self.scope.defined_at),
+        );
+        expr_verified.calculate(expr, expected)
     }
 
     fn generate_if_elif_else(
@@ -125,11 +74,11 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
         else_body_input: &[StatementWithPos],
         insights: &mut Insights,
     ) -> SemanticResult<VStatement> {
-        let condition = self.check_expr(condition, Some(&Type::Bool))?;
-        let if_body = self.generate(if_body_input, insights)?;
+        let condition = self.check_expr(condition, Some(&Type::Bool), insights)?;
+        let if_body = self.generate_block(if_body_input, insights)?;
 
         let else_body = match elif_bodies_input {
-            [] => self.generate(else_body_input, insights)?,
+            [] => self.generate_block(else_body_input, insights)?,
             [(first_condition, first_body), other_elifs @ ..] => {
                 let elif_else_body = self.generate_if_elif_else(
                     first_condition,
@@ -152,7 +101,7 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
     ) -> SemanticResult<Vec<VStatement>> {
         let stmt_err = SemanticError::add_statement(statement);
         let verified_statement = match &statement.statement {
-            Statement::Expr(e) => VStatement::Expression(self.check_expr(e, None)?),
+            Statement::Expr(e) => VStatement::Expression(self.check_expr(e, None, insights)?),
             Statement::VarDecl(var_type, name) => {
                 let var_type = self.annotate_type(var_type, statement)?;
 
@@ -160,8 +109,9 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
                 VStatement::DeclareVar { var_type, name: name.clone() }
             }
             Statement::Assign { left, right } => {
-                let left_calculated = self.check_expr(left, None)?;
-                let right_calculated = self.check_expr(right, Some(&left_calculated.expr_type))?;
+                let left_calculated = self.check_expr(left, None, insights)?;
+                let right_calculated =
+                    self.check_expr(right, Some(&left_calculated.expr_type), insights)?;
 
                 // TODO: emit error based on left pos
                 let (base_object, tuple_indexes) = split_left_part_of_assignment(left_calculated);
@@ -191,7 +141,7 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
             }
             Statement::VarDeclWithAssign(var_type, name, value) => {
                 let var_type = self.annotate_type(var_type, statement)?;
-                let value = self.check_expr(value, Some(&var_type))?;
+                let value = self.check_expr(value, Some(&var_type), insights)?;
 
                 insights.add_variable(name, &var_type).map_err(stmt_err)?;
 
@@ -200,7 +150,7 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
 
             Statement::Return(Some(e)) => {
                 // TODO: check value of return
-                VStatement::Return(self.check_expr(e, Some(&self.scope.return_type))?)
+                VStatement::Return(self.check_expr(e, Some(&self.scope.return_type), insights)?)
             }
             Statement::Return(None) => VStatement::Return(VExprTyped {
                 expr: VExpr::TupleValue(vec![]),
@@ -212,12 +162,12 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
                 self.generate_if_elif_else(condition, if_body, elif_bodies, else_body, insights)?
             }
             Statement::While { condition, body } => {
-                let condition = self.check_expr(condition, Some(&Type::Bool))?;
-                let body = self.generate(body, insights)?;
+                let condition = self.check_expr(condition, Some(&Type::Bool), insights)?;
+                let body = self.generate_block(body, insights)?;
                 VStatement::While { condition, body }
             }
             Statement::Foreach { item_name, iterable, body } => {
-                let iterable_calculated = self.check_expr(iterable, None)?;
+                let iterable_calculated = self.check_expr(iterable, None, insights)?;
                 let iterable_type = iterable_calculated.expr_type.clone();
 
                 let item_type = match &iterable_type {
@@ -307,7 +257,7 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
                     },
                 };
 
-                let mut calculated_body = self.generate(body, insights)?;
+                let mut calculated_body = self.generate_block(body, insights)?;
                 calculated_body.insert(0, increase_index_statement);
                 calculated_body.insert(0, set_item_statement);
 
@@ -332,11 +282,27 @@ pub fn verify_statements(
     aggregate: &ProgramAggregate,
     resolver: &NameResolver,
 ) -> SemanticResult<Vec<VStatement>> {
+    let mut insights = Insights::from_function_arguments(&scope.args);
     let mut gen = StatementsVerifier::new(scope, aggregate, resolver);
 
-    let mut insights = Insights::from_function_arguments(&scope.args);
+    let is_constructor = is_constructor(&scope);
 
-    gen.generate(og_statements, &mut insights)
+    if is_constructor {
+        // Allocate "this" right at the start of the method
+        insights
+            .add_variable("this", &scope.return_type)
+            .expect("This defined multiple times!");
+    }
+    println!("scope {:?} Insights {:?}", scope.name, insights);
+
+    let mut verified = gen.generate_block(og_statements, &mut insights)?;
+
+    if is_constructor {
+        verified.insert(0, allocate_object_for_constructor(scope));
+        verified.push(return_statement_for_constructor(scope))
+    }
+
+    Ok(verified)
 }
 
 fn split_left_part_of_assignment(vexpr: VExprTyped) -> (VExprTyped, Vec<usize>) {
@@ -349,5 +315,41 @@ fn split_left_part_of_assignment(vexpr: VExprTyped) -> (VExprTyped, Vec<usize>) 
         (base, indexes)
     } else {
         (vexpr, vec![])
+    }
+}
+
+fn is_constructor(scope: &RawFunction) -> bool {
+    if scope.method_of.is_some() {
+        let first_arg = scope.args.names.get(&0);
+        // For each method, first argument is "this", which is implicitly passed
+        // So if there is no arguments or first argument is not "this" - then we assume
+        // that this method is a constructor
+
+        if first_arg.is_none() || first_arg.unwrap() != "this" {
+            return true;
+        }
+    }
+    false
+}
+
+pub fn return_statement_for_constructor(scope: &RawFunction) -> VStatement {
+    let class_name = scope.method_of.as_ref().unwrap();
+
+    VStatement::Return(VExprTyped {
+        expr: VExpr::GetVar("this".into()),
+        expr_type: Type::Custom(class_name.clone()),
+    })
+}
+
+fn allocate_object_for_constructor(scope: &RawFunction) -> VStatement {
+    let class_name = scope.method_of.as_ref().unwrap();
+
+    VStatement::DeclareAndAssignVar {
+        var_type: Type::Custom(class_name.clone()),
+        name: "this".into(),
+        value: VExprTyped {
+            expr: VExpr::Allocate { typename: class_name.clone() },
+            expr_type: Type::Custom(class_name.clone()),
+        },
     }
 }
