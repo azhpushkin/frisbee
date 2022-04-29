@@ -43,8 +43,15 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
     ) -> SemanticResult<Vec<VStatement>> {
         let mut res = vec![];
 
+        let last_existing = insights.new_variables.last().cloned();
+
         for statement in statements {
             res.extend(self.generate_single(statement, insights)?);
+        }
+
+        while insights.new_variables.last() != last_existing.as_ref() {
+            let dropped_var = insights.drop_last_local();
+            res.push(VStatement::DropLocal { name: dropped_var });
         }
 
         Ok(res)
@@ -288,12 +295,12 @@ pub fn verify_statements(
     let is_constructor = is_constructor(&scope);
 
     if is_constructor {
-        // Allocate "this" right at the start of the method
+        // Add this to the insights so that semantic checker assumer that object is already allocated
+        // Allocate statement itself is added later on
         insights
             .add_variable("this", &scope.return_type)
             .expect("This defined multiple times!");
     }
-    println!("scope {:?} Insights {:?}", scope.name, insights);
 
     let mut verified = gen.generate_block(og_statements, &mut insights)?;
 

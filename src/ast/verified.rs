@@ -55,6 +55,9 @@ pub enum VStatement {
         name: String,
         value: VExprTyped,
     },
+    DropLocal {
+        name: String,
+    },
     // TODO: change to generic assign
     // assign to name, field, tuple or list only allowed
     AssignLocal {
@@ -76,6 +79,7 @@ pub enum VStatement {
         tuple_indexes: Vec<usize>,
         value: VExprTyped,
     },
+
     Expression(VExprTyped),
     // TODO: send message
 }

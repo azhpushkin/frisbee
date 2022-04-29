@@ -49,6 +49,9 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 self.add_local(name, var_type);
                 self.push_expr(value);
             }
+            VStatement::DropLocal { name } => {
+                self.drop_local(name);
+            }
             VStatement::AssignToField { object, field, tuple_indexes, value } => {
                 let object_type = extract_custom_type(&object.expr_type);
                 // Push value before object, as we need to first pop a pointer

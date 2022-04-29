@@ -24,6 +24,7 @@ pub struct BytecodeGenerator<'a, 'b> {
     locals: HashMap<&'a String, u8>,
     locals_offset: u8,
     locals_types: HashMap<&'a String, &'a VerifiedType>,
+    locals_order: Vec<&'a String>,
     return_type: &'a VerifiedType,
     bytecode: FunctionBytecode,
 }
@@ -38,11 +39,13 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
         let mut locals: HashMap<&'a String, u8> = HashMap::new();
         let mut locals_offset: u8 = get_type_size(return_type);
         let mut locals_types = HashMap::new();
+        let mut locals_order = vec![];
 
         for (local_name, local_type) in initial_locals {
             locals.insert(local_name, locals_offset);
             locals_offset += get_type_size(local_type);
             locals_types.insert(local_name, local_type);
+            locals_order.push(local_name)
         }
 
         BytecodeGenerator {
@@ -51,6 +54,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
             locals,
             locals_offset,
             locals_types,
+            locals_order,
             return_type,
             bytecode: FunctionBytecode { bytecode: vec![], call_placeholders: vec![] },
         }
@@ -60,6 +64,20 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
         self.locals.insert(varname, self.locals_offset);
         self.locals_types.insert(varname, t);
         self.locals_offset += get_type_size(t);
+        self.locals_order.push(varname);
+    }
+
+    pub fn drop_local(&mut self, name: &'a String) {
+        if name != *self.locals_order.last().unwrap() {
+            panic!(
+                "You can only drop last local! (dropped {} while order is {:?}",
+                name, self.locals_order
+            );
+        }
+        self.locals_order.pop();
+        self.locals.remove(name).unwrap();
+        let q = self.locals_types.remove(name).unwrap();
+        self.locals_offset -= get_type_size(q);
     }
 
     pub fn push_get_local(&mut self, varname: &String) {
