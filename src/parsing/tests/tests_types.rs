@@ -1,4 +1,4 @@
-use super::super::parser_impl::*;
+use super::super::parser::*;
 use super::tests_helpers::*;
 
 type T = crate::types::ParsedType;

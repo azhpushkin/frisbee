@@ -1,6 +1,6 @@
 use crate::ast::{Expr, ExprWithPos, Statement, StatementWithPos};
 
-use super::super::parser_impl::*;
+use super::super::parser::*;
 use super::super::scanner::scan_tokens;
 
 pub type ParsingFunction<T> = fn(&mut Parser) -> ParseResult<T>;

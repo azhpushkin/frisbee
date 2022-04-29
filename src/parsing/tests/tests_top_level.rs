@@ -1,7 +1,7 @@
 use crate::ast::*;
 use crate::types::Type;
 
-use super::super::parser_impl::*;
+use super::super::parser::*;
 use super::tests_helpers::*;
 
 #[test]
