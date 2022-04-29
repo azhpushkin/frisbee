@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use crate::alias::ModuleAlias;
 use crate::ast::*;
 use crate::errors::CompileError;
-use crate::parser;
+use crate::parsing;
 
 #[derive(Debug)]
 pub struct LoadedFile {
@@ -45,13 +45,13 @@ fn load_file<'a>(
     let contents = std::fs::read_to_string(&file_path).expect("Cant read file");
     let module_alias = ModuleAlias::new(module_path);
 
-    let tokens = parser::scanner::scan_tokens(&contents);
+    let tokens = parsing::scanner::scan_tokens(&contents);
     let tokens = match tokens {
         Ok(tokens) => tokens,
         Err(e) => return Err((module_alias, contents, Box::new(e))),
     };
 
-    let ast = parser::parse(tokens);
+    let ast = parsing::parse(tokens);
     let ast = match ast {
         Ok(ast) => ast,
         Err(e) => return Err((module_alias, contents, Box::new(e))),

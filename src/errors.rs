@@ -1,6 +1,6 @@
 use crate::alias::ModuleAlias;
-use crate::parser::scanner::ScanningError;
-use crate::parser::ParseError;
+use crate::parsing::scanner::ScanningError;
+use crate::parsing::ParseError;
 use crate::semantics::errors::SemanticError;
 
 use std::io::{self, Write};

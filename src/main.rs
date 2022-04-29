@@ -5,7 +5,7 @@ pub mod ast;
 pub mod codegen;
 pub mod errors;
 pub mod loader;
-pub mod parser;
+pub mod parsing;
 pub mod semantics;
 pub mod stdlib;
 pub mod symbols;
