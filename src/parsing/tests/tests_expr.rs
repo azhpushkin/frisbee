@@ -5,16 +5,16 @@ use super::tests_helpers::*;
 
 fn assert_expr_parses(s: &'static str, t: Expr) {
     let with_pos = ExprWithPos { expr: t, pos_first: 0, pos_last: s.len() - 1 };
-    assert_eq!(parse_and_unwrap(Parser::parse_expr, s), with_pos);
+    assert_eq!(parse_and_unwrap(|p| Parser::parse_expr(p), s), with_pos);
 }
 
 fn assert_expr_parses_padded(s: &'static str, t: Expr, first: usize, last: usize) {
     let with_pos = ExprWithPos { expr: t, pos_first: first, pos_last: last };
-    assert_eq!(parse_and_unwrap(Parser::parse_expr, s), with_pos);
+    assert_eq!(parse_and_unwrap(|p| Parser::parse_expr(p), s), with_pos);
 }
 
 fn assert_expr_invalid(s: &'static str) {
-    assert_parsing_fails(Parser::parse_expr, s);
+    assert_parsing_fails(|p| Parser::parse_expr(p), s);
 }
 
 #[test]

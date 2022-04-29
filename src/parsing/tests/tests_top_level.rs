@@ -7,7 +7,7 @@ use super::tests_helpers::*;
 #[test]
 fn simple_import() {
     assert_eq!(
-        parse_and_unwrap(Parser::parse_import, "from module import Actor;"),
+        parse_and_unwrap(|p| Parser::parse_import(p), "from module import Actor;"),
         ImportDecl {
             module_path: vec!["module".into()],
             typenames: vec![String::from("Actor")],
@@ -16,7 +16,7 @@ fn simple_import() {
     );
 
     assert_eq!(
-        parse_and_unwrap(Parser::parse_import, "from module.sub import func;"),
+        parse_and_unwrap(|p| Parser::parse_import(p), "from module.sub import func;"),
         ImportDecl {
             module_path: vec!["module".into(), "sub".into()],
             typenames: vec![],
@@ -24,15 +24,18 @@ fn simple_import() {
         }
     );
 
-    assert_parsing_fails(Parser::parse_import, "from module import Type");
-    assert_parsing_fails(Parser::parse_import, "from module. import Type;");
-    assert_parsing_fails(Parser::parse_import, "from module.123 import Type");
+    assert_parsing_fails(|p| Parser::parse_import(p), "from module import Type");
+    assert_parsing_fails(|p| Parser::parse_import(p), "from module. import Type;");
+    assert_parsing_fails(|p| Parser::parse_import(p), "from module.123 import Type");
 }
 
 #[test]
 fn simple_import_of_functions() {
     assert_eq!(
-        parse_and_unwrap(Parser::parse_import, "from module import func, Type, f;"),
+        parse_and_unwrap(
+            |p| Parser::parse_import(p),
+            "from module import func, Type, f;"
+        ),
         ImportDecl {
             module_path: vec!["module".into()],
             typenames: vec![String::from("Type")],
@@ -45,7 +48,7 @@ fn simple_import_of_functions() {
 fn multiple_imports() {
     assert_eq!(
         parse_and_unwrap(
-            Parser::parse_top_level,
+            |p| Parser::parse_top_level(p),
             "from some2 import Hello, There; from two import One;"
         ),
         FileAst {
@@ -87,7 +90,7 @@ fn parse_function_definition() {
     );
     assert_eq!(
         parse_and_unwrap(
-            Parser::parse_top_level,
+            |p| Parser::parse_top_level(p),
             r#"fun void get_person(Int age, String name) { Int var = asd("lol"); } "#
         ),
         FileAst {

@@ -184,8 +184,7 @@ fn scan_and_add_token(scanner: &mut Scanner) -> Result<(), ScanningError> {
                 // Consume trailing \n
                 scanner.consume_char();
             } else if scanner.check_next('*') {
-                let is_commend_end =
-                    |s: &Scanner| s.check_ahead(0, '*') && s.check_ahead(1, '/');
+                let is_commend_end = |s: &Scanner| s.check_ahead(0, '*') && s.check_ahead(1, '/');
                 while !scanner.is_finished() && !is_commend_end(&scanner) {
                     scanner.consume_char();
                 }
@@ -279,13 +278,10 @@ fn scan_and_add_token(scanner: &mut Scanner) -> Result<(), ScanningError> {
         }
     }
 
-    
-
     Ok(())
 }
 
-
-pub fn scan_tokens(data: &str) -> (Vec<ScannedToken>, Result<(), ScanningError>){
+pub fn scan_tokens(data: &str) -> (Vec<ScannedToken>, Result<(), ScanningError>) {
     let chars = data.chars().collect::<Vec<char>>();
     let mut scanner = Scanner::create(&chars);
 
@@ -294,9 +290,8 @@ pub fn scan_tokens(data: &str) -> (Vec<ScannedToken>, Result<(), ScanningError>)
         if let Err(e) = scan_result {
             return (scanner.tokens, Err(e));
         }
-        
     }
     scanner.add_token_with_position(Token::EOF, scanner.chars.len() - 1);
-    
+
     (scanner.tokens, Ok(()))
 }

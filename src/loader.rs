@@ -48,7 +48,7 @@ fn load_file<'a>(
     let (tokens, scan_status) = parsing::scanner::scan_tokens(&contents);
     if let Err(e) = scan_status {
         return Err((module_alias, contents, Box::new(e)));
-    }    
+    }
 
     let ast = parsing::parse_file(&tokens);
     let ast = match ast {

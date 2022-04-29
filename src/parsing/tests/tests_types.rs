@@ -4,7 +4,7 @@ use super::tests_helpers::*;
 type T = crate::types::ParsedType;
 
 fn assert_type_parses(s: &'static str, t: T) {
-    assert_eq!(parse_and_unwrap(Parser::parse_type, s), t);
+    assert_eq!(parse_and_unwrap(|p| Parser::parse_type(p), s), t);
 }
 
 #[test]
@@ -21,16 +21,16 @@ fn simple_types() {
 
 #[test]
 fn types_parsing_errors() {
-    assert_parsing_fails(Parser::parse_type, "string");
-    assert_parsing_fails(Parser::parse_type, "int");
-    assert_parsing_fails(Parser::parse_type, "asd");
+    assert_parsing_fails(|p| Parser::parse_type(p), "string");
+    assert_parsing_fails(|p| Parser::parse_type(p), "int");
+    assert_parsing_fails(|p| Parser::parse_type(p), "asd");
 
-    assert_parsing_fails(Parser::parse_type, "?");
-    assert_parsing_fails(Parser::parse_type, "[String");
-    assert_parsing_fails(Parser::parse_type, "[[String]");
-    assert_parsing_fails(Parser::parse_type, "(String(");
-    assert_parsing_fails(Parser::parse_type, ")String");
-    assert_parsing_fails(Parser::parse_type, ")String");
+    assert_parsing_fails(|p| Parser::parse_type(p), "?");
+    assert_parsing_fails(|p| Parser::parse_type(p), "[String");
+    assert_parsing_fails(|p| Parser::parse_type(p), "[[String]");
+    assert_parsing_fails(|p| Parser::parse_type(p), "(String(");
+    assert_parsing_fails(|p| Parser::parse_type(p), ")String");
+    assert_parsing_fails(|p| Parser::parse_type(p), ")String");
 }
 
 #[test]
@@ -43,9 +43,9 @@ fn list_types() {
         )))))),
     );
 
-    assert_parsing_fails(Parser::parse_type, "[ ]");
-    assert_parsing_fails(Parser::parse_type, "[Int, String]");
-    assert_parsing_fails(Parser::parse_type, "[Int, ]");
+    assert_parsing_fails(|p| Parser::parse_type(p), "[ ]");
+    assert_parsing_fails(|p| Parser::parse_type(p), "[Int, String]");
+    assert_parsing_fails(|p| Parser::parse_type(p), "[Int, ]");
 }
 
 #[test]
@@ -83,7 +83,7 @@ fn tuple_types() {
     assert_type_parses("(Actor, )", T::Custom(String::from("Actor")));
 
     // Empty tuple is not allowed
-    assert_parsing_fails(Parser::parse_type, "()");
+    assert_parsing_fails(|p| Parser::parse_type(p), "()");
 }
 
 #[test]
