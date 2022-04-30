@@ -18,6 +18,8 @@
 * check how it works if variable is defined inside of the while loop
 * check range() start and end (only pos? negative allowed?)
 * what if there are function argument names "this"?
+* check nested breaks and continue
+* check that even after brake, loop variables are popped
 * check that tuple size is no more than 255
 * ensure that return is REQUIRED, but constructor must not have one
 * check how single-item tuples work!

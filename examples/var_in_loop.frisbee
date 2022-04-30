@@ -9,6 +9,9 @@ fun void main() {
         foreach ss in range(0, 4) {
             String sss = ss.to_string();
             print(sss);
+            if ss == 2 {
+                break;
+            }
         }
         
         println(i.to_string());
