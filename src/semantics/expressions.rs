@@ -5,7 +5,7 @@ use crate::types::{Type, VerifiedType};
 
 use super::aggregate::ProgramAggregate;
 use super::errors::{expression_error, SemanticError, SemanticResult};
-use super::insights::Insights;
+use super::insights::{Insights, LocalVariables};
 use super::operators::{calculate_binaryop, calculate_unaryop};
 use super::resolvers::SymbolResolver;
 use super::std_definitions::{get_std_function_raw, get_std_method, is_std_function};
@@ -26,23 +26,25 @@ fn if_as_expected(
     }
 }
 
-pub struct ExpressionsVerifier<'a, 'b, 'c, 'i> {
+pub struct ExpressionsVerifier<'a, 'b, 'c, 'i, 'l> {
     scope: &'a RawFunction,
     aggregate: &'b ProgramAggregate,
+    locals: &'l LocalVariables,
     insights: &'i Insights,
     type_resolver: SymbolResolver<'c, SymbolType>,
     func_resolver: SymbolResolver<'c, SymbolFunc>,
 }
 
-impl<'a, 'b, 'c, 'i> ExpressionsVerifier<'a, 'b, 'c, 'i> {
+impl<'a, 'b, 'c, 'i, 'l> ExpressionsVerifier<'a, 'b, 'c, 'i, 'l> {
     pub fn new(
         scope: &'a RawFunction,
         aggregate: &'b ProgramAggregate,
+        locals: &'l LocalVariables,
         insights: &'i Insights,
         type_resolver: SymbolResolver<'c, SymbolType>,
         func_resolver: SymbolResolver<'c, SymbolFunc>,
-    ) -> ExpressionsVerifier<'a, 'b, 'c, 'i> {
-        ExpressionsVerifier { scope, aggregate, insights, func_resolver, type_resolver }
+    ) -> ExpressionsVerifier<'a, 'b, 'c, 'i, 'l> {
+        ExpressionsVerifier { scope, aggregate, locals, insights, func_resolver, type_resolver }
     }
 
     fn resolve_func(&self, name: &str) -> Result<&'b RawFunction, String> {
@@ -87,7 +89,7 @@ impl<'a, 'b, 'c, 'i> ExpressionsVerifier<'a, 'b, 'c, 'i> {
             }
 
             Expr::Identifier(i) => {
-                let identifier_type = self.insights.get_variable(i).map_err(&with_expr)?;
+                let identifier_type = self.locals.get_variable(i).map_err(&with_expr)?;
 
                 if_as_expected(expected, identifier_type, VExpr::GetVar(i.clone()))
                     .map_err(with_expr)

@@ -6,22 +6,24 @@ use crate::types::{verify_parsed_type, ParsedType, Type, VerifiedType};
 use super::aggregate::ProgramAggregate;
 use super::errors::{expression_error, statement_error, SemanticError, SemanticResult};
 use super::expressions::ExpressionsVerifier;
-use super::insights::{with_insights_as_in_loop, with_insights_changes, Insights, InsightsChanges};
+use super::insights::{with_insights_as_in_loop, with_insights_changes, Insights, LocalVariables};
 use super::resolvers::NameResolver;
 
-struct StatementsVerifier<'a, 'b, 'c> {
+struct StatementsVerifier<'a, 'b, 'c, 'l> {
     scope: &'a RawFunction,
     aggregate: &'b ProgramAggregate,
     resolver: &'c NameResolver,
+    locals: &'l mut LocalVariables,
 }
 
-impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
+impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
     fn new(
         scope: &'a RawFunction,
         aggregate: &'b ProgramAggregate,
         resolver: &'c NameResolver,
+        locals: &'l mut LocalVariables,
     ) -> Self {
-        Self { scope, aggregate, resolver }
+        Self { scope, aggregate, resolver, locals }
     }
 
     fn annotate_type(
@@ -41,12 +43,12 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
         statements: &[StatementWithPos],
         insights: &mut Insights,
     ) -> SemanticResult<Vec<VStatement>> {
-        let last_existing = insights.peek_last_local().cloned();
+        let last_existing = self.locals.peek_last_local().cloned();
 
         let mut res = self.generate_block(statements, insights)?;
 
-        while insights.peek_last_local() != last_existing.as_ref() {
-            let dropped_var = insights.drop_last_local();
+        while self.locals.peek_last_local() != last_existing.as_ref() {
+            let dropped_var = self.locals.drop_last_local();
             res.push(VStatement::DropLocal { name: dropped_var });
         }
 
@@ -76,6 +78,7 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
         let expr_verified = ExpressionsVerifier::new(
             self.scope,
             self.aggregate,
+            self.locals,
             insights,
             self.resolver.get_typenames_resolver(&self.scope.defined_at),
             self.resolver.get_functions_resolver(&self.scope.defined_at),
@@ -90,37 +93,28 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
         elif_bodies_input: &[(ExprWithPos, Vec<StatementWithPos>)],
         else_body_input: &[StatementWithPos],
         insights: &mut Insights,
-    ) -> SemanticResult<(VStatement, InsightsChanges)> {
+    ) -> SemanticResult<VStatement> {
         let condition = self.check_expr(condition, Some(&Type::Bool), insights)?;
 
-        let (if_body, if_new_insights) = with_insights_changes!(
-            insights,
-            self.generate_block_for_if_branch(if_body_input, insights)?
-        );
+        let mut insights_of_if_branch = insights.clone();
 
-        let (else_body, else_new_insights) = match elif_bodies_input {
-            [] => with_insights_changes!(
-                insights,
-                self.generate_block_for_if_branch(else_body_input, insights)?
-            ),
+        let if_body =
+            self.generate_block_for_if_branch(if_body_input, &mut insights_of_if_branch)?;
+
+        let else_body = match elif_bodies_input {
+            [] => self.generate_block_for_if_branch(else_body_input, insights)?,
             [(first_condition, first_body), other_elifs @ ..] => {
-                let (elif_else, new_insights) = self.generate_if_elif_else(
+                vec![self.generate_if_elif_else(
                     first_condition,
                     first_body,
                     other_elifs,
                     else_body_input,
                     insights,
-                )?;
-                (vec![elif_else], new_insights)
+                )?]
             }
         };
-        println!("Chanhes: {:?}", if_new_insights);
-        println!("Chanhes: {:?}", else_new_insights);
-        insights.merge_matching_changes()
-        Ok((
-            VStatement::IfElse { condition, if_body, else_body },
-            InsightsChanges { return_found: true },
-        ))
+
+        Ok(VStatement::IfElse { condition, if_body, else_body })
     }
 
     fn generate_single(
@@ -139,7 +133,7 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
             Statement::VarDecl(var_type, name) => {
                 let var_type = self.annotate_type(var_type, statement)?;
 
-                insights.add_variable(name, &var_type).map_err(stmt_err)?;
+                self.locals.add_variable(name, &var_type).map_err(stmt_err)?;
                 VStatement::DeclareVar { var_type, name: name.clone() }
             }
             Statement::Assign { left, right } => {
@@ -177,7 +171,7 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
                 let var_type = self.annotate_type(var_type, statement)?;
                 let value = self.check_expr(value, Some(&var_type), insights)?;
 
-                insights.add_variable(name, &var_type).map_err(stmt_err)?;
+                self.locals.add_variable(name, &var_type).map_err(stmt_err)?;
 
                 VStatement::DeclareAndAssignVar { var_type, name: name.clone(), value }
             }
@@ -203,14 +197,7 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
             Statement::Break => VStatement::Break,
             Statement::Continue => VStatement::Continue,
             Statement::IfElse { condition, if_body, elif_bodies, else_body } => {
-                let (branch_statements, _) = self.generate_if_elif_else(
-                    condition,
-                    if_body,
-                    elif_bodies,
-                    else_body,
-                    insights,
-                )?;
-                branch_statements
+                self.generate_if_elif_else(condition, if_body, elif_bodies, else_body, insights)?
             }
             Statement::While { condition, body } => {
                 let condition = self.check_expr(condition, Some(&Type::Bool), insights)?;
@@ -218,7 +205,7 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
                     with_insights_as_in_loop!(insights, { self.generate_block(body, insights)? });
 
                 let mut loop_group =
-                    move_variables_out_of_while(condition, verified_body, insights);
+                    move_variables_out_of_while(condition, verified_body, self.locals, insights);
                 match &loop_group[..] {
                     [] => unreachable!("at least while loop is always there"),
                     [_] => loop_group.pop().unwrap(),
@@ -244,9 +231,9 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
                 let index_name = format!("{}@index_{}", item_name, statement.pos);
                 let iterable_name = format!("{}@iterable_{}", item_name, statement.pos);
 
-                insights.add_variable(item_name, &item_type).map_err(&stmt_err)?;
-                insights.add_variable(&index_name, &Type::Int).map_err(&stmt_err)?;
-                insights
+                self.locals.add_variable(item_name, &item_type).map_err(&stmt_err)?;
+                self.locals.add_variable(&index_name, &Type::Int).map_err(&stmt_err)?;
+                self.locals
                     .add_variable(&iterable_name, &iterable_type)
                     .map_err(&stmt_err)?;
 
@@ -326,6 +313,7 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
                 loop_group.extend(move_variables_out_of_while(
                     condition,
                     calculated_body,
+                    self.locals,
                     insights,
                 ));
                 loop_group.push(VStatement::DropLocal { name: iterable_name.clone() });
@@ -333,9 +321,9 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
                 loop_group.push(VStatement::DropLocal { name: item_name.clone() });
 
                 // Check that they are indeed are dropped
-                assert_eq!(insights.drop_last_local(), iterable_name);
-                assert_eq!(insights.drop_last_local(), index_name);
-                assert_eq!(insights.drop_last_local(), item_name.clone());
+                assert_eq!(self.locals.drop_last_local(), iterable_name);
+                assert_eq!(self.locals.drop_last_local(), index_name);
+                assert_eq!(self.locals.drop_last_local(), item_name.clone());
 
                 VStatement::LoopGroup(loop_group)
             }
@@ -352,19 +340,20 @@ pub fn verify_statements(
     aggregate: &ProgramAggregate,
     resolver: &NameResolver,
 ) -> SemanticResult<Vec<VStatement>> {
-    let mut insights = Insights::from_function_arguments(&scope.args);
-    let mut gen = StatementsVerifier::new(scope, aggregate, resolver);
-
     let is_constructor = is_constructor(&scope);
 
+    let mut locals = LocalVariables::from_function_arguments(&scope.args);
     if is_constructor {
         // Add this to the insights so that semantic checker assumer that object is already allocated
         // Allocate statement itself is added later on
-        insights
+        locals
             .add_variable("this", &scope.return_type)
             .expect("This defined multiple times!");
     }
 
+    let mut gen = StatementsVerifier::new(scope, aggregate, resolver, &mut locals);
+
+    let mut insights = Insights::new();
     let mut verified = gen.generate_block(og_statements, &mut insights)?;
 
     if is_constructor {
@@ -427,6 +416,7 @@ fn allocate_object_for_constructor(scope: &RawFunction) -> VStatement {
 fn move_variables_out_of_while(
     condition: VExprTyped,
     body: Vec<VStatement>,
+    locals: &mut LocalVariables,
     insights: &mut Insights,
 ) -> Vec<VStatement> {
     let mut declared_variables = vec![];
@@ -455,7 +445,7 @@ fn move_variables_out_of_while(
     }
     loop_group.push(VStatement::While { condition, body: new_body });
     for (_, var_name) in declared_variables.into_iter().rev() {
-        assert_eq!(insights.drop_last_local(), var_name, "Locals are FILO");
+        assert_eq!(locals.drop_last_local(), var_name, "Locals are FILO");
         loop_group.push(VStatement::DropLocal { name: var_name });
     }
 

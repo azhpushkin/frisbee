@@ -3,28 +3,15 @@ use std::collections::HashMap;
 use crate::ast::verified::TypedFields;
 use crate::types::VerifiedType;
 
-#[derive(Debug)]
-pub struct InsightsSnapshot {
-    pub return_found: bool
+pub struct LocalVariables {
+    pub variables_types: HashMap<String, VerifiedType>,
+    pub locals_order: Vec<String>, // TODO: reference here?
 }
 
-#[derive(Debug)]
-pub struct Insights {
-    variables_types: HashMap<String, VerifiedType>,
-    locals_order: Vec<String>,
-    pub is_in_loop: bool,
-    pub return_found: bool,
-}
-
-impl Insights {
+impl LocalVariables {
     pub fn from_function_arguments(args: &TypedFields) -> Self {
         let cloned_args = args.iter().map(|(s, t)| (s.clone(), t.clone()));
-        Self {
-            variables_types: cloned_args.collect(),
-            locals_order: vec![],
-            is_in_loop: false,
-            return_found: false,
-        }
+        Self { variables_types: cloned_args.collect(), locals_order: vec![] }
     }
 
     pub fn add_variable(&mut self, name: &str, t: &VerifiedType) -> Result<(), String> {
@@ -55,11 +42,15 @@ impl Insights {
     }
 }
 
-impl InsightsSnapshot {
-    pub fn from_insights(insights: &Insights) -> Self {
-        Self {
-            return_found: insights.return_found,
-        }
+#[derive(Debug, Clone)]
+pub struct Insights {
+    pub is_in_loop: bool,
+    pub return_found: bool,
+}
+
+impl Insights {
+    pub fn new() -> Self {
+        Self { is_in_loop: false, return_found: false }
     }
 }
 
@@ -75,13 +66,14 @@ macro_rules! with_insights_as_in_loop {
 
 macro_rules! with_insights_changes {
     ($insights:ident, $code:expr) => {{
-        let insights_before = $insights.return_found;
+        // let insights_before = $insights.return_found;
 
         let res = $code;
-        let changes = crate::semantics::insights::InsightsChanges {
-            return_found: $insights.return_found && !return_value_before,
-        };
-        (res, changes)
+        // let changes = crate::semantics::insights::InsightsChanges {
+        //     return_found: $insights.return_found && !return_value_before,
+        // };
+        // (res, changes)
+        (res, $insights)
     }};
 }
 
