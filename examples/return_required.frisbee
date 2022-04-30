@@ -1,0 +1,7 @@
+fun void main() {
+    if true {
+        return;
+    } else {
+        Int a = 1;
+    }
+}

@@ -6,18 +6,8 @@ use crate::types::{verify_parsed_type, ParsedType, Type, VerifiedType};
 use super::aggregate::ProgramAggregate;
 use super::errors::{expression_error, statement_error, SemanticError, SemanticResult};
 use super::expressions::ExpressionsVerifier;
-use super::insights::Insights;
+use super::insights::{with_insights_as_in_loop, with_insights_changes, Insights, InsightsChanges};
 use super::resolvers::NameResolver;
-
-macro_rules! with_insights_as_in_loop {
-    ($insights:ident, $code:block) => {{
-        let before = $insights.is_in_loop;
-        $insights.is_in_loop = true;
-        let res = $code;
-        $insights.is_in_loop = before;
-        res
-    }};
-}
 
 struct StatementsVerifier<'a, 'b, 'c> {
     scope: &'a RawFunction,
@@ -46,7 +36,7 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
         .map_err(SemanticError::add_statement(stmt))
     }
 
-    pub fn generate_block_and_drop_new_locals(
+    pub fn generate_block_for_if_branch(
         &mut self,
         statements: &[StatementWithPos],
         insights: &mut Insights,
@@ -100,25 +90,37 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
         elif_bodies_input: &[(ExprWithPos, Vec<StatementWithPos>)],
         else_body_input: &[StatementWithPos],
         insights: &mut Insights,
-    ) -> SemanticResult<VStatement> {
+    ) -> SemanticResult<(VStatement, InsightsChanges)> {
         let condition = self.check_expr(condition, Some(&Type::Bool), insights)?;
-        let if_body = self.generate_block_and_drop_new_locals(if_body_input, insights)?;
 
-        let else_body = match elif_bodies_input {
-            [] => self.generate_block_and_drop_new_locals(else_body_input, insights)?,
+        let (if_body, if_new_insights) = with_insights_changes!(
+            insights,
+            self.generate_block_for_if_branch(if_body_input, insights)?
+        );
+
+        let (else_body, else_new_insights) = match elif_bodies_input {
+            [] => with_insights_changes!(
+                insights,
+                self.generate_block_for_if_branch(else_body_input, insights)?
+            ),
             [(first_condition, first_body), other_elifs @ ..] => {
-                let elif_else_body = self.generate_if_elif_else(
+                let (elif_else, new_insights) = self.generate_if_elif_else(
                     first_condition,
                     first_body,
                     other_elifs,
                     else_body_input,
                     insights,
                 )?;
-                vec![elif_else_body]
+                (vec![elif_else], new_insights)
             }
         };
-
-        Ok(VStatement::IfElse { condition, if_body, else_body })
+        println!("Chanhes: {:?}", if_new_insights);
+        println!("Chanhes: {:?}", else_new_insights);
+        insights.merge_matching_changes()
+        Ok((
+            VStatement::IfElse { condition, if_body, else_body },
+            InsightsChanges { return_found: true },
+        ))
     }
 
     fn generate_single(
@@ -127,6 +129,11 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
         insights: &mut Insights,
     ) -> SemanticResult<VStatement> {
         let stmt_err = SemanticError::add_statement(statement);
+
+        // TODO: warning probably?
+        // if insights.return_found {
+        //     return statement_error!(statement, "Not reachable (return already occured)");
+        // }
         let verified_statement = match &statement.statement {
             Statement::Expr(e) => VStatement::Expression(self.check_expr(e, None, insights)?),
             Statement::VarDecl(var_type, name) => {
@@ -174,15 +181,19 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
 
                 VStatement::DeclareAndAssignVar { var_type, name: name.clone(), value }
             }
-
             Statement::Return(Some(e)) => {
                 // TODO: check value of return
-                VStatement::Return(self.check_expr(e, Some(&self.scope.return_type), insights)?)
+                insights.return_found = true;
+                let value = self.check_expr(e, Some(&self.scope.return_type), insights)?;
+                VStatement::Return(value)
             }
-            Statement::Return(None) => VStatement::Return(VExprTyped {
-                expr: VExpr::TupleValue(vec![]),
-                expr_type: Type::Tuple(vec![]),
-            }),
+            Statement::Return(None) => {
+                insights.return_found = true;
+                VStatement::Return(VExprTyped {
+                    expr: VExpr::TupleValue(vec![]),
+                    expr_type: Type::Tuple(vec![]),
+                })
+            }
             Statement::Break if !insights.is_in_loop => {
                 return statement_error!(statement, "`break` outside loop")
             }
@@ -192,7 +203,14 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
             Statement::Break => VStatement::Break,
             Statement::Continue => VStatement::Continue,
             Statement::IfElse { condition, if_body, elif_bodies, else_body } => {
-                self.generate_if_elif_else(condition, if_body, elif_bodies, else_body, insights)?
+                let (branch_statements, _) = self.generate_if_elif_else(
+                    condition,
+                    if_body,
+                    elif_bodies,
+                    else_body,
+                    insights,
+                )?;
+                branch_statements
             }
             Statement::While { condition, body } => {
                 let condition = self.check_expr(condition, Some(&Type::Bool), insights)?;

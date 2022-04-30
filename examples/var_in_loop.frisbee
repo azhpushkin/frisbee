@@ -13,7 +13,6 @@ fun void main() {
                 break;
             }
         }
-        
         println(i.to_string());
     }
     return;
