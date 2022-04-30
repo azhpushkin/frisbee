@@ -6,13 +6,18 @@ use crate::types::VerifiedType;
 #[derive(Debug, Clone)]
 pub struct Insights {
     variables_types: HashMap<String, VerifiedType>,
-    pub locals_order: Vec<String>,
+    locals_order: Vec<String>,
+    pub is_in_loop: bool,
 }
 
 impl Insights {
     pub fn from_function_arguments(args: &TypedFields) -> Self {
         let cloned_args = args.iter().map(|(s, t)| (s.clone(), t.clone()));
-        Self { variables_types: cloned_args.collect(), locals_order: vec![] }
+        Self {
+            variables_types: cloned_args.collect(),
+            locals_order: vec![],
+            is_in_loop: false,
+        }
     }
 
     pub fn add_variable(&mut self, name: &str, t: &VerifiedType) -> Result<(), String> {
@@ -36,5 +41,9 @@ impl Insights {
         let last_local = self.locals_order.pop().expect("Called while no locals");
         self.variables_types.remove(&last_local);
         last_local
+    }
+
+    pub fn peek_last_local(&self) -> Option<&String> {
+        return self.locals_order.last();
     }
 }

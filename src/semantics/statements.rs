@@ -9,6 +9,16 @@ use super::expressions::ExpressionsVerifier;
 use super::insights::Insights;
 use super::resolvers::NameResolver;
 
+macro_rules! with_insights_as_in_loop {
+    ($insights:ident, $code:block) => {{
+        let before = $insights.is_in_loop;
+        $insights.is_in_loop = true;
+        let res = $code;
+        $insights.is_in_loop = before;
+        res
+    }};
+}
+
 struct StatementsVerifier<'a, 'b, 'c> {
     scope: &'a RawFunction,
     aggregate: &'b ProgramAggregate,
@@ -41,11 +51,11 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
         statements: &[StatementWithPos],
         insights: &mut Insights,
     ) -> SemanticResult<Vec<VStatement>> {
-        let last_existing = insights.locals_order.last().cloned();
+        let last_existing = insights.peek_last_local().cloned();
 
         let mut res = self.generate_block(statements, insights)?;
 
-        while insights.locals_order.last() != last_existing.as_ref() {
+        while insights.peek_last_local() != last_existing.as_ref() {
             let dropped_var = insights.drop_last_local();
             res.push(VStatement::DropLocal { name: dropped_var });
         }
@@ -173,6 +183,12 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
                 expr: VExpr::TupleValue(vec![]),
                 expr_type: Type::Tuple(vec![]),
             }),
+            Statement::Break if !insights.is_in_loop => {
+                return statement_error!(statement, "`break` outside loop")
+            }
+            Statement::Continue if !insights.is_in_loop => {
+                return statement_error!(statement, "`continue` outside loop")
+            }
             Statement::Break => VStatement::Break,
             Statement::Continue => VStatement::Continue,
             Statement::IfElse { condition, if_body, elif_bodies, else_body } => {
@@ -180,8 +196,11 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
             }
             Statement::While { condition, body } => {
                 let condition = self.check_expr(condition, Some(&Type::Bool), insights)?;
-                let body = self.generate_block(body, insights)?;
-                let mut loop_group = move_variables_out_of_while(condition, body, insights);
+                let verified_body =
+                    with_insights_as_in_loop!(insights, { self.generate_block(body, insights)? });
+
+                let mut loop_group =
+                    move_variables_out_of_while(condition, verified_body, insights);
                 match &loop_group[..] {
                     [] => unreachable!("at least while loop is always there"),
                     [_] => loop_group.pop().unwrap(),
@@ -280,7 +299,8 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
                 };
 
                 // NOTE: this is the only place which performs the calculations of the body!
-                let mut calculated_body = self.generate_block(body, insights)?;
+                let mut calculated_body =
+                    with_insights_as_in_loop!(insights, { self.generate_block(body, insights)? });
                 calculated_body.insert(0, increase_index_statement);
                 calculated_body.insert(0, set_item_statement);
 
@@ -416,7 +436,6 @@ fn move_variables_out_of_while(
         loop_group.push(VStatement::DeclareVar { var_type, name: var_name });
     }
     loop_group.push(VStatement::While { condition, body: new_body });
-    println!("{:?}", insights.locals_order);
     for (_, var_name) in declared_variables.into_iter().rev() {
         assert_eq!(insights.drop_last_local(), var_name, "Locals are FILO");
         loop_group.push(VStatement::DropLocal { name: var_name });
