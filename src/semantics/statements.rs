@@ -36,22 +36,32 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
         .map_err(SemanticError::add_statement(stmt))
     }
 
-    pub fn generate_block(
+    pub fn generate_block_and_drop_new_locals(
         &mut self,
         statements: &[StatementWithPos],
         insights: &mut Insights,
     ) -> SemanticResult<Vec<VStatement>> {
         let last_existing = insights.new_variables.last().cloned();
 
-        let mut res = vec![];
-
-        for statement in statements {
-            res.push(self.generate_single(statement, insights)?);
-        }
+        let mut res = self.generate_block(statements, insights)?;
 
         while insights.new_variables.last() != last_existing.as_ref() {
             let dropped_var = insights.drop_last_local();
             res.push(VStatement::DropLocal { name: dropped_var });
+        }
+
+        Ok(res)
+    }
+
+    pub fn generate_block(
+        &mut self,
+        statements: &[StatementWithPos],
+        insights: &mut Insights,
+    ) -> SemanticResult<Vec<VStatement>> {
+        let mut res = vec![];
+
+        for statement in statements {
+            res.push(self.generate_single(statement, insights)?);
         }
 
         Ok(res)
@@ -82,10 +92,10 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
         insights: &mut Insights,
     ) -> SemanticResult<VStatement> {
         let condition = self.check_expr(condition, Some(&Type::Bool), insights)?;
-        let if_body = self.generate_block(if_body_input, insights)?;
+        let if_body = self.generate_block_and_drop_new_locals(if_body_input, insights)?;
 
         let else_body = match elif_bodies_input {
-            [] => self.generate_block(else_body_input, insights)?,
+            [] => self.generate_block_and_drop_new_locals(else_body_input, insights)?,
             [(first_condition, first_body), other_elifs @ ..] => {
                 let elif_else_body = self.generate_if_elif_else(
                     first_condition,
@@ -171,7 +181,12 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
             Statement::While { condition, body } => {
                 let condition = self.check_expr(condition, Some(&Type::Bool), insights)?;
                 let body = self.generate_block(body, insights)?;
-                VStatement::While { condition, body }
+                let mut loop_group = move_variables_out_of_while(condition, body, insights);
+                match &loop_group[..] {
+                    [] => unreachable!("at least while loop is always there"),
+                    [_] => loop_group.pop().unwrap(),
+                    _ => VStatement::LoopGroup(loop_group),
+                }
             }
             Statement::Foreach { item_name, iterable, body } => {
                 let iterable_calculated = self.check_expr(iterable, None, insights)?;
@@ -269,15 +284,15 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
                 calculated_body.insert(0, increase_index_statement);
                 calculated_body.insert(0, set_item_statement);
 
-                let loop_group = vec![
-                    define_item_var,
-                    define_index_var,
-                    defined_iterator_var,
-                    VStatement::While { condition, body: calculated_body },
-                    VStatement::DropLocal { name: iterable_name.clone() },
-                    VStatement::DropLocal { name: index_name.clone() },
-                    VStatement::DropLocal { name: item_name.clone() },
-                ];
+                let mut loop_group = vec![define_item_var, define_index_var, defined_iterator_var];
+                loop_group.extend(move_variables_out_of_while(
+                    condition,
+                    calculated_body,
+                    insights,
+                ));
+                loop_group.push(VStatement::DropLocal { name: iterable_name.clone() });
+                loop_group.push(VStatement::DropLocal { name: index_name.clone() });
+                loop_group.push(VStatement::DropLocal { name: item_name.clone() });
 
                 // Check that they are indeed are dropped
                 assert_eq!(insights.drop_last_local(), iterable_name);
@@ -369,4 +384,43 @@ fn allocate_object_for_constructor(scope: &RawFunction) -> VStatement {
             expr_type: Type::Custom(class_name.clone()),
         },
     }
+}
+
+fn move_variables_out_of_while(
+    condition: VExprTyped,
+    body: Vec<VStatement>,
+    insights: &mut Insights,
+) -> Vec<VStatement> {
+    let mut declared_variables = vec![];
+    let mut new_body = vec![];
+
+    // Iterate over first-level of statements
+    for statement in body.into_iter() {
+        match statement {
+            VStatement::DeclareVar { var_type, name } => {
+                declared_variables.push((var_type, name));
+            }
+            VStatement::DeclareAndAssignVar { var_type, name, value } => {
+                let assign_stmt =
+                    VStatement::AssignLocal { name: name.clone(), tuple_indexes: vec![], value };
+                new_body.push(assign_stmt);
+                declared_variables.push((var_type, name));
+            }
+            s => new_body.push(s),
+        };
+    }
+
+    let mut loop_group = vec![];
+
+    for (var_type, var_name) in declared_variables.iter().cloned() {
+        loop_group.push(VStatement::DeclareVar { var_type, name: var_name });
+    }
+    loop_group.push(VStatement::While { condition, body: new_body });
+    println!("{:?}", insights.new_variables);
+    for (_, var_name) in declared_variables.into_iter().rev() {
+        assert_eq!(insights.drop_last_local(), var_name, "Locals are FILO");
+        loop_group.push(VStatement::DropLocal { name: var_name });
+    }
+
+    loop_group
 }
