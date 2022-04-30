@@ -336,7 +336,7 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
 }
 
 pub fn verify_statements(
-    og_statements: &[StatementWithPos],
+    og_function: &FunctionDecl,
     scope: &RawFunction,
     aggregate: &ProgramAggregate,
     resolver: &NameResolver,
@@ -355,7 +355,7 @@ pub fn verify_statements(
     let mut gen = StatementsVerifier::new(scope, aggregate, resolver, &mut locals);
 
     let mut insights = Insights::new();
-    let mut verified = gen.generate_block(og_statements, &mut insights)?;
+    let mut verified = gen.generate_block(&og_function.statements, &mut insights)?;
 
     // TODO: return without type should be allowed for constructor
     if !is_constructor && insights.return_found {
@@ -363,7 +363,7 @@ pub fn verify_statements(
             Some(t) => format!("Method {} of class {} did not return!", scope.short_name, t),
             None => format!("Function {} did not return!", scope.short_name),
         };
-        return Err(SemanticError::TopLevelError { message: error_msg });
+        return Err(SemanticError::TopLevelError { pos: og_function.pos, message: error_msg });
     }
 
     if is_constructor {

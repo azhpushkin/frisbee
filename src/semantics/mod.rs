@@ -38,12 +38,12 @@ pub fn perform_semantic_analysis(
 
     for (name, raw_function) in aggregate.functions.iter() {
         let verified_statements = statements::verify_statements(
-            &functions_mapping[name].statements,
+            &functions_mapping[name],
             raw_function,
             &aggregate,
             &names_resolver,
         )
-        .map_err(|err| (raw_function.defined_at.clone(), err))?;
+        .map_err(|err| err.with_module(&raw_function.defined_at))?;
 
         ls_mapping.insert(name.clone(), verified_statements);
     }

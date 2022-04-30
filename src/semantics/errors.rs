@@ -1,11 +1,17 @@
 use crate::alias::ModuleAlias;
 use crate::ast::parsed::{ExprWithPos, StatementWithPos};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum SemanticError {
     ExprError { pos_first: usize, pos_last: usize, message: String },
     StmtError { pos: usize, message: String },
-    TopLevelError { message: String },
+    TopLevelError { pos: usize, message: String },
+}
+
+#[derive(Debug)]
+pub struct SemanticErrorWithModule {
+    pub module: ModuleAlias,
+    pub error: SemanticError,
 }
 
 impl SemanticError {
@@ -27,17 +33,26 @@ impl SemanticError {
         })
     }
 
-    pub fn to_top_level(s: String) -> SemanticError {
-        SemanticError::TopLevelError { message: s }
+    pub fn to_top_level(pos: usize, s: String) -> SemanticError {
+        SemanticError::TopLevelError { pos, message: s }
+    }
+
+    pub fn with_module(self, module: &ModuleAlias) -> SemanticErrorWithModule {
+        SemanticErrorWithModule { module: module.clone(), error: self }
     }
 }
 
 pub type SemanticResult<T> = Result<T, SemanticError>;
-pub type SemanticErrorWithModule = (ModuleAlias, SemanticError);
 
 macro_rules! top_level_with_module {
-    ($module:expr, $($arg:tt)*) => {
-        Err((($module).clone(), crate::semantics::errors::SemanticError::TopLevelError { message: format!($($arg)*) }))
+    ($module:expr, $decl:ident, $($arg:tt)*) => {
+        Err(SemanticErrorWithModule {
+            module: ($module).clone(),
+            error: crate::semantics::errors::SemanticError::TopLevelError {
+                message: format!($($arg)*),
+                pos: $decl.pos
+            }
+        })
     };
 }
 macro_rules! statement_error {

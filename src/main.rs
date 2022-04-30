@@ -47,12 +47,15 @@ fn main() {
     );
     let modules: Vec<_> = wp.iter().collect();
 
-    let aggregate = semantics::perform_semantic_analysis(&modules, &wp.main_module).unwrap_or_else(
-        |(alias, error)| {
-            errors::show_error_in_file(&alias, &wp.files[&alias].contents, Box::new(error));
+    let aggregate =
+        semantics::perform_semantic_analysis(&modules, &wp.main_module).unwrap_or_else(|err| {
+            errors::show_error_in_file(
+                &err.module,
+                &wp.files[&err.module].contents,
+                Box::new(err.error),
+            );
             panic!("See the error above!");
-        },
-    );
+        });
 
     let types: Vec<_> = aggregate.types.iter().map(|(_, value)| value).collect();
     let functions: Vec<_> = aggregate.functions.iter().map(|(_, value)| value).collect();

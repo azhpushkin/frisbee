@@ -16,6 +16,7 @@
 * check different variations of tuple typecheck (items should match)
 * check different variations of name collisions with (for i in ..)
 * check how defining inside of if-else branches works 
+* check that functions can't overlap with stdlib function names
 * check how it works if variable is defined inside of the while loop
 * check range() start and end (only pos? negative allowed?)
 * what if there are function argument names "this"?

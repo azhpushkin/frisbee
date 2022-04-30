@@ -39,7 +39,7 @@ impl CompileError for SemanticError {
         match self {
             SemanticError::ExprError { pos_first, pos_last, .. } => (*pos_first, *pos_last),
             SemanticError::StmtError { pos, .. } => (*pos, *pos),
-            SemanticError::TopLevelError { .. } => (0, 0),
+            SemanticError::TopLevelError { pos, .. } => (*pos, *pos),
         }
     }
 
@@ -47,7 +47,7 @@ impl CompileError for SemanticError {
         match self {
             SemanticError::ExprError { message, .. } => message.clone(),
             SemanticError::StmtError { message, .. } => message.clone(),
-            SemanticError::TopLevelError { message } => message.clone(),
+            SemanticError::TopLevelError { message, .. } => message.clone(),
         }
     }
 }
