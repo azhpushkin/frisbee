@@ -92,7 +92,7 @@ impl VStatement {
             VStatement::Expression(e) => format!("{};", e.expr),
             VStatement::LoopGroup(v) => {
                 format!(
-                    "\n\\\\START LOOP GROUP\n{}\n\n\\\\END LOOP GROUP}}",
+                    "\n\\\\START LOOP GROUP\n{}\n\n\\\\END LOOP GROUP",
                     v.iter()
                         .map(|s| s.display_with_ident(false))
                         .collect::<Vec<_>>()

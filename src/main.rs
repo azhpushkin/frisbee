@@ -58,7 +58,6 @@ fn main() {
     let functions: Vec<_> = aggregate.functions.iter().map(|(_, value)| value).collect();
     let bytecode = codegen::generate(&types, &functions, &aggregate.entry);
 
-    
     println!("#####Verified:\n\n");
     for (_, func) in aggregate.functions.iter() {
         println!("{}\n\n", func);

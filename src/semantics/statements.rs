@@ -41,11 +41,11 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
         statements: &[StatementWithPos],
         insights: &mut Insights,
     ) -> SemanticResult<Vec<VStatement>> {
-        let last_existing = insights.new_variables.last().cloned();
+        let last_existing = insights.locals_order.last().cloned();
 
         let mut res = self.generate_block(statements, insights)?;
 
-        while insights.new_variables.last() != last_existing.as_ref() {
+        while insights.locals_order.last() != last_existing.as_ref() {
             let dropped_var = insights.drop_last_local();
             res.push(VStatement::DropLocal { name: dropped_var });
         }
@@ -416,7 +416,7 @@ fn move_variables_out_of_while(
         loop_group.push(VStatement::DeclareVar { var_type, name: var_name });
     }
     loop_group.push(VStatement::While { condition, body: new_body });
-    println!("{:?}", insights.new_variables);
+    println!("{:?}", insights.locals_order);
     for (_, var_name) in declared_variables.into_iter().rev() {
         assert_eq!(insights.drop_last_local(), var_name, "Locals are FILO");
         loop_group.push(VStatement::DropLocal { name: var_name });

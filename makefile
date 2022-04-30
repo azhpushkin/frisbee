@@ -32,5 +32,6 @@ check: t
 	 cargo run -- examples/loop.frisbee > /dev/null
 	 cargo run -- examples/foreach.frisbee > /dev/null
 	 cargo run -- examples/object.frisbee > /dev/null
+	 cargo run -- examples/var_in_loop.frisbee > /dev/null
 
 	 @echo "ALL GOOD OLD FILES WORK FINE"
