@@ -8,4 +8,5 @@ fun void main() {
         }
     }
     println(a.to_string());
+    return;
 }

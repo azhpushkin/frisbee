@@ -13,4 +13,5 @@ fun void main() {
     Int popped_age = names.pop()[1];
     println("There are currently " + names.len().to_string() + " names in list");
     println("Btw, Just popped " + popped_age.to_string() + "-aged person!");
+    return;
 }

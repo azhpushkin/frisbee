@@ -2,4 +2,5 @@ fun void main() {
     String x = get_input();
     println("Hello, " + x + '!');
     println("True is: " + true.to_string() + " and " + (-2.7).abs().round().to_string());
+    return;
 }

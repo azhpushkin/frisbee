@@ -54,8 +54,10 @@ impl Insights {
     }
 
     pub fn merge_with(&mut self, other: &Insights) {
-        self.is_in_loop |= other.is_in_loop;
-        self.return_found |= other.return_found;
+        if self.is_in_loop != other.is_in_loop {
+            panic!("Different is_in_loop values should not occur!");
+        }
+        self.return_found &= other.return_found;
     }
 }
 
