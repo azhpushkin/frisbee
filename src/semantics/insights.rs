@@ -52,6 +52,11 @@ impl Insights {
     pub fn new() -> Self {
         Self { is_in_loop: false, return_found: false }
     }
+
+    pub fn merge_with(&mut self, other: &Insights) {
+        self.is_in_loop |= other.is_in_loop;
+        self.return_found |= other.return_found;
+    }
 }
 
 macro_rules! with_insights_as_in_loop {

@@ -113,6 +113,7 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                 )?]
             }
         };
+        insights.merge_with(&insights_of_if_branch);
 
         Ok(VStatement::IfElse { condition, if_body, else_body })
     }
@@ -356,9 +357,22 @@ pub fn verify_statements(
     let mut insights = Insights::new();
     let mut verified = gen.generate_block(og_statements, &mut insights)?;
 
+    // TODO: return without type should be allowed for constructor
+    if !is_constructor && insights.return_found {
+        let error_msg = match &scope.method_of {
+            Some(t) => format!("Method {} of class {} did not return!", scope.short_name, t),
+            None => format!("Function {} did not return!", scope.short_name),
+        };
+        return Err(SemanticError::TopLevelError { message: error_msg });
+    }
+
     if is_constructor {
         verified.insert(0, allocate_object_for_constructor(scope));
-        verified.push(return_statement_for_constructor(scope))
+        if !insights.return_found {
+            // Add return statement, but only if return was not explicitly stated
+            // (just to avoid double return as it makes no sense)
+            verified.push(return_statement_for_constructor(scope))
+        }
     }
 
     Ok(verified)
