@@ -41,6 +41,7 @@ pub fn get_std_method(t: &VerifiedType, method_name: &str) -> Result<Box<RawFunc
         body: vec![],
         short_name: method_name.into(),
         method_of: None,
+        is_constructor: false,
         defined_at: ModuleAlias::std(),
     }))
 }
@@ -57,6 +58,7 @@ pub fn get_std_function_raw(name: &str) -> RawFunction {
         body: vec![],
         short_name: name.into(),
         method_of: None,
+        is_constructor: false,
         defined_at: ModuleAlias::std(),
     }
 }

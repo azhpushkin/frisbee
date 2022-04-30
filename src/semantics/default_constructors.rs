@@ -7,8 +7,9 @@ pub fn add_default_constructor(class: &mut ClassDecl) {
         return;
     }
 
+    let pos = class.pos;
     let mut statements: Vec<Statement> = vec![];
-    let dummy_expr_with_pos = |expr| ExprWithPos { expr, pos_first: 0, pos_last: 0 };
+    let dummy_expr_with_pos = |expr| ExprWithPos { expr, pos_first: pos, pos_last: pos };
     for field in class.fields.iter() {
         // TODO: review ExprWithPos usage here
         let left = Expr::OwnFieldAccess { field: field.name.clone() };
@@ -25,7 +26,7 @@ pub fn add_default_constructor(class: &mut ClassDecl) {
         args: class.fields.clone(),
         statements: statements
             .into_iter()
-            .map(|s| StatementWithPos { statement: s, pos: 0 })
+            .map(|s| StatementWithPos { statement: s, pos })
             .collect(),
     };
     class.methods.push(default_constructor);

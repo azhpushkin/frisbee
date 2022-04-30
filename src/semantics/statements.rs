@@ -177,7 +177,10 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                 VStatement::DeclareAndAssignVar { var_type, name: name.clone(), value }
             }
             Statement::Return(Some(e)) => {
-                // TODO: check value of return
+                if self.scope.is_constructor {
+                    return statement_error!(statement, "Constructor must return void");
+                }
+                // TODO: check value of return (wtf does that mean?)
                 insights.return_found = true;
                 let value = self.check_expr(e, Some(&self.scope.return_type), insights)?;
                 VStatement::Return(value)
@@ -341,10 +344,8 @@ pub fn verify_statements(
     aggregate: &ProgramAggregate,
     resolver: &NameResolver,
 ) -> SemanticResult<Vec<VStatement>> {
-    let is_constructor = is_constructor(&scope);
-
     let mut locals = LocalVariables::from_function_arguments(&scope.args);
-    if is_constructor {
+    if scope.is_constructor {
         // Add this to the insights so that semantic checker assumer that object is already allocated
         // Allocate statement itself is added later on
         locals
@@ -358,7 +359,7 @@ pub fn verify_statements(
     let mut verified = gen.generate_block(&og_function.statements, &mut insights)?;
 
     // TODO: return without type should be allowed for constructor
-    if !is_constructor && !insights.return_found {
+    if !scope.is_constructor && !insights.return_found {
         let error_msg = match &scope.method_of {
             Some(t) => format!("Method {} of class {} did not return!", scope.short_name, t),
             None => format!("Function {} did not return!", scope.short_name),
@@ -366,7 +367,7 @@ pub fn verify_statements(
         return Err(SemanticError::TopLevelError { pos: og_function.pos, message: error_msg });
     }
 
-    if is_constructor {
+    if scope.is_constructor {
         verified.insert(0, allocate_object_for_constructor(scope));
         if !insights.return_found {
             // Add return statement, but only if return was not explicitly stated
@@ -389,20 +390,6 @@ fn split_left_part_of_assignment(vexpr: VExprTyped) -> (VExprTyped, Vec<usize>) 
     } else {
         (vexpr, vec![])
     }
-}
-
-fn is_constructor(scope: &RawFunction) -> bool {
-    if scope.method_of.is_some() {
-        let first_arg = scope.args.names.get(&0);
-        // For each method, first argument is "this", which is implicitly passed
-        // So if there is no arguments or first argument is not "this" - then we assume
-        // that this method is a constructor
-
-        if first_arg.is_none() || first_arg.unwrap() != "this" {
-            return true;
-        }
-    }
-    false
 }
 
 pub fn return_statement_for_constructor(scope: &RawFunction) -> VStatement {

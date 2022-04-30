@@ -149,6 +149,7 @@ pub fn fill_aggregate_with_funcs<'a>(
                         body: vec![],
                         short_name: method.name.clone(),
                         method_of: Some(type_full_name.clone()),
+                        is_constructor: method.name == class_decl.name,
                         defined_at: (*alias).clone(),
                     },
                 );
@@ -180,6 +181,7 @@ pub fn fill_aggregate_with_funcs<'a>(
                     body: vec![],
                     short_name: function_decl.name.clone(),
                     method_of: None,
+                    is_constructor: false,
                     defined_at: (*alias).clone(),
                 },
             );
