@@ -9,6 +9,7 @@ fn simple_import() {
     assert_eq!(
         parse_and_unwrap(|p| Parser::parse_import(p), "from module import Actor;"),
         ImportDecl {
+            pos: 0,
             module_path: vec!["module".into()],
             typenames: vec![String::from("Actor")],
             functions: vec![]
@@ -18,6 +19,7 @@ fn simple_import() {
     assert_eq!(
         parse_and_unwrap(|p| Parser::parse_import(p), "from module.sub import func;"),
         ImportDecl {
+            pos: 0,
             module_path: vec!["module".into(), "sub".into()],
             typenames: vec![],
             functions: vec!["func".into()]
@@ -37,6 +39,7 @@ fn simple_import_of_functions() {
             "from module import func, Type, f;"
         ),
         ImportDecl {
+            pos: 0,
             module_path: vec!["module".into()],
             typenames: vec![String::from("Type")],
             functions: vec!["func".into(), "f".into()]
@@ -54,11 +57,13 @@ fn multiple_imports() {
         FileAst {
             imports: vec![
                 ImportDecl {
+                    pos: 0,
                     module_path: vec![String::from("some2")],
                     typenames: vec![String::from("Hello"), String::from("There")],
                     functions: vec![]
                 },
                 ImportDecl {
+                    pos: 32,
                     module_path: vec![String::from("two")],
                     typenames: vec![String::from("One")],
                     functions: vec![]
@@ -97,6 +102,7 @@ fn parse_function_definition() {
             imports: vec![],
             types: vec![],
             functions: vec![FunctionDecl {
+                pos: 0,
                 rettype: None,
                 name: String::from("get_person"),
                 args: vec![
@@ -117,6 +123,7 @@ fn active_object_and_fields() {
             "active Actor { String name; Actor lol; }"
         ),
         ClassDecl {
+            pos: 0,
             is_active: true,
             name: String::from("Actor"),
             fields: vec![
@@ -136,10 +143,12 @@ fn class_object_and_methods() {
             "class Data { fun Bool get_person(Int age, String name) { this; } }"
         ),
         ClassDecl {
+            pos: 0,
             is_active: false,
             name: String::from("Data"),
             fields: vec![],
             methods: vec![FunctionDecl {
+                pos: 13,
                 rettype: Some(Type::Bool),
                 name: String::from("get_person"),
                 args: vec![
@@ -167,10 +176,12 @@ fn class_object_constructor_method() {
             "class Data { fun Data() {} }"
         ),
         ClassDecl {
+            pos: 0,
             is_active: false,
             name: String::from("Data"),
             fields: vec![],
             methods: vec![FunctionDecl {
+                pos: 13,
                 rettype: Some(Type::Custom(String::from("Data"))),
                 name: String::from("Data"),
                 args: vec![],
@@ -198,10 +209,12 @@ fn active_object_constructor_method() {
             "active Actor { fun Actor() {} }"
         ),
         ClassDecl {
+            pos: 0,
             is_active: true,
             name: String::from("Actor"),
             fields: vec![],
             methods: vec![FunctionDecl {
+                pos: 15,
                 rettype: Some(Type::Custom(String::from("Actor"))),
                 name: String::from("Actor"),
                 args: vec![],

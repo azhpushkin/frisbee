@@ -159,6 +159,7 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse_import(&mut self) -> ParseResult<ImportDecl> {
+        let start_pos = self.tokens[self.position].first;
         consume_and_check!(self, Token::From);
 
         let mut module_path: Vec<String> = vec![consume_and_check_ident!(self)];
@@ -189,7 +190,7 @@ impl<'a> Parser<'a> {
         }
         consume_and_check!(self, Token::Semicolon);
 
-        Ok(ImportDecl { module_path, typenames, functions })
+        Ok(ImportDecl { pos: start_pos, module_path, typenames, functions })
     }
 
     pub fn parse_type(&mut self) -> ParseResult<ParsedType> {
@@ -239,6 +240,7 @@ impl<'a> Parser<'a> {
         &mut self,
         member_of: Option<&String>,
     ) -> ParseResult<FunctionDecl> {
+        let declaration_start = self.tokens[self.position].first;
         consume_and_check!(self, Token::Fun);
         let rettype = match self.rel_token(0) {
             Token::Void => {
@@ -278,10 +280,12 @@ impl<'a> Parser<'a> {
 
         let stmts = self.parse_statements_in_curly_block()?;
 
-        Ok(FunctionDecl { rettype, name, args, statements: stmts })
+        Ok(FunctionDecl { pos: declaration_start, rettype, name, args, statements: stmts })
     }
 
     pub fn parse_object(&mut self, is_active: bool) -> ParseResult<ClassDecl> {
+        let declaration_start = self.tokens[self.position].first;
+
         if is_active {
             consume_and_check!(self, Token::Active);
         } else {
@@ -314,7 +318,13 @@ impl<'a> Parser<'a> {
 
         consume_and_check!(self, Token::RightCurlyBrackets);
 
-        Ok(ClassDecl { is_active, name: new_object_name, fields, methods })
+        Ok(ClassDecl {
+            pos: declaration_start,
+            is_active,
+            name: new_object_name,
+            fields,
+            methods,
+        })
     }
 
     fn parse_statements_in_curly_block(&mut self) -> ParseResult<Vec<StatementWithPos>> {

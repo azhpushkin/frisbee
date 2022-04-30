@@ -9,6 +9,7 @@ pub struct FileAst {
 
 #[derive(Debug, PartialEq)]
 pub struct ImportDecl {
+    pub pos: usize,
     // Path to module, e.g. `from module.sub..` -> ["module", "sub"]
     pub module_path: Vec<String>,
 
@@ -28,6 +29,7 @@ pub struct TypedItem {
 // these structs are too big
 #[derive(Debug, PartialEq)]
 pub struct ClassDecl {
+    pub pos: usize,
     pub is_active: bool,
     pub name: String,
     pub fields: Vec<TypedItem>,
@@ -36,6 +38,7 @@ pub struct ClassDecl {
 
 #[derive(Debug, PartialEq)]
 pub struct FunctionDecl {
+    pub pos: usize,
     pub rettype: Option<ParsedType>,
     pub name: String,
     pub args: Vec<TypedItem>,
