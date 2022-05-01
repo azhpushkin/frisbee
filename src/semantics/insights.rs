@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use crate::ast::verified::TypedFields;
 use crate::types::VerifiedType;
@@ -46,18 +46,35 @@ impl LocalVariables {
 pub struct Insights {
     pub is_in_loop: bool,
     pub return_found: bool,
+    pub uninitialized_variables: HashSet<String>,
 }
 
 impl Insights {
     pub fn new() -> Self {
-        Self { is_in_loop: false, return_found: false }
+        Self {
+            is_in_loop: false,
+            return_found: false,
+            uninitialized_variables: HashSet::new(),
+        }
     }
 
-    pub fn merge_with(&mut self, other: &Insights) {
+    pub fn merge_with(&mut self, other: Insights) {
         if self.is_in_loop != other.is_in_loop {
             panic!("Different is_in_loop values should not occur!");
         }
         self.return_found &= other.return_found;
+
+        // If variable might be unitialized due to another insights - 
+        // then it can be initialized in this one
+        self.uninitialized_variables.extend(other.uninitialized_variables.into_iter());
+    }
+
+    pub fn is_uninitialized(&self, name: &str) -> bool {
+        self.uninitialized_variables.contains(name)
+    }
+
+    pub fn add_uninitialized(&mut self, name: &str) {
+        self.uninitialized_variables.insert(name.into());
     }
 }
 

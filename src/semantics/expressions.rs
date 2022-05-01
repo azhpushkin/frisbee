@@ -90,6 +90,9 @@ impl<'a, 'b, 'c, 'i, 'l> ExpressionsVerifier<'a, 'b, 'c, 'i, 'l> {
 
             Expr::Identifier(i) => {
                 let identifier_type = self.locals.get_variable(i).map_err(&with_expr)?;
+                if self.insights.is_uninitialized(i) {
+                    return expression_error!(expr, "Variable {} might be uninitialized here", i)
+                }
 
                 if_as_expected(expected, identifier_type, VExpr::GetVar(i.clone()))
                     .map_err(with_expr)
@@ -328,6 +331,7 @@ impl<'a, 'b, 'c, 'i, 'l> ExpressionsVerifier<'a, 'b, 'c, 'i, 'l> {
         given_args: &[ExprWithPos],
         implicit_this: Option<VExprTyped>,
     ) -> SemanticResult<VExprTyped> {
+        // TODO: mark called function as used, strip unused functions
         let expected_args: &[VerifiedType] = if implicit_this.is_some() {
             &raw_called.args.types[1..]
         } else {

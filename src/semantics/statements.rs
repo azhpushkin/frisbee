@@ -113,7 +113,7 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                 )?]
             }
         };
-        insights.merge_with(&insights_of_if_branch);
+        insights.merge_with(insights_of_if_branch);
 
         Ok(VStatement::IfElse { condition, if_body, else_body })
     }
