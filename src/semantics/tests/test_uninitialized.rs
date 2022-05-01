@@ -11,6 +11,29 @@ assert_semantic_check_fails!(
     "#
 );
 
+assert_semantic_check_is_fine!(
+    cant_assigh_to_index_of_uninitialized_tuple,
+    r#"
+    ===== file: main.frisbee
+    fun void main() {
+        (Int, Int) a;
+        a[0] = 1;  // ERR: Variable `a` might be uninitialized here
+        a[1] = 2;
+    }
+    "#
+);
+
+assert_semantic_check_fails!(
+    cant_return_initialized,
+    r#"
+    ===== file: main.frisbee
+    fun void main() {
+        Int b;
+        return b;  // ERR: Variable `b` might be uninitialized here
+    }
+    "#
+);
+
 assert_semantic_check_fails!(
     uninitialized_after_branching,
     r#"

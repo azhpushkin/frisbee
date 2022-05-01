@@ -82,15 +82,3 @@ impl Insights {
         self.uninitialized_variables.remove(name);
     }
 }
-
-macro_rules! with_insights_as_in_loop {
-    ($insights:ident, $code:block) => {{
-        let before = $insights.is_in_loop;
-        $insights.is_in_loop = true;
-        let res = $code;
-        $insights.is_in_loop = before;
-        res
-    }};
-}
-
-pub(super) use with_insights_as_in_loop;

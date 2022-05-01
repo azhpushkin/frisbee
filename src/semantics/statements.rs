@@ -6,7 +6,7 @@ use crate::types::{verify_parsed_type, ParsedType, Type, VerifiedType};
 use super::aggregate::ProgramAggregate;
 use super::errors::{expression_error, statement_error, SemanticError, SemanticResult};
 use super::expressions::ExpressionsVerifier;
-use super::insights::{with_insights_as_in_loop, Insights, LocalVariables};
+use super::insights::{Insights, LocalVariables};
 use super::resolvers::NameResolver;
 
 struct StatementsVerifier<'a, 'b, 'c, 'l> {
@@ -228,8 +228,11 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
             }
             Statement::While { condition, body } => {
                 let condition = self.check_expr(condition, Some(&Type::Bool), insights)?;
-                let verified_body =
-                    with_insights_as_in_loop!(insights, { self.generate_block(body, insights)? });
+
+                let mut loop_insights = insights.clone();
+                loop_insights.is_in_loop = true;
+
+                let verified_body = self.generate_block(body, &mut loop_insights)?;
 
                 let mut loop_group =
                     move_variables_out_of_while(condition, verified_body, self.locals);
@@ -331,8 +334,10 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                 };
 
                 // NOTE: this is the only place which performs the calculations of the body!
-                let mut calculated_body =
-                    with_insights_as_in_loop!(insights, { self.generate_block(body, insights)? });
+                let mut loop_insights = insights.clone();
+                loop_insights.is_in_loop = true;
+                let mut calculated_body = self.generate_block(body, &mut loop_insights)?;
+                
                 calculated_body.insert(0, increase_index_statement);
                 calculated_body.insert(0, set_item_statement);
 
