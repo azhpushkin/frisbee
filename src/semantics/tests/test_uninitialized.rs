@@ -11,8 +11,8 @@ assert_semantic_check_fails!(
     "#
 );
 
-assert_semantic_check_is_fine!(
-    cant_assigh_to_index_of_uninitialized_tuple,
+assert_semantic_check_fails!(
+    cant_assign_to_index_of_uninitialized_tuple,
     r#"
     ===== file: main.frisbee
     fun void main() {
@@ -64,13 +64,28 @@ assert_semantic_check_fails!(
     "#
 );
 
-assert_semantic_check_is_fine!(
-    initialized_after_single_if,
+assert_semantic_check_fails!(
+    // if might never be executed, so do not only judge `a` based on them
+    still_uninitialized_after_single_if_when_no_else,
     r#"
     ===== file: main.frisbee
     fun void main() {
         Int a;
-        if false { a = 1; }
+        if true { a = 1; }
+        a + 1;  // ERR: Variable `a` might be uninitialized here
+    }
+    "#
+);
+
+assert_semantic_check_fails!(
+    // if-elif might never be executed, so do not only judge `a` based on them
+    still_uninitialized_after_if_elif_when_no_else,
+    r#"
+    ===== file: main.frisbee
+    fun void main() {
+        Int a;
+        if true { a = 1; }
+        elif false { a = 2; }
         a + 1;  // ERR: Variable `a` might be uninitialized here
     }
     "#
@@ -114,7 +129,10 @@ assert_semantic_check_fails!(
             if true {
                 continue;
                 a = 1;
-            } 
+            } else {
+                continue;
+                a = 2;
+            }
             a + 3;  // ERR: Variable `a` might be uninitialized here
         }
     }
@@ -134,10 +152,28 @@ assert_semantic_check_fails!(
                 // so from the code it is obvious that `a` is always set
                 // but the fact that there is possible break must make
                 // it impossible to know if `a` is initialized or not
-                if false { break; }
+                if false {
+                    if true { }
+                    else { break; }
+                }
                 a = 2;
             }
             a + 3;  // ERR: Variable `a` might be uninitialized here
+        }
+    }
+    "#
+);
+
+assert_semantic_check_is_fine!(
+    can_beinitialized_if_break_occures,
+    r#"
+    ===== file: main.frisbee
+    fun void main() {
+        Int a;
+        while true {
+            if false { break; }
+            a = 1;
+            a + 1;
         }
     }
     "#

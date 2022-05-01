@@ -46,6 +46,7 @@ impl LocalVariables {
 pub struct Insights {
     pub is_in_loop: bool,
     pub return_found: bool,
+    pub break_or_continue_found: bool,
     pub uninitialized_variables: HashSet<String>,
 }
 
@@ -54,6 +55,7 @@ impl Insights {
         Self {
             is_in_loop: false,
             return_found: false,
+            break_or_continue_found: false,
             uninitialized_variables: HashSet::new(),
         }
     }
@@ -62,6 +64,12 @@ impl Insights {
         if self.is_in_loop != other.is_in_loop {
             panic!("Different is_in_loop values should not occur!");
         }
+        // For break and continue it is important that they MIGHT occur, so we check
+        // if either one of insights have encountered it
+        self.break_or_continue_found |= other.break_or_continue_found;
+
+        // For return it is important that it MUST occur, so we check that
+        // both insights have found return statement
         self.return_found &= other.return_found;
 
         // If variable might be unitialized due to another insights -

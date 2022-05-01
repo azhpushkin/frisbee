@@ -106,7 +106,6 @@ assert_semantic_check_fails!(
     "#
 );
 
-
 assert_semantic_check_fails!(
     while_loop_with_continue_must_have_return,
     r#"

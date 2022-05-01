@@ -61,9 +61,16 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
         insights: &mut Insights,
     ) -> SemanticResult<Vec<VStatement>> {
         let mut res = vec![];
+        let mut new_insights: Option<Insights> = None;
 
         for statement in statements {
-            res.push(self.generate_single(statement, insights)?);
+            if insights.break_or_continue_found && new_insights.is_none() {
+                new_insights = Some(insights.clone());
+            }
+            match new_insights.as_mut() {
+                Some(n) => res.push(self.generate_single(statement, n)?),
+                None => res.push(self.generate_single(statement, insights)?),
+            }
         }
 
         Ok(res)
@@ -113,7 +120,10 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                 )?]
             }
         };
+        println!("If ins: {:?}", insights_of_if_branch);
+        println!("else ins: {:?}", insights);
         insights.merge_with(insights_of_if_branch);
+        println!("res: {:?}", insights);
 
         Ok(VStatement::IfElse { condition, if_body, else_body })
     }
@@ -221,8 +231,14 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
             Statement::Continue if !insights.is_in_loop => {
                 return statement_error!(statement, "`continue` outside loop")
             }
-            Statement::Break => VStatement::Break,
-            Statement::Continue => VStatement::Continue,
+            Statement::Break => {
+                insights.break_or_continue_found = true;
+                VStatement::Break
+            }
+            Statement::Continue => {
+                insights.break_or_continue_found = true;
+                VStatement::Continue
+            }
             Statement::IfElse { condition, if_body, elif_bodies, else_body } => {
                 self.generate_if_elif_else(condition, if_body, elif_bodies, else_body, insights)?
             }
@@ -337,7 +353,7 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                 let mut loop_insights = insights.clone();
                 loop_insights.is_in_loop = true;
                 let mut calculated_body = self.generate_block(body, &mut loop_insights)?;
-                
+
                 calculated_body.insert(0, increase_index_statement);
                 calculated_body.insert(0, set_item_statement);
 
