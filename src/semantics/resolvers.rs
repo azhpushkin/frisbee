@@ -215,7 +215,7 @@ fn get_functions_origins<'a>(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::tests::helpers::{new_alias, setup_and_load_program};
+    use crate::tests::helpers::setup_and_load_program;
 
     #[test]
     pub fn check_resolver_mappings() {
@@ -232,8 +232,8 @@ mod test {
         let modules_with_ast: Vec<_> = wp.iter().collect();
         let resolver = NameResolver::create(&modules_with_ast).unwrap();
 
-        let main_alias = new_alias("main");
-        let mod_alias = new_alias("mod");
+        let main_alias = ModuleAlias::new(&vec!["main".into()]);
+        let mod_alias = ModuleAlias::new(&vec!["mod".into()]);
 
         let main_types_resolver = resolver.get_typenames_resolver(&main_alias);
         assert_eq!(

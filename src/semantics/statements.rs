@@ -6,7 +6,7 @@ use crate::types::{verify_parsed_type, ParsedType, Type, VerifiedType};
 use super::aggregate::ProgramAggregate;
 use super::errors::{expression_error, statement_error, SemanticError, SemanticResult};
 use super::expressions::ExpressionsVerifier;
-use super::insights::{with_insights_as_in_loop, with_insights_changes, Insights, LocalVariables};
+use super::insights::{with_insights_as_in_loop, Insights, LocalVariables};
 use super::resolvers::NameResolver;
 
 struct StatementsVerifier<'a, 'b, 'c, 'l> {
@@ -143,11 +143,15 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                 let left_calculated = if let Expr::Identifier(name) = &left.expr {
                     // If left is just an identifier - temporary mark it as initialized to avoid
                     // warnings about uninitialized variables
+                    let was_uninitialized = insights.is_uninitialized(name);
                     insights.mark_as_initialized(name);
                     let calculated = self.check_expr(left, None, insights)?;
 
                     // Note that we need to unmark it here because it must remain uninitialized for right expr
-                    insights.add_uninitialized(name);
+                    if was_uninitialized {
+                        insights.add_uninitialized(name);
+                    }
+
                     calculated
                 } else {
                     self.check_expr(left, None, insights)?
@@ -228,7 +232,7 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                     with_insights_as_in_loop!(insights, { self.generate_block(body, insights)? });
 
                 let mut loop_group =
-                    move_variables_out_of_while(condition, verified_body, self.locals, insights);
+                    move_variables_out_of_while(condition, verified_body, self.locals);
                 match &loop_group[..] {
                     [] => unreachable!("at least while loop is always there"),
                     [_] => loop_group.pop().unwrap(),
@@ -337,7 +341,6 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                     condition,
                     calculated_body,
                     self.locals,
-                    insights,
                 ));
                 loop_group.push(VStatement::DropLocal { name: iterable_name.clone() });
                 loop_group.push(VStatement::DropLocal { name: index_name.clone() });
@@ -443,7 +446,6 @@ fn move_variables_out_of_while(
     condition: VExprTyped,
     body: Vec<VStatement>,
     locals: &mut LocalVariables,
-    insights: &mut Insights,
 ) -> Vec<VStatement> {
     let mut declared_variables = vec![];
     let mut new_body = vec![];

@@ -94,11 +94,6 @@ pub fn setup_and_load_program(s: &str) -> WholeProgram {
     t.load_program()
 }
 
-pub fn new_alias(module: &str) -> ModuleAlias {
-    // NOTE: this does not work for module.submodule right now
-    ModuleAlias::new(&vec![module.to_owned()])
-}
-
 #[cfg(test)]
 mod tests {
     use std::fs::read_to_string;

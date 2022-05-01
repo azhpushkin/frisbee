@@ -54,15 +54,16 @@ impl TypeMetadataTable {
 
 #[cfg(test)]
 mod test {
+    use crate::alias::ModuleAlias;
     use crate::ast::verified::TypedFields;
-    use crate::test_utils::new_alias;
     use crate::types::Type;
 
     use super::*;
 
     #[test]
     fn check_offsets_and_sizes() {
-        let gen_symbol_type = || SymbolType::new(&new_alias("somemodule"), "Type");
+        let module_alias = ModuleAlias::new(&vec!["somemodule".into()]);
+        let gen_symbol_type = || SymbolType::new(&module_alias, "Type");
         let field_types = vec![
             Type::Int,
             Type::Tuple(vec![Type::Custom(gen_symbol_type()), Type::String]),

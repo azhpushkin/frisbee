@@ -93,18 +93,4 @@ macro_rules! with_insights_as_in_loop {
     }};
 }
 
-macro_rules! with_insights_changes {
-    ($insights:ident, $code:expr) => {{
-        // let insights_before = $insights.return_found;
-
-        let res = $code;
-        // let changes = crate::semantics::insights::InsightsChanges {
-        //     return_found: $insights.return_found && !return_value_before,
-        // };
-        // (res, changes)
-        (res, $insights)
-    }};
-}
-
 pub(super) use with_insights_as_in_loop;
-pub(super) use with_insights_changes;
