@@ -54,6 +54,7 @@ fn main() {
                 &wp.files[&err.module].contents,
                 Box::new(err.error),
             );
+            // return 1 exit code instead of panic
             panic!("See the error above!");
         });
 

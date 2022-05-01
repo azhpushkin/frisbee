@@ -5,7 +5,8 @@ fun void main() {
         String a = b.to_string() + "ad";
     } else {
         // Having different variables in different branches is fine
-        (String, Int) a = ("asd", b);
+        
     }
+    1 + b;
     return;
 }

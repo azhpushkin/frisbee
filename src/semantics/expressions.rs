@@ -91,7 +91,7 @@ impl<'a, 'b, 'c, 'i, 'l> ExpressionsVerifier<'a, 'b, 'c, 'i, 'l> {
             Expr::Identifier(i) => {
                 let identifier_type = self.locals.get_variable(i).map_err(&with_expr)?;
                 if self.insights.is_uninitialized(i) {
-                    return expression_error!(expr, "Variable {} might be uninitialized here", i)
+                    return expression_error!(expr, "Variable {} might be uninitialized here", i);
                 }
 
                 if_as_expected(expected, identifier_type, VExpr::GetVar(i.clone()))

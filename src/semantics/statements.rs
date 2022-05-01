@@ -135,17 +135,36 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                 let var_type = self.annotate_type(var_type, statement)?;
 
                 self.locals.add_variable(name, &var_type).map_err(stmt_err)?;
+                insights.add_uninitialized(name);
+
                 VStatement::DeclareVar { var_type, name: name.clone() }
             }
             Statement::Assign { left, right } => {
-                let left_calculated = self.check_expr(left, None, insights)?;
+                let left_calculated = if let Expr::Identifier(name) = &left.expr {
+                    // If left is just an identifier - temporary mark it as initialized to avoid
+                    // warnings about uninitialized variables
+                    insights.mark_as_initialized(name);
+                    let calculated = self.check_expr(left, None, insights)?;
+
+                    // Note that we need to unmark it here because it must remain uninitialized for right expr
+                    insights.add_uninitialized(name);
+                    calculated
+                } else {
+                    self.check_expr(left, None, insights)?
+                };
                 let right_calculated =
                     self.check_expr(right, Some(&left_calculated.expr_type), insights)?;
+
+                if let Expr::Identifier(name) = &left.expr {
+                    // NOW we can finally mark it as initialized, just in case
+                    insights.mark_as_initialized(name);
+                }
 
                 // TODO: emit error based on left pos
                 let (base_object, tuple_indexes) = split_left_part_of_assignment(left_calculated);
                 match base_object.expr {
                     VExpr::GetVar(name) => {
+                        insights.mark_as_initialized(&name);
                         VStatement::AssignLocal { name, tuple_indexes, value: right_calculated }
                     }
                     VExpr::AccessField { object, field } => VStatement::AssignToField {

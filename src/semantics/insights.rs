@@ -64,9 +64,10 @@ impl Insights {
         }
         self.return_found &= other.return_found;
 
-        // If variable might be unitialized due to another insights - 
+        // If variable might be unitialized due to another insights -
         // then it can be initialized in this one
-        self.uninitialized_variables.extend(other.uninitialized_variables.into_iter());
+        self.uninitialized_variables
+            .extend(other.uninitialized_variables.into_iter());
     }
 
     pub fn is_uninitialized(&self, name: &str) -> bool {
@@ -75,6 +76,10 @@ impl Insights {
 
     pub fn add_uninitialized(&mut self, name: &str) {
         self.uninitialized_variables.insert(name.into());
+    }
+
+    pub fn mark_as_initialized(&mut self, name: &str) {
+        self.uninitialized_variables.remove(name);
     }
 }
 
