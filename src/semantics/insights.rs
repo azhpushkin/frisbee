@@ -88,7 +88,7 @@ impl Insights {
         self.uninitialized_variables.insert(name.into());
     }
 
-    pub fn mark_as_initialized(&mut self, name: &str) {
+    pub fn mark_as_initialized(&mut self, name: &str){
         self.uninitialized_variables.remove(name);
     }
 

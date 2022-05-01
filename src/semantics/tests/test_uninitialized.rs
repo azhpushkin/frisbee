@@ -206,7 +206,7 @@ assert_semantic_check_fails!(
     class Person {
         String name; Int age;
         
-        fun Person() {  // ERR: Constructor does not populate field `age`
+        fun Person() {  // ERR: Constructor does not initialize field `age`
             @name = "";
         }
     }
@@ -222,8 +222,25 @@ assert_semantic_check_fails!(
     class Person {
         String? name; Int age;
         
-        fun Person() {  // ERR: Constructor does not populate field `name`
+        fun Person() {  // ERR: Constructor does not initialize field `name`
             @age = 0;
+        }
+    }
+    "#
+);
+
+assert_semantic_check_is_fine!(
+    maybe_type_might_be_inited_with_null,
+    r#"
+    ===== file: main.frisbee
+    fun void main() {}
+
+    class Person {
+        String? name; Int age;
+        
+        fun Person() {
+            @age = 0;
+            @name = nil;
         }
     }
     "#

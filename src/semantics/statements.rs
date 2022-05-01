@@ -150,19 +150,21 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                 VStatement::DeclareVar { var_type, name: name.clone() }
             }
             Statement::Assign { left, right } => {
-                let left_calculated = if let Expr::Identifier(name) = &left.expr {
-                    // If left is just an identifier - temporary mark it as initialized to avoid
-                    // warnings about uninitialized variables
-                    let mut temp_insights = insights.clone();
+                let mut temp_insights: Insights;
+
+                let left_part_insights: &mut Insights = if let Expr::Identifier(name) = &left.expr {
+                    temp_insights = insights.clone();
                     temp_insights.mark_as_initialized(name);
-                    self.check_expr(left, None, &mut temp_insights)?
+                    &mut temp_insights
                 } else if let Expr::OwnFieldAccess { field } = &left.expr {
-                    let mut temp_insights = insights.clone();
+                    temp_insights = insights.clone();
                     temp_insights.mark_own_field_as_initialized(field);
-                    self.check_expr(left, None, &mut temp_insights)?
+                    &mut temp_insights
                 } else {
-                    self.check_expr(left, None, insights)?
+                    insights
                 };
+
+                let left_calculated = self.check_expr(left, None, left_part_insights)?;
                 let right_calculated =
                     self.check_expr(right, Some(&left_calculated.expr_type), insights)?;
 
@@ -420,6 +422,18 @@ pub fn verify_statements(
             ),
         };
         return Err(SemanticError::TopLevelError { pos: og_function.pos, message: error_msg });
+    }
+
+    if scope.is_constructor {
+        let type_fields = &aggregate.types[scope.method_of.as_ref().unwrap()].fields;
+        for (name, _) in type_fields.iter() {
+            if !insights.initialized_own_fields.contains(name) {
+                return Err(SemanticError::TopLevelError {
+                    pos: og_function.pos,
+                    message: format!("Constructor does not initialize field `{}`", name),
+                });
+            }
+        }
     }
 
     if scope.is_constructor {
