@@ -53,7 +53,7 @@ impl CompileError for SemanticError {
 }
 
 #[derive(Debug)]
-struct ErrorCoordinates {
+pub struct ErrorCoordinates {
     pub line: usize,
     pub start: usize,
     pub end: usize,
@@ -93,7 +93,7 @@ fn get_position_coordinates(file_contents: &str, pos: usize) -> (usize, usize) {
     (line, row)
 }
 
-fn adjust_error_window(source: &str, start: usize, end: usize) -> ErrorCoordinates {
+pub fn adjust_error_window(source: &str, start: usize, end: usize) -> ErrorCoordinates {
     let lines_length = get_lines_length(source);
     let (start_line, start_offset) = get_position_coordinates(source, start);
     if start == end {

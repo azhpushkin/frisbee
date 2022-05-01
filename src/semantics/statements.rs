@@ -380,8 +380,14 @@ pub fn verify_statements(
     // TODO: return without type should be allowed for constructor
     if !scope.is_constructor && !insights.return_found && scope.return_type != Type::Tuple(vec![]) {
         let error_msg = match &scope.method_of {
-            Some(t) => format!("Method {} of class {} did not return!", scope.short_name, t),
-            None => format!("Function {} did not return!", scope.short_name),
+            Some(t) => format!(
+                "Method `{}` of class `{}` is not guaranteed to return a value",
+                scope.short_name, t
+            ),
+            None => format!(
+                "Function `{}` is not guaranteed to return a value",
+                scope.short_name
+            ),
         };
         return Err(SemanticError::TopLevelError { pos: og_function.pos, message: error_msg });
     }
