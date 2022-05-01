@@ -17,8 +17,10 @@ assert_semantic_check_fails!(
     ===== file: main.frisbee
     fun void main() {
         Int a;
+        
         if true { a = 1; }
         else { }  // nothing here, so assume a can be uninitialized
+
         a + 1;  // ERR: Variable `a` might be uninitialized here
     }
     "#
@@ -34,9 +36,7 @@ assert_semantic_check_fails!(
         if true { a = 1; }
         elif true { a = 2; }
         else { }  // nothing here, so assume a can be uninitialized
-        } else {
-            
-        }
+
         a + 1;  // ERR: Variable `a` might be uninitialized here
     }
     "#
@@ -61,9 +61,11 @@ assert_semantic_check_is_fine!(
     ===== file: main.frisbee
     fun void main() {
         Int a;
+        
         if false { a = 1; }
         elif false {a = 2; }
         else { a = 3; }
+        
         a + 1;
     }
     "#
@@ -115,6 +117,54 @@ assert_semantic_check_fails!(
                 a = 2;
             }
             a + 3;  // ERR: Variable `a` might be uninitialized here
+        }
+    }
+    "#
+);
+
+
+assert_semantic_check_is_fine!(
+    constructor_that_sets_all_fields,
+    r#"
+    ===== file: main.frisbee
+    fun void main() {}
+
+    class Person {
+        String name; Int age;
+        
+        fun Person() { @name = ""; @age = 0;}
+    }
+    "#
+);
+
+assert_semantic_check_fails!(
+    uninitialized_field_in_constructor,
+    r#"
+    ===== file: main.frisbee
+    fun void main() {}
+
+    class Person {
+        String name; Int age;
+        
+        fun Person() {  // ERR: Constructor does not populate field `age`
+            @name = "";
+        }
+    }
+    "#
+);
+
+
+assert_semantic_check_fails!(
+    maybe_type_must_be_initialized_as_well,
+    r#"
+    ===== file: main.frisbee
+    fun void main() {}
+
+    class Person {
+        String? name; Int age;
+        
+        fun Person() {  // ERR: Constructor does not populate field `name`
+            @age = 0;
         }
     }
     "#
