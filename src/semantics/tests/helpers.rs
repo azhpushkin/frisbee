@@ -16,7 +16,7 @@ fn extract_expected_err<'a>(wp: &'a WholeProgram) -> (&'a ModuleAlias, usize, &'
             }
         }
     }
-    unreachable!("No expected error found");
+    unreachable!("Please check the test, no // ERR: found");
 }
 
 pub(super) fn run_semantic_and_check_error(program: &str) {
@@ -26,11 +26,10 @@ pub(super) fn run_semantic_and_check_error(program: &str) {
     assert!(semantic_res.is_err(), "Expected error but got success");
 
     let semantic_err = semantic_res.unwrap_err();
-    let expected_err = extract_expected_err(&wp);
-
     let (start, end) = semantic_err.error.get_position_window();
-    let error_window = adjust_error_window(&wp.files[expected_err.0].contents, start, end);
+    let error_window = adjust_error_window(&wp.files[&semantic_err.module].contents, start, end);
 
+    let expected_err = extract_expected_err(&wp);
     assert_eq!(
         (
             &semantic_err.module,
@@ -39,6 +38,16 @@ pub(super) fn run_semantic_and_check_error(program: &str) {
         ),
         expected_err
     );
+}
+
+pub(super) fn run_semantic_and_check_all_good(program: &str) {
+    let mut wp = crate::tests::helpers::setup_and_load_program(program);
+    let res = crate::loader::check_and_aggregate(&mut wp);
+
+    if res.is_err() {
+        println!("{:?}", res);
+    }
+    assert!(res.is_ok());
 }
 
 macro_rules! assert_semantic_check_fails {
@@ -54,9 +63,7 @@ macro_rules! assert_semantic_check_is_fine {
     ($name:ident, $program:literal) => {
         #[test]
         fn $name() {
-            let mut wp = crate::tests::helpers::setup_and_load_program($program);
-            let res = crate::loader::check_and_aggregate(&mut wp);
-            assert!(res.is_ok());
+            crate::semantics::tests::helpers::run_semantic_and_check_all_good($program);
         }
     };
 }

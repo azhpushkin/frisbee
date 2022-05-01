@@ -52,7 +52,7 @@ impl NameResolver {
             get_origins(function_origins, &SymbolFunc::new).map_err(|(f, pos)| {
                 SemanticError::TopLevelError {
                     pos,
-                    message: format!("Function {} is already introduced in this module", f),
+                    message: format!("Function `{}` is already introduced in this module", f),
                 }
             })?;
 
@@ -61,7 +61,7 @@ impl NameResolver {
             get_origins(typename_origins, &SymbolType::new).map_err(|(f, pos)| {
                 SemanticError::TopLevelError {
                     pos,
-                    message: format!("Type {} is already introduced in this module", f),
+                    message: format!("Type `{}` is already introduced in this module", f),
                 }
             })?;
 
@@ -149,7 +149,7 @@ fn check_module_does_not_import_itself(
         if &ModuleAlias::new(&import.module_path) == alias {
             return Err(SemanticError::TopLevelError {
                 pos: import.pos,
-                message: format!("Module {} is importing itself!", alias),
+                message: "Self-imports are not allowed".into(),
             });
         }
     }

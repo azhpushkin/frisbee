@@ -122,7 +122,7 @@ pub fn fill_aggregate_with_funcs<'a>(
                     return top_level_with_module!(
                         *alias,
                         method,
-                        "Method {} defined twice in {}",
+                        "Method `{}` defined more than once in `{}`",
                         method.name,
                         class_decl.name
                     );
