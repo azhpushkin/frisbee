@@ -72,6 +72,6 @@ macro_rules! expression_error {
         })
     };
 }
-pub(crate) use expression_error;
-pub(crate) use statement_error;
-pub(crate) use top_level_with_module;
+pub(super) use expression_error;
+pub(super) use statement_error;
+pub(super) use top_level_with_module;

@@ -106,5 +106,5 @@ macro_rules! with_insights_changes {
     }};
 }
 
-pub(crate) use with_insights_as_in_loop;
-pub(crate) use with_insights_changes;
+pub(super) use with_insights_as_in_loop;
+pub(super) use with_insights_changes;
