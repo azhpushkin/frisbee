@@ -74,7 +74,7 @@ fn check_entry_module_has_main(
             return top_level_with_module!(
                 main_module,
                 main_function_decl,
-                "Entry function {} must return void, but it returns {}",
+                "Entry function `{}` must return void, but it returns {}",
                 MAIN_FUNCTION_NAME,
                 return_type,
             );
@@ -84,7 +84,7 @@ fn check_entry_module_has_main(
             module: main_module.clone(),
             error: SemanticError::TopLevelError {
                 pos: 0,
-                message: format!("Entry function {} not found", MAIN_FUNCTION_NAME),
+                message: format!("Entry function `{}` not found", MAIN_FUNCTION_NAME),
             },
         });
     }

@@ -117,7 +117,7 @@ impl NameResolver {
                         return top_level_with_module!(
                             *alias,
                             import_decl,
-                            "Imported function {} is not defined in module {}!",
+                            "Imported function `{}` is not defined in module `{}`!",
                             function_name,
                             imported_module
                         );
@@ -129,7 +129,7 @@ impl NameResolver {
                         return top_level_with_module!(
                             *alias,
                             import_decl,
-                            "Imported type {} is not defined in module {}!",
+                            "Imported type `{}` is not defined in module `{}`!",
                             typename,
                             imported_module
                         );

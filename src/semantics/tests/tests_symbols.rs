@@ -7,6 +7,7 @@ assert_semantic_check_is_fine!(
     from mod import somefun;
     from mod import Type;
 
+    fun void main() {}
     ===== file: mod.frisbee
     fun void somefun() {}
     class Type {}
@@ -85,7 +86,10 @@ assert_semantic_check_is_fine!(
     fun void samename(Person someone) {}
     fun void main() {}
     ===== file: mod.frisbee
-    fun Person samename() {}
+    fun Person samename() {
+        Person p = Person();
+        return p;
+    }
     fun void hello() {}
 
     class Person {}
@@ -105,10 +109,10 @@ assert_semantic_check_fails!(
     check_imported_types_are_existing,
     r#"
     ===== file: main.frisbee
-    from module import X1;
+    from module import X1;  // ERR: Imported type `X1` is not defined in module `module`!
     fun void main() {}
 
-    ===== file: module.frisbee// ERR: already defined
+    ===== file: module.frisbee
     class X {}
     "#
 );
@@ -116,11 +120,34 @@ assert_semantic_check_fails!(
 assert_semantic_check_fails!(
     check_imported_functions_are_existing,
     r#"
-    ===== file: main.frisbee// ERR: already defined
-    from module import func;
+    ===== file: main.frisbee
+    from lol import func;  // ERR: Imported function `func` is not defined in module `lol`!
     fun void main() {}
 
-    ===== file: module.frisbee
+    ===== file: lol.frisbee
         // empty file
+    "#
+);
+
+assert_semantic_check_fails!(
+    check_entry_function_must_be_defined_in_main_module,
+    r#"
+    ===== file: main.frisbee
+    // ERR: Entry function `main` not found
+    // ^^ this error always occurs on first line
+    
+    from mod import main;
+    ===== file: mod.frisbee
+    fun void main() {}
+    "#
+);
+
+assert_semantic_check_fails!(
+    check_entry_function_return_type,
+    r#"
+    ===== file: main.frisbee
+    fun [Int] main() {  // ERR: Entry function `main` must return void, but it returns [Int]
+        return [0];
+    }
     "#
 );
