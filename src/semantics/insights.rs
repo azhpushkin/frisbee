@@ -48,6 +48,7 @@ pub struct Insights {
     pub return_found: bool,
     pub break_or_continue_found: bool,
     pub uninitialized_variables: HashSet<String>,
+    pub initialized_own_fields: HashSet<String>
 }
 
 impl Insights {
@@ -57,6 +58,7 @@ impl Insights {
             return_found: false,
             break_or_continue_found: false,
             uninitialized_variables: HashSet::new(),
+            initialized_own_fields: HashSet::new(),
         }
     }
 
@@ -88,5 +90,9 @@ impl Insights {
 
     pub fn mark_as_initialized(&mut self, name: &str) {
         self.uninitialized_variables.remove(name);
+    }
+
+    pub fn mark_own_field_as_initialized(&mut self, field: &str) {
+        self.initialized_own_fields.insert(field.into());
     }
 }

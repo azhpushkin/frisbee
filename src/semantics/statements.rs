@@ -153,16 +153,13 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                 let left_calculated = if let Expr::Identifier(name) = &left.expr {
                     // If left is just an identifier - temporary mark it as initialized to avoid
                     // warnings about uninitialized variables
-                    let was_uninitialized = insights.is_uninitialized(name);
-                    insights.mark_as_initialized(name);
-                    let calculated = self.check_expr(left, None, insights)?;
-
-                    // Note that we need to unmark it here because it must remain uninitialized for right expr
-                    if was_uninitialized {
-                        insights.add_uninitialized(name);
-                    }
-
-                    calculated
+                    let mut temp_insights = insights.clone();
+                    temp_insights.mark_as_initialized(name);
+                    self.check_expr(left, None, &mut temp_insights)?
+                } else if let Expr::OwnFieldAccess { field } = &left.expr {
+                    let mut temp_insights = insights.clone();
+                    temp_insights.mark_own_field_as_initialized(field);
+                    self.check_expr(left, None, &mut temp_insights)?
                 } else {
                     self.check_expr(left, None, insights)?
                 };
@@ -178,15 +175,24 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                 let (base_object, tuple_indexes) = split_left_part_of_assignment(left_calculated);
                 match base_object.expr {
                     VExpr::GetVar(name) => {
-                        insights.mark_as_initialized(&name);
+                        if tuple_indexes.is_empty() {
+                            insights.mark_as_initialized(&name);
+                        }
+
                         VStatement::AssignLocal { name, tuple_indexes, value: right_calculated }
                     }
-                    VExpr::AccessField { object, field } => VStatement::AssignToField {
-                        object: *object,
-                        field,
-                        tuple_indexes,
-                        value: right_calculated,
-                    },
+                    VExpr::AccessField { object, field } => {
+                        if tuple_indexes.is_empty() {
+                            insights.mark_own_field_as_initialized(&field);
+                        }
+
+                        VStatement::AssignToField {
+                            object: *object,
+                            field,
+                            tuple_indexes,
+                            value: right_calculated,
+                        }
+                    }
                     VExpr::AccessListItem { list, index } => VStatement::AssignToList {
                         list: *list,
                         index: *index,

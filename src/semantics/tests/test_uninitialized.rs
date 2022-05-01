@@ -188,7 +188,11 @@ assert_semantic_check_is_fine!(
     class Person {
         String name; Int age;
         
-        fun Person() { @name = ""; @age = 0;}
+        fun Person() {
+            @name = "";
+            @age = 0;
+            println(@name + @age.to_string());
+        }
     }
     "#
 );
@@ -220,6 +224,26 @@ assert_semantic_check_fails!(
         
         fun Person() {  // ERR: Constructor does not populate field `name`
             @age = 0;
+        }
+    }
+    "#
+);
+
+
+
+assert_semantic_check_fails!(
+    cant_access_own_before_initializing,
+    r#"
+    ===== file: main.frisbee
+    fun void main() {}
+
+    class Person {
+        String name; Int age;
+        
+        fun Person() {
+            @age = 0;
+            if true { @name = "Hello!"; }
+            print(@name);  // ERR: Own field `name` cannot be used before initializing
         }
     }
     "#
