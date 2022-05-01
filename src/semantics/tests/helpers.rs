@@ -31,9 +31,14 @@ pub(super) fn run_semantic_and_check_error(program: &str) {
     let (start, end) = semantic_err.error.get_position_window();
     let error_window = adjust_error_window(&wp.files[expected_err.0].contents, start, end);
 
-    assert_eq!(&semantic_err.module, expected_err.0);
-    assert_eq!(error_window.line, expected_err.1);
-    assert_eq!(semantic_err.error.get_message(), expected_err.2);
+    assert_eq!(
+        (
+            &semantic_err.module,
+            error_window.line,
+            semantic_err.error.get_message().as_str()
+        ),
+        expected_err
+    );
 }
 
 macro_rules! assert_semantic_check_fails {
@@ -44,4 +49,16 @@ macro_rules! assert_semantic_check_fails {
         }
     };
 }
+
+macro_rules! assert_semantic_check_is_fine {
+    ($name:ident, $program:literal) => {
+        #[test]
+        fn $name() {
+            let mut wp = crate::tests::helpers::setup_and_load_program($program);
+            let res = crate::loader::check_and_aggregate(&mut wp);
+            assert!(res.is_ok());
+        }
+    };
+}
 pub(super) use assert_semantic_check_fails;
+pub(super) use assert_semantic_check_is_fine;

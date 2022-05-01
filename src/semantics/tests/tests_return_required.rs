@@ -1,4 +1,4 @@
-use super::helpers::assert_semantic_check_fails;
+use super::helpers::{assert_semantic_check_fails, assert_semantic_check_is_fine};
 
 assert_semantic_check_fails!(
     main_must_return_voide,
@@ -8,6 +8,82 @@ assert_semantic_check_fails!(
 
     fun Int other() {  // ERR: Function `other` is not guaranteed to return a value
         Int a = 1;
+    }
+    "#
+);
+
+assert_semantic_check_is_fine!(
+    void_function_can_have_no_returns,
+    r#"
+    ===== file: main.frisbee
+    fun void main() {}
+
+    fun void other() {
+        if true {return;} else {}
+    }
+    "#
+);
+
+assert_semantic_check_fails!(
+    return_in_a_while_not_enough,
+    r#"
+    ===== file: main.frisbee
+    fun void main() {}
+    fun Int other() {  // ERR: Function `other` is not guaranteed to return a value
+        while true {
+            return 1;
+        }
+    }
+    "#
+);
+
+assert_semantic_check_fails!(
+    partial_return_in_if_is_not_enough,
+    r#"
+    ===== file: main.frisbee
+    fun void main() {}
+    fun Int other() {  // ERR: Function `other` is not guaranteed to return a value
+        if true {
+            return 1;
+        } else {}
+    }
+    "#
+);
+
+assert_semantic_check_is_fine!(
+    all_branches_must_have_return,
+    r#"
+    ===== file: main.frisbee
+    fun void main() {}
+
+    fun void other() {
+        Bool v = false;
+        if v == true {
+            return;
+        } elif false {
+            return;  
+        } else {
+            return;
+        }
+    }
+    "#
+);
+
+assert_semantic_check_fails!(
+    all_branches_must_have_return_or_err,
+    r#"
+    ===== file: main.frisbee
+    fun void main() {}
+
+    fun void other() {
+        Bool v = false;
+        if v == true {
+            return;
+        } elif true {
+            // O_o
+        } else {
+            return;
+        }
     }
     "#
 );
