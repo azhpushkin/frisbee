@@ -246,8 +246,6 @@ assert_semantic_check_is_fine!(
     "#
 );
 
-
-
 assert_semantic_check_fails!(
     cant_access_own_before_initializing,
     r#"
@@ -261,6 +259,25 @@ assert_semantic_check_fails!(
             @age = 0;
             if true { @name = "Hello!"; }
             print(@name);  // ERR: Own field `name` cannot be used before initializing
+        }
+    }
+    "#
+);
+
+assert_semantic_check_is_fine!(
+    branching_implemented_for_own_fields,
+    r#"
+    ===== file: main.frisbee
+    fun void main() {}
+
+    class Person {
+        String name; Int age;
+        
+        fun Person() {
+            @age = 0;
+            if true { @name = "Hello!"; }
+            else {@name = "Hi!"; }
+            print(@name);
         }
     }
     "#

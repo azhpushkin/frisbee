@@ -48,7 +48,7 @@ pub struct Insights {
     pub return_found: bool,
     pub break_or_continue_found: bool,
     pub uninitialized_variables: HashSet<String>,
-    pub initialized_own_fields: HashSet<String>
+    pub initialized_own_fields: HashSet<String>,
 }
 
 impl Insights {
@@ -78,6 +78,12 @@ impl Insights {
         // then it can be initialized in this one
         self.uninitialized_variables
             .extend(other.uninitialized_variables.into_iter());
+
+        self.initialized_own_fields = self
+            .initialized_own_fields
+            .intersection(&other.initialized_own_fields)
+            .cloned()
+            .collect();
     }
 
     pub fn is_uninitialized(&self, name: &str) -> bool {
@@ -88,7 +94,7 @@ impl Insights {
         self.uninitialized_variables.insert(name.into());
     }
 
-    pub fn mark_as_initialized(&mut self, name: &str){
+    pub fn mark_as_initialized(&mut self, name: &str) {
         self.uninitialized_variables.remove(name);
     }
 

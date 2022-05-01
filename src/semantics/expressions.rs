@@ -289,7 +289,9 @@ impl<'a, 'b, 'c, 'i, 'l> ExpressionsVerifier<'a, 'b, 'c, 'i, 'l> {
                     Some(t) => t,
                     _ => expression_error!(expr, "Accessing own field outside of method scope!")?,
                 };
-                if self.scope.is_constructor && !self.insights.initialized_own_fields.contains(field) {
+                if self.scope.is_constructor
+                    && !self.insights.initialized_own_fields.contains(field)
+                {
                     return expression_error!(
                         expr,
                         "Own field `{}` cannot be used before initializing",
