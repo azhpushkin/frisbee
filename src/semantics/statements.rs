@@ -359,7 +359,7 @@ pub fn verify_statements(
     let mut verified = gen.generate_block(&og_function.statements, &mut insights)?;
 
     // TODO: return without type should be allowed for constructor
-    if !scope.is_constructor && !insights.return_found {
+    if !scope.is_constructor && !insights.return_found && scope.return_type != Type::Tuple(vec![]) {
         let error_msg = match &scope.method_of {
             Some(t) => format!("Method {} of class {} did not return!", scope.short_name, t),
             None => format!("Function {} did not return!", scope.short_name),

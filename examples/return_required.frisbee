@@ -5,3 +5,11 @@ fun void main() {
         Int a = 1;
     }
 }
+
+fun Int other() {
+    if true {
+        return 1;
+    } else {
+        Int a = 1;
+    }
+}
