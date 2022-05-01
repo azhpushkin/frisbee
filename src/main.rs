@@ -9,7 +9,7 @@ pub mod parsing;
 pub mod semantics;
 pub mod stdlib;
 pub mod symbols;
-#[rustfmt::skip] #[cfg(test)] pub mod test_utils;
+pub mod tests;
 pub mod types;
 pub mod vm;
 

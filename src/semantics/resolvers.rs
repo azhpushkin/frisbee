@@ -215,7 +215,7 @@ fn get_functions_origins<'a>(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::test_utils::{new_alias, setup_and_load_program};
+    use crate::tests::helpers::{new_alias, setup_and_load_program};
 
     #[test]
     pub fn check_resolver_mappings() {

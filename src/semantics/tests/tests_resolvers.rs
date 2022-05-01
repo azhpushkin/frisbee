@@ -1,5 +1,5 @@
 use crate::semantics::resolvers::NameResolver;
-use crate::test_utils::setup_and_load_program;
+use crate::tests::helpers::setup_and_load_program;
 
 #[test]
 pub fn check_import_from_same_module_is_fine() {

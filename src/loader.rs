@@ -110,9 +110,24 @@ pub fn load_program<'a>(
     Ok(whole_program)
 }
 
+pub fn check_and_aggregate(
+    wp: &mut WholeProgram,
+) -> Result<
+    crate::semantics::aggregate::ProgramAggregate,
+    crate::semantics::errors::SemanticErrorWithModule,
+> {
+    crate::semantics::add_default_constructors(
+        wp.files
+            .iter_mut()
+            .flat_map(|(_, loaded_file)| loaded_file.ast.types.iter_mut()),
+    );
+    let modules: Vec<_> = wp.iter().collect();
+    crate::semantics::perform_semantic_analysis(&modules, &wp.main_module)
+}
+
 #[cfg(test)]
 mod test {
-    use crate::test_utils::{setup_and_load_program, TestFilesCreator};
+    use crate::tests::helpers::{setup_and_load_program, TestFilesCreator};
 
     use super::*;
 

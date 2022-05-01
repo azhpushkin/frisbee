@@ -3,7 +3,7 @@ use regex::Regex;
 use crate::alias::ModuleAlias;
 use crate::errors::{adjust_error_window, CompileError};
 use crate::loader::WholeProgram;
-use crate::test_utils::setup_and_load_program;
+use crate::tests::helpers::setup_and_load_program;
 
 fn extract_expected_err<'a>(wp: &'a WholeProgram) -> (&'a ModuleAlias, usize, &'a str) {
     let expected_error_regex = Regex::new(r"// ERR: (?P<errmsg>.+)").unwrap();
@@ -21,14 +21,7 @@ fn extract_expected_err<'a>(wp: &'a WholeProgram) -> (&'a ModuleAlias, usize, &'
 
 pub(super) fn run_semantic_and_check_error(program: &str) {
     let mut wp = setup_and_load_program(program);
-
-    crate::semantics::add_default_constructors(
-        wp.files
-            .iter_mut()
-            .flat_map(|(_, loaded_file)| loaded_file.ast.types.iter_mut()),
-    );
-    let modules: Vec<_> = wp.iter().collect();
-    let semantic_res = crate::semantics::perform_semantic_analysis(&modules, &wp.main_module);
+    let semantic_res = crate::loader::check_and_aggregate(&mut wp);
 
     assert!(semantic_res.is_err(), "Expected error but got success");
 
