@@ -19,7 +19,7 @@ assert_semantic_check_fails!(
     fun void main() {
         if true { Int a = 4; } 
         else { Int a = 8; }
-        a = 1;  // ERR: not inited 1
+        a = 1;  // ERR: Variable `a` not defined
     }
     "#
 );
@@ -31,7 +31,7 @@ assert_semantic_check_fails!(
     fun void main() {
         if true { 
             Int a;
-            if false { Int a; }  // ERR: already defined 2
+            if false { Int a; }  // ERR: Variable `a` was already defined before
         } 
     }
     "#
@@ -43,11 +43,10 @@ assert_semantic_check_fails!(
     ===== file: main.frisbee
     fun void main() {
         while true { Int a = 0; }
-        Int b = a;  // ERR: qwe
+        Int b = a;  // ERR: Variable `a` not defined
     }
     "#
 );
-
 
 assert_semantic_check_fails!(
     foreach_variable_not_accessible,
@@ -55,11 +54,10 @@ assert_semantic_check_fails!(
     ===== file: main.frisbee
     fun void main() {
         foreach i in range(0, 4) {}
-        Int last_index = i;  // ERR: `i` is not here dude sry
+        Int last_index = i;  // ERR: Variable `i` not defined
     }
     "#
 );
-
 
 assert_semantic_check_fails!(
     foreach_variable_is_in_scope,
@@ -67,12 +65,11 @@ assert_semantic_check_fails!(
     ===== file: main.frisbee
     fun void main() {
         foreach i in range(0, 4) {
-            Int i;  // ERR: already defined i sorry
+            Int i;  // ERR: Variable `i` was already defined before
         }
     }
     "#
 );
-
 
 assert_semantic_check_is_fine!(
     foreach_scope_is_dropped,

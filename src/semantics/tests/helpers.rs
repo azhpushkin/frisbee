@@ -48,6 +48,13 @@ pub(super) fn run_semantic_and_check_all_good(program: &str) {
         println!("{:?}", res);
     }
     assert!(res.is_ok());
+
+    let res = res.unwrap();
+
+    // BONUS: check that if the program is valid - it does not panic during codegen
+    let types: Vec<_> = res.types.iter().map(|(_, value)| value).collect();
+    let functions: Vec<_> = res.functions.iter().map(|(_, value)| value).collect();
+    crate::codegen::generate(&types, &functions, &res.entry);
 }
 
 macro_rules! assert_semantic_check_fails {

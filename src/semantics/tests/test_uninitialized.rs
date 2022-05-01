@@ -26,7 +26,6 @@ assert_semantic_check_fails!(
     "#
 );
 
-
 assert_semantic_check_fails!(
     uninitialized_after_branching_with_elif,
     r#"
@@ -41,7 +40,6 @@ assert_semantic_check_fails!(
     }
     "#
 );
-
 
 assert_semantic_check_is_fine!(
     initialized_after_single_if,
@@ -122,7 +120,6 @@ assert_semantic_check_fails!(
     "#
 );
 
-
 assert_semantic_check_is_fine!(
     constructor_that_sets_all_fields,
     r#"
@@ -152,7 +149,6 @@ assert_semantic_check_fails!(
     }
     "#
 );
-
 
 assert_semantic_check_fails!(
     maybe_type_must_be_initialized_as_well,

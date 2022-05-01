@@ -16,7 +16,7 @@ impl LocalVariables {
 
     pub fn add_variable(&mut self, name: &str, t: &VerifiedType) -> Result<(), String> {
         if self.variables_types.contains_key(name) {
-            return Err(format!("Variable {} was already defined before", name,));
+            return Err(format!("Variable `{}` was already defined before", name,));
         }
 
         self.variables_types.insert(name.into(), t.clone());
@@ -28,7 +28,7 @@ impl LocalVariables {
     pub fn get_variable(&self, name: &str) -> Result<&VerifiedType, String> {
         self.variables_types
             .get(name)
-            .ok_or_else(|| format!("Variable {} not defined", name))
+            .ok_or_else(|| format!("Variable `{}` not defined", name))
     }
 
     pub fn drop_last_local(&mut self) -> String {
