@@ -1,5 +1,9 @@
-use argh::FromArgs;
+use std::fs::File;
+use std::io::Write;
 use std::path::Path;
+
+use argh::FromArgs;
+use owo_colors::OwoColorize;
 
 pub mod alias;
 pub mod ast;
@@ -70,72 +74,73 @@ struct RunCommand {
     step_by_step: bool,
 }
 
-fn main() {
-    let args: TopLevel = argh::from_env();
-    match &args.nested {
-        FrisbeeSubCommands::Cc(CompileCommand { mainfile, show_intermediate }) => {
-            println!("compiling {}", mainfile);
-        }
-        FrisbeeSubCommands::Dis(DisCommand { program }) => {
-            println!("Disassembling  {}", program);
-        }
-        FrisbeeSubCommands::Run(RunCommand { program, show_debug_info, step_by_step }) => {
-            println!("Running {}", program);
+fn compile_file(c: CompileCommand) {
+    let CompileCommand { mainfile, show_intermediate } = c;
+    let file_path = Path::new(&mainfile);
+
+    let mut wp = loader::load_program(file_path).unwrap_or_else(|(alias, source, error)| {
+        errors::show_error_in_file(&alias, &source, error);
+        panic!("See the error above!");
+    });
+
+    semantics::add_default_constructors(
+        wp.files
+            .iter_mut()
+            .flat_map(|(_, loaded_file)| loaded_file.ast.types.iter_mut()),
+    );
+    let modules: Vec<_> = wp.iter().collect();
+
+    let aggregate =
+        semantics::perform_semantic_analysis(&modules, &wp.main_module).unwrap_or_else(|err| {
+            errors::show_error_in_file(
+                &err.module,
+                &wp.files[&err.module].contents,
+                Box::new(err.error),
+            );
+            // return 1 exit code instead of panic
+            panic!("See the error above!");
+        });
+
+    if show_intermediate {
+        println!("#####Verified:\n\n");
+        for (_, func) in aggregate.functions.iter() {
+            println!("{}\n", func);
         }
     }
-    // let args: Vec<String> = std::env::args().collect();
-    // let file_path_s: String;
-    // let mut show_debug: bool = false;
-    // let mut stepbystep: bool = false;
 
-    // let last_arg = args.last().unwrap();
-    // if last_arg.contains(".frisbee") {
-    //     file_path_s = last_arg.clone();
-    // } else {
-    //     file_path_s = args[args.len() - 2].clone();
-    //     show_debug = last_arg == "debug" || last_arg == "stepbystep";
-    //     stepbystep = last_arg == "stepbystep";
-    // }
+    let types: Vec<_> = aggregate.types.iter().map(|(_, value)| value).collect();
+    let functions: Vec<_> = aggregate.functions.iter().map(|(_, value)| value).collect();
+    let bytecode = codegen::generate(&types, &functions, &aggregate.entry);
 
-    // let file_path = Path::new(&file_path_s);
-    // if !file_path.is_file() {
-    //     println!("{} is not a file!", file_path_s);
-    // }
+    let bytecode_path = file_path.with_extension("frisbee.bytecode");
+    let mut bytecode_file = File::create(bytecode_path).expect("Cant open file for writing");
+    bytecode_file.write_all(&bytecode).expect("Cant write to file");
 
-    // let mut wp = loader::load_program(file_path).unwrap_or_else(|(alias, source, error)| {
-    //     errors::show_error_in_file(&alias, &source, error);
-    //     panic!("See the error above!");
-    // });
+    println!("{}", "File compiled successfully!".green());
+}
 
-    // semantics::add_default_constructors(
-    //     wp.files
-    //         .iter_mut()
-    //         .flat_map(|(_, loaded_file)| loaded_file.ast.types.iter_mut()),
-    // );
-    // let modules: Vec<_> = wp.iter().collect();
+fn dis_file(c: DisCommand) {
+    let DisCommand { program } = c;
 
-    // let aggregate =
-    //     semantics::perform_semantic_analysis(&modules, &wp.main_module).unwrap_or_else(|err| {
-    //         errors::show_error_in_file(
-    //             &err.module,
-    //             &wp.files[&err.module].contents,
-    //             Box::new(err.error),
-    //         );
-    //         // return 1 exit code instead of panic
-    //         panic!("See the error above!");
-    //     });
+    // xxd is also usefull way to show something inside of the file
+    let bytecode = std::fs::read(program).expect("Cant read file");
+    println!("{}", codegen::disassemble(&bytecode));
+}
 
-    // let types: Vec<_> = aggregate.types.iter().map(|(_, value)| value).collect();
-    // let functions: Vec<_> = aggregate.functions.iter().map(|(_, value)| value).collect();
-    // let bytecode = codegen::generate(&types, &functions, &aggregate.entry);
+fn run_file(c: RunCommand) {
+    let RunCommand { program, show_debug_info, step_by_step } = c;
 
-    // println!("#####Verified:\n\n");
-    // for (_, func) in aggregate.functions.iter() {
-    //     println!("{}\n\n", func);
-    // }
+    let bytecode = std::fs::read(program).expect("Cant read file");
 
-    // println!("{}", codegen::disassemble(&bytecode));
+    let mut vm = vm::Vm::new(bytecode);
+    vm.run(step_by_step, show_debug_info);
+}
 
-    // let mut vm = vm::Vm::new(bytecode);
-    // vm.run(stepbystep, show_debug);
+fn main() {
+    let args: TopLevel = argh::from_env();
+    match args.nested {
+        FrisbeeSubCommands::Cc(c) => compile_file(c),
+        FrisbeeSubCommands::Dis(c) => dis_file(c),
+        FrisbeeSubCommands::Run(c) => run_file(c),
+    }
 }

@@ -150,7 +150,6 @@ impl Vm {
             };
         }
         self.check_header("End of constants table");
-        println!("Loaded constants: {:?}", self.constants);
     }
 
     fn check_header(&mut self, header_name: &'static str) {
@@ -183,6 +182,10 @@ impl Vm {
         self.load_consts();
         self.skip_symbol_names();
         let entry = self.load_entry();
+
+        if show_debug {
+            println!("Loaded constants: {:?}", self.constants);
+        }
 
         self.call_op(entry, 0, 0);
 
