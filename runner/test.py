@@ -4,9 +4,6 @@ import subprocess
 from pathlib import Path
 
 
-
-
-
 def check_output(filename: Path, actual_output: str):
     '''
     Example of expected section in programs:
@@ -36,10 +33,6 @@ def check_output(filename: Path, actual_output: str):
         print(f"\n!! Output does not match expected output in {filename}!")
         exit(-1)
 
-    
-
-
-
 
 if __name__ == '__main__':
     examples_dir = Path(__file__).parent.parent / 'examples'
@@ -54,20 +47,22 @@ if __name__ == '__main__':
     subprocess.run(['cargo', 'build'])
 
     for filename in files_to_run:
-    # for filename in ["/home/maqquettex/projects/frisbee/examples/loop.frisbee"]:
         print(f"Running {filename}... ")
-        subprocess.run(['cargo', 'run', '-q', 'cc', filename])
+        res = subprocess.run(['cargo', 'run', '-q', 'cc', filename])
+        assert res.returncode == 0, f"Error compiling {filename}"
         
         res = subprocess.run(['cargo', 'run', 'dis', f'{filename}.bytecode'], capture_output=True, text=True)
         assert res.returncode == 0, f"Error disassembling {filename}: \n{res.stderr}"
 
         res = subprocess.run(
             ['cargo', 'run', '-q', 'run', f'{filename}.bytecode'],
-            capture_output=True, text=True
+            capture_output=True,
+            text=True,
+            timeout=5  # 5 seconds is enough to determine infinite loop 
         )
         assert res.returncode == 0, f"Error running {filename}: \n{res.stderr}"
 
-        # check_output(filename, res.stdout)
+        check_output(filename, res.stdout)
         
 
         

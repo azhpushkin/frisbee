@@ -18,7 +18,7 @@ fn std_print(stack: &mut [u64], memory: &mut Heap) {
 fn std_range(stack: &mut [u64], memory: &mut Heap) {
     let start = stack[1] as i64;
     let end = stack[2] as i64;
-    println!(">> generating range from {} to {}", start, end - 1);
+    // TODO: log this? println!(">> generating range from {} to {}", start, end - 1);
 
     let (list_pos, list_object) = memory.new_list(1, 0, &[]);
     let mut list_inner = list_object.extract_list();

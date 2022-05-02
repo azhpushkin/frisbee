@@ -13,12 +13,22 @@ fun void main() {
                 break;
             }
         }
-        println(i.to_string());
+        println(" end of " + i.to_string());
     }
     return;
 }
+// TODO: this is the dumbest program i could have written..
 
 /* EXPECTED STDOUT
 ==========
-
+012 end of 1
+012 end of 2
+012 end of 3
+012 end of 4
+012 end of 5
+012 end of 6
+012 end of 7
+012 end of 8
+012 end of 9
+012 end of 10
 ========== */

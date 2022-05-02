@@ -1,11 +1,13 @@
 fun void main() {
+    print("This " + "is " + "two: ");
     println(2.to_string());
-    println("Hello!" + 2.to_string());
+    println("This is not " + false.to_string());
     return;
 }
 
 
 /* EXPECTED STDOUT
 ==========
-
+This is two: 2
+This is not false
 ========== */
