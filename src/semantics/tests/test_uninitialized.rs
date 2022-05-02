@@ -11,6 +11,18 @@ assert_semantic_check_fails!(
     "#
 );
 
+
+assert_semantic_check_fails!(
+    maybe_need_to_be_initialized,
+    r#"
+    ===== file: main.frisbee
+    fun void main() {
+        Int? b;
+        b == nil;  // ERR: Variable `b` might be uninitialized here
+    }
+    "#
+);
+
 assert_semantic_check_fails!(
     cant_assign_to_index_of_uninitialized_tuple,
     r#"
