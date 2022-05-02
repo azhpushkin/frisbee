@@ -14,6 +14,7 @@
 * check and implement something for cases when index is bigger than list
 * check that initial list size is no more than 255
 * check different variations of tuple typecheck (items should match)
+* check operator precedence and grouping way
 * check different variations of name collisions with (for i in ..)
 * check how defining inside of if-else branches works 
 * assignment - what is executed first, left or right?

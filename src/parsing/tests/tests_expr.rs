@@ -102,6 +102,30 @@ fn expr_operator_order() {
 }
 
 #[test]
+fn expr_bool_operators() {
+    assert_expr_parses(
+        "1 and not true or false",
+        Expr::BinOp {
+            left: expr(
+                Expr::BinOp {
+                    left: expr(Expr::Int(1), 0, 0),
+                    right: expr(
+                        Expr::UnaryOp { op: UnaryOp::Not, operand: expr(Expr::Bool(true), 10, 13) },
+                        6,
+                        13,
+                    ),
+                    op: BinaryOp::And,
+                },
+                0,
+                13,
+            ),
+            right: expr(Expr::Bool(false), 18, 22),
+            op: BinaryOp::Or,
+        },
+    )
+}
+
+#[test]
 fn expr_simple_groups() {
     assert_expr_parses_padded("(1)", Expr::Int(1), 1, 1);
     assert_expr_parses_padded(

@@ -5,7 +5,7 @@ class Person {
 
     fun String name_extended(String prefix) {
         @age = (213, false);
-        return prefix + " " + @name;
+        return (true or false);
     }
 }
 

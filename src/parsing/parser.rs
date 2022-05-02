@@ -470,7 +470,7 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse_expr(&mut self) -> ParseResult<ExprWithPos> {
-        self.parse_expr_equality()
+        self.parse_expr_bool_operators()
     }
 
     fn parse_expr_comparison(&mut self) -> ParseResult<ExprWithPos> {
@@ -510,6 +510,20 @@ impl<'a> Parser<'a> {
         while consume_if_matches_one_of!(self, [Token::Star, Token::Slash]) {
             let op = bin_op_from_token(self.rel_token(-1));
             let right = self.parse_expr_unary()?;
+
+            let inner = Expr::BinOp { left: Box::new(res_expr), right: Box::new(right), op };
+            res_expr = self.expr_with_pos(inner, start, self.position - 1)?;
+        }
+
+        Ok(res_expr)
+    }
+
+    fn parse_expr_bool_operators(&mut self) -> ParseResult<ExprWithPos> {
+        let start = self.position;
+        let mut res_expr = self.parse_expr_equality()?;
+        while consume_if_matches_one_of!(self, [Token::And, Token::Or]) {
+            let op = bin_op_from_token(self.rel_token(-1));
+            let right = self.parse_expr_equality()?;
 
             let inner = Expr::BinOp { left: Box::new(res_expr), right: Box::new(right), op };
             res_expr = self.expr_with_pos(inner, start, self.position - 1)?;
