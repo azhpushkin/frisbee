@@ -1,18 +1,44 @@
 
 fun void fizz_buzz_until(Int end) {
     Int i = 1;
+    // Would be much easier with %, lol
+    Int three = 1;
+    Int five = 1;
     while i < end {
-        print(i.to_string() + ", ");
+        if three == 3 and five == 5 {
+            print("FizzBuzz");
+            three = 0;
+            five = 0;
+        } elif three == 3 {
+            print("Fizz");
+            three = 0;
+        } elif five == 5 {
+            print("Buzz");
+            five = 0;
+        } else {
+            print(i.to_string());
+        }
+
+        print(", ");
         i = i + 1;
+        three = three + 1;
+        five = five + 1;
     }
+    println("END");
 
 }
 
 fun void main() {
     fizz_buzz_until(10);
+    fizz_buzz_until(0);
+    fizz_buzz_until(3);
+    fizz_buzz_until(20);
 }
 
 /* EXPECTED STDOUT
 ==========
-
+1, 2, Fizz, 4, Buzz, Fizz, 7, 8, Fizz, END
+END
+1, 2, END
+1, 2, Fizz, 4, Buzz, Fizz, 7, 8, Fizz, Buzz, 11, Fizz, 13, 14, FizzBuzz, 16, 17, Fizz, 19, END
 ========== */

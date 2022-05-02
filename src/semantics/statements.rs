@@ -130,7 +130,6 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
         statement: &StatementWithPos,
         insights: &mut Insights,
     ) -> SemanticResult<VStatement> {
-        
         let stmt_err = SemanticError::add_statement(statement);
 
         // TODO: warning probably?
@@ -407,19 +406,31 @@ pub fn verify_statements(
     let mut insights = Insights::new();
     let mut verified = gen.generate_block(&og_function.statements, &mut insights)?;
 
-    // TODO: return without type should be allowed for constructor
-    if !scope.is_constructor && !insights.return_found && scope.return_type != Type::Tuple(vec![]) {
-        let error_msg = match &scope.method_of {
-            Some(t) => format!(
-                "Method `{}` of class `{}` is not guaranteed to return a value",
-                scope.short_name, t
-            ),
-            None => format!(
-                "Function `{}` is not guaranteed to return a value",
-                scope.short_name
-            ),
-        };
-        return Err(SemanticError::TopLevelError { pos: og_function.pos, message: error_msg });
+    if !insights.return_found {
+        // Return statement is a must to perform jump after function end
+        // so either add one if return is implicit (constructor and void functions)
+        // or raise an error
+        
+        if scope.is_constructor {
+            verified.push(return_statement_for_constructor(scope))
+        } else if scope.return_type == Type::Tuple(vec![]) {
+            verified.push(VStatement::Return(VExprTyped {
+                expr: VExpr::TupleValue(vec![]),
+                expr_type: Type::Tuple(vec![]),
+            }));
+        } else {
+            let error_msg = match &scope.method_of {
+                Some(t) => format!(
+                    "Method `{}` of class `{}` is not guaranteed to return a value",
+                    scope.short_name, t
+                ),
+                None => format!(
+                    "Function `{}` is not guaranteed to return a value",
+                    scope.short_name
+                ),
+            };
+            return Err(SemanticError::TopLevelError { pos: og_function.pos, message: error_msg });
+        }
     }
 
     if scope.is_constructor {
@@ -432,15 +443,8 @@ pub fn verify_statements(
                 });
             }
         }
-    }
 
-    if scope.is_constructor {
         verified.insert(0, allocate_object_for_constructor(scope));
-        if !insights.return_found {
-            // Add return statement, but only if return was not explicitly stated
-            // (just to avoid double return as it makes no sense)
-            verified.push(return_statement_for_constructor(scope))
-        }
     }
 
     Ok(verified)

@@ -25,3 +25,4 @@ g:
 
 check:
 	@python runner/test.py || rm examples/*.bytecode -rf
+	@rm examples/*.bytecode -rf
