@@ -1,12 +1,26 @@
 
 fun void main() {
     Int a = 1;
-    while a < 100 {
+    while a < 500 {
         a = a * 2;
+        println(a.to_string());
         if a == 64 {
+            println("Breaking!");
             break;
         }
     }
-    println(a.to_string());
+    println("Final result is " + a.to_string());
     return;
 }
+
+/* EXPECTED STDOUT
+==========
+2
+4
+8
+16
+32
+64
+Breaking!
+Final result is 64
+========== */

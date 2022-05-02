@@ -4,3 +4,9 @@ fun void main() {
     println("True is: " + true.to_string() + " and " + (-2.7).abs().round().to_string());
     return;
 }
+
+
+/* EXPECTED STDOUT
+==========
+
+========== */

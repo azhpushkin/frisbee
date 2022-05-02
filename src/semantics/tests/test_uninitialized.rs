@@ -295,3 +295,25 @@ assert_semantic_check_is_fine!(
     }
     "#
 );
+
+assert_semantic_check_fails!(
+    example_file_complex_test,
+    r#"
+    ===== file: main.frisbee
+    fun void main() {
+        Int b;
+        if true {
+            b = 2;
+            String a = b.to_string() + "ad";
+        } else {
+            // Having different variables in different branches is fine
+            
+        }
+        1 + b;  // ERR: Variable `b` might be uninitialized here
+        return;
+    }
+    "#
+);
+
+
+

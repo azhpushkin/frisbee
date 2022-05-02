@@ -10,3 +10,8 @@ fun void main() {
     println("Person " + person[0] + " " + person[1][0] + " is of age " + person[1][1].to_string());
     return;
 }
+
+/* EXPECTED STDOUT
+==========
+
+========== */

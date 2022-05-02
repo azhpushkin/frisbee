@@ -395,10 +395,9 @@ impl Vm {
                 op::RETURN => {
                     self.return_op();
                     if self.frames.is_empty() {
-                        println!(
-                            "VM finished, stack is {:?}",
-                            &self.stack[0..self.stack_pointer]
-                        );
+                        if show_debug {
+                            println!("VM finished!");
+                        }
                         break;
                     }
                 }

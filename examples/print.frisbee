@@ -3,3 +3,9 @@ fun void main() {
     println("Hello!" + 2.to_string());
     return;
 }
+
+
+/* EXPECTED STDOUT
+==========
+
+========== */

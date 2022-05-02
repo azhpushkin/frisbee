@@ -16,3 +16,10 @@ fun void main() {
     println("I meant that " + p.name + " is of age " + p.age[0].to_string());
     return;
 }
+
+/* EXPECTED STDOUT
+==========
+
+Zhdan Anton is of age 213
+I meant that Anton is of age 333
+========== */

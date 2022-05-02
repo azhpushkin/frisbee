@@ -22,3 +22,8 @@ fun void main() {
     }
     println(res.to_string());
 }
+
+/* EXPECTED STDOUT
+==========
+
+========== */

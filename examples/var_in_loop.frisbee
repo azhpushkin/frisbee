@@ -17,3 +17,8 @@ fun void main() {
     }
     return;
 }
+
+/* EXPECTED STDOUT
+==========
+
+========== */
