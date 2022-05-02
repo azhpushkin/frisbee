@@ -63,6 +63,8 @@ impl Insights {
     }
 
     pub fn merge_with(&mut self, other: Insights) {
+        let Insights { uninitialized_variables, initialized_own_fields, .. } = other;
+
         if self.is_in_loop != other.is_in_loop {
             panic!("Different is_in_loop values should not occur!");
         }
@@ -77,13 +79,10 @@ impl Insights {
         // If variable might be unitialized due to another insights -
         // then it can be initialized in this one
         self.uninitialized_variables
-            .extend(other.uninitialized_variables.into_iter());
+            .extend(uninitialized_variables.into_iter());
 
-        self.initialized_own_fields = self
-            .initialized_own_fields
-            .intersection(&other.initialized_own_fields)
-            .cloned()
-            .collect();
+        self.initialized_own_fields
+            .retain(|e| initialized_own_fields.contains(e));
     }
 
     pub fn is_uninitialized(&self, name: &str) -> bool {
