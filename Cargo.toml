@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 owo-colors = "3"
+argh = "0.1.7"
 
 [dev-dependencies]
 tempfile = "3"

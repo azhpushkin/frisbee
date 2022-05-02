@@ -6,12 +6,12 @@ pub type RawStdRunner = for<'r, 's> fn(&'r mut [u64], &'s mut Heap);
 
 fn std_println(stack: &mut [u64], memory: &mut Heap) {
     let obj = memory.get_mut(stack[0]);
-    println!("[Println] {}", obj.extract_string());
+    println!("{}", obj.extract_string());
 }
 
 fn std_print(stack: &mut [u64], memory: &mut Heap) {
     let obj = memory.get_mut(stack[0]);
-    print!("[Print] {}", obj.extract_string());
+    print!("{}", obj.extract_string());
     io::stdout().flush().unwrap();
 }
 
