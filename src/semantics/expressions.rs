@@ -17,7 +17,7 @@ fn if_as_expected(
 ) -> Result<VExprTyped, String> {
     if expected.is_some() && expected.unwrap() != calculated {
         Err(format!(
-            "Expected type {} but got {}",
+            "Expected type `{}` but got `{}`",
             expected.unwrap(),
             calculated
         ))
@@ -109,15 +109,17 @@ impl<'a, 'b, 'c, 'i, 'l> ExpressionsVerifier<'a, 'b, 'c, 'i, 'l> {
 
             Expr::UnaryOp { op, operand } => {
                 let operand = self.calculate(operand, None)?;
-                calculate_unaryop(op, operand).map_err(with_expr)
+                let unary_res = calculate_unaryop(op, operand).map_err(&with_expr)?;
+                if_as_expected(expected, &unary_res.expr_type, unary_res.expr).map_err(&with_expr)
             }
             Expr::BinOp { left, right, op } => {
                 let binary_res = calculate_binaryop(
                     op,
                     self.calculate(left, None)?,
                     self.calculate(right, None)?,
-                );
-                binary_res.map_err(with_expr)
+                )
+                .map_err(&with_expr)?;
+                if_as_expected(expected, &binary_res.expr_type, binary_res.expr).map_err(&with_expr)
             }
 
             Expr::FunctionCall { function, args } => {
