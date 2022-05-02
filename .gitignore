@@ -19,3 +19,4 @@ Cargo.lock
 frisbee-exe
 
 _drafts/
+examples/*.bytecode

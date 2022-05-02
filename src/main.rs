@@ -137,6 +137,7 @@ fn run_file(c: RunCommand) {
 }
 
 fn main() {
+    // TODO: exit codes?
     let args: TopLevel = argh::from_env();
     match args.nested {
         FrisbeeSubCommands::Cc(c) => compile_file(c),

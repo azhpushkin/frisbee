@@ -120,10 +120,7 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                 )?]
             }
         };
-        println!("If ins: {:?}", insights_of_if_branch);
-        println!("else ins: {:?}", insights);
         insights.merge_with(insights_of_if_branch);
-        println!("res: {:?}", insights);
 
         Ok(VStatement::IfElse { condition, if_body, else_body })
     }
@@ -133,6 +130,7 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
         statement: &StatementWithPos,
         insights: &mut Insights,
     ) -> SemanticResult<VStatement> {
+        
         let stmt_err = SemanticError::add_statement(statement);
 
         // TODO: warning probably?
