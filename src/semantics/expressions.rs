@@ -161,6 +161,14 @@ impl<'a, 'b, 'c, 'i, 'l> ExpressionsVerifier<'a, 'b, 'c, 'i, 'l> {
                 // TODO: check if maybe type
                 self.calculate_function_call(expr, raw_method, expected, args, Some(le_object))
             }
+            Expr::MaybeMethodCall { object, method, args } => {
+                todo!();
+                // let ve_object = self.calculate(object, None)?;
+                // let inner_type = match ve_object.expr_type {
+                //     Type::Maybe(t) => t.as_ref(),
+                //     _ => return expression_error!(expr, "?. operator to can only be used on Maybe types"),
+                // };
+            }
             Expr::OwnMethodCall { method, args } => {
                 let type_of_scope = match &self.scope.method_of {
                     Some(t) => t,

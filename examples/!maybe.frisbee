@@ -1,6 +1,7 @@
 fun void main() {
     Int? i = 1;
-    println(i.to_string());
+    Int q = i :? 777;
+    // println(i.to_string());
 }
 
 

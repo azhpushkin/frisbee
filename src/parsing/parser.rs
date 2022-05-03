@@ -470,7 +470,7 @@ impl<'a> Parser<'a> {
     }
 
     pub fn parse_expr(&mut self) -> ParseResult<ExprWithPos> {
-        self.parse_expr_bool_operators()
+        self.parse_maybe_operators()
     }
 
     fn parse_expr_comparison(&mut self) -> ParseResult<ExprWithPos> {
@@ -512,6 +512,33 @@ impl<'a> Parser<'a> {
             let right = self.parse_expr_unary()?;
 
             let inner = Expr::BinOp { left: Box::new(res_expr), right: Box::new(right), op };
+            res_expr = self.expr_with_pos(inner, start, self.position - 1)?;
+        }
+
+        Ok(res_expr)
+    }
+
+    fn parse_maybe_operators(&mut self) -> ParseResult<ExprWithPos> {
+        let start = self.position;
+        let mut res_expr = self.parse_expr_equality()?;
+        while consume_if_matches_one_of!(self, [Token::QuestionElvis, Token::QuestionDot]) {
+            let inner;
+            if self.rel_token_check(-1, Token::QuestionElvis) {
+                let right = self.parse_expr_bool_operators()?;
+                inner = Expr::BinOp {
+                    left: Box::new(res_expr),
+                    right: Box::new(right),
+                    op: BinaryOp::Elvis,
+                };
+                
+            } else {
+                let field_or_method = consume_and_check_ident!(self);
+                inner = Expr::MaybeMethodCall {
+                    object: Box::new(res_expr),
+                    method: field_or_method,
+                    args: self.parse_function_call_args()?,
+                };
+            }
             res_expr = self.expr_with_pos(inner, start, self.position - 1)?;
         }
 

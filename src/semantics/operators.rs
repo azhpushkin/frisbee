@@ -117,6 +117,9 @@ pub fn calculate_binaryop(
             (RawOperator::OrBools, Type::Bool)
         }
         BinaryOp::Or => return Err(binaryop_error),
+        BinaryOp::Elvis => {
+            todo!();
+        }
     };
 
     Ok(wrap_binary(exact_operator, vec![left, right], result_type))

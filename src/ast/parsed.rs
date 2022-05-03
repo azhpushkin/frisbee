@@ -100,6 +100,7 @@ pub enum BinaryOp {
     IsNotEqual,
     And,
     Or,
+    Elvis,
 }
 
 // priority from lowest to highest
@@ -147,10 +148,14 @@ pub enum Expr {
     TupleValue(Vec<ExprWithPos>),
 
     FunctionCall { function: String, args: Vec<ExprWithPos> },
+    
     MethodCall { object: Box<ExprWithPos>, method: String, args: Vec<ExprWithPos> },
     FieldAccess { object: Box<ExprWithPos>, field: String },
+
     OwnMethodCall { method: String, args: Vec<ExprWithPos> },
     OwnFieldAccess { field: String },
+
+    MaybeMethodCall { object: Box<ExprWithPos>, method: String, args: Vec<ExprWithPos> },
 
     NewClassInstance { typename: String, args: Vec<ExprWithPos> },
     SpawnActive { typename: String, args: Vec<ExprWithPos> },

@@ -60,9 +60,7 @@ impl VStatement {
             VStatement::DeclareAndAssignVar { var_type, name, value } => {
                 format!("{} {} = {};", var_type, name, value.expr)
             }
-            VStatement::DropLocal { name } => {
-                format!("// drop {};  // TODO: not real directive??", name)
-            }
+            VStatement::DropLocal { name } => format!("drop {};", name),
             VStatement::AssignLocal { name, tuple_indexes, value } => {
                 format!(
                     "{}{} = {};",
@@ -132,6 +130,7 @@ impl fmt::Display for VExpr {
             VExpr::Bool(i) => write!(f, "{}", i),
             VExpr::Float(i) => write!(f, "{}", i),
             VExpr::MaybeValue(i) => write!(f, "Some({})", i.expr),
+            // VExpr::MaybeEmpty(i) => write!(f, "Some({})", i.expr),
             VExpr::GetVar(i) => write!(f, "{}", i),
             VExpr::AccessTupleItem { tuple, index } => write!(f, "{}[{}]", tuple.expr, index),
             VExpr::TupleValue(items) => {
