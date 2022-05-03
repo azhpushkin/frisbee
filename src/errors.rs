@@ -124,8 +124,6 @@ fn show_error(contents: &String, alias: &ModuleAlias, pos: ErrorCoordinates, err
 
     // -1 for underscored due to ^ taking one place
     let underscored: String = vec!['~'; pos.end - pos.start - 1].into_iter().collect();
-    println!("{:?}", pos);
-    println!("!! {} {} {}", pos.end, pos.start, underscored.len());
 
     // Print lines of code, 2 if possible
 

@@ -131,6 +131,8 @@ pub enum VExpr {
     Bool(bool),
     Float(f64),
 
+    MaybeValue(Box<VExprTyped>),
+
     GetVar(String),
     AccessTupleItem { tuple: Box<VExprTyped>, index: usize },
 

@@ -13,16 +13,21 @@ use super::std_definitions::{get_std_function_raw, get_std_method, is_std_functi
 fn if_as_expected(
     expected: Option<&VerifiedType>,
     calculated: &VerifiedType,
-    le: VExpr,
+    expr: VExpr,
 ) -> Result<VExprTyped, String> {
-    if expected.is_some() && expected.unwrap() != calculated {
-        Err(format!(
+    let expr = VExprTyped { expr, expr_type: calculated.clone() };
+    match expected {
+        Some(t) if calculated == t => Ok(expr),
+        Some(Type::Maybe(inner)) if calculated == inner.as_ref() => Ok(VExprTyped {
+            expr: VExpr::MaybeValue(Box::new(expr)),
+            expr_type: expected.unwrap().clone(),
+        }),
+        Some(_) => Err(format!(
             "Expected type `{}` but got `{}`",
             expected.unwrap(),
             calculated
-        ))
-    } else {
-        Ok(VExprTyped { expr: le, expr_type: calculated.clone() })
+        )),
+        None => Ok(expr),
     }
 }
 

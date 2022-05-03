@@ -423,7 +423,5 @@ impl Vm {
                 println!(" ## {}", &self.memory.simple_debug_view());
             }
         }
-        // Make sure that the program does not end without a newline if print() was called
-        println!("");
     }
 }

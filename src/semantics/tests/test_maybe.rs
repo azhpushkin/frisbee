@@ -35,7 +35,7 @@ assert_semantic_check_fails!(
     cant_assign_to_maybe_as_a_tuple,
     r#"
     ===== file: main.frisbee
-    fun void main() {  // ERR:
+    fun void main() {  // ERR: qwe
         String? name = (true, "asd");
     }
     "#
@@ -45,7 +45,7 @@ assert_semantic_check_fails!(
     cant_assign_to_maybe_using_index,
     r#"
     ===== file: main.frisbee
-    fun void main() {  // ERR:
+    fun void main() {  // ERR: qwe
         String? name[1] = "value";
     }
     "#

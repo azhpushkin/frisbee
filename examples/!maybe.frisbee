@@ -1,0 +1,11 @@
+fun void main() {
+    Int? i = 1;
+    println(i.to_string());
+}
+
+
+
+/* EXPECTED STDOUT
+==========
+
+========== */
