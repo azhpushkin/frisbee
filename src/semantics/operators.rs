@@ -135,29 +135,47 @@ fn calculate_is_equal(left: VExprTyped, right: VExprTyped) -> Result<VExprTyped,
         &left.expr_type, &right.expr_type,
     );
 
-    match (&left.expr_type, &right.expr_type) {
+    let get_eq_op = |t: &VerifiedType, err_msg| match t {
+        Type::Int => Ok(RawOperator::EqualInts),
+        Type::Float => Ok(RawOperator::EqualFloats),
+        Type::Bool => Ok(RawOperator::EqualBools),
+        Type::String => Ok(RawOperator::EqualStrings),
+        _ => return Err(err_msg),
+    };
+
+    match (left.expr_type.clone(), right.expr_type.clone()) {
         (Type::Maybe(left_inner), Type::Maybe(right_inner)) => {
-            todo!();
+            if left_inner != right_inner {
+                return Err(is_eq_error_msg);
+            }
+            Ok(VExprTyped {
+                expr: VExpr::CompareMaybe {
+                    left: Box::new(left),
+                    right: Box::new(right),
+                    eq_op: get_eq_op(&left_inner, is_eq_error_msg)?,
+                },
+                expr_type: Type::Bool,
+            })
         }
-        (Type::Maybe(left_inner), rt) if left_inner.as_ref() != rt => {
-            Err(is_eq_error_msg)
-        }
-        (Type::Maybe(left_inner), rt) if left_inner.as_ref() != rt => {
-            Err(is_eq_error_msg)
+        (Type::Maybe(left_inner), rt) => {
+            if left_inner.as_ref() != &rt {
+                return Err(is_eq_error_msg);
+            }
+            let new_right = VExprTyped {
+                expr: VExpr::TupleValue(vec![
+                    VExprTyped { expr: VExpr::Bool(true), expr_type: Type::Bool },
+                    right,
+                ]),
+                expr_type: left.expr_type.clone(),
+            };
+            calculate_is_equal(left, new_right)
         }
         (_, Type::Maybe(_)) => calculate_is_equal(right, left),
         (t1, t2) if t1 != t2 => Err(is_eq_error_msg),
-        (_, _) => {
-            let op = match &left.expr_type {
-                Type::Int => RawOperator::EqualInts,
-                Type::Float => RawOperator::EqualFloats,
-                Type::Bool => RawOperator::EqualBools,
-                Type::String => RawOperator::EqualStrings,
-                _ => {
-                    return Err(is_eq_error_msg);
-                }
-            };
-            Ok(wrap_binary(op, vec![left, right], Type::Bool))
-        }
+        (_, _) => Ok(wrap_binary(
+            get_eq_op(&left.expr_type, is_eq_error_msg)?,
+            vec![left, right],
+            Type::Bool,
+        )),
     }
 }

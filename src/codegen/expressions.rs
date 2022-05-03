@@ -161,6 +161,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
             VExpr::Dummy(t) => {
                 self.push_reserve(t);
             }
+            VExpr::CompareMaybe{..} => todo!(),
         }
     }
 }

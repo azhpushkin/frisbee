@@ -133,6 +133,7 @@ pub enum VExpr {
     Float(f64),
 
     Dummy(VerifiedType),  // used for Maybe types
+    CompareMaybe{left: Box<VExprTyped>, right: Box<VExprTyped>, eq_op: RawOperator},
 
     GetVar(String),
     AccessTupleItem { tuple: Box<VExprTyped>, index: usize },
