@@ -8,6 +8,7 @@ mod default_constructors;
 pub mod errors;
 mod expressions;
 mod insights;
+mod locals;
 mod operators;
 mod resolvers;
 mod statements;

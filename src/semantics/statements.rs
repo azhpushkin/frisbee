@@ -6,7 +6,8 @@ use crate::types::{verify_parsed_type, ParsedType, Type, VerifiedType};
 use super::aggregate::ProgramAggregate;
 use super::errors::{expression_error, statement_error, SemanticError, SemanticResult};
 use super::expressions::ExpressionsVerifier;
-use super::insights::{Insights, LocalVariables};
+use super::insights::Insights;
+use super::locals::LocalVariables;
 use super::resolvers::NameResolver;
 
 struct StatementsVerifier<'a, 'b, 'c, 'l> {
@@ -410,7 +411,7 @@ pub fn verify_statements(
         // Return statement is a must to perform jump after function end
         // so either add one if return is implicit (constructor and void functions)
         // or raise an error
-        
+
         if scope.is_constructor {
             verified.push(return_statement_for_constructor(scope))
         } else if scope.return_type == Type::Tuple(vec![]) {

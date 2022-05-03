@@ -5,7 +5,8 @@ use crate::types::{Type, VerifiedType};
 
 use super::aggregate::ProgramAggregate;
 use super::errors::{expression_error, SemanticError, SemanticResult};
-use super::insights::{Insights, LocalVariables};
+use super::insights::Insights;
+use super::locals::LocalVariables;
 use super::operators::{calculate_binaryop, calculate_unaryop};
 use super::resolvers::SymbolResolver;
 use super::std_definitions::{get_std_function_raw, get_std_method, is_std_function};

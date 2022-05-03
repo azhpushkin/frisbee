@@ -135,21 +135,19 @@ fn calculate_is_equal(left: VExprTyped, right: VExprTyped) -> Result<VExprTyped,
         &left.expr_type, &right.expr_type,
     );
 
-    let get_inner_from_maybe = |t: &VerifiedType| {
-        if let Type::Maybe(t) = t {
-            Some(t.as_ref())
-        } else {
-            None
+    match (&left.expr_type, &right.expr_type) {
+        (Type::Maybe(left_inner), Type::Maybe(right_inner)) => {
+            todo!();
         }
-    };
-    let left_inner = get_inner_from_maybe(&left.expr_type);
-    let right_inner = get_inner_from_maybe(&right.expr_type);
-    if left_inner.unwrap_or(&left.expr_type) != right_inner.unwrap_or(&right.expr_type) {
-        return Err(is_eq_error_msg);
-    }
-
-    match (left_inner, right_inner) {
-        (None, None) => {
+        (Type::Maybe(left_inner), rt) if left_inner.as_ref() != rt => {
+            Err(is_eq_error_msg)
+        }
+        (Type::Maybe(left_inner), rt) if left_inner.as_ref() != rt => {
+            Err(is_eq_error_msg)
+        }
+        (_, Type::Maybe(_)) => calculate_is_equal(right, left),
+        (t1, t2) if t1 != t2 => Err(is_eq_error_msg),
+        (_, _) => {
             let op = match &left.expr_type {
                 Type::Int => RawOperator::EqualInts,
                 Type::Float => RawOperator::EqualFloats,
@@ -161,25 +159,5 @@ fn calculate_is_equal(left: VExprTyped, right: VExprTyped) -> Result<VExprTyped,
             };
             Ok(wrap_binary(op, vec![left, right], Type::Bool))
         }
-        (Some(left_inner), None) => {
-            // left is nullable, right is exact value
-            let left_value = VExprTyped {
-                expr: VExpr::AccessTupleItem{ tuple: left, index: todo!() },
-                expr_type: left_inner.clone(),
-            };
-            };
-            let check_left_is_value = wrap_binary(
-                RawOperator::IsNull,
-                vec![left],
-                Type::Bool,
-            );
-
-        }
-         // just swap an arguments lol
-        (None, Some(right_inner)) => calculate_is_equal(right, left),
-        (Some(_), Some(_)) => {
-
-        }
-
     }
 }
