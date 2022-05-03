@@ -158,10 +158,8 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 self.push(op::ALLOCATE);
                 self.push(self.types_meta.get(typename).size);
             }
-
-            VExpr::MaybeValue(inner) => {
-                self.push(op::LOAD_TRUE);
-                self.push_expr(inner.as_ref());
+            VExpr::Dummy(t) => {
+                self.push_reserve(t);
             }
         }
     }

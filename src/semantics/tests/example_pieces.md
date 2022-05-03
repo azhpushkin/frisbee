@@ -17,6 +17,8 @@
 * check operator precedence and grouping way
 * check different variations of name collisions with (for i in ..)
 * check how defining inside of if-else branches works 
+* check AND and OR - if part is executed if it is not yet ready
+    // e.g. true and obj.call()  -- call should not be executed..
 * assignment - what is executed first, left or right?
    maybe typecheck left first, but execute right....
    should check this anyways..

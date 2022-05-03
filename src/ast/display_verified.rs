@@ -129,7 +129,7 @@ impl fmt::Display for VExpr {
             VExpr::String(i) => write!(f, "\"{}\"", i),
             VExpr::Bool(i) => write!(f, "{}", i),
             VExpr::Float(i) => write!(f, "{}", i),
-            VExpr::MaybeValue(i) => write!(f, "Some({})", i.expr),
+            VExpr::Dummy(t) => write!(f, "@dummy({})", t),
             // VExpr::MaybeEmpty(i) => write!(f, "Some({})", i.expr),
             VExpr::GetVar(i) => write!(f, "{}", i),
             VExpr::AccessTupleItem { tuple, index } => write!(f, "{}[{}]", tuple.expr, index),

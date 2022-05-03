@@ -124,6 +124,7 @@ pub struct VExprTyped {
     pub expr_type: VerifiedType,
 }
 
+// DO NOT ADD CLONE as cloning an expression might
 #[derive(Debug)]
 pub enum VExpr {
     Int(i64),
@@ -131,7 +132,7 @@ pub enum VExpr {
     Bool(bool),
     Float(f64),
 
-    MaybeValue(Box<VExprTyped>),
+    Dummy(VerifiedType),  // used for Maybe types
 
     GetVar(String),
     AccessTupleItem { tuple: Box<VExprTyped>, index: usize },

@@ -19,7 +19,10 @@ fn if_as_expected(
     match expected {
         Some(t) if calculated == t => Ok(expr),
         Some(Type::Maybe(inner)) if calculated == inner.as_ref() => Ok(VExprTyped {
-            expr: VExpr::MaybeValue(Box::new(expr)),
+            expr: VExpr::TupleValue(vec![
+                VExprTyped { expr: VExpr::Bool(true), expr_type: Type::Int },
+                expr,
+            ]),
             expr_type: expected.unwrap().clone(),
         }),
         Some(_) => Err(format!(

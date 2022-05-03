@@ -129,6 +129,18 @@ assert_semantic_check_is_fine!(
     "#
 );
 
+assert_semantic_check_fails!(
+    cant_compare_maybe_to_another_maybe,
+    r#"
+    ===== file: main.frisbee
+    fun void main() { 
+        Int? i = nil;
+        Float f = nil;
+        i == f;  // ERR: sorry cant do that!
+    }
+    "#
+);
+
 assert_semantic_check_is_fine!(
     compare_two_maybes,
     r#"

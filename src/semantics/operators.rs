@@ -86,20 +86,7 @@ pub fn calculate_binaryop(
             return calculate_unaryop(&UnaryOp::Not, inner);
         }
 
-        BinaryOp::IsEqual => {
-            // TODO: handle maybe here
-            ensure_same_types()?;
-            let op = match left.expr_type {
-                Type::Int => RawOperator::EqualInts,
-                Type::Float => RawOperator::EqualFloats,
-                Type::Bool => RawOperator::EqualBools,
-                Type::String => RawOperator::EqualStrings,
-                _ => {
-                    return Err(binaryop_error);
-                }
-            };
-            (op, Type::Bool)
-        }
+        BinaryOp::IsEqual => return calculate_is_equal(left, right),
         BinaryOp::IsNotEqual => {
             let inner = calculate_binaryop(&BinaryOp::IsEqual, left, right)?;
             return calculate_unaryop(&UnaryOp::Not, inner);
@@ -117,27 +104,82 @@ pub fn calculate_binaryop(
         BinaryOp::Or => return Err(binaryop_error),
         BinaryOp::Elvis => {
             todo!("Elvis not done yet!");
-        //     let inner_type = match &left.expr_type {
-        //         Type::Maybe(inner_type) => inner_type.as_ref(),
-        //         t => {
-        //             return Err(format!(
-        //                 "Expected Maybe type for elvis operator, got `{}`",
-        //                 t
-        //             ))
-        //         }
-        //     };
-        //     // TODO: what if the right part of elvis is confirmed via insights?
-        //     if &right.expr_type != inner_type {
-        //         return Err(format!(
-        //             "Right part of elvis must be `{}`, but got `{}`",
-        //             inner_type, &right.expr_type
-        //         ))
-        //     }
-        //     let condition = VExprTyped {
-        //         expr: VExpr::
-        //     }
+            //     let inner_type = match &left.expr_type {
+            //         Type::Maybe(inner_type) => inner_type.as_ref(),
+            //         t => {
+            //             return Err(format!(
+            //                 "Expected Maybe type for elvis operator, got `{}`",
+            //                 t
+            //             ))
+            //         }
+            //     };
+            //     // TODO: what if the right part of elvis is confirmed via insights?
+            //     if &right.expr_type != inner_type {
+            //         return Err(format!(
+            //             "Right part of elvis must be `{}`, but got `{}`",
+            //             inner_type, &right.expr_type
+            //         ))
+            //     }
+            //     let condition = VExprTyped {
+            //         expr: VExpr::
+            //     }
         }
     };
 
     Ok(wrap_binary(exact_operator, vec![left, right], result_type))
+}
+
+fn calculate_is_equal(left: VExprTyped, right: VExprTyped) -> Result<VExprTyped, String> {
+    let is_eq_error_msg = format!(
+        "Types `{}` and `{}` cannot be checked for equality",
+        &left.expr_type, &right.expr_type,
+    );
+
+    let get_inner_from_maybe = |t: &VerifiedType| {
+        if let Type::Maybe(t) = t {
+            Some(t.as_ref())
+        } else {
+            None
+        }
+    };
+    let left_inner = get_inner_from_maybe(&left.expr_type);
+    let right_inner = get_inner_from_maybe(&right.expr_type);
+    if left_inner.unwrap_or(&left.expr_type) != right_inner.unwrap_or(&right.expr_type) {
+        return Err(is_eq_error_msg);
+    }
+
+    match (left_inner, right_inner) {
+        (None, None) => {
+            let op = match &left.expr_type {
+                Type::Int => RawOperator::EqualInts,
+                Type::Float => RawOperator::EqualFloats,
+                Type::Bool => RawOperator::EqualBools,
+                Type::String => RawOperator::EqualStrings,
+                _ => {
+                    return Err(is_eq_error_msg);
+                }
+            };
+            Ok(wrap_binary(op, vec![left, right], Type::Bool))
+        }
+        (Some(left_inner), None) => {
+            // left is nullable, right is exact value
+            let left_value = VExprTyped {
+                expr: VExpr::AccessTupleItem{ tuple: left, index: todo!() },
+                expr_type: left_inner.clone(),
+            };
+            };
+            let check_left_is_value = wrap_binary(
+                RawOperator::IsNull,
+                vec![left],
+                Type::Bool,
+            );
+
+        }
+         // just swap an arguments lol
+        (None, Some(right_inner)) => calculate_is_equal(right, left),
+        (Some(_), Some(_)) => {
+
+        }
+
+    }
 }
