@@ -520,7 +520,7 @@ impl<'a> Parser<'a> {
 
     fn parse_maybe_operators(&mut self) -> ParseResult<ExprWithPos> {
         let start = self.position;
-        let mut res_expr = self.parse_expr_equality()?;
+        let mut res_expr = self.parse_expr_bool_operators()?;
         while consume_if_matches_one_of!(self, [Token::QuestionElvis, Token::QuestionDot]) {
             let inner;
             if self.rel_token_check(-1, Token::QuestionElvis) {
