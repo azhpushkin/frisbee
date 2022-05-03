@@ -78,6 +78,20 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 }
                 self.push(match_operator(operator));
             }
+            VExpr::TernaryOp { condition, if_true, if_false } => {
+                self.push_expr(condition);
+                
+                self.push(op::JUMP_IF_FALSE);
+                let placeholder_to_skip_ifbody = self.push_placeholder();
+
+                self.push_expr(if_true);
+                self.push(op::JUMP);
+                let placeholder_to_skip_elsebody = self.push_placeholder();
+                self.fill_placeholder(&placeholder_to_skip_ifbody);
+
+                self.push_expr(if_false);
+                self.fill_placeholder(&placeholder_to_skip_elsebody);
+            }
             VExpr::GetVar(varname) => {
                 self.push_get_local(varname);
             }

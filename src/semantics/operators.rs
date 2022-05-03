@@ -33,11 +33,9 @@ pub fn calculate_binaryop(
     );
 
     let ensure_same_types = || {
-        if left.expr_type != right.expr_type {
-            Err(binaryop_error.clone())
-        } else {
-            Ok(())
-        }
+        (left.expr_type != right.expr_type)
+            .then(|| Err(binaryop_error.clone()))
+            .unwrap_or(Ok(()))
     };
     let ensure_int_or_float = |int_op: RawOperator, float_op: RawOperator| {
         ensure_same_types()?;
@@ -118,7 +116,26 @@ pub fn calculate_binaryop(
         }
         BinaryOp::Or => return Err(binaryop_error),
         BinaryOp::Elvis => {
-            todo!();
+            todo!("Elvis not done yet!");
+        //     let inner_type = match &left.expr_type {
+        //         Type::Maybe(inner_type) => inner_type.as_ref(),
+        //         t => {
+        //             return Err(format!(
+        //                 "Expected Maybe type for elvis operator, got `{}`",
+        //                 t
+        //             ))
+        //         }
+        //     };
+        //     // TODO: what if the right part of elvis is confirmed via insights?
+        //     if &right.expr_type != inner_type {
+        //         return Err(format!(
+        //             "Right part of elvis must be `{}`, but got `{}`",
+        //             inner_type, &right.expr_type
+        //         ))
+        //     }
+        //     let condition = VExprTyped {
+        //         expr: VExpr::
+        //     }
         }
     };
 

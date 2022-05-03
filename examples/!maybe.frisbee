@@ -1,6 +1,8 @@
 fun void main() {
     Int? i = 1;
-    Int q = i :? 777;
+    Bool is_null = i == 1;
+    println(is_null.to_string());
+    //Int q = i ?: 777;
     // println(i.to_string());
 }
 
