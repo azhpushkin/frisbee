@@ -239,6 +239,23 @@ fn test_question_next_token() {
     );
 }
 
+
+#[test]
+fn test_question_dot_and_elvis() {
+    assert_eq!(
+        scan_tokens_helper("? ?:-1 Int?.("),
+        vec![
+            Token::Question,
+            Token::QuestionElvis,
+            Token::Minus,
+            Token::Integer(1),
+            Token::TypeIdentifier(String::from("Int")),
+            Token::QuestionDot,
+            Token::LeftParenthesis,
+        ]
+    );
+}
+
 #[test]
 fn ensure_not_alpha_after_question() {
     let (_, scan_status) = scan_tokens(&String::from("Int?asd"));
@@ -259,15 +276,6 @@ fn ensure_not_number_after_question() {
     );
 }
 
-#[test]
-fn ensure_not_dot_after_question() {
-    let (_, scan_status) = scan_tokens(&String::from("Int?."));
-    assert!(scan_status.is_err());
-    assert_eq!(
-        scan_status.unwrap_err().0,
-        "Symbol is not allowed right after questionmark"
-    );
-}
 
 #[test]
 fn ensure_no_double_questionmark() {

@@ -12,6 +12,8 @@ pub enum Token {
     Less, LessEqual,
     Equal, EqualEqual,
     Question,
+    QuestionDot,
+    QuestionElvis,
     
     Identifier(String),
     OwnIdentifier(String),
@@ -204,18 +206,25 @@ fn scan_and_add_token(scanner: &mut Scanner) -> Result<(), ScanningError> {
                     scanner.position - 1,
                 ));
             }
-            if !(next_char.is_whitespace()
+            if next_char == '.' {
+                scanner.consume_char();
+                scanner.add_token_with_position(Token::QuestionDot, start);
+            } else if next_char == ':' {
+                scanner.consume_char();
+                scanner.add_token_with_position(Token::QuestionElvis, start);
+            } else if next_char.is_whitespace()
                 || next_char == ','
                 || next_char == ']'
                 || next_char == ')'
-                || next_char == '\0')
+                || next_char == '\0'
             {
+                scanner.add_token(Token::Question)
+            } else {
                 return Err((
                     "Symbol is not allowed right after questionmark",
                     scanner.position - 1,
                 ));
             }
-            scanner.add_token(Token::Question)
         }
         '@' => {
             if !scanner.char_ahead(0).is_alphabetic() {
