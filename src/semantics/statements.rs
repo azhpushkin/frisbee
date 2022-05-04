@@ -92,7 +92,6 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
         elif_bodies_input: &[(ExprWithPos, Vec<StatementWithPos>)],
         else_body_input: &[StatementWithPos],
         insights: &mut Insights,
-        emit_stmt: &mut dyn FnMut(VStatement),
     ) -> SemanticResult<VStatement> {
         let condition = self.check_expr(condition, Some(&Type::Bool), insights)?;
 
@@ -110,7 +109,6 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                     other_elifs,
                     else_body_input,
                     insights,
-                    emit_stmt,
                 )?]
             }
         };
@@ -147,8 +145,10 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                 let value = self.check_expr(value, Some(&var_type), insights)?;
                 self.locals.add_variable(name, &var_type).map_err(stmt_err)?;
 
+                let (_, real_name) = self.locals.get_variable(name).unwrap();
+
                 emit_stmt(VStatement::AssignLocal {
-                    name: name.clone(),
+                    name: real_name,
                     tuple_indexes: vec![],
                     value,
                 });
@@ -246,7 +246,9 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                 emit_stmt(VStatement::Continue);
             }
             Statement::IfElse { condition, if_body, elif_bodies, else_body } => {
-                self.generate_if_elif_else(condition, if_body, elif_bodies, else_body, insights, emit_stmt)?;
+                let if_else_stmt = self.generate_if_elif_else(
+                    condition, if_body, elif_bodies, else_body, insights)?;
+                emit_stmt(if_else_stmt);
             }
             Statement::While { condition, body } => {
                 let condition = self.check_expr(condition, Some(&Type::Bool), insights)?;

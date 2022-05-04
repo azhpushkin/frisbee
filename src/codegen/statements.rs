@@ -4,7 +4,7 @@ use crate::vm::opcodes::op;
 use super::constants::ConstantsTable;
 use super::generator::{BytecodeGenerator, FunctionBytecode, JumpPlaceholder};
 use super::types_metadata::TypeMetadataTable;
-use super::utils::{extract_custom_type, get_list_inner_type, get_tuple_offset};
+use super::utils::{extract_custom_type, get_list_inner_type, get_tuple_offset, get_type_size};
 
 pub fn generate_function_bytecode(
     func: &RawFunction,
@@ -17,6 +17,13 @@ pub fn generate_function_bytecode(
         func.args.iter().collect(),
         &func.return_type,
     );
+
+    for (local_name, local_type) in func.locals.iter() {
+        generator.add_local(local_name, local_type);
+    }
+    let total_size: u8 = func.locals.iter().map(|p| get_type_size(&p.1)).sum();
+    generator.push(op::RESERVE);
+    generator.push(total_size);
 
     for statement in func.body.iter() {
         generator.push_statement(statement, None);
@@ -37,18 +44,10 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 self.push_expr(expr);
                 self.push_pop(&expr.expr_type);
             }
-            // VStatement::DeclareVar { var_type, name } => {
-            //     self.add_local(name, var_type);
-            //     self.push_reserve(var_type);
-            // }
             VStatement::AssignLocal { name, tuple_indexes, value } => {
                 self.push_expr(value);
                 self.push_set_local(name, tuple_indexes);
             }
-            // VStatement::DeclareAndAssignVar { var_type, name, value } => {
-            //     self.add_local(name, var_type);
-            //     self.push_expr(value);
-            // }
             VStatement::AssignToField { object, field, tuple_indexes, value } => {
                 let object_type = extract_custom_type(&object.expr_type);
                 // Push value before object, as we need to first pop a pointer

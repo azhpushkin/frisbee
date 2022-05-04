@@ -7,7 +7,7 @@ pub struct LocalVariables {
     current_variables: HashMap<String, String>,
     all_locals: HashMap<String, VerifiedType>,
     locals_order: Vec<(String, usize)>,
-    current_level: usize
+    current_level: usize,
 }
 
 impl LocalVariables {
@@ -16,7 +16,7 @@ impl LocalVariables {
             current_variables: HashMap::new(),
             all_locals: HashMap::new(),
             locals_order: vec![],
-            current_level: 0,    
+            current_level: 0,
         };
         for (name, argtype) in args.iter() {
             new_storage.all_locals.insert(name.clone(), argtype.clone());
@@ -27,15 +27,13 @@ impl LocalVariables {
 
     pub fn start_new_scope(&mut self) {
         self.current_level += 1;
-        println!("new scope");
     }
 
     pub fn drop_current_scope(&mut self) {
         self.current_level -= 1;
-        println!("START DROP scope");
         loop {
             let last = self.locals_order.last();
-            let is_dropped_scope = last.map(|(_, lvl)| *lvl>self.current_level).unwrap_or(false);
+            let is_dropped_scope = last.map(|(_, lvl)| *lvl > self.current_level).unwrap_or(false);
             if is_dropped_scope {
                 let (name, _) = self.locals_order.pop().unwrap();
                 self.current_variables.remove(&name).unwrap();
@@ -43,16 +41,14 @@ impl LocalVariables {
                 break;
             }
         }
-        println!("END drop scope");
     }
-    
+
     pub fn add_variable(&mut self, name: &str, t: &VerifiedType) -> Result<(), String> {
         if self.current_variables.contains_key(name) {
             return Err(format!("Variable `{}` was already defined before", name,));
         }
-        
+
         let real_name = format!("{}_{}", name, self.all_locals.len());
-        println!("Add variable {} as {}", name, real_name);
 
         self.current_variables.insert(name.into(), real_name.clone());
         self.locals_order.push((name.into(), self.current_level));
@@ -66,7 +62,6 @@ impl LocalVariables {
             .get(name)
             .map(|real| (&self.all_locals[real], real.into()))
             .ok_or_else(|| format!("Variable `{}` not defined", name))
-
     }
 
     pub fn move_all_variables(self) -> HashMap<String, VerifiedType> {

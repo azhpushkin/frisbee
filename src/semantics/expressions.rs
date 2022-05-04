@@ -98,7 +98,8 @@ impl<'a, 'b, 'c, 'i, 'l> ExpressionsVerifier<'a, 'b, 'c, 'i, 'l> {
             }
 
             Expr::Identifier(i) => {
-                let (identifier_type, real_name) = self.locals.get_variable(i).map_err(&with_expr)?;
+                let (identifier_type, real_name) =
+                    self.locals.get_variable(i).map_err(&with_expr)?;
                 if self.insights.is_uninitialized(i) {
                     return expression_error!(expr, "Variable `{}` might be uninitialized here", i);
                 }
@@ -308,8 +309,7 @@ impl<'a, 'b, 'c, 'i, 'l> ExpressionsVerifier<'a, 'b, 'c, 'i, 'l> {
                     Some(t) => t,
                     _ => expression_error!(expr, "Accessing own field outside of method func!")?,
                 };
-                if self.func.is_constructor
-                    && !self.insights.initialized_own_fields.contains(field)
+                if self.func.is_constructor && !self.insights.initialized_own_fields.contains(field)
                 {
                     return expression_error!(
                         expr,

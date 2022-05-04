@@ -46,6 +46,10 @@ struct CompileCommand {
     #[argh(switch, short = 'i')]
     /// show intermediate representation during compilation
     show_intermediate: bool,
+
+    #[argh(switch, short = 'r')]
+    /// run immediately after compiling
+    run: bool,
 }
 
 #[derive(FromArgs, PartialEq, Debug)]
@@ -75,7 +79,7 @@ struct RunCommand {
 }
 
 fn compile_file(c: CompileCommand) {
-    let CompileCommand { mainfile, show_intermediate } = c;
+    let CompileCommand { mainfile, show_intermediate, run } = c;
     let file_path = Path::new(&mainfile);
 
     let mut wp = loader::load_program(file_path).unwrap_or_else(|(alias, source, error)| {
@@ -117,6 +121,10 @@ fn compile_file(c: CompileCommand) {
     bytecode_file.write_all(&bytecode).expect("Cant write to file");
 
     println!("{}", "File compiled successfully!".green());
+    if run {
+        let mut vm = vm::Vm::new(bytecode);
+        vm.run(false, false);
+    }
 }
 
 fn dis_file(c: DisCommand) {
