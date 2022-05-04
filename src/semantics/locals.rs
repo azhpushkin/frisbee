@@ -1,17 +1,20 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
-use crate::ast::verified::TypedFields;
+use crate::ast::verified::{TypedFields, VExprTyped, VExpr};
 use crate::types::VerifiedType;
 
 pub struct LocalVariables {
     pub variables_types: HashMap<String, VerifiedType>,
     pub locals_order: Vec<String>, // TODO: reference here?
+
+    total_counter: usize,
+    current_level: usize
 }
 
 impl LocalVariables {
     pub fn from_function_arguments(args: &TypedFields) -> Self {
         let cloned_args = args.iter().map(|(s, t)| (s.clone(), t.clone()));
-        Self { variables_types: cloned_args.collect(), locals_order: vec![] }
+        Self { variables_types: cloned_args.collect(), locals_order: vec![], total_counter: 0, current_level: 0 }
     }
 
     pub fn add_variable(&mut self, name: &str, t: &VerifiedType) -> Result<(), String> {
@@ -25,10 +28,12 @@ impl LocalVariables {
         Ok(())
     }
 
-    pub fn get_variable(&self, name: &str) -> Result<&VerifiedType, String> {
+    pub fn get_variable(&self, name: &str) -> Result<(&VerifiedType, String), String> {
         self.variables_types
             .get(name)
+            .map(|t| (t, name.into()))
             .ok_or_else(|| format!("Variable `{}` not defined", name))
+
     }
 
     pub fn drop_last_local(&mut self) -> String {

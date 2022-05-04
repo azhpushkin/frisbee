@@ -39,23 +39,6 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
         .map_err(SemanticError::add_statement(stmt))
     }
 
-    pub fn generate_block_for_if_branch(
-        &mut self,
-        statements: &[StatementWithPos],
-        insights: &mut Insights,
-    ) -> SemanticResult<Vec<VStatement>> {
-        let last_existing = self.locals.peek_last_local().cloned();
-
-        let mut res = self.generate_block(statements, insights)?;
-
-        while self.locals.peek_last_local() != last_existing.as_ref() {
-            let dropped_var = self.locals.drop_last_local();
-            res.push(VStatement::DropLocal { name: dropped_var });
-        }
-
-        Ok(res)
-    }
-
     pub fn generate_block(
         &mut self,
         statements: &[StatementWithPos],
@@ -114,10 +97,10 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
         let mut insights_of_if_branch = insights.clone();
 
         let if_body =
-            self.generate_block_for_if_branch(if_body_input, &mut insights_of_if_branch)?;
+            self.generate_block(if_body_input, &mut insights_of_if_branch)?;
 
         let else_body = match elif_bodies_input {
-            [] => self.generate_block_for_if_branch(else_body_input, insights)?,
+            [] => self.generate_block(else_body_input, insights)?,
             [(first_condition, first_body), other_elifs @ ..] => {
                 vec![self.generate_if_elif_else(
                     first_condition,
@@ -138,7 +121,7 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
         statement: &StatementWithPos,
         insights: &mut Insights,
         emit_stmt: &dyn FnMut(VStatement) -> (),
-    ) -> SemanticResult<VStatement> {
+    ) -> SemanticResult<()> {
         let stmt_err = SemanticError::add_statement(statement);
 
         // TODO: warning probably?
@@ -287,6 +270,8 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                         )
                     }
                 };
+
+                
                 // index name is muffled to avoid collisions (@ is used to avoid same user-named variables)
                 // TODO: still check that original name does not overlap with anything
                 let index_name = format!("{}@index_{}", item_name, statement.pos);
@@ -298,25 +283,16 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                     .add_variable(&iterable_name, &iterable_type)
                     .map_err(&stmt_err)?;
 
-                let get_iterable_var = || VExprTyped {
-                    expr_type: iterable_type.clone(),
-                    expr: VExpr::GetVar(iterable_name.clone()),
+                let get_var = |name: &str| {
+                    let (t, n) = self.locals.get_variable(name).unwrap();
+                    VExprTyped { expr: VExpr::GetVar(n), expr_type: t.clone() }
                 };
-                let get_index_var =
-                    || VExprTyped { expr_type: Type::Int, expr: VExpr::GetVar(index_name.clone()) };
-
-                let define_item_var =
-                    VStatement::DeclareVar { var_type: item_type.clone(), name: item_name.clone() };
-                let define_index_var = VStatement::DeclareAndAssignVar {
-                    var_type: Type::Int,
-                    name: index_name.clone(),
-                    value: VExprTyped { expr: VExpr::Int(0), expr_type: VerifiedType::Int },
+                let int_expr = |i: i64| {
+                    VExprTyped { expr: VExpr::Int(i), expr_type: Type::Int }
                 };
-                let defined_iterator_var = VStatement::DeclareAndAssignVar {
-                    var_type: iterable_calculated.expr_type.clone(),
-                    name: iterable_name.clone(),
-                    value: iterable_calculated,
-                };
+                
+                emit_stmt(VStatement::AssignLocal { name: index_name.clone(), tuple_indexes: vec![], value: int_expr(0) });
+                emit_stmt(VStatement::AssignLocal { name: iterable_name.clone(), tuple_indexes: vec![], value: iterable_calculated });
 
                 // Condition to check if all good
                 let condition = VExprTyped {
@@ -324,13 +300,13 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                     expr: VExpr::ApplyOp {
                         operator: RawOperator::LessInts,
                         operands: vec![
-                            get_index_var(),
+                            get_var(&index_name),
                             VExprTyped {
                                 expr_type: Type::Int,
                                 expr: VExpr::CallFunction {
                                     name: SymbolFunc::new_std_method(&iterable_type, "len"),
                                     return_type: Type::Int,
-                                    args: vec![get_iterable_var()],
+                                    args: vec![get_var(&iterable_name)],
                                 },
                             },
                         ],
@@ -339,8 +315,8 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                 let get_by_index_from_iterable = VExprTyped {
                     expr_type: item_type.clone(),
                     expr: VExpr::AccessListItem {
-                        list: Box::new(get_iterable_var()),
-                        index: Box::new(get_index_var()),
+                        list: Box::new(get_var(&iterable_name)),
+                        index: Box::new(get_var(&index_name)),
                     },
                 };
                 let set_item_statement = VStatement::AssignLocal {
@@ -357,8 +333,8 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                         expr: VExpr::ApplyOp {
                             operator: RawOperator::AddInts,
                             operands: vec![
-                                get_index_var(),
-                                VExprTyped { expr: VExpr::Int(1), expr_type: VerifiedType::Int },
+                                get_var(&index_name),
+                                int_expr(1),
                             ],
                         },
                     },
@@ -367,32 +343,21 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                 // NOTE: this is the only place which performs the calculations of the body!
                 let mut loop_insights = insights.clone();
                 loop_insights.is_in_loop = true;
+
                 let mut calculated_body = self.generate_block(body, &mut loop_insights)?;
 
                 calculated_body.insert(0, increase_index_statement);
                 calculated_body.insert(0, set_item_statement);
-
-                let mut loop_group = vec![define_item_var, define_index_var, defined_iterator_var];
-                loop_group.extend(move_variables_out_of_while(
-                    condition,
-                    calculated_body,
-                    self.locals,
-                ));
-                loop_group.push(VStatement::DropLocal { name: iterable_name.clone() });
-                loop_group.push(VStatement::DropLocal { name: index_name.clone() });
-                loop_group.push(VStatement::DropLocal { name: item_name.clone() });
-
-                // Check that they are indeed are dropped
+                emit_stmt(VStatement::While { condition, body: calculated_body });
+                
                 assert_eq!(self.locals.drop_last_local(), iterable_name);
                 assert_eq!(self.locals.drop_last_local(), index_name);
                 assert_eq!(self.locals.drop_last_local(), item_name.clone());
-
-                VStatement::LoopGroup(loop_group)
             }
 
             Statement::SendMessage { .. } => todo!("No SendMessage processing yet!"),
         };
-        Ok(verified_statement)
+        Ok(())
     }
 }
 

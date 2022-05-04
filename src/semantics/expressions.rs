@@ -98,12 +98,12 @@ impl<'a, 'b, 'c, 'i, 'l> ExpressionsVerifier<'a, 'b, 'c, 'i, 'l> {
             }
 
             Expr::Identifier(i) => {
-                let identifier_type = self.locals.get_variable(i).map_err(&with_expr)?;
+                let (identifier_type, real_name) = self.locals.get_variable(i).map_err(&with_expr)?;
                 if self.insights.is_uninitialized(i) {
                     return expression_error!(expr, "Variable `{}` might be uninitialized here", i);
                 }
 
-                if_as_expected(expected, identifier_type, VExpr::GetVar(i.clone()))
+                if_as_expected(expected, identifier_type, VExpr::GetVar(real_name))
                     .map_err(with_expr)
             }
             Expr::This => match &self.func.method_of {

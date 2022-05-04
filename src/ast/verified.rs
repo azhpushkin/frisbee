@@ -48,16 +48,6 @@ pub enum VStatement {
     Break,
     Continue,
     Return(VExprTyped),
-    DeclareVar {
-        var_type: VerifiedType,
-        name: String,
-    },
-    DeclareAndAssignVar {
-        var_type: VerifiedType,
-        name: String,
-        value: VExprTyped,
-    },
-    
     // Assign to local variable on stack with compile-time calculated offset
     AssignLocal {
         name: String,
