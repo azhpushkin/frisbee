@@ -43,18 +43,22 @@ impl LocalVariables {
         }
     }
 
-    pub fn add_variable(&mut self, name: &str, t: &VerifiedType) -> Result<(), String> {
+    pub fn add_variable(&mut self, name: &str, t: &VerifiedType) -> Result<String, String> {
         if self.current_variables.contains_key(name) {
             return Err(format!("Variable `{}` was already defined before", name,));
         }
 
-        let real_name = format!("{}_{}", name, self.all_locals.len());
+        let real_name = if name == "this" {
+            "this".into()
+        } else {
+            format!("{}_{}", name, self.all_locals.len())
+        };
 
         self.current_variables.insert(name.into(), real_name.clone());
         self.locals_order.push((name.into(), self.current_level));
-        self.all_locals.insert(real_name, t.clone());
+        self.all_locals.insert(real_name.clone(), t.clone());
 
-        Ok(())
+        Ok(real_name)
     }
 
     pub fn get_variable(&self, name: &str) -> Result<(&VerifiedType, String), String> {

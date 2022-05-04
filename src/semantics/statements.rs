@@ -142,9 +142,7 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
             Statement::VarDeclWithAssign(var_type, name, value) => {
                 let var_type = self.annotate_type(var_type, statement)?;
                 let value = self.check_expr(value, Some(&var_type), insights)?;
-                self.locals.add_variable(name, &var_type).map_err(stmt_err)?;
-
-                let (_, real_name) = self.locals.get_variable(name).unwrap();
+                let real_name = self.locals.add_variable(name, &var_type).map_err(stmt_err)?;
 
                 emit_stmt(VStatement::AssignLocal {
                     name: real_name,
@@ -281,8 +279,8 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
 
                 // index name is muffled to avoid collisions (@ is used to avoid same user-named variables)
                 // TODO: still check that original name does not overlap with anything
-                let index_name = format!("{}@index_{}", item_name, statement.pos);
-                let iterable_name = format!("{}@iterable_{}", item_name, statement.pos);
+                let index_name = format!("{}@_index", item_name);
+                let iterable_name = format!("{}@_iterable", item_name);
 
                 self.locals.start_new_scope();
                 self.locals.add_variable(item_name, &item_type).map_err(&stmt_err)?;
@@ -291,6 +289,7 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                     .add_variable(&iterable_name, &iterable_type)
                     .map_err(&stmt_err)?;
 
+                let real_name = |name: &str| self.locals.get_variable(name).unwrap().1;
                 let get_var = |name: &str| {
                     let (t, n) = self.locals.get_variable(name).unwrap();
                     VExprTyped { expr: VExpr::GetVar(n), expr_type: t.clone() }
@@ -298,12 +297,12 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                 let int_expr = |i: i64| VExprTyped { expr: VExpr::Int(i), expr_type: Type::Int };
 
                 emit_stmt(VStatement::AssignLocal {
-                    name: index_name.clone(),
+                    name: real_name(&index_name),
                     tuple_indexes: vec![],
                     value: int_expr(0),
                 });
                 emit_stmt(VStatement::AssignLocal {
-                    name: iterable_name.clone(),
+                    name: real_name(&iterable_name),
                     tuple_indexes: vec![],
                     value: iterable_calculated,
                 });
@@ -334,13 +333,13 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                     },
                 };
                 let set_item_statement = VStatement::AssignLocal {
-                    name: item_name.clone(),
+                    name: real_name(item_name),
                     tuple_indexes: vec![],
                     value: get_by_index_from_iterable,
                 };
 
                 let increase_index_statement = VStatement::AssignLocal {
-                    name: index_name.clone(),
+                    name: real_name(&index_name),
                     tuple_indexes: vec![],
                     value: VExprTyped {
                         expr_type: Type::Int,

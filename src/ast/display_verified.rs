@@ -70,7 +70,7 @@ impl VStatement {
             }
             VStatement::AssignToField { object, field, tuple_indexes, value } => {
                 format!(
-                    "{}{}{} = {};",
+                    "{}.{}{} = {};",
                     object.expr,
                     field,
                     self.show_tuple_indexes(tuple_indexes),
