@@ -362,12 +362,13 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
     }
 }
 
-pub fn verify_statements(
+pub fn verify_raw_function(
     og_function: &FunctionDecl,
-    func: &RawFunction,
-    aggregate: &ProgramAggregate,
+    function_symbol: &SymbolFunc,
+    aggregate: &mut ProgramAggregate,
     resolver: &NameResolver,
-) -> SemanticResult<Vec<VStatement>> {
+) -> SemanticResult<()> {
+    let func = &aggregate.functions[function_symbol];
     let mut locals = LocalVariables::from_function_arguments(&func.args);
     if func.is_constructor {
         // Add this to the insights so that semantic checker assumer that object is already allocated
@@ -424,7 +425,16 @@ pub fn verify_statements(
         verified.insert(0, allocate_object_for_constructor(func));
     }
 
-    Ok(verified)
+    let mut all_locals = locals.move_all_variables();
+    for (arg, _) in func.args.iter() {
+        all_locals.remove(arg);
+    }
+    
+    let raw_func = aggregate.functions.get_mut(function_symbol).unwrap();
+    raw_func.body = verified;
+    raw_func.locals = all_locals.into_iter().collect();
+
+    Ok(())
 }
 
 fn split_left_part_of_assignment(vexpr: VExprTyped) -> (VExprTyped, Vec<usize>) {

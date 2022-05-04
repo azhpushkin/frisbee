@@ -67,5 +67,9 @@ impl LocalVariables {
             .map(|real| (&self.all_locals[real], real.into()))
             .ok_or_else(|| format!("Variable `{}` not defined", name))
 
-    }    
+    }
+
+    pub fn move_all_variables(self) -> HashMap<String, VerifiedType> {
+        self.all_locals
+    }
 }
