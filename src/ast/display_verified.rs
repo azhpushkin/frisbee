@@ -8,11 +8,16 @@ impl fmt::Display for RawFunction {
             self.args.iter().map(|(name, t)| format!("{} {}", t, name)).collect();
         write!(
             f,
-            "fn {return} {name} ({args}) {{\n{locals}\n\n{body}\n }}",
+            "fn {return} {name} ({args}) {{\n{locals}\n{body}\n }}",
             return = self.return_type,
             name = self.name,
             args = args_repr.join(", "),
-            locals= self.locals.iter().map(|(s, t)| format!("    {} {};", t, s)).collect::<Vec<_>>().join("\n"),
+            locals = self
+                .locals
+                .iter()
+                .map(|(s, t)| format!("    {} {};", t, s))
+                .collect::<Vec<_>>()
+                .join("\n"),
             body = self
                 .body
                 .iter()
@@ -28,7 +33,7 @@ impl VStatement {
         let res = match self {
             VStatement::IfElse { condition, if_body, else_body } => {
                 format!(
-                    "if {} {{\n{}\n}} else {{\n{}\n}}",
+                    "\nif {} {{\n{}\n}} else {{\n{}\n}}\n",
                     condition.expr,
                     if_body
                         .iter()
@@ -44,7 +49,7 @@ impl VStatement {
             }
             VStatement::While { condition, body } => {
                 format!(
-                    "while {} {{\n{}\n}}",
+                    "\nwhile {} {{\n{}\n}}\n",
                     condition.expr,
                     body.iter()
                         .map(|s| s.display_with_ident(true))
@@ -125,7 +130,7 @@ impl fmt::Display for VExpr {
                 let items_str = items.iter().map(|e| format!("{}", e.expr)).collect::<Vec<_>>();
                 write!(f, "[{}]", items_str.join(", "))
             }
-            VExpr::CompareMaybe{ left, right, .. } => {
+            VExpr::CompareMaybe { left, right, .. } => {
                 write!(f, "@comp_maybe({} = {})", left.expr, right.expr)
             }
             VExpr::ApplyOp { operator, operands } => match operands.len() {
@@ -139,8 +144,12 @@ impl fmt::Display for VExpr {
                 _ => panic!("3 arguments not supported now!"),
             },
             VExpr::TernaryOp { condition, if_true, if_false } => {
-                write!(f, "({} ? {} : {})", condition.expr, if_true.expr, if_false.expr)
-            },
+                write!(
+                    f,
+                    "({} ? {} : {})",
+                    condition.expr, if_true.expr, if_false.expr
+                )
+            }
             VExpr::CallFunction { name, args, .. } => {
                 let args_str = args.iter().map(|e| format!("{}", e.expr)).collect::<Vec<_>>();
                 write!(f, "{}({})", name, args_str.join(", "))

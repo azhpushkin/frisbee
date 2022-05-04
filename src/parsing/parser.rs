@@ -530,7 +530,6 @@ impl<'a> Parser<'a> {
                     right: Box::new(right),
                     op: BinaryOp::Elvis,
                 };
-                
             } else {
                 let field_or_method = consume_and_check_ident!(self);
                 inner = Expr::MaybeMethodCall {

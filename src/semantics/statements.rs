@@ -97,8 +97,7 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
 
         let mut insights_of_if_branch = insights.clone();
 
-        let if_body =
-            self.generate_block(if_body_input, &mut insights_of_if_branch)?;
+        let if_body = self.generate_block(if_body_input, &mut insights_of_if_branch)?;
 
         let else_body = match elif_bodies_input {
             [] => self.generate_block(else_body_input, insights)?,
@@ -134,7 +133,7 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
             Statement::Expr(e) => {
                 let expr = self.check_expr(e, None, insights)?;
                 emit_stmt(VStatement::Expression(expr));
-            },
+            }
             Statement::VarDecl(var_type, name) => {
                 let var_type = self.annotate_type(var_type, statement)?;
                 self.locals.add_variable(name, &var_type).map_err(stmt_err)?;
@@ -214,7 +213,7 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                 };
                 emit_stmt(assign_stmt);
             }
-            
+
             Statement::Return(option_e) => {
                 if self.func.is_constructor && option_e.is_some() {
                     return statement_error!(statement, "Constructor must return void");
@@ -226,9 +225,9 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                     None => VExprTyped {
                         expr: VExpr::TupleValue(vec![]),
                         expr_type: Type::Tuple(vec![]),
-                    }
+                    },
                 };
-                
+
                 emit_stmt(VStatement::Return(value));
             }
             Statement::Break if !insights.is_in_loop => {
@@ -247,7 +246,12 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
             }
             Statement::IfElse { condition, if_body, elif_bodies, else_body } => {
                 let if_else_stmt = self.generate_if_elif_else(
-                    condition, if_body, elif_bodies, else_body, insights)?;
+                    condition,
+                    if_body,
+                    elif_bodies,
+                    else_body,
+                    insights,
+                )?;
                 emit_stmt(if_else_stmt);
             }
             Statement::While { condition, body } => {
@@ -258,7 +262,7 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
 
                 let body = self.generate_block(body, &mut loop_insights)?;
 
-                emit_stmt(VStatement::While {condition, body});
+                emit_stmt(VStatement::While { condition, body });
             }
             Statement::Foreach { item_name, iterable, body } => {
                 let iterable_calculated = self.check_expr(iterable, None, insights)?;
@@ -275,7 +279,6 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                     }
                 };
 
-                
                 // index name is muffled to avoid collisions (@ is used to avoid same user-named variables)
                 // TODO: still check that original name does not overlap with anything
                 let index_name = format!("{}@index_{}", item_name, statement.pos);
@@ -292,12 +295,18 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                     let (t, n) = self.locals.get_variable(name).unwrap();
                     VExprTyped { expr: VExpr::GetVar(n), expr_type: t.clone() }
                 };
-                let int_expr = |i: i64| {
-                    VExprTyped { expr: VExpr::Int(i), expr_type: Type::Int }
-                };
-                
-                emit_stmt(VStatement::AssignLocal { name: index_name.clone(), tuple_indexes: vec![], value: int_expr(0) });
-                emit_stmt(VStatement::AssignLocal { name: iterable_name.clone(), tuple_indexes: vec![], value: iterable_calculated });
+                let int_expr = |i: i64| VExprTyped { expr: VExpr::Int(i), expr_type: Type::Int };
+
+                emit_stmt(VStatement::AssignLocal {
+                    name: index_name.clone(),
+                    tuple_indexes: vec![],
+                    value: int_expr(0),
+                });
+                emit_stmt(VStatement::AssignLocal {
+                    name: iterable_name.clone(),
+                    tuple_indexes: vec![],
+                    value: iterable_calculated,
+                });
 
                 // Condition to check if all good
                 let condition = VExprTyped {
@@ -337,10 +346,7 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                         expr_type: Type::Int,
                         expr: VExpr::ApplyOp {
                             operator: RawOperator::AddInts,
-                            operands: vec![
-                                get_var(&index_name),
-                                int_expr(1),
-                            ],
+                            operands: vec![get_var(&index_name), int_expr(1)],
                         },
                     },
                 };
@@ -354,7 +360,7 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                 calculated_body.insert(0, increase_index_statement);
                 calculated_body.insert(0, set_item_statement);
                 emit_stmt(VStatement::While { condition, body: calculated_body });
-                
+
                 self.locals.drop_current_scope();
             }
 
@@ -431,7 +437,7 @@ pub fn verify_raw_function(
     for (arg, _) in func.args.iter() {
         all_locals.remove(arg);
     }
-    
+
     let raw_func = aggregate.functions.get_mut(function_symbol).unwrap();
     raw_func.body = verified;
     raw_func.locals = all_locals.into_iter().collect();

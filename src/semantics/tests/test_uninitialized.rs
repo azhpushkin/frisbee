@@ -11,7 +11,6 @@ assert_semantic_check_fails!(
     "#
 );
 
-
 assert_semantic_check_fails!(
     maybe_need_to_be_initialized,
     r#"
@@ -276,7 +275,6 @@ assert_semantic_check_fails!(
     "#
 );
 
-
 assert_semantic_check_is_fine!(
     branching_implemented_for_own_fields,
     r#"
@@ -314,6 +312,3 @@ assert_semantic_check_fails!(
     }
     "#
 );
-
-
-

@@ -118,23 +118,52 @@ pub enum VExpr {
     Bool(bool),
     Float(f64),
 
-    Dummy(VerifiedType),  // used for Maybe types
-    CompareMaybe{left: Box<VExprTyped>, right: Box<VExprTyped>, eq_op: RawOperator},
+    Dummy(VerifiedType), // used for Maybe types
+    CompareMaybe {
+        left: Box<VExprTyped>,
+        right: Box<VExprTyped>,
+        eq_op: RawOperator,
+    },
 
     GetVar(String),
-    AccessTupleItem { tuple: Box<VExprTyped>, index: usize },
+    AccessTupleItem {
+        tuple: Box<VExprTyped>,
+        index: usize,
+    },
 
     TupleValue(Vec<VExprTyped>),
-    ListValue { item_type: VerifiedType, items: Vec<VExprTyped> },
+    ListValue {
+        item_type: VerifiedType,
+        items: Vec<VExprTyped>,
+    },
 
-    ApplyOp { operator: RawOperator, operands: Vec<VExprTyped> },
-    TernaryOp {condition: Box<VExprTyped>, if_true: Box<VExprTyped>, if_false: Box<VExprTyped>},
-    CallFunction { name: SymbolFunc, return_type: VerifiedType, args: Vec<VExprTyped> },
+    ApplyOp {
+        operator: RawOperator,
+        operands: Vec<VExprTyped>,
+    },
+    TernaryOp {
+        condition: Box<VExprTyped>,
+        if_true: Box<VExprTyped>,
+        if_false: Box<VExprTyped>,
+    },
+    CallFunction {
+        name: SymbolFunc,
+        return_type: VerifiedType,
+        args: Vec<VExprTyped>,
+    },
 
-    AccessField { object: Box<VExprTyped>, field: String },
-    AccessListItem { list: Box<VExprTyped>, index: Box<VExprTyped> },
+    AccessField {
+        object: Box<VExprTyped>,
+        field: String,
+    },
+    AccessListItem {
+        list: Box<VExprTyped>,
+        index: Box<VExprTyped>,
+    },
 
-    Allocate { typename: SymbolType },
+    Allocate {
+        typename: SymbolType,
+    },
     // TODO: spawn!
 }
 

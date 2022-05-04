@@ -37,7 +37,11 @@ pub fn perform_semantic_analysis(
     let mut ls_mapping: HashMap<crate::symbols::SymbolFunc, Vec<ast::verified::VStatement>> =
         HashMap::new();
 
-    let function_names: Vec<_> = aggregate.functions.iter().map(|(s, f)| (s.clone(), f.defined_at.clone())).collect();
+    let function_names: Vec<_> = aggregate
+        .functions
+        .iter()
+        .map(|(s, f)| (s.clone(), f.defined_at.clone()))
+        .collect();
     for (name, module) in function_names {
         statements::verify_raw_function(
             &functions_mapping[&name],
@@ -47,16 +51,6 @@ pub fn perform_semantic_analysis(
         )
         .map_err(|err| err.with_module(&module))?;
     }
-    // for (name, raw_function) in aggregate.functions.iter() {
-    //     let verified_statements = 
-
-    //     ls_mapping.insert(name.clone(), verified_statements);
-    // }
-
-    // for (name, raw_function) in aggregate.functions.iter_mut() {
-    //     let verified_statements = ls_mapping.remove(name).unwrap();
-    //     raw_function.body = verified_statements;
-    // }
 
     Ok(aggregate)
 }

@@ -148,7 +148,7 @@ pub enum Expr {
     TupleValue(Vec<ExprWithPos>),
 
     FunctionCall { function: String, args: Vec<ExprWithPos> },
-    
+
     MethodCall { object: Box<ExprWithPos>, method: String, args: Vec<ExprWithPos> },
     FieldAccess { object: Box<ExprWithPos>, field: String },
 

@@ -80,7 +80,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
             }
             VExpr::TernaryOp { condition, if_true, if_false } => {
                 self.push_expr(condition);
-                
+
                 self.push(op::JUMP_IF_FALSE);
                 let placeholder_to_skip_ifbody = self.push_placeholder();
 
@@ -161,7 +161,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
             VExpr::Dummy(t) => {
                 self.push_reserve(t);
             }
-            VExpr::CompareMaybe{..} => todo!(),
+            VExpr::CompareMaybe { .. } => todo!(),
         }
     }
 }

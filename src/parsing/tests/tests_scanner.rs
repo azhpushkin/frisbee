@@ -239,7 +239,6 @@ fn test_question_next_token() {
     );
 }
 
-
 #[test]
 fn test_question_dot_and_elvis() {
     assert_eq!(
@@ -275,7 +274,6 @@ fn ensure_not_number_after_question() {
         "Symbol is not allowed right after questionmark"
     );
 }
-
 
 #[test]
 fn ensure_no_double_questionmark() {
