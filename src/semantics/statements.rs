@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::rc::Rc;
 
 use crate::ast::parsed::*;
 use crate::ast::verified::{RawFunction, RawOperator, VExpr, VExprTyped, VStatement};
@@ -12,19 +13,19 @@ use super::insights::Insights;
 use super::locals::LocalVariables;
 use super::resolvers::NameResolver;
 
-struct StatementsVerifier<'a, 'b, 'c> {
+struct StatementsVerifier<'a, 'c> {
     pub func: &'a RawFunction,
-    pub aggregate: &'b ProgramAggregate,
+    pub aggregate: &'a ProgramAggregate,
     pub resolver: &'c NameResolver,
-    pub locals: RefCell<LocalVariables>,
+    pub locals: Rc<RefCell<LocalVariables>>,
 }
 
-impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
+impl<'a, 'c> StatementsVerifier<'a, 'c> {
     fn new(
         func: &'a RawFunction,
-        aggregate: &'b ProgramAggregate,
+        aggregate: &'a ProgramAggregate,
         resolver: &'c NameResolver,
-        locals: RefCell<LocalVariables>,
+        locals: Rc<RefCell<LocalVariables>>,
     ) -> Self {
         Self { func, aggregate, resolver, locals }
     }
@@ -79,7 +80,7 @@ impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
         let expr_verified = ExpressionsVerifier::new(
             self.func,
             self.aggregate,
-            &self.locals,
+            self.locals.clone(),
             insights,
             self.resolver.get_typenames_resolver(&self.func.defined_at),
             self.resolver.get_functions_resolver(&self.func.defined_at),
@@ -392,16 +393,18 @@ pub fn verify_raw_function(
     resolver: &NameResolver,
 ) -> SemanticResult<()> {
     let func = &aggregate.functions[function_symbol];
-    let mut locals = LocalVariables::from_function_arguments(&func.args);
+    let mut locals = Rc::new(RefCell::new(LocalVariables::from_function_arguments(&func.args)));
+    
     if func.is_constructor {
         // Add this to the insights so that semantic checker assumer that object is already allocated
         // Allocate statement itself is added later on
         locals
+            .borrow_mut()
             .add_variable("this", &func.return_type)
             .expect("This defined multiple times!");
     }
 
-    let mut gen = StatementsVerifier::new(func, aggregate, resolver, RefCell::new(locals));
+    let mut gen = StatementsVerifier::new(func, aggregate, resolver, locals);
 
     let mut insights = Insights::new();
 

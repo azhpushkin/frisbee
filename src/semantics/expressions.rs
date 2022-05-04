@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::rc::Rc;
 
 use crate::ast::parsed::*;
 use crate::ast::verified::{CustomType, RawFunction, VExpr, VExprTyped};
@@ -37,35 +38,35 @@ fn if_as_expected(
     }
 }
 
-pub struct ExpressionsVerifier<'a, 'b, 'c, 'i, 'l> {
+pub struct ExpressionsVerifier<'a, 'c, 'i> {
     func: &'a RawFunction,
-    aggregate: &'b ProgramAggregate,
-    locals: &'l RefCell<LocalVariables>,
+    aggregate: &'a ProgramAggregate,
+    locals: Rc<RefCell<LocalVariables>>,
     insights: &'i Insights,
     type_resolver: SymbolResolver<'c, SymbolType>,
     func_resolver: SymbolResolver<'c, SymbolFunc>,
 }
 
-impl<'a, 'b, 'c, 'i, 'l> ExpressionsVerifier<'a, 'b, 'c, 'i, 'l> {
+impl<'a, 'c, 'i> ExpressionsVerifier<'a, 'c, 'i> {
     pub fn new(
         func: &'a RawFunction,
-        aggregate: &'b ProgramAggregate,
-        locals: &'l RefCell<LocalVariables>,
+        aggregate: &'a ProgramAggregate,
+        locals: Rc<RefCell<LocalVariables>>,
         insights: &'i Insights,
         type_resolver: SymbolResolver<'c, SymbolType>,
         func_resolver: SymbolResolver<'c, SymbolFunc>,
-    ) -> ExpressionsVerifier<'a, 'b, 'c, 'i, 'l> {
+    ) -> Self {
         ExpressionsVerifier { func, aggregate, locals, insights, func_resolver, type_resolver }
     }
 
-    fn resolve_func(&self, name: &str) -> Result<&'b RawFunction, String> {
+    fn resolve_func(&self, name: &str) -> Result<&'a RawFunction, String> {
         let func = (self.func_resolver)(name)?;
         // TODO: check for errors to be sure
         // Resolver oly returns verified functions so it is safe to unwrap from aggregate
         Ok(self.aggregate.functions.get(&func).unwrap())
     }
 
-    fn resolve_method(&self, t: &SymbolType, method: &str) -> Result<&'b RawFunction, String> {
+    fn resolve_method(&self, t: &SymbolType, method: &str) -> Result<&'a RawFunction, String> {
         let method_func: SymbolFunc = t.method(method);
         self.aggregate
             .functions
@@ -357,7 +358,7 @@ impl<'a, 'b, 'c, 'i, 'l> ExpressionsVerifier<'a, 'b, 'c, 'i, 'l> {
     fn calculate_function_call(
         &self,
         original: &ExprWithPos,
-        raw_called: &'b RawFunction,
+        raw_called: &'a RawFunction,
         expected_return: Option<&VerifiedType>,
         given_args: &[ExprWithPos],
         implicit_this: Option<VExprTyped>,
