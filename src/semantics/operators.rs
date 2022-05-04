@@ -1,6 +1,10 @@
+use std::cell::RefCell;
+
 use crate::ast::parsed::{BinaryOp, UnaryOp};
 use crate::ast::verified::{RawOperator, VExpr, VExprTyped};
 use crate::types::{Type, VerifiedType};
+
+use super::locals::LocalVariables;
 
 pub fn calculate_unaryop(operator: &UnaryOp, operand: VExprTyped) -> Result<VExprTyped, String> {
     let exact_operator: RawOperator = match (operator, &operand.expr_type) {
@@ -26,6 +30,7 @@ pub fn calculate_binaryop(
     operator: &BinaryOp,
     left: VExprTyped,
     right: VExprTyped,
+    locals: &RefCell<LocalVariables>,
 ) -> Result<VExprTyped, String> {
     let binaryop_error = format!(
         "Cant apply {:?} to {} and {}",
@@ -88,7 +93,7 @@ pub fn calculate_binaryop(
 
         BinaryOp::IsEqual => return calculate_is_equal(left, right),
         BinaryOp::IsNotEqual => {
-            let inner = calculate_binaryop(&BinaryOp::IsEqual, left, right)?;
+            let inner = calculate_binaryop(&BinaryOp::IsEqual, left, right, locals)?;
             return calculate_unaryop(&UnaryOp::Not, inner);
         }
 

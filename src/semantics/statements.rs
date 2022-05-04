@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+
 use crate::ast::parsed::*;
 use crate::ast::verified::{RawFunction, RawOperator, VExpr, VExprTyped, VStatement};
 use crate::symbols::SymbolFunc;
@@ -10,19 +12,19 @@ use super::insights::Insights;
 use super::locals::LocalVariables;
 use super::resolvers::NameResolver;
 
-struct StatementsVerifier<'a, 'b, 'c, 'l> {
-    func: &'a RawFunction,
-    aggregate: &'b ProgramAggregate,
-    resolver: &'c NameResolver,
-    locals: &'l mut LocalVariables,
+struct StatementsVerifier<'a, 'b, 'c> {
+    pub func: &'a RawFunction,
+    pub aggregate: &'b ProgramAggregate,
+    pub resolver: &'c NameResolver,
+    pub locals: RefCell<LocalVariables>,
 }
 
-impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
+impl<'a, 'b, 'c> StatementsVerifier<'a, 'b, 'c> {
     fn new(
         func: &'a RawFunction,
         aggregate: &'b ProgramAggregate,
         resolver: &'c NameResolver,
-        locals: &'l mut LocalVariables,
+        locals: RefCell<LocalVariables>,
     ) -> Self {
         Self { func, aggregate, resolver, locals }
     }
@@ -50,7 +52,7 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
         };
 
         let mut new_insights: Option<Insights> = None;
-        self.locals.start_new_scope();
+        self.locals.borrow_mut().start_new_scope();
 
         for statement in statements {
             if insights.break_or_continue_found && new_insights.is_none() {
@@ -63,7 +65,7 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
             };
             self.generate_single(statement, stmt_insights, &mut emit_stmt)?;
         }
-        self.locals.drop_current_scope();
+        self.locals.borrow_mut().drop_current_scope();
 
         Ok(res)
     }
@@ -77,7 +79,7 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
         let expr_verified = ExpressionsVerifier::new(
             self.func,
             self.aggregate,
-            self.locals,
+            &self.locals,
             insights,
             self.resolver.get_typenames_resolver(&self.func.defined_at),
             self.resolver.get_functions_resolver(&self.func.defined_at),
@@ -136,13 +138,20 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
             }
             Statement::VarDecl(var_type, name) => {
                 let var_type = self.annotate_type(var_type, statement)?;
-                self.locals.add_variable(name, &var_type).map_err(stmt_err)?;
+                self.locals
+                    .borrow_mut()
+                    .add_variable(name, &var_type)
+                    .map_err(stmt_err)?;
                 insights.add_uninitialized(name);
             }
             Statement::VarDeclWithAssign(var_type, name, value) => {
                 let var_type = self.annotate_type(var_type, statement)?;
                 let value = self.check_expr(value, Some(&var_type), insights)?;
-                let real_name = self.locals.add_variable(name, &var_type).map_err(stmt_err)?;
+                let real_name = self
+                    .locals
+                    .borrow_mut()
+                    .add_variable(name, &var_type)
+                    .map_err(stmt_err)?;
 
                 emit_stmt(VStatement::AssignLocal {
                     name: real_name,
@@ -282,16 +291,23 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                 let index_name = format!("{}@_index", item_name);
                 let iterable_name = format!("{}@_iterable", item_name);
 
-                self.locals.start_new_scope();
-                self.locals.add_variable(item_name, &item_type).map_err(&stmt_err)?;
-                self.locals.add_variable(&index_name, &Type::Int).map_err(&stmt_err)?;
+                self.locals.borrow_mut().start_new_scope();
                 self.locals
+                    .borrow_mut()
+                    .add_variable(item_name, &item_type)
+                    .map_err(&stmt_err)?;
+                self.locals
+                    .borrow_mut()
+                    .add_variable(&index_name, &Type::Int)
+                    .map_err(&stmt_err)?;
+                self.locals
+                    .borrow_mut()
                     .add_variable(&iterable_name, &iterable_type)
                     .map_err(&stmt_err)?;
 
-                let real_name = |name: &str| self.locals.get_variable(name).unwrap().1;
+                let real_name = |name: &str| self.locals.borrow().get_variable(name).unwrap().1;
                 let get_var = |name: &str| {
-                    let (t, n) = self.locals.get_variable(name).unwrap();
+                    let (t, n) = self.locals.borrow().get_variable(name).unwrap();
                     VExprTyped { expr: VExpr::GetVar(n), expr_type: t.clone() }
                 };
                 let int_expr = |i: i64| VExprTyped { expr: VExpr::Int(i), expr_type: Type::Int };
@@ -360,7 +376,7 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                 calculated_body.insert(0, set_item_statement);
                 emit_stmt(VStatement::While { condition, body: calculated_body });
 
-                self.locals.drop_current_scope();
+                self.locals.borrow_mut().drop_current_scope();
             }
 
             Statement::SendMessage { .. } => todo!("No SendMessage processing yet!"),
@@ -385,7 +401,7 @@ pub fn verify_raw_function(
             .expect("This defined multiple times!");
     }
 
-    let mut gen = StatementsVerifier::new(func, aggregate, resolver, &mut locals);
+    let mut gen = StatementsVerifier::new(func, aggregate, resolver, RefCell::new(locals));
 
     let mut insights = Insights::new();
 
@@ -432,7 +448,7 @@ pub fn verify_raw_function(
         verified.insert(0, allocate_object_for_constructor(func));
     }
 
-    let mut all_locals = locals.move_all_variables();
+    let mut all_locals = gen.locals.take().move_all_variables();
     for (arg, _) in func.args.iter() {
         all_locals.remove(arg);
     }

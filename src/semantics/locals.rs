@@ -10,14 +10,20 @@ pub struct LocalVariables {
     current_level: usize,
 }
 
-impl LocalVariables {
-    pub fn from_function_arguments(args: &TypedFields) -> Self {
-        let mut new_storage = Self {
+impl Default for LocalVariables {
+    fn default() -> Self {
+        Self {
             current_variables: HashMap::new(),
             all_locals: HashMap::new(),
             locals_order: vec![],
             current_level: 0,
-        };
+        }
+    }
+}
+
+impl LocalVariables {
+    pub fn from_function_arguments(args: &TypedFields) -> Self {
+        let mut new_storage = Self::default();
         for (name, argtype) in args.iter() {
             new_storage.all_locals.insert(name.clone(), argtype.clone());
             new_storage.current_variables.insert(name.clone(), name.clone());
@@ -61,10 +67,16 @@ impl LocalVariables {
         Ok(real_name)
     }
 
-    pub fn get_variable(&self, name: &str) -> Result<(&VerifiedType, String), String> {
+    pub fn request_temp_local(&mut self, t: &VerifiedType) -> String {
+        let real_name = format!("@temp_{}", self.all_locals.len());
+        self.add_variable(&real_name, t).unwrap();
+        real_name
+    }
+
+    pub fn get_variable(&self, name: &str) -> Result<(VerifiedType, String), String> {
         self.current_variables
             .get(name)
-            .map(|real| (&self.all_locals[real], real.into()))
+            .map(|real| (self.all_locals[real].to_owned(), real.into()))
             .ok_or_else(|| format!("Variable `{}` not defined", name))
     }
 

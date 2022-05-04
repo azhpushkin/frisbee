@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::alias::ModuleAlias;
 use crate::ast;
 
@@ -33,9 +31,6 @@ pub fn perform_semantic_analysis(
 
     let functions_mapping =
         aggregate::fill_aggregate_with_funcs(modules, &mut aggregate, &names_resolver)?;
-
-    let mut ls_mapping: HashMap<crate::symbols::SymbolFunc, Vec<ast::verified::VStatement>> =
-        HashMap::new();
 
     let function_names: Vec<_> = aggregate
         .functions

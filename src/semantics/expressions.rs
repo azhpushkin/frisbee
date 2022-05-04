@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+
 use crate::ast::parsed::*;
 use crate::ast::verified::{CustomType, RawFunction, VExpr, VExprTyped};
 use crate::symbols::{SymbolFunc, SymbolType};
@@ -38,7 +40,7 @@ fn if_as_expected(
 pub struct ExpressionsVerifier<'a, 'b, 'c, 'i, 'l> {
     func: &'a RawFunction,
     aggregate: &'b ProgramAggregate,
-    locals: &'l LocalVariables,
+    locals: &'l RefCell<LocalVariables>,
     insights: &'i Insights,
     type_resolver: SymbolResolver<'c, SymbolType>,
     func_resolver: SymbolResolver<'c, SymbolFunc>,
@@ -48,7 +50,7 @@ impl<'a, 'b, 'c, 'i, 'l> ExpressionsVerifier<'a, 'b, 'c, 'i, 'l> {
     pub fn new(
         func: &'a RawFunction,
         aggregate: &'b ProgramAggregate,
-        locals: &'l LocalVariables,
+        locals: &'l RefCell<LocalVariables>,
         insights: &'i Insights,
         type_resolver: SymbolResolver<'c, SymbolType>,
         func_resolver: SymbolResolver<'c, SymbolFunc>,
@@ -99,12 +101,12 @@ impl<'a, 'b, 'c, 'i, 'l> ExpressionsVerifier<'a, 'b, 'c, 'i, 'l> {
 
             Expr::Identifier(i) => {
                 let (identifier_type, real_name) =
-                    self.locals.get_variable(i).map_err(&with_expr)?;
+                    self.locals.borrow().get_variable(i).map_err(&with_expr)?;
                 if self.insights.is_uninitialized(i) {
                     return expression_error!(expr, "Variable `{}` might be uninitialized here", i);
                 }
 
-                if_as_expected(expected, identifier_type, VExpr::GetVar(real_name))
+                if_as_expected(expected, &identifier_type, VExpr::GetVar(real_name))
                     .map_err(with_expr)
             }
             Expr::This => match &self.func.method_of {
@@ -127,6 +129,7 @@ impl<'a, 'b, 'c, 'i, 'l> ExpressionsVerifier<'a, 'b, 'c, 'i, 'l> {
                     op,
                     self.calculate(left, None)?,
                     self.calculate(right, None)?,
+                    &self.locals,
                 )
                 .map_err(&with_expr)?;
                 if_as_expected(expected, &binary_res.expr_type, binary_res.expr).map_err(&with_expr)
