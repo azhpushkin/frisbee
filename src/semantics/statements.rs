@@ -393,8 +393,10 @@ pub fn verify_raw_function(
     resolver: &NameResolver,
 ) -> SemanticResult<()> {
     let func = &aggregate.functions[function_symbol];
-    let mut locals = Rc::new(RefCell::new(LocalVariables::from_function_arguments(&func.args)));
-    
+    let locals = Rc::new(RefCell::new(LocalVariables::from_function_arguments(
+        &func.args,
+    )));
+
     if func.is_constructor {
         // Add this to the insights so that semantic checker assumer that object is already allocated
         // Allocate statement itself is added later on

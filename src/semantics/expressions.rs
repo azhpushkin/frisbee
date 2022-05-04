@@ -38,23 +38,25 @@ fn if_as_expected(
     }
 }
 
-pub struct ExpressionsVerifier<'a, 'c, 'i> {
+// In fact, func, aggregate and resolver lifetimes are somewhat different
+// (see resolvers code for more details), but it is fine to generalize them here
+pub struct ExpressionsVerifier<'a, 'i> {
     func: &'a RawFunction,
     aggregate: &'a ProgramAggregate,
     locals: Rc<RefCell<LocalVariables>>,
     insights: &'i Insights,
-    type_resolver: SymbolResolver<'c, SymbolType>,
-    func_resolver: SymbolResolver<'c, SymbolFunc>,
+    type_resolver: SymbolResolver<'a, SymbolType>,
+    func_resolver: SymbolResolver<'a, SymbolFunc>,
 }
 
-impl<'a, 'c, 'i> ExpressionsVerifier<'a, 'c, 'i> {
+impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
     pub fn new(
         func: &'a RawFunction,
         aggregate: &'a ProgramAggregate,
         locals: Rc<RefCell<LocalVariables>>,
         insights: &'i Insights,
-        type_resolver: SymbolResolver<'c, SymbolType>,
-        func_resolver: SymbolResolver<'c, SymbolFunc>,
+        type_resolver: SymbolResolver<'a, SymbolType>,
+        func_resolver: SymbolResolver<'a, SymbolFunc>,
     ) -> Self {
         ExpressionsVerifier { func, aggregate, locals, insights, func_resolver, type_resolver }
     }
