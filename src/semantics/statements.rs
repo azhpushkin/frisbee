@@ -11,7 +11,7 @@ use super::locals::LocalVariables;
 use super::resolvers::NameResolver;
 
 struct StatementsVerifier<'a, 'b, 'c, 'l> {
-    scope: &'a RawFunction,
+    func: &'a RawFunction,
     aggregate: &'b ProgramAggregate,
     resolver: &'c NameResolver,
     locals: &'l mut LocalVariables,
@@ -19,12 +19,12 @@ struct StatementsVerifier<'a, 'b, 'c, 'l> {
 
 impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
     fn new(
-        scope: &'a RawFunction,
+        func: &'a RawFunction,
         aggregate: &'b ProgramAggregate,
         resolver: &'c NameResolver,
         locals: &'l mut LocalVariables,
     ) -> Self {
-        Self { scope, aggregate, resolver, locals }
+        Self { func, aggregate, resolver, locals }
     }
 
     fn annotate_type(
@@ -34,7 +34,7 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
     ) -> SemanticResult<VerifiedType> {
         verify_parsed_type(
             t,
-            &self.resolver.get_typenames_resolver(&self.scope.defined_at),
+            &self.resolver.get_typenames_resolver(&self.func.defined_at),
         )
         .map_err(SemanticError::add_statement(stmt))
     }
@@ -84,12 +84,12 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
         insights: &Insights,
     ) -> SemanticResult<VExprTyped> {
         let expr_verified = ExpressionsVerifier::new(
-            self.scope,
+            self.func,
             self.aggregate,
             self.locals,
             insights,
-            self.resolver.get_typenames_resolver(&self.scope.defined_at),
-            self.resolver.get_functions_resolver(&self.scope.defined_at),
+            self.resolver.get_typenames_resolver(&self.func.defined_at),
+            self.resolver.get_functions_resolver(&self.func.defined_at),
         );
         expr_verified.calculate(expr, expected)
     }
@@ -216,12 +216,12 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                 VStatement::DeclareAndAssignVar { var_type, name: name.clone(), value }
             }
             Statement::Return(Some(e)) => {
-                if self.scope.is_constructor {
+                if self.func.is_constructor {
                     return statement_error!(statement, "Constructor must return void");
                 }
                 // TODO: check value of return (wtf does that mean?)
                 insights.return_found = true;
-                let value = self.check_expr(e, Some(&self.scope.return_type), insights)?;
+                let value = self.check_expr(e, Some(&self.func.return_type), insights)?;
                 VStatement::Return(value)
             }
             Statement::Return(None) => {
@@ -389,20 +389,20 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
 
 pub fn verify_statements(
     og_function: &FunctionDecl,
-    scope: &RawFunction,
+    func: &RawFunction,
     aggregate: &ProgramAggregate,
     resolver: &NameResolver,
 ) -> SemanticResult<Vec<VStatement>> {
-    let mut locals = LocalVariables::from_function_arguments(&scope.args);
-    if scope.is_constructor {
+    let mut locals = LocalVariables::from_function_arguments(&func.args);
+    if func.is_constructor {
         // Add this to the insights so that semantic checker assumer that object is already allocated
         // Allocate statement itself is added later on
         locals
-            .add_variable("this", &scope.return_type)
+            .add_variable("this", &func.return_type)
             .expect("This defined multiple times!");
     }
 
-    let mut gen = StatementsVerifier::new(scope, aggregate, resolver, &mut locals);
+    let mut gen = StatementsVerifier::new(func, aggregate, resolver, &mut locals);
 
     let mut insights = Insights::new();
     let mut verified = gen.generate_block(&og_function.statements, &mut insights)?;
@@ -412,30 +412,30 @@ pub fn verify_statements(
         // so either add one if return is implicit (constructor and void functions)
         // or raise an error
 
-        if scope.is_constructor {
-            verified.push(return_statement_for_constructor(scope))
-        } else if scope.return_type == Type::Tuple(vec![]) {
+        if func.is_constructor {
+            verified.push(return_statement_for_constructor(func))
+        } else if func.return_type == Type::Tuple(vec![]) {
             verified.push(VStatement::Return(VExprTyped {
                 expr: VExpr::TupleValue(vec![]),
                 expr_type: Type::Tuple(vec![]),
             }));
         } else {
-            let error_msg = match &scope.method_of {
+            let error_msg = match &func.method_of {
                 Some(t) => format!(
                     "Method `{}` of class `{}` is not guaranteed to return a value",
-                    scope.short_name, t
+                    func.short_name, t
                 ),
                 None => format!(
                     "Function `{}` is not guaranteed to return a value",
-                    scope.short_name
+                    func.short_name
                 ),
             };
             return Err(SemanticError::TopLevelError { pos: og_function.pos, message: error_msg });
         }
     }
 
-    if scope.is_constructor {
-        let type_fields = &aggregate.types[scope.method_of.as_ref().unwrap()].fields;
+    if func.is_constructor {
+        let type_fields = &aggregate.types[func.method_of.as_ref().unwrap()].fields;
         for (name, _) in type_fields.iter() {
             if !insights.initialized_own_fields.contains(name) {
                 return Err(SemanticError::TopLevelError {
@@ -445,7 +445,7 @@ pub fn verify_statements(
             }
         }
 
-        verified.insert(0, allocate_object_for_constructor(scope));
+        verified.insert(0, allocate_object_for_constructor(func));
     }
 
     Ok(verified)
@@ -464,8 +464,8 @@ fn split_left_part_of_assignment(vexpr: VExprTyped) -> (VExprTyped, Vec<usize>) 
     }
 }
 
-pub fn return_statement_for_constructor(scope: &RawFunction) -> VStatement {
-    let class_name = scope.method_of.as_ref().unwrap();
+pub fn return_statement_for_constructor(func: &RawFunction) -> VStatement {
+    let class_name = func.method_of.as_ref().unwrap();
 
     VStatement::Return(VExprTyped {
         expr: VExpr::GetVar("this".into()),
@@ -473,8 +473,8 @@ pub fn return_statement_for_constructor(scope: &RawFunction) -> VStatement {
     })
 }
 
-fn allocate_object_for_constructor(scope: &RawFunction) -> VStatement {
-    let class_name = scope.method_of.as_ref().unwrap();
+fn allocate_object_for_constructor(func: &RawFunction) -> VStatement {
+    let class_name = func.method_of.as_ref().unwrap();
 
     VStatement::DeclareAndAssignVar {
         var_type: Type::Custom(class_name.clone()),

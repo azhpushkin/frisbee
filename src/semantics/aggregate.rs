@@ -147,6 +147,7 @@ pub fn fill_aggregate_with_funcs<'a>(
                         args: annotate_typednamed_vec(&args, &file_resolver)
                             .or_else(|e| args_type_err(method, e))?,
                         body: vec![],
+                        locals: vec![],
                         short_name: method.name.clone(),
                         method_of: Some(type_full_name.clone()),
                         is_constructor: method.name == class_decl.name,
@@ -179,6 +180,7 @@ pub fn fill_aggregate_with_funcs<'a>(
                     args: annotate_typednamed_vec(&function_decl.args, &file_resolver)
                         .or_else(|e| args_type_err(function_decl, e))?,
                     body: vec![],
+                    locals: vec![],
                     short_name: function_decl.name.clone(),
                     method_of: None,
                     is_constructor: false,

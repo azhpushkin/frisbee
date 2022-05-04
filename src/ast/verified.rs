@@ -17,6 +17,7 @@ pub struct RawFunction {
     pub return_type: VerifiedType,
     pub args: TypedFields,
     pub body: Vec<VStatement>,
+    pub locals: Vec<(String, VerifiedType)>,
 
     pub short_name: String,
     pub method_of: Option<SymbolType>,

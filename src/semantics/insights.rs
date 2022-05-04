@@ -1,8 +1,5 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::ast::verified::TypedFields;
-use crate::types::VerifiedType;
-
 #[derive(Debug, Clone)]
 pub struct Insights {
     pub is_in_loop: bool,

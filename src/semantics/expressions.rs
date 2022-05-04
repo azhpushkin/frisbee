@@ -36,7 +36,7 @@ fn if_as_expected(
 }
 
 pub struct ExpressionsVerifier<'a, 'b, 'c, 'i, 'l> {
-    scope: &'a RawFunction,
+    func: &'a RawFunction,
     aggregate: &'b ProgramAggregate,
     locals: &'l LocalVariables,
     insights: &'i Insights,
@@ -46,14 +46,14 @@ pub struct ExpressionsVerifier<'a, 'b, 'c, 'i, 'l> {
 
 impl<'a, 'b, 'c, 'i, 'l> ExpressionsVerifier<'a, 'b, 'c, 'i, 'l> {
     pub fn new(
-        scope: &'a RawFunction,
+        func: &'a RawFunction,
         aggregate: &'b ProgramAggregate,
         locals: &'l LocalVariables,
         insights: &'i Insights,
         type_resolver: SymbolResolver<'c, SymbolType>,
         func_resolver: SymbolResolver<'c, SymbolFunc>,
     ) -> ExpressionsVerifier<'a, 'b, 'c, 'i, 'l> {
-        ExpressionsVerifier { scope, aggregate, locals, insights, func_resolver, type_resolver }
+        ExpressionsVerifier { func, aggregate, locals, insights, func_resolver, type_resolver }
     }
 
     fn resolve_func(&self, name: &str) -> Result<&'b RawFunction, String> {
@@ -106,7 +106,7 @@ impl<'a, 'b, 'c, 'i, 'l> ExpressionsVerifier<'a, 'b, 'c, 'i, 'l> {
                 if_as_expected(expected, identifier_type, VExpr::GetVar(i.clone()))
                     .map_err(with_expr)
             }
-            Expr::This => match &self.scope.method_of {
+            Expr::This => match &self.func.method_of {
                 Some(t) => if_as_expected(
                     expected,
                     &Type::Custom(t.clone()),
@@ -165,7 +165,7 @@ impl<'a, 'b, 'c, 'i, 'l> ExpressionsVerifier<'a, 'b, 'c, 'i, 'l> {
                 // TODO: check if maybe type
                 self.calculate_function_call(expr, raw_method, expected, args, Some(le_object))
             }
-            Expr::MaybeMethodCall { object, method, args } => {
+            Expr::MaybeMethodCall { .. } => {
                 todo!();
                 // let ve_object = self.calculate(object, None)?;
                 // let inner_type = match ve_object.expr_type {
@@ -174,7 +174,7 @@ impl<'a, 'b, 'c, 'i, 'l> ExpressionsVerifier<'a, 'b, 'c, 'i, 'l> {
                 // };
             }
             Expr::OwnMethodCall { method, args } => {
-                let type_of_scope = match &self.scope.method_of {
+                let type_of_func = match &self.func.method_of {
                     Some(t) => t,
                     _ => expression_error!(expr, "Calling own method outside of class!")?,
                 };
@@ -183,7 +183,7 @@ impl<'a, 'b, 'c, 'i, 'l> ExpressionsVerifier<'a, 'b, 'c, 'i, 'l> {
                     &ExprWithPos { expr: Expr::This, pos_first: 0, pos_last: 0 },
                     None,
                 )?;
-                let raw_method = self.resolve_method(type_of_scope, method).map_err(with_expr)?;
+                let raw_method = self.resolve_method(type_of_func, method).map_err(with_expr)?;
                 self.calculate_function_call(expr, raw_method, expected, args, Some(this_object))
             }
             Expr::NewClassInstance { typename, args } => {
@@ -304,11 +304,11 @@ impl<'a, 'b, 'c, 'i, 'l> ExpressionsVerifier<'a, 'b, 'c, 'i, 'l> {
                 }
             }
             Expr::OwnFieldAccess { field } => {
-                let scope_type = match &self.scope.method_of {
+                let func_type = match &self.func.method_of {
                     Some(t) => t,
-                    _ => expression_error!(expr, "Accessing own field outside of method scope!")?,
+                    _ => expression_error!(expr, "Accessing own field outside of method func!")?,
                 };
-                if self.scope.is_constructor
+                if self.func.is_constructor
                     && !self.insights.initialized_own_fields.contains(field)
                 {
                     return expression_error!(
@@ -327,7 +327,7 @@ impl<'a, 'b, 'c, 'i, 'l> ExpressionsVerifier<'a, 'b, 'c, 'i, 'l> {
                     None,
                 )?;
 
-                let object_definition = self.aggregate.types.get(scope_type).unwrap();
+                let object_definition = self.aggregate.types.get(func_type).unwrap();
                 let field_type =
                     self.resolve_field(object_definition, field).map_err(&with_expr)?;
 
