@@ -57,11 +57,8 @@ pub enum VStatement {
         name: String,
         value: VExprTyped,
     },
-    DropLocal {
-        name: String,
-    },
-    // TODO: change to generic assign
-    // assign to name, field, tuple or list only allowed
+    
+    // Assign to local variable on stack with compile-time calculated offset
     AssignLocal {
         name: String,
         // [1, 2] means <var>[1][2]
@@ -69,12 +66,14 @@ pub enum VStatement {
         tuple_indexes: Vec<usize>,
         value: VExprTyped,
     },
+    // Assign to heap variable with compile-time calculated offset
     AssignToField {
         object: VExprTyped, // box to avoid hustle of unboxing from LExpr::AccessField
         field: String,
         tuple_indexes: Vec<usize>,
         value: VExprTyped,
     },
+    // Assign to heap variable with runtime-calculated offset
     AssignToList {
         list: VExprTyped,
         index: VExprTyped,
@@ -83,10 +82,6 @@ pub enum VStatement {
     },
 
     Expression(VExprTyped),
-
-    LoopGroup(Vec<VStatement>), // Used do group var declarations of loops
-    DoNothing,                  // used for various reasons, see usages
-                                // TODO: send message
 }
 
 #[derive(Debug)]

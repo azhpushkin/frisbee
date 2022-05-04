@@ -1,0 +1,17 @@
+fun void main() {
+    Int i;
+    while true {
+        i = 11;
+
+        if true {
+            Int b = 22;
+            break;
+        }
+    }
+    println("I is " + i.to_string());
+}
+
+/* EXPECTED STDOUT
+==========
+
+========== */

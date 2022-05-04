@@ -60,7 +60,6 @@ impl VStatement {
             VStatement::DeclareAndAssignVar { var_type, name, value } => {
                 format!("{} {} = {};", var_type, name, value.expr)
             }
-            VStatement::DropLocal { name } => format!("drop {};", name),
             VStatement::AssignLocal { name, tuple_indexes, value } => {
                 format!(
                     "{}{} = {};",
@@ -88,16 +87,6 @@ impl VStatement {
                 )
             }
             VStatement::Expression(e) => format!("{};", e.expr),
-            VStatement::LoopGroup(v) => {
-                format!(
-                    "\n\\\\START LOOP GROUP\n{}\n\n\\\\END LOOP GROUP",
-                    v.iter()
-                        .map(|s| s.display_with_ident(false))
-                        .collect::<Vec<_>>()
-                        .join("\n")
-                )
-            }
-            VStatement::DoNothing => "// DO NOTHING".into(),
         };
         if with_ident {
             res.split("\n")

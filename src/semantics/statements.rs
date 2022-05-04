@@ -62,16 +62,23 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
         insights: &mut Insights,
     ) -> SemanticResult<Vec<VStatement>> {
         let mut res = vec![];
+        
+        let emit_stmt = |stmt_res: VStatement| {
+            res.push(stmt_res);
+        };
+
         let mut new_insights: Option<Insights> = None;
 
         for statement in statements {
             if insights.break_or_continue_found && new_insights.is_none() {
                 new_insights = Some(insights.clone());
             }
-            match new_insights.as_mut() {
-                Some(n) => res.push(self.generate_single(statement, n)?),
-                None => res.push(self.generate_single(statement, insights)?),
-            }
+
+            let stmt_insights = match new_insights {
+                Some(ref mut i) => i,
+                None => insights,
+            };
+            self.generate_single(statement, stmt_insights, &emit_stmt)?;
         }
 
         Ok(res)
@@ -130,6 +137,7 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
         &mut self,
         statement: &StatementWithPos,
         insights: &mut Insights,
+        emit_stmt: &dyn FnMut(VStatement) -> (),
     ) -> SemanticResult<VStatement> {
         let stmt_err = SemanticError::add_statement(statement);
 
@@ -137,15 +145,17 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
         // if insights.return_found {
         //     return statement_error!(statement, "Not reachable (return already occured)");
         // }
-        let verified_statement = match &statement.statement {
-            Statement::Expr(e) => VStatement::Expression(self.check_expr(e, None, insights)?),
-            Statement::VarDecl(var_type, name) => {
-                let var_type = self.annotate_type(var_type, statement)?;
 
+        match &statement.statement {
+            Statement::Expr(e) => {
+                let expr = self.check_expr(e, None, insights)?;
+                emit_stmt(VStatement::Expression(expr));
+            },
+            Statement::VarDecl(var_type, name) => {
+                todo!("Refactor this!");
+                let var_type = self.annotate_type(var_type, statement)?;
                 self.locals.add_variable(name, &var_type).map_err(stmt_err)?;
                 insights.add_uninitialized(name);
-
-                VStatement::DeclareVar { var_type, name: name.clone() }
             }
             Statement::Assign { left, right } => {
                 let mut temp_insights: Insights;
@@ -173,7 +183,7 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
 
                 // TODO: emit error based on left pos
                 let (base_object, tuple_indexes) = split_left_part_of_assignment(left_calculated);
-                match base_object.expr {
+                let assign_stmt = match base_object.expr {
                     VExpr::GetVar(name) => {
                         if tuple_indexes.is_empty() {
                             insights.mark_as_initialized(&name);
@@ -205,31 +215,35 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                             "Assigning to temporary value is not allowed!",
                         )
                     }
-                }
+                };
+                emit_stmt(assign_stmt);
             }
             Statement::VarDeclWithAssign(var_type, name, value) => {
                 let var_type = self.annotate_type(var_type, statement)?;
                 let value = self.check_expr(value, Some(&var_type), insights)?;
-
                 self.locals.add_variable(name, &var_type).map_err(stmt_err)?;
 
-                VStatement::DeclareAndAssignVar { var_type, name: name.clone(), value }
+                emit_stmt(VStatement::AssignLocal {
+                    name: name.clone(),
+                    tuple_indexes: vec![],
+                    value,
+                });
             }
-            Statement::Return(Some(e)) => {
-                if self.func.is_constructor {
+            Statement::Return(option_e) => {
+                if self.func.is_constructor && option_e.is_some() {
                     return statement_error!(statement, "Constructor must return void");
                 }
                 // TODO: check value of return (wtf does that mean?)
                 insights.return_found = true;
-                let value = self.check_expr(e, Some(&self.func.return_type), insights)?;
-                VStatement::Return(value)
-            }
-            Statement::Return(None) => {
-                insights.return_found = true;
-                VStatement::Return(VExprTyped {
-                    expr: VExpr::TupleValue(vec![]),
-                    expr_type: Type::Tuple(vec![]),
-                })
+                let value = match option_e {
+                    Some(e) => self.check_expr(e, Some(&self.func.return_type), insights)?,
+                    None => VExprTyped {
+                        expr: VExpr::TupleValue(vec![]),
+                        expr_type: Type::Tuple(vec![]),
+                    }
+                };
+                
+                emit_stmt(VStatement::Return(value));
             }
             Statement::Break if !insights.is_in_loop => {
                 return statement_error!(statement, "`break` outside loop")
@@ -239,14 +253,15 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
             }
             Statement::Break => {
                 insights.break_or_continue_found = true;
-                VStatement::Break
+                emit_stmt(VStatement::Break);
             }
             Statement::Continue => {
                 insights.break_or_continue_found = true;
-                VStatement::Continue
+                emit_stmt(VStatement::Continue);
             }
             Statement::IfElse { condition, if_body, elif_bodies, else_body } => {
-                self.generate_if_elif_else(condition, if_body, elif_bodies, else_body, insights)?
+                todo!("refactor");
+                self.generate_if_elif_else(condition, if_body, elif_bodies, else_body, insights)?;
             }
             Statement::While { condition, body } => {
                 let condition = self.check_expr(condition, Some(&Type::Bool), insights)?;
@@ -254,15 +269,9 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                 let mut loop_insights = insights.clone();
                 loop_insights.is_in_loop = true;
 
-                let verified_body = self.generate_block(body, &mut loop_insights)?;
+                let body = self.generate_block(body, &mut loop_insights)?;
 
-                let mut loop_group =
-                    move_variables_out_of_while(condition, verified_body, self.locals);
-                match &loop_group[..] {
-                    [] => unreachable!("at least while loop is always there"),
-                    [_] => loop_group.pop().unwrap(),
-                    _ => VStatement::LoopGroup(loop_group),
-                }
+                emit_stmt(VStatement::While {condition, body});
             }
             Statement::Foreach { item_name, iterable, body } => {
                 let iterable_calculated = self.check_expr(iterable, None, insights)?;
@@ -484,42 +493,4 @@ fn allocate_object_for_constructor(func: &RawFunction) -> VStatement {
             expr_type: Type::Custom(class_name.clone()),
         },
     }
-}
-
-fn move_variables_out_of_while(
-    condition: VExprTyped,
-    body: Vec<VStatement>,
-    locals: &mut LocalVariables,
-) -> Vec<VStatement> {
-    let mut declared_variables = vec![];
-    let mut new_body = vec![];
-
-    // Iterate over first-level of statements
-    for statement in body.into_iter() {
-        match statement {
-            VStatement::DeclareVar { var_type, name } => {
-                declared_variables.push((var_type, name));
-            }
-            VStatement::DeclareAndAssignVar { var_type, name, value } => {
-                let assign_stmt =
-                    VStatement::AssignLocal { name: name.clone(), tuple_indexes: vec![], value };
-                new_body.push(assign_stmt);
-                declared_variables.push((var_type, name));
-            }
-            s => new_body.push(s),
-        };
-    }
-
-    let mut loop_group = vec![];
-
-    for (var_type, var_name) in declared_variables.iter().cloned() {
-        loop_group.push(VStatement::DeclareVar { var_type, name: var_name });
-    }
-    loop_group.push(VStatement::While { condition, body: new_body });
-    for (_, var_name) in declared_variables.into_iter().rev() {
-        assert_eq!(locals.drop_last_local(), var_name, "Locals are FILO");
-        loop_group.push(VStatement::DropLocal { name: var_name });
-    }
-
-    loop_group
 }
