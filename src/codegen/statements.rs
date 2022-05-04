@@ -37,21 +37,18 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 self.push_expr(expr);
                 self.push_pop(&expr.expr_type);
             }
-            VStatement::DeclareVar { var_type, name } => {
-                self.add_local(name, var_type);
-                self.push_reserve(var_type);
-            }
+            // VStatement::DeclareVar { var_type, name } => {
+            //     self.add_local(name, var_type);
+            //     self.push_reserve(var_type);
+            // }
             VStatement::AssignLocal { name, tuple_indexes, value } => {
                 self.push_expr(value);
                 self.push_set_local(name, tuple_indexes);
             }
-            VStatement::DeclareAndAssignVar { var_type, name, value } => {
-                self.add_local(name, var_type);
-                self.push_expr(value);
-            }
-            VStatement::DropLocal { name } => {
-                self.drop_local(name);
-            }
+            // VStatement::DeclareAndAssignVar { var_type, name, value } => {
+            //     self.add_local(name, var_type);
+            //     self.push_expr(value);
+            // }
             VStatement::AssignToField { object, field, tuple_indexes, value } => {
                 let object_type = extract_custom_type(&object.expr_type);
                 // Push value before object, as we need to first pop a pointer
@@ -148,13 +145,6 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 let placeholder_to_jump_back = self.push_placeholder();
                 self.fill_placeholder_backward(&placeholder_to_jump_back, loop_start.unwrap());
             }
-            VStatement::LoopGroup(statements) => {
-                for statement in statements.iter() {
-                    let breaks = self.push_statement(statement, loop_start);
-                    outer_break_placeholders.extend(breaks);
-                }
-            }
-            VStatement::DoNothing => (),
         };
         outer_break_placeholders
     }

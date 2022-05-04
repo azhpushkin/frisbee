@@ -1,50 +1,71 @@
 use std::collections::HashMap;
 
-use crate::ast::verified::{TypedFields, VExprTyped, VExpr};
+use crate::ast::verified::TypedFields;
 use crate::types::VerifiedType;
 
 pub struct LocalVariables {
-    pub variables_types: HashMap<String, VerifiedType>,
-    pub locals_order: Vec<String>, // TODO: reference here?
-
-    total_counter: usize,
+    current_variables: HashMap<String, String>,
+    all_locals: HashMap<String, VerifiedType>,
+    locals_order: Vec<(String, usize)>,
     current_level: usize
 }
 
 impl LocalVariables {
     pub fn from_function_arguments(args: &TypedFields) -> Self {
-        let cloned_args = args.iter().map(|(s, t)| (s.clone(), t.clone()));
-        Self { variables_types: cloned_args.collect(), locals_order: vec![], total_counter: 0, current_level: 0 }
+        let mut new_storage = Self {
+            current_variables: HashMap::new(),
+            all_locals: HashMap::new(),
+            locals_order: vec![],
+            current_level: 0,    
+        };
+        for (name, argtype) in args.iter() {
+            new_storage.all_locals.insert(name.clone(), argtype.clone());
+            new_storage.current_variables.insert(name.clone(), name.clone());
+        }
+        new_storage
     }
 
+    pub fn start_new_scope(&mut self) {
+        self.current_level += 1;
+        println!("new scope");
+    }
+
+    pub fn drop_current_scope(&mut self) {
+        self.current_level -= 1;
+        println!("START DROP scope");
+        loop {
+            let last = self.locals_order.last();
+            let is_dropped_scope = last.map(|(_, lvl)| *lvl>self.current_level).unwrap_or(false);
+            if is_dropped_scope {
+                let (name, _) = self.locals_order.pop().unwrap();
+                self.current_variables.remove(&name).unwrap();
+            } else {
+                break;
+            }
+        }
+        println!("END drop scope");
+    }
+    
     pub fn add_variable(&mut self, name: &str, t: &VerifiedType) -> Result<(), String> {
-        if self.variables_types.contains_key(name) {
+        if self.current_variables.contains_key(name) {
             return Err(format!("Variable `{}` was already defined before", name,));
         }
+        
+        let real_name = format!("{}_{}", name, self.all_locals.len());
+        println!("Add variable {} as {}", name, real_name);
 
-        self.variables_types.insert(name.into(), t.clone());
-        self.locals_order.push(name.into());
+        self.current_variables.insert(name.into(), real_name.clone());
+        self.locals_order.push((name.into(), self.current_level));
+        self.all_locals.insert(real_name, t.clone());
 
         Ok(())
     }
 
     pub fn get_variable(&self, name: &str) -> Result<(&VerifiedType, String), String> {
-        self.variables_types
+        self.current_variables
             .get(name)
-            .map(|t| (t, name.into()))
+            .map(|real| (&self.all_locals[real], real.into()))
             .ok_or_else(|| format!("Variable `{}` not defined", name))
 
-    }
-
-    pub fn drop_last_local(&mut self) -> String {
-        let last_local = self.locals_order.pop().expect("Called while no locals");
-        self.variables_types.remove(&last_local);
-        last_local
-    }
-
-    pub fn peek_last_local(&self) -> Option<&String> {
-        return self.locals_order.last();
-    }
-
-    
+    }    
 }

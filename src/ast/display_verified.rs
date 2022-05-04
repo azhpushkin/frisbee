@@ -8,10 +8,11 @@ impl fmt::Display for RawFunction {
             self.args.iter().map(|(name, t)| format!("{} {}", t, name)).collect();
         write!(
             f,
-            "fn {return} {name} ({args}) {{\n{body}\n }}",
+            "fn {return} {name} ({args}) {{\n{locals}\n\n{body}\n }}",
             return = self.return_type,
             name = self.name,
             args = args_repr.join(", "),
+            locals= self.locals.iter().map(|(s, t)| format!("    {} {};", t, s)).collect::<Vec<_>>().join("\n"),
             body = self
                 .body
                 .iter()
@@ -54,12 +55,6 @@ impl VStatement {
             VStatement::Break => "break;".into(),
             VStatement::Continue => "continue;".into(),
             VStatement::Return(e) => format!("return {};", e.expr),
-            VStatement::DeclareVar { var_type, name } => {
-                format!("{} {};", var_type, name)
-            }
-            VStatement::DeclareAndAssignVar { var_type, name, value } => {
-                format!("{} {} = {};", var_type, name, value.expr)
-            }
             VStatement::AssignLocal { name, tuple_indexes, value } => {
                 format!(
                     "{}{} = {};",

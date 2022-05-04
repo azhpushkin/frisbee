@@ -45,12 +45,12 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
         insights: &mut Insights,
     ) -> SemanticResult<Vec<VStatement>> {
         let mut res = vec![];
-        
-        let emit_stmt = |stmt_res: VStatement| {
+        let mut emit_stmt = |stmt_res: VStatement| {
             res.push(stmt_res);
         };
 
         let mut new_insights: Option<Insights> = None;
+        self.locals.start_new_scope();
 
         for statement in statements {
             if insights.break_or_continue_found && new_insights.is_none() {
@@ -61,8 +61,9 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                 Some(ref mut i) => i,
                 None => insights,
             };
-            self.generate_single(statement, stmt_insights, &emit_stmt)?;
+            self.generate_single(statement, stmt_insights, &mut emit_stmt)?;
         }
+        self.locals.drop_current_scope();
 
         Ok(res)
     }
@@ -91,6 +92,7 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
         elif_bodies_input: &[(ExprWithPos, Vec<StatementWithPos>)],
         else_body_input: &[StatementWithPos],
         insights: &mut Insights,
+        emit_stmt: &mut dyn FnMut(VStatement),
     ) -> SemanticResult<VStatement> {
         let condition = self.check_expr(condition, Some(&Type::Bool), insights)?;
 
@@ -108,6 +110,7 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                     other_elifs,
                     else_body_input,
                     insights,
+                    emit_stmt,
                 )?]
             }
         };
@@ -120,7 +123,7 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
         &mut self,
         statement: &StatementWithPos,
         insights: &mut Insights,
-        emit_stmt: &dyn FnMut(VStatement) -> (),
+        emit_stmt: &mut dyn FnMut(VStatement),
     ) -> SemanticResult<()> {
         let stmt_err = SemanticError::add_statement(statement);
 
@@ -135,10 +138,20 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                 emit_stmt(VStatement::Expression(expr));
             },
             Statement::VarDecl(var_type, name) => {
-                todo!("Refactor this!");
                 let var_type = self.annotate_type(var_type, statement)?;
                 self.locals.add_variable(name, &var_type).map_err(stmt_err)?;
                 insights.add_uninitialized(name);
+            }
+            Statement::VarDeclWithAssign(var_type, name, value) => {
+                let var_type = self.annotate_type(var_type, statement)?;
+                let value = self.check_expr(value, Some(&var_type), insights)?;
+                self.locals.add_variable(name, &var_type).map_err(stmt_err)?;
+
+                emit_stmt(VStatement::AssignLocal {
+                    name: name.clone(),
+                    tuple_indexes: vec![],
+                    value,
+                });
             }
             Statement::Assign { left, right } => {
                 let mut temp_insights: Insights;
@@ -201,17 +214,7 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                 };
                 emit_stmt(assign_stmt);
             }
-            Statement::VarDeclWithAssign(var_type, name, value) => {
-                let var_type = self.annotate_type(var_type, statement)?;
-                let value = self.check_expr(value, Some(&var_type), insights)?;
-                self.locals.add_variable(name, &var_type).map_err(stmt_err)?;
-
-                emit_stmt(VStatement::AssignLocal {
-                    name: name.clone(),
-                    tuple_indexes: vec![],
-                    value,
-                });
-            }
+            
             Statement::Return(option_e) => {
                 if self.func.is_constructor && option_e.is_some() {
                     return statement_error!(statement, "Constructor must return void");
@@ -243,8 +246,7 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                 emit_stmt(VStatement::Continue);
             }
             Statement::IfElse { condition, if_body, elif_bodies, else_body } => {
-                todo!("refactor");
-                self.generate_if_elif_else(condition, if_body, elif_bodies, else_body, insights)?;
+                self.generate_if_elif_else(condition, if_body, elif_bodies, else_body, insights, emit_stmt)?;
             }
             Statement::While { condition, body } => {
                 let condition = self.check_expr(condition, Some(&Type::Bool), insights)?;
@@ -277,6 +279,7 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                 let index_name = format!("{}@index_{}", item_name, statement.pos);
                 let iterable_name = format!("{}@iterable_{}", item_name, statement.pos);
 
+                self.locals.start_new_scope();
                 self.locals.add_variable(item_name, &item_type).map_err(&stmt_err)?;
                 self.locals.add_variable(&index_name, &Type::Int).map_err(&stmt_err)?;
                 self.locals
@@ -350,9 +353,7 @@ impl<'a, 'b, 'c, 'l> StatementsVerifier<'a, 'b, 'c, 'l> {
                 calculated_body.insert(0, set_item_statement);
                 emit_stmt(VStatement::While { condition, body: calculated_body });
                 
-                assert_eq!(self.locals.drop_last_local(), iterable_name);
-                assert_eq!(self.locals.drop_last_local(), index_name);
-                assert_eq!(self.locals.drop_last_local(), item_name.clone());
+                self.locals.drop_current_scope();
             }
 
             Statement::SendMessage { .. } => todo!("No SendMessage processing yet!"),
@@ -379,6 +380,7 @@ pub fn verify_statements(
     let mut gen = StatementsVerifier::new(func, aggregate, resolver, &mut locals);
 
     let mut insights = Insights::new();
+
     let mut verified = gen.generate_block(&og_function.statements, &mut insights)?;
 
     if !insights.return_found {
@@ -450,9 +452,9 @@ pub fn return_statement_for_constructor(func: &RawFunction) -> VStatement {
 fn allocate_object_for_constructor(func: &RawFunction) -> VStatement {
     let class_name = func.method_of.as_ref().unwrap();
 
-    VStatement::DeclareAndAssignVar {
-        var_type: Type::Custom(class_name.clone()),
+    VStatement::AssignLocal {
         name: "this".into(),
+        tuple_indexes: vec![],
         value: VExprTyped {
             expr: VExpr::Allocate { typename: class_name.clone() },
             expr_type: Type::Custom(class_name.clone()),
