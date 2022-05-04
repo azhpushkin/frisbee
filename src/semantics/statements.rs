@@ -76,11 +76,13 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
         expr: &ExprWithPos,
         expected: Option<&VerifiedType>,
         insights: &Insights,
+        emit_stmt: &mut dyn FnMut(VStatement),
     ) -> SemanticResult<VExprTyped> {
         let expr_verified = ExpressionsVerifier::new(
             self.func,
             self.aggregate,
             self.locals.clone(),
+            RefCell::new(emit_stmt),
             insights,
             self.resolver.get_typenames_resolver(&self.func.defined_at),
             self.resolver.get_functions_resolver(&self.func.defined_at),
@@ -95,8 +97,9 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
         elif_bodies_input: &[(ExprWithPos, Vec<StatementWithPos>)],
         else_body_input: &[StatementWithPos],
         insights: &mut Insights,
+        emit_stmt: &mut dyn FnMut(VStatement),
     ) -> SemanticResult<VStatement> {
-        let condition = self.check_expr(condition, Some(&Type::Bool), insights)?;
+        let condition = self.check_expr(condition, Some(&Type::Bool), insights, emit_stmt)?;
 
         let mut insights_of_if_branch = insights.clone();
 
@@ -111,6 +114,7 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
                     other_elifs,
                     else_body_input,
                     insights,
+                    emit_stmt,
                 )?]
             }
         };
@@ -134,7 +138,7 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
 
         match &statement.statement {
             Statement::Expr(e) => {
-                let expr = self.check_expr(e, None, insights)?;
+                let expr = self.check_expr(e, None, insights, emit_stmt)?;
                 emit_stmt(VStatement::Expression(expr));
             }
             Statement::VarDecl(var_type, name) => {
@@ -147,7 +151,7 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
             }
             Statement::VarDeclWithAssign(var_type, name, value) => {
                 let var_type = self.annotate_type(var_type, statement)?;
-                let value = self.check_expr(value, Some(&var_type), insights)?;
+                let value = self.check_expr(value, Some(&var_type), insights, emit_stmt)?;
                 let real_name = self
                     .locals
                     .borrow_mut()
@@ -175,9 +179,9 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
                     insights
                 };
 
-                let left_calculated = self.check_expr(left, None, left_part_insights)?;
+                let left_calculated = self.check_expr(left, None, left_part_insights, emit_stmt)?;
                 let right_calculated =
-                    self.check_expr(right, Some(&left_calculated.expr_type), insights)?;
+                    self.check_expr(right, Some(&left_calculated.expr_type), insights, emit_stmt)?;
 
                 if let Expr::Identifier(name) = &left.expr {
                     // NOW we can finally mark it as initialized, just in case
@@ -229,7 +233,9 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
                 // TODO: check value of return (wtf does that mean?)
                 insights.return_found = true;
                 let value = match option_e {
-                    Some(e) => self.check_expr(e, Some(&self.func.return_type), insights)?,
+                    Some(e) => {
+                        self.check_expr(e, Some(&self.func.return_type), insights, emit_stmt)?
+                    }
                     None => VExprTyped {
                         expr: VExpr::TupleValue(vec![]),
                         expr_type: Type::Tuple(vec![]),
@@ -259,11 +265,13 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
                     elif_bodies,
                     else_body,
                     insights,
+                    emit_stmt,
                 )?;
                 emit_stmt(if_else_stmt);
             }
             Statement::While { condition, body } => {
-                let condition = self.check_expr(condition, Some(&Type::Bool), insights)?;
+                let condition =
+                    self.check_expr(condition, Some(&Type::Bool), insights, emit_stmt)?;
 
                 let mut loop_insights = insights.clone();
                 loop_insights.is_in_loop = true;
@@ -273,7 +281,7 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
                 emit_stmt(VStatement::While { condition, body });
             }
             Statement::Foreach { item_name, iterable, body } => {
-                let iterable_calculated = self.check_expr(iterable, None, insights)?;
+                let iterable_calculated = self.check_expr(iterable, None, insights, emit_stmt)?;
                 let iterable_type = iterable_calculated.expr_type.clone();
 
                 let item_type = match &iterable_type {

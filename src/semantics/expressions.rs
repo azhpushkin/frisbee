@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::ast::parsed::*;
-use crate::ast::verified::{CustomType, RawFunction, VExpr, VExprTyped};
+use crate::ast::verified::{CustomType, RawFunction, VExpr, VExprTyped, VStatement};
 use crate::symbols::{SymbolFunc, SymbolType};
 use crate::types::{Type, VerifiedType};
 
@@ -40,25 +40,35 @@ fn if_as_expected(
 
 // In fact, func, aggregate and resolver lifetimes are somewhat different
 // (see resolvers code for more details), but it is fine to generalize them here
-pub struct ExpressionsVerifier<'a, 'i> {
+pub struct ExpressionsVerifier<'a, 'b, 'i> {
     func: &'a RawFunction,
     aggregate: &'a ProgramAggregate,
     locals: Rc<RefCell<LocalVariables>>,
+    emit_stmt: RefCell<&'b dyn FnMut(VStatement)>,
     insights: &'i Insights,
     type_resolver: SymbolResolver<'a, SymbolType>,
     func_resolver: SymbolResolver<'a, SymbolFunc>,
 }
 
-impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
+impl<'a, 'b, 'i> ExpressionsVerifier<'a, 'b, 'i> {
     pub fn new(
         func: &'a RawFunction,
         aggregate: &'a ProgramAggregate,
         locals: Rc<RefCell<LocalVariables>>,
+        emit_stmt: RefCell<&'b dyn FnMut(VStatement)>,
         insights: &'i Insights,
         type_resolver: SymbolResolver<'a, SymbolType>,
         func_resolver: SymbolResolver<'a, SymbolFunc>,
     ) -> Self {
-        ExpressionsVerifier { func, aggregate, locals, insights, func_resolver, type_resolver }
+        ExpressionsVerifier {
+            func,
+            aggregate,
+            locals,
+            emit_stmt,
+            insights,
+            func_resolver,
+            type_resolver,
+        }
     }
 
     fn resolve_func(&self, name: &str) -> Result<&'a RawFunction, String> {
@@ -133,6 +143,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                     self.calculate(left, None)?,
                     self.calculate(right, None)?,
                     &self.locals,
+                    &self.emit_stmt,
                 )
                 .map_err(&with_expr)?;
                 if_as_expected(expected, &binary_res.expr_type, binary_res.expr).map_err(&with_expr)
