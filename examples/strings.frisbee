@@ -1,0 +1,19 @@
+fun void main() {
+    String x = get_input();
+    println("Hello, " + x + '!');
+    println(
+        "True is: "
+        + true.to_string()
+        + " and repr of -2.7 is "
+        + (-2.7).abs().round().to_string()
+    );
+    return;
+}
+
+// INPUT: Stranger
+
+/* EXPECTED STDOUT
+==========
+Hello, Stranger!
+True is: true and repr of -2.7 is 3
+========== */

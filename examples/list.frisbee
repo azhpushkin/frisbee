@@ -6,18 +6,29 @@ fun void main() {
 
     // Check push() method and negative index
     names.push(("Vlad", 23));
-    names[2][0] = get_input();
     println("Last is " + names[-1][0]);
 
+    names[2][0] = get_input();
+    println("Last changed name to " + names[-1][0]);
+
+    println("");
     // Check pop() and len() methods
     Int popped_age = names.pop()[1];
-    println("There are currently " + names.len().to_string() + " names in list");
+    println("There are currently " + names.len().to_string() + " names in the list");
     println("Btw, Just popped " + popped_age.to_string() + "-aged person!");
     return;
 }
 
+// INPUT: Robert
+
 /* EXPECTED STDOUT
 ==========
+First is Anton
+Age of Alina is 22
+Last is Vlad
+Last changed name to Robert
 
+There are currently 2 names in the list
+Btw, Just popped 23-aged person!
 ========== */
 

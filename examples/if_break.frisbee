@@ -1,17 +1,19 @@
 fun void main() {
-    Int i;
+    Int i = 0;
     while true {
         i = 11;
 
         if true {
             Int b = 22;
             break;
+            i = 33;
         }
+        i = 44;
     }
     println("I is " + i.to_string());
 }
 
 /* EXPECTED STDOUT
 ==========
-
+I is 11
 ========== */
