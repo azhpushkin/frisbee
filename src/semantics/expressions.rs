@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::ast::parsed::*;
-use crate::ast::verified::{CustomType, RawFunction, VExpr, VExprTyped};
+use crate::ast::verified::{CustomType, RawFunction, RawOperator, VExpr, VExprTyped};
 use crate::symbols::{SymbolFunc, SymbolType};
 use crate::types::{Type, VerifiedType};
 
@@ -10,7 +10,7 @@ use super::aggregate::ProgramAggregate;
 use super::errors::{expression_error, SemanticError, SemanticResult};
 use super::insights::Insights;
 use super::locals::LocalVariables;
-use super::operators::{calculate_binaryop, calculate_unaryop};
+use super::operators::{calculate_binaryop, calculate_unaryop, wrap_binary};
 use super::resolvers::SymbolResolver;
 use super::std_definitions::{get_std_function_raw, get_std_method, is_std_function};
 
@@ -47,6 +47,7 @@ pub struct ExpressionsVerifier<'a, 'i> {
     insights: &'i Insights,
     type_resolver: SymbolResolver<'a, SymbolType>,
     func_resolver: SymbolResolver<'a, SymbolFunc>,
+    pub required_temps: RefCell<Vec<(String, VExprTyped)>>,
 }
 
 impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
@@ -58,7 +59,15 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
         type_resolver: SymbolResolver<'a, SymbolType>,
         func_resolver: SymbolResolver<'a, SymbolFunc>,
     ) -> Self {
-        ExpressionsVerifier { func, aggregate, locals, insights, func_resolver, type_resolver }
+        ExpressionsVerifier {
+            func,
+            aggregate,
+            locals,
+            insights,
+            func_resolver,
+            type_resolver,
+            required_temps: RefCell::new(vec![]),
+        }
     }
 
     fn resolve_func(&self, name: &str) -> Result<&'a RawFunction, String> {
@@ -82,6 +91,12 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
             .find(|(name, _)| *name == f)
             .map(|(_, t)| t)
             .ok_or_else(|| format!("No field {} in type {}", f, t.name))
+    }
+
+    fn request_temp(&self, expr_to_store: VExprTyped, seed: usize) -> String {
+        let name = format!("$temp_{}", seed);
+        self.required_temps.borrow_mut().push((name.clone(), expr_to_store));
+        name
     }
 
     pub fn calculate(
@@ -141,7 +156,6 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                     op,
                     self.calculate(left, None)?,
                     self.calculate(right, None)?,
-                    &self.locals,
                 )
                 .map_err(&with_expr)?;
                 if_as_expected(expected, &binary_res.expr_type, binary_res.expr).map_err(&with_expr)
@@ -482,22 +496,22 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
 
     fn calculate_equality(
         &self,
-        left: &ExprWithPos,
-        right: &ExprWithPos,
+        left_og: &ExprWithPos,
+        right_og: &ExprWithPos,
     ) -> SemanticResult<VExprTyped> {
-        if left.expr == Expr::Nil {
-            if right.expr == Expr::Nil {
+        if left_og.expr == Expr::Nil {
+            if right_og.expr == Expr::Nil {
                 return Ok(VExprTyped { expr: VExpr::Bool(true), expr_type: Type::Bool });
             } else {
-                return self.calculate_equality(right, left);
+                return self.calculate_equality(right_og, left_og);
             }
         }
         // Now, either there is no `nil`, or only `right` is nil
-        if right.expr == Expr::Nil {
-            let left_calculated = self.calculate(left, None)?;
+        if right_og.expr == Expr::Nil {
+            let left_calculated = self.calculate(left_og, None)?;
             if !matches!(&left_calculated.expr_type, &Type::Maybe(_)) {
                 return expression_error!(
-                    right,
+                    right_og,
                     "Cannot compare `nil` with type {} (must be maybe type)",
                     left_calculated.expr_type
                 );
@@ -513,6 +527,115 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
             return Ok(calculate_unaryop(&UnaryOp::Not, access_flag).unwrap());
         }
 
-        todo!("Compare with not-nil");
+        // No need for any expected, as the only type that is generic is nil, and
+        // we have already covered in above
+        let left = self.calculate(left_og, None)?;
+        let right = self.calculate(right_og, None)?;
+        let is_eq_error_msg = format!(
+            "Types `{}` and `{}` cannot be checked for equality",
+            &left.expr_type, &right.expr_type,
+        );
+
+        // Helper closures to operate with temps
+        // We are forced to store nulls to temp because single operator (Int? == Int)
+        // is in fact unwrapped into two operators: (Int?[0] and Int?[1] == Int)
+        // (check flag, then check value)
+
+        let get_temp = |n: &str, t: &VerifiedType| VExprTyped {
+            expr: VExpr::GetVar(n.into()),
+            expr_type: Type::Maybe(Box::new(t.clone())),
+        };
+        let get_flag = |n, t: &VerifiedType| VExprTyped {
+            expr: VExpr::AccessTupleItem { tuple: Box::new(get_temp(n, t)), index: 0 },
+            expr_type: Type::Bool,
+        };
+        let get_value = |n, t: &VerifiedType| VExprTyped {
+            expr: VExpr::AccessTupleItem { tuple: Box::new(get_temp(n, t)), index: 1 },
+            expr_type: t.clone(),
+        };
+        let get_eq_op = |t: &VerifiedType, err_msg| match t {
+            Type::Int => Ok(RawOperator::EqualInts),
+            Type::Float => Ok(RawOperator::EqualFloats),
+            Type::Bool => Ok(RawOperator::EqualBools),
+            Type::String => Ok(RawOperator::EqualStrings),
+            _ => return Err(err_msg),
+        };
+
+        match (left.expr_type.clone(), right.expr_type.clone()) {
+            (Type::Maybe(left_inner), Type::Maybe(right_inner)) => {
+                if left_inner != right_inner {
+                    return expression_error!(left_og, "{}", is_eq_error_msg);
+                }
+                let op = get_eq_op(&left_inner, is_eq_error_msg)
+                    .map_err(SemanticError::add_expr(left_og))?;
+
+                let left_temp = self.request_temp(left, left_og.pos_first);
+                let right_temp = self.request_temp(right, right_og.pos_first);
+
+                let are_both_false = wrap_binary(
+                    RawOperator::AndBools,
+                    vec![
+                        calculate_unaryop(&UnaryOp::Not, get_flag(&left_temp, &left_inner))
+                            .unwrap(),
+                        calculate_unaryop(&UnaryOp::Not, get_flag(&right_temp, &right_inner))
+                            .unwrap(),
+                    ],
+                    Type::Bool,
+                );
+                let are_both_true = wrap_binary(
+                    RawOperator::AndBools,
+                    vec![get_flag(&left_temp, &left_inner), get_flag(&right_temp, &right_inner)],
+                    Type::Bool,
+                );
+                let are_values_equal = wrap_binary(
+                    op,
+                    vec![get_value(&left_temp, &left_inner), get_value(&right_temp, &right_inner)],
+                    left_inner.as_ref().clone(),
+                );
+
+                let if_both_true = wrap_binary(
+                    RawOperator::AndBools,
+                    vec![are_both_true, are_values_equal],
+                    Type::Bool,
+                );
+                Ok(wrap_binary(
+                    RawOperator::OrBools,
+                    vec![are_both_false, if_both_true],
+                    Type::Bool,
+                ))
+            }
+            (Type::Maybe(left_inner), rt) => {
+                if left_inner.as_ref() != &rt {
+                    return expression_error!(left_og, "{}", is_eq_error_msg);
+                }
+                let op = get_eq_op(&left_inner, is_eq_error_msg)
+                    .map_err(SemanticError::add_expr(left_og))?;
+
+                let left_temp = self.request_temp(left, left_og.pos_first);
+
+                let are_values_equal =
+                    wrap_binary(op, vec![get_value(&left_temp, &left_inner), right], rt);
+                let if_both_true = wrap_binary(
+                    RawOperator::AndBools,
+                    vec![get_flag(&left_temp, &left_inner), are_values_equal],
+                    Type::Bool,
+                );
+                Ok(if_both_true)
+            }
+            (_, Type::Maybe(_)) => self.calculate_equality(right_og, left_og),
+            (t1, t2) if t1 != t2 => {
+                return expression_error!(
+                    left_og,
+                    "Types `{}` and `{}` cannot be checked for equality",
+                    t1,
+                    t2
+                );
+            }
+            (_, _) => {
+                let op = get_eq_op(&left.expr_type, is_eq_error_msg)
+                    .map_err(SemanticError::add_expr(left_og))?;
+                Ok(wrap_binary(op, vec![left, right], Type::Bool))
+            }
+        }
     }
 }

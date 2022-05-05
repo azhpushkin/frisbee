@@ -75,7 +75,7 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
     }
 
     fn check_expr(
-        &self,
+        &mut self,
         expr: &ExprWithPos,
         expected: Option<&VerifiedType>,
         insights: &Insights,
@@ -88,7 +88,18 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
             self.resolver.get_typenames_resolver(&self.func.defined_at),
             self.resolver.get_functions_resolver(&self.func.defined_at),
         );
-        expr_verified.calculate(expr, expected)
+        let expr = expr_verified.calculate(expr, expected)?;
+        for (temp_name, temp_value) in expr_verified.required_temps.into_inner() {
+            self.locals
+                .borrow_mut()
+                .add_variable_exact(&temp_name, &temp_value.expr_type);
+            self.emit_stmt(VStatement::AssignLocal {
+                name: temp_name,
+                tuple_indexes: vec![],
+                value: temp_value,
+            });
+        }
+        Ok(expr)
     }
 
     fn generate_if_elif_else(
@@ -406,7 +417,7 @@ pub fn verify_raw_function(
         // Allocate statement itself is added later on
         locals
             .borrow_mut()
-            .add_variable("this", &func.return_type)
+            .add_variable_exact("this", &func.return_type)
             .expect("This defined multiple times!");
     }
 

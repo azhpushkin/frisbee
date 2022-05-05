@@ -1,10 +1,8 @@
 use std::cell::RefCell;
 
 use crate::ast::parsed::{BinaryOp, UnaryOp};
-use crate::ast::verified::{RawOperator, VExpr, VExprTyped, VStatement};
+use crate::ast::verified::{RawOperator, VExpr, VExprTyped};
 use crate::types::{Type, VerifiedType};
-
-use super::locals::LocalVariables;
 
 pub fn calculate_unaryop(operator: &UnaryOp, operand: VExprTyped) -> Result<VExprTyped, String> {
     let exact_operator: RawOperator = match (operator, &operand.expr_type) {
@@ -21,7 +19,7 @@ pub fn calculate_unaryop(operator: &UnaryOp, operand: VExprTyped) -> Result<VExp
         VExpr::ApplyOp { operator, mut operands } if operator == exact_operator => {
             return Ok(operands.pop().unwrap());
         }
-        _ => ()
+        _ => (),
     }
     Ok(VExprTyped {
         expr: VExpr::ApplyOp { operator: exact_operator, operands: vec![operand] },
@@ -29,7 +27,11 @@ pub fn calculate_unaryop(operator: &UnaryOp, operand: VExprTyped) -> Result<VExp
     })
 }
 
-fn wrap_binary(op: RawOperator, operands: Vec<VExprTyped>, res_type: VerifiedType) -> VExprTyped {
+pub fn wrap_binary(
+    op: RawOperator,
+    operands: Vec<VExprTyped>,
+    res_type: VerifiedType,
+) -> VExprTyped {
     VExprTyped { expr: VExpr::ApplyOp { operator: op, operands }, expr_type: res_type }
 }
 
@@ -37,7 +39,6 @@ pub fn calculate_binaryop(
     operator: &BinaryOp,
     left: VExprTyped,
     right: VExprTyped,
-    locals: &RefCell<LocalVariables>,
 ) -> Result<VExprTyped, String> {
     let binaryop_error = format!(
         "Cant apply {:?} to {} and {}",
@@ -108,7 +109,9 @@ pub fn calculate_binaryop(
             (RawOperator::OrBools, Type::Bool)
         }
         BinaryOp::Or => return Err(binaryop_error),
-        BinaryOp::IsEqual | BinaryOp::IsNotEqual => unreachable!("Should be handled in ExpressionsVerifier"),
+        BinaryOp::IsEqual | BinaryOp::IsNotEqual => {
+            unreachable!("Should be handled in ExpressionsVerifier")
+        }
         BinaryOp::Elvis => {
             todo!("Elvis not done yet!");
             //     let inner_type = match &left.expr_type {
