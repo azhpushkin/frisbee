@@ -1,5 +1,3 @@
-use std::cell::RefCell;
-
 use crate::ast::parsed::{BinaryOp, UnaryOp};
 use crate::ast::verified::{RawOperator, VExpr, VExprTyped};
 use crate::types::{Type, VerifiedType};
@@ -137,55 +135,4 @@ pub fn calculate_binaryop(
     };
 
     Ok(wrap_binary(exact_operator, vec![left, right], result_type))
-}
-
-fn calculate_is_equal(left: VExprTyped, right: VExprTyped) -> Result<VExprTyped, String> {
-    let is_eq_error_msg = format!(
-        "Types `{}` and `{}` cannot be checked for equality",
-        &left.expr_type, &right.expr_type,
-    );
-
-    let get_eq_op = |t: &VerifiedType, err_msg| match t {
-        Type::Int => Ok(RawOperator::EqualInts),
-        Type::Float => Ok(RawOperator::EqualFloats),
-        Type::Bool => Ok(RawOperator::EqualBools),
-        Type::String => Ok(RawOperator::EqualStrings),
-        _ => return Err(err_msg),
-    };
-
-    match (left.expr_type.clone(), right.expr_type.clone()) {
-        (Type::Maybe(left_inner), Type::Maybe(right_inner)) => {
-            if left_inner != right_inner {
-                return Err(is_eq_error_msg);
-            }
-            Ok(VExprTyped {
-                expr: VExpr::CompareMaybe {
-                    left: Box::new(left),
-                    right: Box::new(right),
-                    eq_op: get_eq_op(&left_inner, is_eq_error_msg)?,
-                },
-                expr_type: Type::Bool,
-            })
-        }
-        (Type::Maybe(left_inner), rt) => {
-            if left_inner.as_ref() != &rt {
-                return Err(is_eq_error_msg);
-            }
-            let new_right = VExprTyped {
-                expr: VExpr::TupleValue(vec![
-                    VExprTyped { expr: VExpr::Bool(true), expr_type: Type::Bool },
-                    right,
-                ]),
-                expr_type: left.expr_type.clone(),
-            };
-            calculate_is_equal(left, new_right)
-        }
-        (_, Type::Maybe(_)) => calculate_is_equal(right, left),
-        (t1, t2) if t1 != t2 => Err(is_eq_error_msg),
-        (_, _) => Ok(wrap_binary(
-            get_eq_op(&left.expr_type, is_eq_error_msg)?,
-            vec![left, right],
-            Type::Bool,
-        )),
-    }
 }

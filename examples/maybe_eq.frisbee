@@ -2,10 +2,13 @@ fun void main() {
     Int? i = 1;
     
     println("# (nil == nil) -> " + (nil == nil).to_string());
+    println("");
 
     println("# After settings i to 1");
+    
     println(" (i == nil) -> " + (i == nil).to_string());
     println(" (nil != i) -> " + (nil != i).to_string());
+
     println(" (1 == i) -> " + (1 == i).to_string());
     println(" (2 == i) -> " + (2 == i).to_string());
     println(" (3 != i) -> " + (3 != i).to_string());
@@ -13,6 +16,7 @@ fun void main() {
     
 
     i = nil;
+    println("");
     println("# After settings i to nil");
     println(" (i == nil) -> " + (i == nil).to_string());
     println(" (nil != i) -> " + (nil != i).to_string());
@@ -21,17 +25,36 @@ fun void main() {
     println(" (3 != i) -> " + (3 != i).to_string());
 
     Int? b = nil;
+    println("");
     println("b=nil;  (i == b) -> " + (i == b).to_string());
     b = -123;
     println("b=-123;  (i == b) -> " + (i == b).to_string());
     i = -123;
     println("i=-123;  (i == b) -> " + (i == b).to_string());
-    //println("i=123;  (i == b.abs()) -> " + (i == b.abs()).to_string());
 }
 
 
 
 /* EXPECTED STDOUT
 ==========
+# (nil == nil) -> true
+
+# After settings i to 1
+ (i == nil) -> false
+ (nil != i) -> true
+ (1 == i) -> true
+ (2 == i) -> false
+ (3 != i) -> true
+
+# After settings i to nil
+ (i == nil) -> true
+ (nil != i) -> false
+ (1 == i) -> false
+ (2 == i) -> false
+ (3 != i) -> true
+
+b=nil;  (i == b) -> true
+b=-123;  (i == b) -> false
+i=-123;  (i == b) -> true
 
 ========== */

@@ -74,12 +74,6 @@ impl LocalVariables {
         Ok(real_name)
     }
 
-    pub fn request_temp_local(&mut self, t: &VerifiedType) -> String {
-        let real_name = format!("@temp_{}", self.all_locals.len());
-        self.add_variable(&real_name, t).unwrap();
-        real_name
-    }
-
     pub fn get_variable(&self, name: &str) -> Result<(VerifiedType, String), String> {
         self.current_variables
             .get(name)

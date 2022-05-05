@@ -67,21 +67,6 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
         self.locals_order.push(varname);
     }
 
-    pub fn drop_local(&mut self, name: &'a String) {
-        if name != *self.locals_order.last().unwrap() {
-            panic!(
-                "You can only drop last local! (dropped {} while order is {:?}",
-                name, self.locals_order
-            );
-        }
-        self.locals_order.pop();
-        self.locals.remove(name).unwrap();
-        let q = self.locals_types.remove(name).unwrap();
-        self.locals_offset -= get_type_size(q);
-
-        self.push_pop(q); // remove local from stack
-    }
-
     pub fn push_get_local(&mut self, varname: &String) {
         let var_pos = *self.locals.get(varname).unwrap();
         self.push(op::GET_LOCAL);

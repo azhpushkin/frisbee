@@ -88,18 +88,19 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
             self.resolver.get_typenames_resolver(&self.func.defined_at),
             self.resolver.get_functions_resolver(&self.func.defined_at),
         );
-        let expr = expr_verified.calculate(expr, expected)?;
+        let calculated_expr = expr_verified.calculate(expr, expected)?;
         for (temp_name, temp_value) in expr_verified.required_temps.into_inner() {
             self.locals
                 .borrow_mut()
-                .add_variable_exact(&temp_name, &temp_value.expr_type);
+                .add_variable_exact(&temp_name, &temp_value.expr_type)
+                .map_err(SemanticError::add_expr(expr))?;
             self.emit_stmt(VStatement::AssignLocal {
                 name: temp_name,
                 tuple_indexes: vec![],
                 value: temp_value,
             });
         }
-        Ok(expr)
+        Ok(calculated_expr)
     }
 
     fn generate_if_elif_else(
