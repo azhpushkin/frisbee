@@ -14,6 +14,16 @@ use super::operators::{calculate_binaryop, calculate_unaryop, wrap_binary};
 use super::resolvers::SymbolResolver;
 use super::std_definitions::{get_std_function_raw, get_std_method, is_std_function};
 
+
+macro_rules! unwrapped_maybe_err {
+    ($expr:expr) => {
+        (match $expr {
+            Some(Type::Maybe(i)) => Some(i.as_ref()),
+            t => t
+        })
+    };
+}
+
 fn if_as_expected(
     expected: Option<&VerifiedType>,
     calculated: &VerifiedType,
@@ -151,6 +161,11 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 }
                 if_as_expected(expected, &res.expr_type, res.expr).map_err(&with_expr)
             }
+            Expr::BinOp { left, right, op } if op == &BinaryOp::Elvis => {
+                let left = self.calculate(left, None)?;
+                let right = self.calculate(right, None)?;
+                self.calculate_elvis(left, right, expr.pos_first).map_err(&with_expr)
+            }
             Expr::BinOp { left, right, op } => {
                 let binary_res = calculate_binaryop(
                     op,
@@ -228,7 +243,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
             Expr::TupleValue(items) => {
                 let item_types: Vec<VerifiedType>;
                 let calculated: Vec<VExprTyped>;
-                match expected {
+                match unwrapped_maybe_err!(expected) {
                     None => {
                         let calculated_result: SemanticResult<Vec<_>> =
                             items.iter().map(|item| self.calculate(item, None)).collect();
@@ -637,5 +652,51 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 Ok(wrap_binary(op, vec![left, right], Type::Bool))
             }
         }
+    }
+
+    fn calculate_elvis(
+        &self,
+        left: VExprTyped,
+        right: VExprTyped,
+        seed: usize,
+    ) -> Result<VExprTyped, String> {
+        match (&left.expr_type, &right.expr_type) {
+            (Type::Maybe(l), r) => {
+                if l.as_ref() != r {
+                    return Err(format!(
+                        "Expected `{}` as right part of elvis, but got `{}`",
+                        l, r
+                    ));
+                }
+            }
+            (l, _) => {
+                return Err(format!(
+                    "Maybe type must be left part of elvis, but got `{}`",
+                    l
+                ));
+            }
+        }
+        let inner_type = right.expr_type.clone();
+        let left_temp = self.request_temp(left, seed);
+
+        let get_index_of_temp = |i| VExpr::AccessTupleItem {
+            tuple: Box::new(VExprTyped {
+                expr: VExpr::GetVar(left_temp.clone()),
+                expr_type: Type::Maybe(Box::new(inner_type.clone())),
+            }),
+            index: i,
+        };
+
+        return Ok(VExprTyped {
+            expr: VExpr::TernaryOp {
+                condition: Box::new(VExprTyped {
+                    expr: get_index_of_temp(0),
+                    expr_type: Type::Bool,
+                }),
+                if_true: Box::new(VExprTyped { expr: get_index_of_temp(1), expr_type: inner_type.clone() }),
+                if_false: Box::new(right),
+            },
+            expr_type: inner_type.clone(),
+        });
     }
 }
