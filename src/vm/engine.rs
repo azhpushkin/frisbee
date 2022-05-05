@@ -236,10 +236,10 @@ impl Vm {
                 op::EQ_FLOAT => self.exec_binaryop(|a, b| ((a as f64) == (b as f64)) as u64),
 
                 // TODO: test bool operators
-                op::NEGATE_BOOL => self.exec_unaryop(|x| !x),
+                op::NEGATE_BOOL => self.exec_unaryop(|x| x ^ 1),
                 op::AND_BOOL => self.exec_binaryop(|a, b| a & b),
                 op::OR_BOOL => self.exec_binaryop(|a, b| a | b),
-                op::EQ_BOOL => self.exec_binaryop(|a, b| !(a ^ b)),
+                op::EQ_BOOL => self.exec_binaryop(|a, b| (a ^ b) ^ 1),
 
                 op::ADD_STRINGS => {
                     let (b, a) = (self.pop(), self.pop());
