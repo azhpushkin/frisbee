@@ -59,7 +59,7 @@ impl LocalVariables {
         self.all_locals.insert(name.into(), t.clone());
         Ok(())
     }
-    
+
     pub fn add_variable(&mut self, name: &str, t: &VerifiedType) -> Result<String, String> {
         if self.current_variables.contains_key(name) {
             return Err(format!("Variable `{}` was already defined before", name,));

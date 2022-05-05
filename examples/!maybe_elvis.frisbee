@@ -1,8 +1,12 @@
 fun void main() {
-    Int? i = 1;
+    (Int, Int)? i = (5, 6);
 
-    Int q = i ?: 777;
-    println("When i=1 : " + q.to_string());
+    (Int, Int) q = i ?: (55, 66);
+    println("When i is value, q is " + q[0].to_string() + " | " + q[1].to_string());
+
+    i = nil;
+    q = i ?: (55, 66);
+    println("When i is nil, q is " + q[0].to_string() + " | " + q[1].to_string());
 
     // Check assigns to maybe
     // check assigns from maybe to maybe?

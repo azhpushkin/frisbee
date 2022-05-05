@@ -36,17 +36,29 @@ pub fn get_tuple_offset<T>(tuple_type: &Type<T>, tuple_indexes: &[usize]) -> u8 
     if tuple_indexes.is_empty() {
         return 0;
     }
+    let current_index = tuple_indexes[0];
 
     match tuple_type {
         Type::Tuple(items) => {
             let mut offset: u8 = 0;
-            let current_index = tuple_indexes[0];
             for i in 0..current_index {
                 offset += get_type_size(&items[i]);
             }
-            offset += get_tuple_offset(&items[current_index], &tuple_indexes[1..]) as u8;
+            offset += get_tuple_offset(&items[current_index], &tuple_indexes[1..]);
             offset
         }
+        Type::Maybe(_) if current_index == 0 => {
+            assert!(
+                tuple_indexes.len() == 1,
+                "Accessing inners of maybe flag, wtf?"
+            );
+            0
+        }
+        Type::Maybe(i) if current_index == 1 => {
+            let next = get_tuple_offset(i.as_ref(), &tuple_indexes[1..]);
+            next + 1
+        }
+        Type::Maybe(_) => panic!("Maybe indexes must be 0 or 1, but got {}", current_index),
         _ => 0,
     }
 }
@@ -98,5 +110,20 @@ mod test {
         assert_eq!(get_tuple_offset(&test_type, &[2, 1]), 4); // skip int, float, SomeType and String
     }
 
-    // TODO: add type::maybe to this test
+    #[test]
+    fn check_tuple_offset_for_maybe() {
+        // (Int?, (Float, SomeType))?
+
+        let test_type = Type::Maybe(Box::new(Type::Tuple(vec![
+            Type::Maybe(Box::new(Type::Int)),
+            Type::Tuple(vec![Type::Float, Type::Custom("SomeType")]),
+        ])));
+
+        assert_eq!(get_tuple_offset(&test_type, &[]), 0);
+        assert_eq!(get_tuple_offset(&test_type, &[0]), 0);
+        assert_eq!(get_tuple_offset(&test_type, &[1]), 1); // skip initial header
+        assert_eq!(get_tuple_offset(&test_type, &[1, 0, 1]), 2); // skip initial header + Int? header
+        assert_eq!(get_tuple_offset(&test_type, &[1, 1]), 3); // skip both headers + Int? value
+        assert_eq!(get_tuple_offset(&test_type, &[1, 1, 1]), 4); // skip both headers + Int? value + Float
+    }
 }

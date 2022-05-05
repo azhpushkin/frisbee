@@ -14,12 +14,11 @@ use super::operators::{calculate_binaryop, calculate_unaryop, wrap_binary};
 use super::resolvers::SymbolResolver;
 use super::std_definitions::{get_std_function_raw, get_std_method, is_std_function};
 
-
 macro_rules! unwrapped_maybe_err {
     ($expr:expr) => {
         (match $expr {
             Some(Type::Maybe(i)) => Some(i.as_ref()),
-            t => t
+            t => t,
         })
     };
 }
@@ -263,20 +262,24 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                         return expression_error!(expr, "Unexpected tuple value (expected {})", t)
                     }
                 }
-                Ok(VExprTyped {
-                    expr: VExpr::TupleValue(calculated),
-                    expr_type: Type::Tuple(item_types),
-                })
+                if_as_expected(
+                    expected,
+                    &Type::Tuple(item_types),
+                    VExpr::TupleValue(calculated),
+                )
+                .map_err(&with_expr)
             }
-            Expr::ListValue(items) if items.is_empty() => match expected {
+            Expr::ListValue(items) if items.is_empty() => match unwrapped_maybe_err!(expected) {
                 // Case when list is empty, so expected will be always OK if it is list
                 Some(Type::List(item_type)) => {
                     let item_type = item_type.as_ref().clone();
 
-                    Ok(VExprTyped {
-                        expr: VExpr::ListValue { item_type, items: vec![] },
-                        expr_type: expected.unwrap().clone(),
-                    })
+                    if_as_expected(
+                        expected,
+                        &Type::List(Box::new(item_type.clone())),
+                        VExpr::ListValue { item_type, items: vec![] },
+                    )
+                    .map_err(&with_expr)
                 }
                 Some(t) => {
                     return expression_error!(expr, "Unexpected list value (expected {})", t)
@@ -285,7 +288,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
             },
             Expr::ListValue(items) => {
                 // Due to previous check, we know that in this branch items are not empty
-                let expected_item_type = match expected {
+                let expected_item_type = match unwrapped_maybe_err!(expected) {
                     None => None,
                     Some(Type::List(item_type)) => Some(item_type.as_ref()),
                     Some(t) => {
@@ -314,13 +317,12 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 let item_type =
                     expected_item_type.unwrap_or(&calculated_items[0].expr_type).clone();
 
-                Ok(VExprTyped {
-                    expr: VExpr::ListValue {
-                        item_type: item_type.clone(),
-                        items: calculated_items,
-                    },
-                    expr_type: Type::List(Box::new(item_type)),
-                })
+                if_as_expected(
+                    expected,
+                    &Type::List(Box::new(item_type.clone())),
+                    VExpr::ListValue { item_type: item_type.clone(), items: calculated_items },
+                )
+                .map_err(&with_expr)
             }
             Expr::ListAccess { list, index } => {
                 self.calculate_access_by_index(expr, list, index, expected)
@@ -693,7 +695,10 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                     expr: get_index_of_temp(0),
                     expr_type: Type::Bool,
                 }),
-                if_true: Box::new(VExprTyped { expr: get_index_of_temp(1), expr_type: inner_type.clone() }),
+                if_true: Box::new(VExprTyped {
+                    expr: get_index_of_temp(1),
+                    expr_type: inner_type.clone(),
+                }),
                 if_false: Box::new(right),
             },
             expr_type: inner_type.clone(),
