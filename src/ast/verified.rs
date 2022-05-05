@@ -140,7 +140,12 @@ pub enum VExpr {
     ApplyOp {
         operator: RawOperator,
         operands: Vec<VExprTyped>,
-    },    
+    },
+    TernaryOp {
+        condition: Box<VExprTyped>,
+        if_true: Box<VExprTyped>,
+        if_false: Box<VExprTyped>,
+    },
     CallFunction {
         name: SymbolFunc,
         return_type: VerifiedType,
