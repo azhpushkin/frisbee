@@ -1,0 +1,16 @@
+fun void main() {
+    Int? i = 1;
+
+    Int q = i ?: 777;
+    println("When i=1 : " + q.to_string());
+
+    // Check assigns to maybe
+    // check assigns from maybe to maybe?
+}
+
+
+
+/* EXPECTED STDOUT
+==========
+
+========== */

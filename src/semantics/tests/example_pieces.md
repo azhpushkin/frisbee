@@ -18,6 +18,8 @@
 * check that double-negate is reduced away from ast and works fine
 * check operator precedence and grouping way
 * check different variations of name collisions with (for i in ..)
+* check that `nil?:123` and `nil?.method()` expressions are checked and
+    shown as errors (no sence + cant derive types for them)
 * check how defining inside of if-else branches works 
 * check AND and OR - if part is executed if it is not yet ready
     // e.g. true and obj.call()  -- call should not be executed..

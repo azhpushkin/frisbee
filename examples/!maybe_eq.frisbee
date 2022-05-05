@@ -1,6 +1,6 @@
 fun void main() {
     Int? i = 1;
-
+    
     println("# (nil == nil) -> " + (nil == nil).to_string());
 
     println("# After settings i to 1");
@@ -27,13 +27,6 @@ fun void main() {
     i = -123;
     println("i=-123;  (i == b) -> " + (i == b).to_string());
     //println("i=123;  (i == b.abs()) -> " + (i == b.abs()).to_string());
-
-    
-    //Int q = i ?: 777;
-    // println(i.to_string());
-
-    // Check assigns to maybe
-    // check assigns from maybe to maybe?
 }
 
 
