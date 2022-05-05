@@ -1,8 +1,20 @@
 fun void main() {
     Int? i = 1;
-    println((i == nil).to_string());
-    println((nil == i).to_string());
-    println((nil == nil).to_string());
+
+    println("# (nil == nil) -> " + (nil == nil).to_string());
+
+    println("# After settings i to 1");
+    println(" (i == nil) -> " + (i == nil).to_string());
+    println(" (nil != i) -> " + (nil != i).to_string());
+
+    i = nil;
+    println("# After settings i to nil");
+    println(" (i == nil) -> " + (i == nil).to_string());
+    println(" (nil != i) -> " + (nil != i).to_string());
+    
+
+
+
     //Bool is_null = i == 1;
     //println(is_null.to_string());
     //Int q = i ?: 777;

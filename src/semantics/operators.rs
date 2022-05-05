@@ -16,6 +16,13 @@ pub fn calculate_unaryop(operator: &UnaryOp, operand: VExprTyped) -> Result<VExp
         (UnaryOp::Not, t) => return Err(format!("Can't apply NOT to {} type", t)),
     };
     let expr_type = operand.expr_type.clone();
+
+    match operand.expr {
+        VExpr::ApplyOp { operator, mut operands } if operator == exact_operator => {
+            return Ok(operands.pop().unwrap());
+        }
+        _ => ()
+    }
     Ok(VExprTyped {
         expr: VExpr::ApplyOp { operator: exact_operator, operands: vec![operand] },
         expr_type,

@@ -74,7 +74,7 @@ pub enum VStatement {
     Expression(VExprTyped),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum RawOperator {
     UnaryNegateInt,
     AddInts,
