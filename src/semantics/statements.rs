@@ -18,6 +18,8 @@ struct StatementsVerifier<'a, 'c> {
     pub aggregate: &'a ProgramAggregate,
     pub resolver: &'c NameResolver,
     pub locals: Rc<RefCell<LocalVariables>>,
+
+    stmt_blocks: Vec<Vec<VStatement>>,
 }
 
 impl<'a, 'c> StatementsVerifier<'a, 'c> {
@@ -27,7 +29,7 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
         resolver: &'c NameResolver,
         locals: Rc<RefCell<LocalVariables>>,
     ) -> Self {
-        Self { func, aggregate, resolver, locals }
+        Self { func, aggregate, resolver, locals, stmt_blocks: vec![] }
     }
 
     fn annotate_type(
@@ -42,15 +44,16 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
         .map_err(SemanticError::add_statement(stmt))
     }
 
+    fn emit_stmt(&mut self, stmt: VStatement) {
+        self.stmt_blocks.last_mut().unwrap().push(stmt);
+    }
+
     pub fn generate_block(
         &mut self,
         statements: &[StatementWithPos],
         insights: &mut Insights,
     ) -> SemanticResult<Vec<VStatement>> {
-        let mut res = vec![];
-        let mut emit_stmt = |stmt_res: VStatement| {
-            res.push(stmt_res);
-        };
+        self.stmt_blocks.push(vec![]);
 
         let mut new_insights: Option<Insights> = None;
         self.locals.borrow_mut().start_new_scope();
@@ -64,11 +67,11 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
                 Some(ref mut i) => i,
                 None => insights,
             };
-            self.generate_single(statement, stmt_insights, &mut emit_stmt)?;
+            self.generate_single(statement, stmt_insights)?;
         }
         self.locals.borrow_mut().drop_current_scope();
 
-        Ok(res)
+        Ok(self.stmt_blocks.pop().expect("Ordering of blocks pop-push failed"))
     }
 
     fn check_expr(
@@ -76,13 +79,11 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
         expr: &ExprWithPos,
         expected: Option<&VerifiedType>,
         insights: &Insights,
-        emit_stmt: &mut dyn FnMut(VStatement),
     ) -> SemanticResult<VExprTyped> {
         let expr_verified = ExpressionsVerifier::new(
             self.func,
             self.aggregate,
             self.locals.clone(),
-            RefCell::new(emit_stmt),
             insights,
             self.resolver.get_typenames_resolver(&self.func.defined_at),
             self.resolver.get_functions_resolver(&self.func.defined_at),
@@ -97,9 +98,8 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
         elif_bodies_input: &[(ExprWithPos, Vec<StatementWithPos>)],
         else_body_input: &[StatementWithPos],
         insights: &mut Insights,
-        emit_stmt: &mut dyn FnMut(VStatement),
     ) -> SemanticResult<VStatement> {
-        let condition = self.check_expr(condition, Some(&Type::Bool), insights, emit_stmt)?;
+        let condition = self.check_expr(condition, Some(&Type::Bool), insights)?;
 
         let mut insights_of_if_branch = insights.clone();
 
@@ -114,7 +114,6 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
                     other_elifs,
                     else_body_input,
                     insights,
-                    emit_stmt,
                 )?]
             }
         };
@@ -127,7 +126,6 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
         &mut self,
         statement: &StatementWithPos,
         insights: &mut Insights,
-        emit_stmt: &mut dyn FnMut(VStatement),
     ) -> SemanticResult<()> {
         let stmt_err = SemanticError::add_statement(statement);
 
@@ -138,8 +136,8 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
 
         match &statement.statement {
             Statement::Expr(e) => {
-                let expr = self.check_expr(e, None, insights, emit_stmt)?;
-                emit_stmt(VStatement::Expression(expr));
+                let expr = self.check_expr(e, None, insights)?;
+                self.emit_stmt(VStatement::Expression(expr));
             }
             Statement::VarDecl(var_type, name) => {
                 let var_type = self.annotate_type(var_type, statement)?;
@@ -151,14 +149,14 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
             }
             Statement::VarDeclWithAssign(var_type, name, value) => {
                 let var_type = self.annotate_type(var_type, statement)?;
-                let value = self.check_expr(value, Some(&var_type), insights, emit_stmt)?;
+                let value = self.check_expr(value, Some(&var_type), insights)?;
                 let real_name = self
                     .locals
                     .borrow_mut()
                     .add_variable(name, &var_type)
                     .map_err(stmt_err)?;
 
-                emit_stmt(VStatement::AssignLocal {
+                self.emit_stmt(VStatement::AssignLocal {
                     name: real_name,
                     tuple_indexes: vec![],
                     value,
@@ -179,9 +177,9 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
                     insights
                 };
 
-                let left_calculated = self.check_expr(left, None, left_part_insights, emit_stmt)?;
+                let left_calculated = self.check_expr(left, None, left_part_insights)?;
                 let right_calculated =
-                    self.check_expr(right, Some(&left_calculated.expr_type), insights, emit_stmt)?;
+                    self.check_expr(right, Some(&left_calculated.expr_type), insights)?;
 
                 if let Expr::Identifier(name) = &left.expr {
                     // NOW we can finally mark it as initialized, just in case
@@ -223,7 +221,7 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
                         )
                     }
                 };
-                emit_stmt(assign_stmt);
+                self.emit_stmt(assign_stmt);
             }
 
             Statement::Return(option_e) => {
@@ -233,16 +231,14 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
                 // TODO: check value of return (wtf does that mean?)
                 insights.return_found = true;
                 let value = match option_e {
-                    Some(e) => {
-                        self.check_expr(e, Some(&self.func.return_type), insights, emit_stmt)?
-                    }
+                    Some(e) => self.check_expr(e, Some(&self.func.return_type), insights)?,
                     None => VExprTyped {
                         expr: VExpr::TupleValue(vec![]),
                         expr_type: Type::Tuple(vec![]),
                     },
                 };
 
-                emit_stmt(VStatement::Return(value));
+                self.emit_stmt(VStatement::Return(value));
             }
             Statement::Break if !insights.is_in_loop => {
                 return statement_error!(statement, "`break` outside loop")
@@ -252,11 +248,11 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
             }
             Statement::Break => {
                 insights.break_or_continue_found = true;
-                emit_stmt(VStatement::Break);
+                self.emit_stmt(VStatement::Break);
             }
             Statement::Continue => {
                 insights.break_or_continue_found = true;
-                emit_stmt(VStatement::Continue);
+                self.emit_stmt(VStatement::Continue);
             }
             Statement::IfElse { condition, if_body, elif_bodies, else_body } => {
                 let if_else_stmt = self.generate_if_elif_else(
@@ -265,23 +261,21 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
                     elif_bodies,
                     else_body,
                     insights,
-                    emit_stmt,
                 )?;
-                emit_stmt(if_else_stmt);
+                self.emit_stmt(if_else_stmt);
             }
             Statement::While { condition, body } => {
-                let condition =
-                    self.check_expr(condition, Some(&Type::Bool), insights, emit_stmt)?;
+                let condition = self.check_expr(condition, Some(&Type::Bool), insights)?;
 
                 let mut loop_insights = insights.clone();
                 loop_insights.is_in_loop = true;
 
                 let body = self.generate_block(body, &mut loop_insights)?;
 
-                emit_stmt(VStatement::While { condition, body });
+                self.emit_stmt(VStatement::While { condition, body });
             }
             Statement::Foreach { item_name, iterable, body } => {
-                let iterable_calculated = self.check_expr(iterable, None, insights, emit_stmt)?;
+                let iterable_calculated = self.check_expr(iterable, None, insights)?;
                 let iterable_type = iterable_calculated.expr_type.clone();
 
                 let item_type = match &iterable_type {
@@ -301,33 +295,35 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
                 let iterable_name = format!("{}@_iterable", item_name);
 
                 self.locals.borrow_mut().start_new_scope();
-                self.locals
+                let real_item_name = self
+                    .locals
                     .borrow_mut()
                     .add_variable(item_name, &item_type)
                     .map_err(&stmt_err)?;
-                self.locals
+                let real_index_name = self
+                    .locals
                     .borrow_mut()
                     .add_variable(&index_name, &Type::Int)
                     .map_err(&stmt_err)?;
-                self.locals
+                let real_iterable_name = self
+                    .locals
                     .borrow_mut()
                     .add_variable(&iterable_name, &iterable_type)
                     .map_err(&stmt_err)?;
 
-                let real_name = |name: &str| self.locals.borrow().get_variable(name).unwrap().1;
-                let get_var = |name: &str| {
-                    let (t, n) = self.locals.borrow().get_variable(name).unwrap();
+                let get_var = |locals: &RefCell<LocalVariables>, name: &str| {
+                    let (t, n) = locals.borrow().get_variable(name).unwrap();
                     VExprTyped { expr: VExpr::GetVar(n), expr_type: t.clone() }
                 };
                 let int_expr = |i: i64| VExprTyped { expr: VExpr::Int(i), expr_type: Type::Int };
 
-                emit_stmt(VStatement::AssignLocal {
-                    name: real_name(&index_name),
+                self.emit_stmt(VStatement::AssignLocal {
+                    name: real_index_name.clone(),
                     tuple_indexes: vec![],
                     value: int_expr(0),
                 });
-                emit_stmt(VStatement::AssignLocal {
-                    name: real_name(&iterable_name),
+                self.emit_stmt(VStatement::AssignLocal {
+                    name: real_iterable_name.clone(),
                     tuple_indexes: vec![],
                     value: iterable_calculated,
                 });
@@ -338,13 +334,13 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
                     expr: VExpr::ApplyOp {
                         operator: RawOperator::LessInts,
                         operands: vec![
-                            get_var(&index_name),
+                            get_var(&self.locals, &index_name),
                             VExprTyped {
                                 expr_type: Type::Int,
                                 expr: VExpr::CallFunction {
                                     name: SymbolFunc::new_std_method(&iterable_type, "len"),
                                     return_type: Type::Int,
-                                    args: vec![get_var(&iterable_name)],
+                                    args: vec![get_var(&self.locals, &iterable_name)],
                                 },
                             },
                         ],
@@ -353,24 +349,24 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
                 let get_by_index_from_iterable = VExprTyped {
                     expr_type: item_type.clone(),
                     expr: VExpr::AccessListItem {
-                        list: Box::new(get_var(&iterable_name)),
-                        index: Box::new(get_var(&index_name)),
+                        list: Box::new(get_var(&self.locals, &iterable_name)),
+                        index: Box::new(get_var(&self.locals, &index_name)),
                     },
                 };
                 let set_item_statement = VStatement::AssignLocal {
-                    name: real_name(item_name),
+                    name: real_item_name.clone(),
                     tuple_indexes: vec![],
                     value: get_by_index_from_iterable,
                 };
 
                 let increase_index_statement = VStatement::AssignLocal {
-                    name: real_name(&index_name),
+                    name: real_index_name.clone(),
                     tuple_indexes: vec![],
                     value: VExprTyped {
                         expr_type: Type::Int,
                         expr: VExpr::ApplyOp {
                             operator: RawOperator::AddInts,
-                            operands: vec![get_var(&index_name), int_expr(1)],
+                            operands: vec![get_var(&self.locals, &index_name), int_expr(1)],
                         },
                     },
                 };
@@ -383,7 +379,7 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
 
                 calculated_body.insert(0, increase_index_statement);
                 calculated_body.insert(0, set_item_statement);
-                emit_stmt(VStatement::While { condition, body: calculated_body });
+                self.emit_stmt(VStatement::While { condition, body: calculated_body });
 
                 self.locals.borrow_mut().drop_current_scope();
             }

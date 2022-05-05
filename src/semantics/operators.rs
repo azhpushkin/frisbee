@@ -31,7 +31,6 @@ pub fn calculate_binaryop(
     left: VExprTyped,
     right: VExprTyped,
     locals: &RefCell<LocalVariables>,
-    emit_stmt: &RefCell<&dyn FnMut(VStatement)>,
 ) -> Result<VExprTyped, String> {
     let binaryop_error = format!(
         "Cant apply {:?} to {} and {}",
@@ -92,9 +91,9 @@ pub fn calculate_binaryop(
             return calculate_unaryop(&UnaryOp::Not, inner);
         }
 
-        BinaryOp::IsEqual => return calculate_is_equal(left, right, emit_stmt),
+        BinaryOp::IsEqual => return calculate_is_equal(left, right),
         BinaryOp::IsNotEqual => {
-            let inner = calculate_binaryop(&BinaryOp::IsEqual, left, right, locals, emit_stmt)?;
+            let inner = calculate_binaryop(&BinaryOp::IsEqual, left, right, locals)?;
             return calculate_unaryop(&UnaryOp::Not, inner);
         }
 
@@ -135,11 +134,7 @@ pub fn calculate_binaryop(
     Ok(wrap_binary(exact_operator, vec![left, right], result_type))
 }
 
-fn calculate_is_equal(
-    left: VExprTyped,
-    right: VExprTyped,
-    emit_stmt: &RefCell<&dyn FnMut(VStatement)>,
-) -> Result<VExprTyped, String> {
+fn calculate_is_equal(left: VExprTyped, right: VExprTyped) -> Result<VExprTyped, String> {
     let is_eq_error_msg = format!(
         "Types `{}` and `{}` cannot be checked for equality",
         &left.expr_type, &right.expr_type,
@@ -178,9 +173,9 @@ fn calculate_is_equal(
                 ]),
                 expr_type: left.expr_type.clone(),
             };
-            calculate_is_equal(left, new_right, emit_stmt)
+            calculate_is_equal(left, new_right)
         }
-        (_, Type::Maybe(_)) => calculate_is_equal(right, left, emit_stmt),
+        (_, Type::Maybe(_)) => calculate_is_equal(right, left),
         (t1, t2) if t1 != t2 => Err(is_eq_error_msg),
         (_, _) => Ok(wrap_binary(
             get_eq_op(&left.expr_type, is_eq_error_msg)?,
