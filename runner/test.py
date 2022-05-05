@@ -1,6 +1,7 @@
 import difflib
 import re
-import subprocess
+import sys
+import subprocess as sp
 from pathlib import Path
 
 
@@ -34,30 +35,47 @@ def check_output(filename: Path, actual_output: str):
         exit(-1)
 
 
-if __name__ == '__main__':
-    examples_dir = Path(__file__).parent.parent / 'examples'
+def get_input(filename: Path):
+    contents = open(filename).read()
+    
+    # .* does not match linebreaks, so use \s as well
+    match = re.search(r'// INPUT: (?P<input>.*)\n', contents)
+    if not match:
+        return None
+    match = match.group('input').strip()
+    return '\n'.join(match.split('~')) + '\n'
 
-    files_to_run = [
-        filename 
-        for filename in examples_dir.iterdir()
-        if re.match(r'^(?!\!).+(?<!_mod)\.frisbee$', filename.name)
-    ]
+
+if __name__ == '__main__':
+    if len(sys.argv) == 1:
+        examples_dir = Path(__file__).parent.parent / 'examples'
+
+        files_to_run = [
+            filename 
+            for filename in examples_dir.iterdir()
+            if re.match(r'^(?!\!).+(?<!_mod)\.frisbee$', filename.name)
+        ]
+    else:
+        files_to_run = sys.argv[1:]
     
     # Pre-compile frisbee
-    subprocess.run(['cargo', 'build'])
+    sp.run(['cargo', 'build'])
 
     for filename in files_to_run:
         print(f"Running {filename}... ")
-        res = subprocess.run(['cargo', 'run', '-q', 'cc', filename])
+        res = sp.run(['cargo', 'run', '-q', 'cc', filename])
         assert res.returncode == 0, f"Error compiling {filename}"
         
-        res = subprocess.run(['cargo', 'run', 'dis', f'{filename}.bytecode'], capture_output=True, text=True)
+        res = sp.run(['cargo', 'run', 'dis', f'{filename}.bytecode'], capture_output=True, text=True)
         assert res.returncode == 0, f"Error disassembling {filename}: \n{res.stderr}"
 
-        res = subprocess.run(
+        file_input = get_input(filename)
+        
+        res = sp.run(
             ['cargo', 'run', '-q', 'run', f'{filename}.bytecode'],
             capture_output=True,
             text=True,
+            input=file_input,
             timeout=5  # 5 seconds is enough to determine infinite loop 
         )
         assert res.returncode == 0, f"Error running {filename}: \n{res.stderr}"

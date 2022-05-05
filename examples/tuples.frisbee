@@ -1,0 +1,22 @@
+fun void main() {
+    (String, (String, Int)) person = ("", ('' , 123));
+    
+    println("Input name:");
+    person[0] = get_input();
+
+    println("Input surname:");
+    person[1][0] = get_input();
+    
+    println("Person " + person[0] + "|" + person[1][0] + " is of age " + person[1][1].to_string());
+    //while true {}
+    return;
+}
+
+// INPUT: Bob~Nystrom
+
+/* EXPECTED STDOUT
+==========
+Input name:
+Input surname:
+Person Bob|Nystrom is of age 123
+========== */
