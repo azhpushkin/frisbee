@@ -1,9 +1,15 @@
 fun void main() {
     Int? i = 1;
-    Bool is_null = i == 1;
-    println(is_null.to_string());
+    println((i == nil).to_string());
+    println((nil == i).to_string());
+    println((nil == nil).to_string());
+    //Bool is_null = i == 1;
+    //println(is_null.to_string());
     //Int q = i ?: 777;
     // println(i.to_string());
+
+    // Check assigns to maybe
+    // check assigns from maybe to maybe?
 }
 
 

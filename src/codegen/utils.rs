@@ -16,14 +16,19 @@ pub fn get_type_size<T>(t: &Type<T>) -> u8 {
 pub fn get_type_from_tuple<T>(t: &Type<T>, i: usize) -> &Type<T> {
     match t {
         Type::Tuple(items) => &items[i],
-        _ => panic!("something is wrong, semantics should have checked this.."),
+        Type::Maybe(inner) => match i {
+            0 => &Type::Bool,
+            1 => inner.as_ref(),
+            i => panic!("Accessing maybe with wrong index {}, semantics failed", i),
+        },
+        _ => panic!("Tuple access on non-tuple type, semantics failed"),
     }
 }
 
 pub fn extract_custom_type<T>(t: &Type<T>) -> &T {
     match t {
         Type::Custom(s) => s,
-        _ => panic!("something is wrong, semantics should have checked this.."),
+        _ => panic!("Field or method access on non-custom type, emantics failed"),
     }
 }
 
@@ -60,7 +65,7 @@ pub fn get_tuple_subitem_size<T>(tuple_type: &Type<T>, tuple_indexes: &[usize]) 
 pub fn get_list_inner_type<T>(list_type: &Type<T>) -> &Type<T> {
     match list_type {
         Type::List(inner_type) => inner_type.as_ref(),
-        _ => panic!("something is wrong, semantics should have checked this.."),
+        _ => panic!("List index access on non-list type, semantics failed"),
     }
 }
 

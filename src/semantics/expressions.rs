@@ -127,6 +127,15 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 let unary_res = calculate_unaryop(op, operand).map_err(&with_expr)?;
                 if_as_expected(expected, &unary_res.expr_type, unary_res.expr).map_err(&with_expr)
             }
+            Expr::BinOp { left, right, op }
+                if op == &BinaryOp::IsEqual || op == &BinaryOp::IsNotEqual =>
+            {
+                let mut res = self.calculate_equality(left, right)?;
+                if matches!(op, BinaryOp::IsNotEqual) {
+                    res = calculate_unaryop(&UnaryOp::Not, res).map_err(&with_expr)?;
+                }
+                if_as_expected(expected, &res.expr_type, res.expr).map_err(&with_expr)
+            }
             Expr::BinOp { left, right, op } => {
                 let binary_res = calculate_binaryop(
                     op,
@@ -353,7 +362,31 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
             //     self.check_function_call(constuctor, args)?
             // }
             Expr::SpawnActive { .. } => todo!("Expression SpawnActive is not yet done!"),
-            Expr::Nil => todo!("Expression Nil is not yet done!"),
+            Expr::Nil => match expected {
+                Some(Type::Maybe(i)) => {
+                    let tuple_items = vec![
+                        VExprTyped { expr: VExpr::Bool(false), expr_type: Type::Bool },
+                        VExprTyped {
+                            expr: VExpr::Dummy(i.as_ref().clone()),
+                            expr_type: i.as_ref().clone(),
+                        },
+                    ];
+                    Ok(VExprTyped {
+                        expr: VExpr::TupleValue(tuple_items),
+                        expr_type: expected.unwrap().clone(),
+                    })
+                }
+                Some(t) => {
+                    return expression_error!(
+                        expr,
+                        "`nil` is only allowed as a maybe type (expected `{}`)",
+                        t
+                    )
+                }
+                None => {
+                    return expression_error!(expr, "`nil` is not allowed here (can't derive type)")
+                }
+            },
         }
     }
 
@@ -445,5 +478,41 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 t
             ),
         }
+    }
+
+    fn calculate_equality(
+        &self,
+        left: &ExprWithPos,
+        right: &ExprWithPos,
+    ) -> SemanticResult<VExprTyped> {
+        if left.expr == Expr::Nil {
+            if right.expr == Expr::Nil {
+                return Ok(VExprTyped { expr: VExpr::Bool(true), expr_type: Type::Bool });
+            } else {
+                return self.calculate_equality(right, left);
+            }
+        }
+        // Now, either there is no `nil`, or only `right` is nil
+        if right.expr == Expr::Nil {
+            let left_calculated = self.calculate(left, None)?;
+            if !matches!(&left_calculated.expr_type, &Type::Maybe(_)) {
+                return expression_error!(
+                    right,
+                    "Cannot compare `nil` with type {} (must be maybe type)",
+                    left_calculated.expr_type
+                );
+            }
+            // obj == nil is the same, as (not obj[0])
+            // as maybe starts with bool that indicates if value is there
+            let access_flag = VExprTyped {
+                expr: VExpr::AccessTupleItem { tuple: Box::new(left_calculated), index: 0 },
+                expr_type: Type::Bool,
+            };
+            // negate the flag, so that it is the same as `not obj[0]`
+            // unwrap as there is type-related errors in there expected
+            return Ok(calculate_unaryop(&UnaryOp::Not, access_flag).unwrap());
+        }
+
+        todo!("Compare with not-nil");
     }
 }

@@ -91,12 +91,6 @@ pub fn calculate_binaryop(
             return calculate_unaryop(&UnaryOp::Not, inner);
         }
 
-        BinaryOp::IsEqual => return calculate_is_equal(left, right),
-        BinaryOp::IsNotEqual => {
-            let inner = calculate_binaryop(&BinaryOp::IsEqual, left, right, locals)?;
-            return calculate_unaryop(&UnaryOp::Not, inner);
-        }
-
         BinaryOp::And if matches!(left.expr_type, Type::Bool) => {
             ensure_same_types()?;
             (RawOperator::AndBools, Type::Bool)
@@ -107,6 +101,7 @@ pub fn calculate_binaryop(
             (RawOperator::OrBools, Type::Bool)
         }
         BinaryOp::Or => return Err(binaryop_error),
+        BinaryOp::IsEqual | BinaryOp::IsNotEqual => unreachable!("Should be handled in ExpressionsVerifier"),
         BinaryOp::Elvis => {
             todo!("Elvis not done yet!");
             //     let inner_type = match &left.expr_type {

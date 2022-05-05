@@ -143,13 +143,6 @@ impl fmt::Display for VExpr {
                 ),
                 _ => panic!("3 arguments not supported now!"),
             },
-            VExpr::TernaryOp { condition, if_true, if_false } => {
-                write!(
-                    f,
-                    "({} ? {} : {})",
-                    condition.expr, if_true.expr, if_false.expr
-                )
-            }
             VExpr::CallFunction { name, args, .. } => {
                 let args_str = args.iter().map(|e| format!("{}", e.expr)).collect::<Vec<_>>();
                 write!(f, "{}({})", name, args_str.join(", "))

@@ -15,6 +15,7 @@
 * check that initial list size is no more than 255
 * check different variations of tuple typecheck (items should match)
 * check that void and empty tuple cant be nillable in any way
+* check that double-negate is reduced away from ast and works fine
 * check operator precedence and grouping way
 * check different variations of name collisions with (for i in ..)
 * check how defining inside of if-else branches works 
