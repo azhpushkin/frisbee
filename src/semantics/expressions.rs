@@ -234,9 +234,20 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 Ok(res)
             }
             Expr::BinOp { left, right, op } if op == &BinaryOp::Elvis => {
-                let left = self.verify_expr(left, None)?;
-                let right = self.verify_expr(right, None)?;
-                Ok(self.calculate_elvis(left, right, expr.pos_first)?)
+                let ve_left = self.verify_expr(left, None)?;
+                let inner = match &ve_left.expr_type {
+                    Type::Maybe(l) => l.as_ref(),
+                    l => {
+                        return to_dyn(expression_error!(
+                            left,
+                            "Maybe type must be left part of elvis, but got `{}`",
+                            l
+                        ))
+                    }
+                };
+
+                let ve_right = self.verify_expr(right, Some(inner))?;
+                Ok(self.calculate_elvis(ve_left, ve_right, expr.pos_first)?)
             }
             Expr::BinOp { left, right, op } => Ok(calculate_binaryop(
                 op,
@@ -349,30 +360,33 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                     expr_type: Type::Tuple(item_types),
                 })
             }
-            Expr::ListValue(items) if items.is_empty() => match unwrapped_if_maybe!(expected) {
-                // Case when list is empty, so expected will be always OK if it is list
-                Some(Type::List(item_type)) => {
-                    let item_type = item_type.as_ref().clone();
+            Expr::ListValue(items) if items.is_empty() => {
+                println!("Got {:?}", unwrapped_if_maybe!(expected));
+                match unwrapped_if_maybe!(expected) {
+                    // Case when list is empty, so expected will be always OK if it is list
+                    Some(Type::List(item_type)) => {
+                        let item_type = item_type.as_ref().clone();
 
-                    Ok(VExprTyped {
-                        expr: VExpr::ListValue { item_type: item_type.clone(), items: vec![] },
-                        expr_type: Type::List(Box::new(item_type.clone())),
-                    })
+                        Ok(VExprTyped {
+                            expr: VExpr::ListValue { item_type: item_type.clone(), items: vec![] },
+                            expr_type: Type::List(Box::new(item_type.clone())),
+                        })
+                    }
+                    Some(_) => {
+                        return to_dyn(expression_error!(
+                            expr,
+                            "Unexpected list value (expected `{}`)",
+                            expected.unwrap()
+                        ))
+                    }
+                    None => {
+                        return to_dyn(expression_error!(
+                            expr,
+                            "Can't figure out list type over here!"
+                        ))
+                    }
                 }
-                Some(_) => {
-                    return to_dyn(expression_error!(
-                        expr,
-                        "Unexpected list value (expected `{}`)",
-                        expected.unwrap()
-                    ))
-                }
-                None => {
-                    return to_dyn(expression_error!(
-                        expr,
-                        "Can't figure out list type over here!"
-                    ))
-                }
-            },
+            }
             Expr::ListValue(items) => {
                 // Due to previous check, we know that in this branch items are not empty
                 let expected_item_type = match unwrapped_if_maybe!(expected) {
@@ -746,22 +760,6 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
         right: VExprTyped,
         seed: usize,
     ) -> Result<VExprTyped, String> {
-        match (&left.expr_type, &right.expr_type) {
-            (Type::Maybe(l), r) => {
-                if l.as_ref() != r {
-                    return Err(format!(
-                        "Expected `{}` as right part of elvis, but got `{}`",
-                        l, r
-                    ));
-                }
-            }
-            (l, _) => {
-                return Err(format!(
-                    "Maybe type must be left part of elvis, but got `{}`",
-                    l
-                ));
-            }
-        }
         let inner_type = right.expr_type.clone();
         let left_temp = self.request_temp(left, seed);
 

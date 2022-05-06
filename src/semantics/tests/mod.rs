@@ -4,4 +4,5 @@
 #[rustfmt::skip] #[cfg(test)] pub mod test_scopes;
 #[rustfmt::skip] #[cfg(test)] pub mod test_types;
 #[rustfmt::skip] #[cfg(test)] pub mod test_maybe;
+#[rustfmt::skip] #[cfg(test)] pub mod test_maybe_operators;
 #[rustfmt::skip] #[cfg(test)] pub mod test_uninitialized;
