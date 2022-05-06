@@ -7,7 +7,7 @@ use crate::symbols::{SymbolFunc, SymbolType};
 use crate::types::{Type, VerifiedType};
 
 use super::aggregate::ProgramAggregate;
-use super::errors::{expression_error, SemanticError, SemanticResult};
+use super::errors::{expression_error, SemanticError};
 use super::insights::Insights;
 use super::locals::LocalVariables;
 use super::operators::{calculate_binaryop, calculate_unaryop, wrap_binary};
@@ -55,7 +55,7 @@ impl From<Box<SemanticError>> for Box<dyn ExprError> {
     }
 }
 
-fn err<T>(e: Result<T, SemanticError>) -> Result<T, ExprCheckError> {
+fn to_dyn<T>(e: Result<T, SemanticError>) -> Result<T, ExprCheckError> {
     e.map_err(|e| Box::new(e) as Box<dyn ExprError>)
 }
 
@@ -169,7 +169,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
             Expr::Identifier(i) => {
                 let (identifier_type, real_name) = self.locals.borrow().get_variable(i)?;
                 if self.insights.is_uninitialized(i) {
-                    return err(expression_error!(
+                    return to_dyn(expression_error!(
                         expr,
                         "Variable `{}` might be uninitialized here",
                         i
@@ -180,7 +180,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
             }
             Expr::This => match &self.func.method_of {
                 Some(t) => Ok((VExpr::GetVar("this".into()), Type::Custom(t.clone()))),
-                None => err(expression_error!(
+                None => to_dyn(expression_error!(
                     expr,
                     "Using \"this\" is not allowed outside of methods"
                 )),
@@ -220,10 +220,10 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
             Expr::FunctionCall { function, args } => {
                 let f_call = if is_std_function(function) {
                     let std_raw = get_std_function_raw(function);
-                    self.calculate_function_call(expr, &std_raw, expected, args, None)
+                    self.calculate_function_call(&std_raw, args, None)
                 } else {
                     let raw_called = self.resolve_func(function)?;
-                    self.calculate_function_call(expr, raw_called, expected, args, None)
+                    self.calculate_function_call(raw_called, args, None)
                 };
                 let VExprTyped { expr, expr_type } = f_call?;
                 Ok((expr, expr_type))
@@ -234,10 +234,10 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 let std_method: Box<RawFunction>;
                 let raw_method = match &le_object.expr_type {
                     Type::Tuple(..) => {
-                        return err(expression_error!(expr, "Tuples have no methods"))
+                        return to_dyn(expression_error!(expr, "Tuples have no methods"))
                     }
                     Type::Maybe(..) => {
-                        return err(expression_error!(
+                        return to_dyn(expression_error!(
                             expr,
                             "Use ?. operator to access methods for Maybe type",
                         ));
@@ -250,8 +250,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                     }
                 };
                 // TODO: check if maybe type
-                let f_call =
-                    self.calculate_function_call(expr, raw_method, expected, args, Some(le_object));
+                let f_call = self.calculate_function_call(raw_method, args, Some(le_object));
                 let VExprTyped { expr, expr_type } = f_call?;
                 Ok((expr, expr_type))
             }
@@ -267,7 +266,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 let type_of_func = match &self.func.method_of {
                     Some(t) => t,
                     _ => {
-                        return err(expression_error!(
+                        return to_dyn(expression_error!(
                             expr,
                             "Calling own method outside of class!"
                         ))
@@ -279,13 +278,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                     None,
                 )?;
                 let raw_method = self.resolve_method(type_of_func, method)?;
-                let f_call = self.calculate_function_call(
-                    expr,
-                    raw_method,
-                    expected,
-                    args,
-                    Some(this_object),
-                );
+                let f_call = self.calculate_function_call(raw_method, args, Some(this_object));
                 let VExprTyped { expr, expr_type } = f_call?;
                 Ok((expr, expr_type))
             }
@@ -293,8 +286,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 let symbol = &(self.type_resolver)(typename)?;
                 let raw_type = &self.aggregate.types[symbol];
                 let raw_constructor = self.resolve_method(&raw_type.name, typename)?;
-                let f_call =
-                    self.calculate_function_call(expr, raw_constructor, expected, args, None);
+                let f_call = self.calculate_function_call(raw_constructor, args, None);
                 let VExprTyped { expr, expr_type } = f_call?;
                 Ok((expr, expr_type))
             }
@@ -319,7 +311,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                         item_types = expected_item_types.clone();
                     }
                     Some(_) => {
-                        return err(expression_error!(
+                        return to_dyn(expression_error!(
                             expr,
                             "Unexpected tuple value (expected `{}`)",
                             expected.unwrap()
@@ -339,14 +331,14 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                     ))
                 }
                 Some(_) => {
-                    return err(expression_error!(
+                    return to_dyn(expression_error!(
                         expr,
                         "Unexpected list value (expected `{}`)",
                         expected.unwrap()
                     ))
                 }
                 None => {
-                    return err(expression_error!(
+                    return to_dyn(expression_error!(
                         expr,
                         "Can't figure out list type over here!"
                     ))
@@ -358,7 +350,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                     None => None,
                     Some(Type::List(item_type)) => Some(item_type.as_ref()),
                     Some(_) => {
-                        return err(expression_error!(
+                        return to_dyn(expression_error!(
                             expr,
                             "Unexpected list value (expected `{}`)",
                             expected.unwrap()
@@ -376,7 +368,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 let mismatched_pair =
                     calculated_items.windows(2).find(|p| p[0].expr_type != p[1].expr_type);
                 if let Some(pair) = mismatched_pair {
-                    return err(expression_error!(
+                    return to_dyn(expression_error!(
                         expr,
                         "All items in list must be of same type, but both `{}` and `{}` are found",
                         pair[0].expr_type,
@@ -409,7 +401,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                         };
                         Ok((vexpr, field_type.clone()))
                     }
-                    _ => err(expression_error!(
+                    _ => to_dyn(expression_error!(
                         expr,
                         "Accessing fields for type `{}` is prohobited",
                         object_calculated.expr_type
@@ -419,14 +411,14 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
             Expr::OwnFieldAccess { field } => {
                 let func_type = match &self.func.method_of {
                     Some(t) => t,
-                    _ => err(expression_error!(
+                    _ => to_dyn(expression_error!(
                         expr,
                         "Accessing own field outside of method func!"
                     ))?,
                 };
                 if self.func.is_constructor && !self.insights.initialized_own_fields.contains(field)
                 {
-                    return err(expression_error!(
+                    return to_dyn(expression_error!(
                         expr,
                         "Own field `{}` cannot be used before initializing",
                         field
@@ -473,14 +465,14 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                     Ok((VExpr::TupleValue(tuple_items), expected.unwrap().clone()))
                 }
                 Some(t) => {
-                    return err(expression_error!(
+                    return to_dyn(expression_error!(
                         expr,
                         "`nil` is only allowed for maybe types (expected `{}`)",
                         t
                     ))
                 }
                 None => {
-                    return err(expression_error!(
+                    return to_dyn(expression_error!(
                         expr,
                         "`nil` is not allowed here (can't derive type)"
                     ))
@@ -491,9 +483,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
 
     fn calculate_function_call(
         &self,
-        original: &ExprWithPos,
         raw_called: &'a RawFunction,
-        expected_return: Option<&VerifiedType>,
         given_args: &[ExprWithPos],
         implicit_this: Option<VExprTyped>,
     ) -> Result<VExprTyped, Box<dyn ExprError>> {
@@ -505,13 +495,13 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
         };
 
         if given_args.len() != expected_args.len() {
-            return err(expression_error!(
-                original,
+            return Err(format!(
                 "Function `{}` expects {} arguments, but {} given",
                 raw_called.short_name,
                 expected_args.len(),
                 given_args.len(),
-            ));
+            )
+            .into());
         }
 
         let processed_args: Result<Vec<VExprTyped>, _> = given_args
@@ -541,7 +531,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
 
         match calculated_object.expr_type.clone() {
             Type::Tuple(item_types) => match index.expr {
-                Expr::Int(i) if i >= item_types.len() as i64 => err(expression_error!(
+                Expr::Int(i) if i >= item_types.len() as i64 => to_dyn(expression_error!(
                     index,
                     "Index of tuple is out of bounds (must be between 0 and {})",
                     item_types.len()
@@ -553,7 +543,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                     };
                     Ok(VExprTyped { expr: vexpr, expr_type: item_types[i as usize].clone() })
                 }
-                _ => err(expression_error!(
+                _ => to_dyn(expression_error!(
                     index,
                     "Only integer allowed in tuple access!"
                 )),
@@ -566,7 +556,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 };
                 Ok(VExprTyped { expr: new_expr, expr_type: inner.as_ref().clone() })
             }
-            t => err(expression_error!(
+            t => to_dyn(expression_error!(
                 object,
                 "Only lists and tuples implement index access (got `{}`)",
                 t
@@ -590,7 +580,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
         if right_og.expr == Expr::Nil {
             let left_calculated = self.verify_expr(left_og, None)?;
             if !matches!(&left_calculated.expr_type, &Type::Maybe(_)) {
-                return err(expression_error!(
+                return to_dyn(expression_error!(
                     right_og,
                     "Cannot compare `nil` with type `{}` (must be maybe type)",
                     left_calculated.expr_type
@@ -644,7 +634,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
         match (left.expr_type.clone(), right.expr_type.clone()) {
             (Type::Maybe(left_inner), Type::Maybe(right_inner)) => {
                 if left_inner != right_inner {
-                    return err(expression_error!(left_og, "{}", is_eq_error_msg));
+                    return to_dyn(expression_error!(left_og, "{}", is_eq_error_msg));
                 }
                 let op = get_eq_op(&left_inner, is_eq_error_msg)?;
 
@@ -685,7 +675,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
             }
             (Type::Maybe(left_inner), rt) => {
                 if left_inner.as_ref() != &rt {
-                    return err(expression_error!(left_og, "{}", is_eq_error_msg));
+                    return to_dyn(expression_error!(left_og, "{}", is_eq_error_msg));
                 }
                 let op = get_eq_op(&left_inner, is_eq_error_msg)?;
 
@@ -702,7 +692,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
             }
             (_, Type::Maybe(_)) => self.calculate_equality(right_og, left_og),
             (t1, t2) if t1 != t2 => {
-                return err(expression_error!(
+                return to_dyn(expression_error!(
                     left_og,
                     "Types `{}` and `{}` cannot be checked for equality",
                     t1,
