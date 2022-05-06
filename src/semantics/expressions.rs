@@ -285,23 +285,33 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 let temp = self.request_temp(ve_object, object.pos_first);
                 let method_call =
                     self.calculate_method_call(get_value(&temp, &inner_type), method, args)?;
-                // let method_return_type = unwrapped_if_maybe!(Some(&method_call.1)).unwrap().clone();
 
-                // Ok(VExprTyped {
-                //     expr: VExpr::TernaryOp {
-                //         condition: Box::new(get_flag(&temp, &inner_type)),
-                //         if_true: Box::new(VExprTyped {
-                //             expr: method_call.0,
-                //             expr_type: method_call.1,
-                //         }),
-                //         if_false: Box::new(VExprTyped {
-                //             expr: VExpr::Dummy(i.as_ref().clone()),
-                //             expr_type: i.as_ref().clone(),
-                //         }),
-                //     },
-                //     expr_type: inner_type.clone(),
-                // });
-                todo!();
+                let inner_type: VerifiedType;
+                let method_call_wrapped = match &method_call.expr_type {
+                    Type::Maybe(i) => {
+                        // Method already returns Maybe, so no need to extra-wrap it
+                        inner_type = i.as_ref().clone();
+                        method_call
+                    }
+                    t => {
+                        inner_type = t.clone();
+                        let boxed_type = Type::Maybe(Box::new(t.clone()));
+                        let tuple_items = vec![
+                            VExprTyped { expr: VExpr::Bool(true), expr_type: Type::Bool },
+                            method_call,
+                        ];
+                        VExprTyped { expr: VExpr::TupleValue(tuple_items), expr_type: boxed_type }
+                    }
+                };
+
+                Ok(VExprTyped {
+                    expr: VExpr::TernaryOp {
+                        condition: Box::new(get_flag(&temp, &inner_type)),
+                        if_true: Box::new(method_call_wrapped),
+                        if_false: Box::new(dummy_maybe(&inner_type)),
+                    },
+                    expr_type: Type::Maybe(Box::new(inner_type)),
+                })
             }
             Expr::OwnMethodCall { method, args } => {
                 let type_of_func = match &self.func.method_of {
@@ -380,10 +390,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                         ))
                     }
                     None => {
-                        return to_dyn(expression_error!(
-                            expr,
-                            "Can't figure out list type over here!"
-                        ))
+                        return to_dyn(expression_error!(expr, "Cannot derive empty list type!"))
                     }
                 }
             }
@@ -508,7 +515,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 None => {
                     return to_dyn(expression_error!(
                         expr,
-                        "`nil` is not allowed here (can't derive type)"
+                        "`nil` is not allowed here (cannot derive type)"
                     ))
                 }
             },

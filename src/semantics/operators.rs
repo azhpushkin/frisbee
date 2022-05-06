@@ -6,10 +6,10 @@ pub fn calculate_unaryop(operator: &UnaryOp, operand: VExprTyped) -> Result<VExp
     let exact_operator: RawOperator = match (operator, &operand.expr_type) {
         (UnaryOp::Negate, Type::Int) => RawOperator::UnaryNegateInt,
         (UnaryOp::Negate, Type::Float) => RawOperator::UnaryNegateFloat,
-        (UnaryOp::Negate, t) => return Err(format!("Can't apply NEGATE to {} type", t)),
+        (UnaryOp::Negate, t) => return Err(format!("Cannot apply NEGATE to {} type", t)),
 
         (UnaryOp::Not, Type::Bool) => RawOperator::UnaryNegateBool,
-        (UnaryOp::Not, t) => return Err(format!("Can't apply NOT to {} type", t)),
+        (UnaryOp::Not, t) => return Err(format!("Cannot apply NOT to {} type", t)),
     };
     let expr_type = operand.expr_type.clone();
 

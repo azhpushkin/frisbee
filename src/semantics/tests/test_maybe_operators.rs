@@ -123,14 +123,13 @@ assert_semantic_check_is_fine!(
     "#
 );
 
-
-assert_semantic_check_is_fine!(
+assert_semantic_check_fails!(
     normal_method_call_on_maybe_not_allowed,
     r#"
     ===== file: main.frisbee
     fun void main() {
         Int? i = nil;
-        i.to_string();  // ERR: Cannot call method `to_string` on `Int?`
+        i.to_string();  // ERR: Use ?. operator to access methods for Maybe type
     }
     "#
 );
@@ -165,7 +164,7 @@ assert_semantic_check_is_fine!(
     ===== file: main.frisbee
     fun void main() {
         Int? i = nil;
-        String s = (i?:-1)?.to_string();
+        String s = (i?:-1).to_string();
     }
     "#
 );
@@ -175,7 +174,7 @@ assert_semantic_check_fails!(
     r#"
     ===== file: main.frisbee
     fun void main() {
-        1?.to_string();  // ERR: 123
+        1?.to_string();  // ERR: ?. operator to can only be used on Maybe types, got Int
     }
     "#
 );
@@ -185,11 +184,10 @@ assert_semantic_check_fails!(
     r#"
     ===== file: main.frisbee
     fun void main() {
-        nil?.to_string();  // ERR: cant decude type
+        nil?.to_string();  // ERR: `nil` is not allowed here (cannot derive type)
     }
     "#
 );
-
 
 assert_semantic_check_is_fine!(
     maybe_method_on_custom_type,
@@ -197,8 +195,8 @@ assert_semantic_check_is_fine!(
     ===== file: main.frisbee
     class Data {
         Int x; Int y;
-        fun Int get_x() { return x; }
-        fun Int? get_x() { return x; }
+        fun Int get_x() { return @x; }
+        fun Int? get_y() { return @y; }
     }
     fun void main() {
         Data? d = Data(1, 2);
@@ -219,7 +217,7 @@ assert_semantic_check_fails!(
     fun void main() {
         Data? d = Data();
         d?.lol();
-        Bool? q = d?.lol()?;
+        Bool? q = d?.lol();  // ERR: Expected type `Bool?` but got `()?`
     }
     "#
 );
