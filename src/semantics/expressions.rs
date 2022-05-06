@@ -258,7 +258,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                         calculated = calculated_result?;
                         item_types = expected_item_types.clone();
                     }
-                    Some(t) => {
+                    Some(_) => {
                         return expression_error!(
                             expr,
                             "Unexpected tuple value (expected `{}`)",
@@ -285,7 +285,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                     )
                     .map_err(&with_expr)
                 }
-                Some(t) => {
+                Some(_) => {
                     return expression_error!(
                         expr,
                         "Unexpected list value (expected `{}`)",
@@ -299,7 +299,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 let expected_item_type = match unwrapped_maybe_err!(expected) {
                     None => None,
                     Some(Type::List(item_type)) => Some(item_type.as_ref()),
-                    Some(t) => {
+                    Some(_) => {
                         return expression_error!(
                             expr,
                             "Unexpected list value (expected `{}`)",
