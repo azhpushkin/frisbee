@@ -23,8 +23,6 @@ macro_rules! unwrapped_if_maybe {
     };
 }
 
-type ExprCheckError = Box<dyn ExprError>;
-
 trait ExprError {
     fn add_expr_info(&self, expr: &ExprWithPos) -> Box<SemanticError>;
 }
@@ -85,31 +83,29 @@ fn dummy_maybe(inner: &VerifiedType) -> VExprTyped {
     }
 }
 
-fn to_dyn<T>(e: Result<T, SemanticError>) -> Result<T, ExprCheckError> {
+fn to_dyn<T>(e: Result<T, SemanticError>) -> Result<T, Box<dyn ExprError>> {
     e.map_err(|e| Box::new(e) as Box<dyn ExprError>)
 }
 
 fn if_as_expected(
     expected: Option<&VerifiedType>,
-    calculated: &VerifiedType,
-    expr: VExpr,
+    calculated: VExprTyped,
 ) -> Result<VExprTyped, String> {
-    let expr = VExprTyped { expr, expr_type: calculated.clone() };
     match expected {
-        Some(t) if calculated == t => Ok(expr),
-        Some(Type::Maybe(inner)) if calculated == inner.as_ref() => Ok(VExprTyped {
+        Some(t) if &calculated.expr_type == t => Ok(calculated),
+        Some(Type::Maybe(inner)) if &calculated.expr_type == inner.as_ref() => Ok(VExprTyped {
             expr: VExpr::TupleValue(vec![
                 VExprTyped { expr: VExpr::Bool(true), expr_type: Type::Int },
-                expr,
+                calculated,
             ]),
             expr_type: expected.unwrap().clone(),
         }),
         Some(_) => Err(format!(
             "Expected type `{}` but got `{}`",
             expected.unwrap(),
-            calculated
+            &calculated.expr_type
         )),
-        None => Ok(expr),
+        None => Ok(calculated),
     }
 }
 
@@ -183,22 +179,24 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
         expr: &ExprWithPos,
         expected: Option<&VerifiedType>,
     ) -> Result<VExprTyped, Box<SemanticError>> {
-        let (v_expr, expr_type) = self
+        let verified_expr = self
             .calculate(expr, expected)
             .map_err(|err| err.add_expr_info(expr))?;
-        if_as_expected(expected, &expr_type, v_expr).map_err(|e| (&e).add_expr_info(expr))
+        if_as_expected(expected, verified_expr).map_err(|e| (&e).add_expr_info(expr))
     }
 
     fn calculate<'e>(
         &self,
         expr: &ExprWithPos,
         expected: Option<&VerifiedType>,
-    ) -> Result<(VExpr, VerifiedType), ExprCheckError> {
+    ) -> Result<VExprTyped, Box<dyn ExprError>> {
         match &expr.expr {
-            Expr::Int(i) => Ok((VExpr::Int(*i), Type::Int)),
-            Expr::Float(f) => Ok((VExpr::Float(*f), Type::Float)),
-            Expr::Bool(b) => Ok((VExpr::Bool(*b), Type::Bool)),
-            Expr::String(s) => Ok((VExpr::String(s.clone()), Type::String)),
+            Expr::Int(i) => Ok(VExprTyped { expr: VExpr::Int(*i), expr_type: Type::Int }),
+            Expr::Float(f) => Ok(VExprTyped { expr: VExpr::Float(*f), expr_type: Type::Float }),
+            Expr::Bool(b) => Ok(VExprTyped { expr: VExpr::Bool(*b), expr_type: Type::Bool }),
+            Expr::String(s) => {
+                Ok(VExprTyped { expr: VExpr::String(s.clone()), expr_type: Type::String })
+            }
 
             Expr::Identifier(i) => {
                 let (identifier_type, real_name) = self.locals.borrow().get_variable(i)?;
@@ -209,11 +207,13 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                         i
                     ));
                 }
-
-                Ok((VExpr::GetVar(real_name), identifier_type))
+                Ok(VExprTyped { expr: VExpr::GetVar(real_name), expr_type: identifier_type })
             }
             Expr::This => match &self.func.method_of {
-                Some(t) => Ok((VExpr::GetVar("this".into()), Type::Custom(t.clone()))),
+                Some(t) => Ok(VExprTyped {
+                    expr: VExpr::GetVar("this".into()),
+                    expr_type: Type::Custom(t.clone()),
+                }),
                 None => to_dyn(expression_error!(
                     expr,
                     "Using \"this\" is not allowed outside of methods"
@@ -222,8 +222,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
 
             Expr::UnaryOp { op, operand } => {
                 let operand = self.verify_expr(operand, None)?;
-                let VExprTyped { expr, expr_type } = calculate_unaryop(op, operand)?;
-                Ok((expr, expr_type))
+                Ok(calculate_unaryop(op, operand)?)
             }
             Expr::BinOp { left, right, op }
                 if op == &BinaryOp::IsEqual || op == &BinaryOp::IsNotEqual =>
@@ -232,39 +231,31 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 if matches!(op, BinaryOp::IsNotEqual) {
                     res = calculate_unaryop(&UnaryOp::Not, res)?;
                 }
-                let VExprTyped { expr, expr_type } = res;
-                Ok((expr, expr_type))
+                Ok(res)
             }
             Expr::BinOp { left, right, op } if op == &BinaryOp::Elvis => {
                 let left = self.verify_expr(left, None)?;
                 let right = self.verify_expr(right, None)?;
-                let VExprTyped { expr, expr_type } =
-                    self.calculate_elvis(left, right, expr.pos_first)?;
-                Ok((expr, expr_type))
+                Ok(self.calculate_elvis(left, right, expr.pos_first)?)
             }
-            Expr::BinOp { left, right, op } => {
-                let VExprTyped { expr, expr_type } = calculate_binaryop(
-                    op,
-                    self.verify_expr(left, None)?,
-                    self.verify_expr(right, None)?,
-                )?;
-                Ok((expr, expr_type))
-            }
+            Expr::BinOp { left, right, op } => Ok(calculate_binaryop(
+                op,
+                self.verify_expr(left, None)?,
+                self.verify_expr(right, None)?,
+            )?),
 
             Expr::FunctionCall { function, args } => {
-                let f_call = if is_std_function(function) {
+                if is_std_function(function) {
                     let std_raw = get_std_function_raw(function);
                     self.calculate_function_call(&std_raw, args, None)
                 } else {
                     let raw_called = self.resolve_func(function)?;
                     self.calculate_function_call(raw_called, args, None)
-                };
-                let VExprTyped { expr, expr_type } = f_call?;
-                Ok((expr, expr_type))
+                }
             }
             Expr::MethodCall { object, method, args } => {
                 let object = self.verify_expr(object, None)?;
-                self.calculate_method_call(object, method, args)
+                Ok(self.calculate_method_call(object, method, args)?)
             }
             Expr::MaybeMethodCall { object, method, args } => {
                 let ve_object = self.verify_expr(object, None)?;
@@ -283,7 +274,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 let temp = self.request_temp(ve_object, object.pos_first);
                 let method_call =
                     self.calculate_method_call(get_value(&temp, &inner_type), method, args)?;
-                let method_return_type = unwrapped_if_maybe!(Some(&method_call.1)).unwrap().clone();
+                // let method_return_type = unwrapped_if_maybe!(Some(&method_call.1)).unwrap().clone();
 
                 // Ok(VExprTyped {
                 //     expr: VExpr::TernaryOp {
@@ -317,17 +308,13 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                     None,
                 )?;
                 let raw_method = self.resolve_method(type_of_func, method)?;
-                let f_call = self.calculate_function_call(raw_method, args, Some(this_object));
-                let VExprTyped { expr, expr_type } = f_call?;
-                Ok((expr, expr_type))
+                self.calculate_function_call(raw_method, args, Some(this_object))
             }
             Expr::NewClassInstance { typename, args } => {
                 let symbol = &(self.type_resolver)(typename)?;
                 let raw_type = &self.aggregate.types[symbol];
                 let raw_constructor = self.resolve_method(&raw_type.name, typename)?;
-                let f_call = self.calculate_function_call(raw_constructor, args, None);
-                let VExprTyped { expr, expr_type } = f_call?;
-                Ok((expr, expr_type))
+                self.calculate_function_call(raw_constructor, args, None)
             }
 
             Expr::TupleValue(items) => {
@@ -357,17 +344,20 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                         ))
                     }
                 }
-                Ok((VExpr::TupleValue(calculated), Type::Tuple(item_types)))
+                Ok(VExprTyped {
+                    expr: VExpr::TupleValue(calculated),
+                    expr_type: Type::Tuple(item_types),
+                })
             }
             Expr::ListValue(items) if items.is_empty() => match unwrapped_if_maybe!(expected) {
                 // Case when list is empty, so expected will be always OK if it is list
                 Some(Type::List(item_type)) => {
                     let item_type = item_type.as_ref().clone();
 
-                    Ok((
-                        VExpr::ListValue { item_type: item_type.clone(), items: vec![] },
-                        Type::List(Box::new(item_type.clone())),
-                    ))
+                    Ok(VExprTyped {
+                        expr: VExpr::ListValue { item_type: item_type.clone(), items: vec![] },
+                        expr_type: Type::List(Box::new(item_type.clone())),
+                    })
                 }
                 Some(_) => {
                     return to_dyn(expression_error!(
@@ -418,15 +408,15 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 let item_type =
                     expected_item_type.unwrap_or(&calculated_items[0].expr_type).clone();
 
-                Ok((
-                    VExpr::ListValue { item_type: item_type.clone(), items: calculated_items },
-                    Type::List(Box::new(item_type.clone())),
-                ))
+                Ok(VExprTyped {
+                    expr: VExpr::ListValue {
+                        item_type: item_type.clone(),
+                        items: calculated_items,
+                    },
+                    expr_type: Type::List(Box::new(item_type.clone())),
+                })
             }
-            Expr::ListAccess { list, index } => {
-                let VExprTyped { expr, expr_type } = self.calculate_access_by_index(list, index)?;
-                Ok((expr, expr_type))
-            }
+            Expr::ListAccess { list, index } => self.calculate_access_by_index(list, index),
             Expr::FieldAccess { object, field } => {
                 let object_calculated = self.verify_expr(object, None)?;
                 match &object_calculated.expr_type {
@@ -434,11 +424,11 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                         let object_definition = &self.aggregate.types[type_symbol];
                         let field_type = self.resolve_field(object_definition, field)?;
 
-                        let vexpr = VExpr::AccessField {
+                        let expr = VExpr::AccessField {
                             object: Box::new(object_calculated),
                             field: field.clone(),
                         };
-                        Ok((vexpr, field_type.clone()))
+                        Ok(VExprTyped { expr, expr_type: field_type.clone() })
                     }
                     _ => to_dyn(expression_error!(
                         expr,
@@ -476,9 +466,9 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 let object_definition = self.aggregate.types.get(func_type).unwrap();
                 let field_type = self.resolve_field(object_definition, field)?;
 
-                let vexpr =
+                let expr =
                     VExpr::AccessField { object: Box::new(this_object), field: field.clone() };
-                Ok((vexpr, field_type.clone()))
+                Ok(VExprTyped { expr, expr_type: field_type.clone() })
             }
 
             // Expr::SpawnActive { typename, args } => {
@@ -493,10 +483,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
             // }
             Expr::SpawnActive { .. } => todo!("Expression SpawnActive is not yet done!"),
             Expr::Nil => match expected {
-                Some(Type::Maybe(i)) => {
-                    let q = dummy_maybe(i.as_ref());
-                    Ok((q.expr, q.expr_type))
-                }
+                Some(Type::Maybe(i)) => Ok(dummy_maybe(i.as_ref())),
                 Some(t) => {
                     return to_dyn(expression_error!(
                         expr,
@@ -519,7 +506,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
         object: VExprTyped,
         method: &String,
         args: &[ExprWithPos],
-    ) -> Result<(VExpr, VerifiedType), Box<dyn ExprError>> {
+    ) -> Result<VExprTyped, Box<dyn ExprError>> {
         let std_method: Box<RawFunction>;
         let raw_method = match &object.expr_type {
             Type::Tuple(..) => {
@@ -537,10 +524,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 std_method.as_ref()
             }
         };
-        // TODO: check if maybe type
-        let f_call = self.calculate_function_call(raw_method, args, Some(object));
-        let VExprTyped { expr, expr_type } = f_call?;
-        Ok((expr, expr_type))
+        self.calculate_function_call(raw_method, args, Some(object))
     }
 
     fn calculate_function_call(
@@ -588,7 +572,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
         &self,
         object: &ExprWithPos,
         index: &ExprWithPos,
-    ) -> Result<VExprTyped, ExprCheckError> {
+    ) -> Result<VExprTyped, Box<dyn ExprError>> {
         let calculated_object = self.verify_expr(object, None)?;
 
         match calculated_object.expr_type.clone() {
@@ -630,7 +614,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
         &self,
         left_og: &ExprWithPos,
         right_og: &ExprWithPos,
-    ) -> Result<VExprTyped, ExprCheckError> {
+    ) -> Result<VExprTyped, Box<dyn ExprError>> {
         if left_og.expr == Expr::Nil {
             if right_og.expr == Expr::Nil {
                 return Ok(VExprTyped { expr: VExpr::Bool(true), expr_type: Type::Bool });
