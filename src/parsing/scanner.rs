@@ -220,6 +220,7 @@ fn scan_and_add_token(scanner: &mut Scanner) -> Result<(), ScanningError> {
             {
                 scanner.add_token(Token::Question)
             } else {
+                println!("{:?}", next_char);
                 return Err((
                     "Symbol is not allowed right after questionmark",
                     scanner.position - 1,

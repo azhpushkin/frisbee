@@ -12,9 +12,13 @@
 * check how everything works when there is multiple values with same name (for i in ...)
 * check break and continue in loop only!
 * check and implement something for cases when index is bigger than list
+* Implement plus for lists
 * check that initial list size is no more than 255
 * check different variations of tuple typecheck (items should match)
 * check that void and empty tuple cant be nillable in any way
+* check assign to maybe tuple, e.g.
+    `(Int, (Int, Bool))? a; a = (1, (1, true)); a[1][1] = 2;`
+    meaning that if we know that certain part of local is not nil, we can assign INTO it
 * check that double-negate is reduced away from ast and works fine
 * check operator precedence and grouping way
 * check different variations of name collisions with (for i in ..)

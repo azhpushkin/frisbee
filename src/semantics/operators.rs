@@ -39,7 +39,7 @@ pub fn calculate_binaryop(
     right: VExprTyped,
 ) -> Result<VExprTyped, String> {
     let binaryop_error = format!(
-        "Cant apply {:?} to {} and {}",
+        "Cannot apply {:?} to `{}` and `{}`",
         &operator, &left.expr_type, &right.expr_type
     );
 

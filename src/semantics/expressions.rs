@@ -91,7 +91,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
         self.aggregate
             .functions
             .get(&method_func)
-            .ok_or_else(|| format!("No method {} in type {}", method, t))
+            .ok_or_else(|| format!("No method `{}` in type `{}`", method, t))
     }
 
     fn resolve_field<'q>(&self, t: &'q CustomType, f: &str) -> Result<&'q VerifiedType, String> {
@@ -99,7 +99,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
             .iter()
             .find(|(name, _)| *name == f)
             .map(|(_, t)| t)
-            .ok_or_else(|| format!("No field {} in type {}", f, t.name))
+            .ok_or_else(|| format!("No field `{}` in type `{}`", f, t.name))
     }
 
     fn request_temp(&self, expr_to_store: VExprTyped, seed: usize) -> String {
@@ -259,7 +259,11 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                         item_types = expected_item_types.clone();
                     }
                     Some(t) => {
-                        return expression_error!(expr, "Unexpected tuple value (expected {})", t)
+                        return expression_error!(
+                            expr,
+                            "Unexpected tuple value (expected `{}`)",
+                            expected.unwrap()
+                        )
                     }
                 }
                 if_as_expected(
@@ -282,7 +286,11 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                     .map_err(&with_expr)
                 }
                 Some(t) => {
-                    return expression_error!(expr, "Unexpected list value (expected {})", t)
+                    return expression_error!(
+                        expr,
+                        "Unexpected list value (expected `{}`)",
+                        expected.unwrap()
+                    )
                 }
                 None => return expression_error!(expr, "Can't figure out list type over here!"),
             },
@@ -292,7 +300,11 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                     None => None,
                     Some(Type::List(item_type)) => Some(item_type.as_ref()),
                     Some(t) => {
-                        return expression_error!(expr, "Unexpected list value (expected {})", t)
+                        return expression_error!(
+                            expr,
+                            "Unexpected list value (expected `{}`)",
+                            expected.unwrap()
+                        )
                     }
                 };
                 let calculated_items: SemanticResult<Vec<_>> = items
@@ -308,7 +320,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 if let Some(pair) = mismatched_pair {
                     return expression_error!(
                         expr,
-                        "All items in list must be of same type, but both {} and {} are found",
+                        "All items in list must be of same type, but both `{}` and `{}` are found",
                         pair[0].expr_type,
                         pair[1].expr_type
                     );
@@ -344,7 +356,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                     _ => {
                         expression_error!(
                             expr,
-                            "Accessing fields for type {} is prohobited",
+                            "Accessing fields for type `{}` is prohobited",
                             object_calculated.expr_type
                         )
                     }
@@ -410,7 +422,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 Some(t) => {
                     return expression_error!(
                         expr,
-                        "`nil` is only allowed as a maybe type (expected `{}`)",
+                        "`nil` is only allowed for maybe types (expected `{}`)",
                         t
                     )
                 }
@@ -439,7 +451,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
         if given_args.len() != expected_args.len() {
             return expression_error!(
                 original,
-                "Function {} expects {} arguments, but {} given",
+                "Function `{}` expects {} arguments, but {} given",
                 raw_called.short_name,
                 expected_args.len(),
                 given_args.len(),
@@ -505,7 +517,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
             }
             t => expression_error!(
                 object,
-                "Only lists and tuples implement index access (got {})",
+                "Only lists and tuples implement index access (got `{}`)",
                 t
             ),
         }
@@ -529,7 +541,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
             if !matches!(&left_calculated.expr_type, &Type::Maybe(_)) {
                 return expression_error!(
                     right_og,
-                    "Cannot compare `nil` with type {} (must be maybe type)",
+                    "Cannot compare `nil` with type `{}` (must be maybe type)",
                     left_calculated.expr_type
                 );
             }
