@@ -139,6 +139,10 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
     }
 
     fn request_temp(&self, expr_to_store: VExprTyped, seed: usize) -> String {
+        // If value is already stored - no need to create new temp
+        if let VExpr::GetVar(i) = expr_to_store.expr {
+            return i.clone();
+        }
         let name = format!("$temp_{}", seed);
         self.required_temps.borrow_mut().push((name.clone(), expr_to_store));
         name
