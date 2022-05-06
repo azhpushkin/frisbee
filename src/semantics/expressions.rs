@@ -14,7 +14,7 @@ use super::operators::{calculate_binaryop, calculate_unaryop, wrap_binary};
 use super::resolvers::SymbolResolver;
 use super::std_definitions::{get_std_function_raw, get_std_method, is_std_function};
 
-macro_rules! unwrapped_maybe_err {
+macro_rules! unwrapped_if_maybe {
     ($expr:expr) => {
         (match $expr {
             Some(Type::Maybe(i)) => Some(i.as_ref()),
@@ -52,6 +52,36 @@ impl From<SemanticError> for Box<dyn ExprError> {
 impl From<Box<SemanticError>> for Box<dyn ExprError> {
     fn from(s: Box<SemanticError>) -> Self {
         s as Box<dyn ExprError>
+    }
+}
+
+fn get_temp(n: &str, t: &VerifiedType) -> VExprTyped {
+    VExprTyped {
+        expr: VExpr::GetVar(n.into()),
+        expr_type: Type::Maybe(Box::new(t.clone())),
+    }
+}
+fn get_flag(n: &str, t: &VerifiedType) -> VExprTyped {
+    VExprTyped {
+        expr: VExpr::AccessTupleItem { tuple: Box::new(get_temp(n, t)), index: 0 },
+        expr_type: Type::Bool,
+    }
+}
+fn get_value(n: &str, t: &VerifiedType) -> VExprTyped {
+    VExprTyped {
+        expr: VExpr::AccessTupleItem { tuple: Box::new(get_temp(n, t)), index: 1 },
+        expr_type: t.clone(),
+    }
+}
+
+fn dummy_maybe(inner: &VerifiedType) -> VExprTyped {
+    let tuple_items = vec![
+        VExprTyped { expr: VExpr::Bool(false), expr_type: Type::Bool },
+        VExprTyped { expr: VExpr::Dummy(inner.clone()), expr_type: inner.clone() },
+    ];
+    VExprTyped {
+        expr: VExpr::TupleValue(tuple_items),
+        expr_type: Type::Maybe(Box::new(inner.clone())),
     }
 }
 
@@ -233,38 +263,43 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 Ok((expr, expr_type))
             }
             Expr::MethodCall { object, method, args } => {
-                let le_object = self.verify_expr(object, None)?;
+                let object = self.verify_expr(object, None)?;
+                self.calculate_method_call(object, method, args)
+            }
+            Expr::MaybeMethodCall { object, method, args } => {
+                let ve_object = self.verify_expr(object, None)?;
 
-                let std_method: Box<RawFunction>;
-                let raw_method = match &le_object.expr_type {
-                    Type::Tuple(..) => {
-                        return to_dyn(expression_error!(expr, "Tuples have no methods"))
-                    }
-                    Type::Maybe(..) => {
+                let inner_type = match &ve_object.expr_type {
+                    Type::Maybe(t) => t.as_ref(),
+                    t => {
                         return to_dyn(expression_error!(
                             expr,
-                            "Use ?. operator to access methods for Maybe type",
+                            "?. operator to can only be used on Maybe types, got {}",
+                            t
                         ));
                     }
-
-                    Type::Custom(symbol_type) => self.resolve_method(&symbol_type, method)?,
-                    t => {
-                        std_method = get_std_method(t, method)?;
-                        std_method.as_ref()
-                    }
                 };
-                // TODO: check if maybe type
-                let f_call = self.calculate_function_call(raw_method, args, Some(le_object));
-                let VExprTyped { expr, expr_type } = f_call?;
-                Ok((expr, expr_type))
-            }
-            Expr::MaybeMethodCall { .. } => {
+                let inner_type = inner_type.clone();
+                let temp = self.request_temp(ve_object, object.pos_first);
+                let method_call =
+                    self.calculate_method_call(get_value(&temp, &inner_type), method, args)?;
+                let method_return_type = unwrapped_if_maybe!(Some(&method_call.1)).unwrap().clone();
+
+                // Ok(VExprTyped {
+                //     expr: VExpr::TernaryOp {
+                //         condition: Box::new(get_flag(&temp, &inner_type)),
+                //         if_true: Box::new(VExprTyped {
+                //             expr: method_call.0,
+                //             expr_type: method_call.1,
+                //         }),
+                //         if_false: Box::new(VExprTyped {
+                //             expr: VExpr::Dummy(i.as_ref().clone()),
+                //             expr_type: i.as_ref().clone(),
+                //         }),
+                //     },
+                //     expr_type: inner_type.clone(),
+                // });
                 todo!();
-                // let ve_object = self.calculate(object, None)?;
-                // let inner_type = match ve_object.expr_type {
-                //     Type::Maybe(t) => t.as_ref(),
-                //     _ => return expression_error!(expr, "?. operator to can only be used on Maybe types"),
-                // };
             }
             Expr::OwnMethodCall { method, args } => {
                 let type_of_func = match &self.func.method_of {
@@ -298,7 +333,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
             Expr::TupleValue(items) => {
                 let item_types: Vec<VerifiedType>;
                 let calculated: Vec<VExprTyped>;
-                match unwrapped_maybe_err!(expected) {
+                match unwrapped_if_maybe!(expected) {
                     None => {
                         let calculated_result: Result<Vec<_>, _> =
                             items.iter().map(|item| self.verify_expr(item, None)).collect();
@@ -324,7 +359,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 }
                 Ok((VExpr::TupleValue(calculated), Type::Tuple(item_types)))
             }
-            Expr::ListValue(items) if items.is_empty() => match unwrapped_maybe_err!(expected) {
+            Expr::ListValue(items) if items.is_empty() => match unwrapped_if_maybe!(expected) {
                 // Case when list is empty, so expected will be always OK if it is list
                 Some(Type::List(item_type)) => {
                     let item_type = item_type.as_ref().clone();
@@ -350,7 +385,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
             },
             Expr::ListValue(items) => {
                 // Due to previous check, we know that in this branch items are not empty
-                let expected_item_type = match unwrapped_maybe_err!(expected) {
+                let expected_item_type = match unwrapped_if_maybe!(expected) {
                     None => None,
                     Some(Type::List(item_type)) => Some(item_type.as_ref()),
                     Some(_) => {
@@ -459,14 +494,8 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
             Expr::SpawnActive { .. } => todo!("Expression SpawnActive is not yet done!"),
             Expr::Nil => match expected {
                 Some(Type::Maybe(i)) => {
-                    let tuple_items = vec![
-                        VExprTyped { expr: VExpr::Bool(false), expr_type: Type::Bool },
-                        VExprTyped {
-                            expr: VExpr::Dummy(i.as_ref().clone()),
-                            expr_type: i.as_ref().clone(),
-                        },
-                    ];
-                    Ok((VExpr::TupleValue(tuple_items), expected.unwrap().clone()))
+                    let q = dummy_maybe(i.as_ref());
+                    Ok((q.expr, q.expr_type))
                 }
                 Some(t) => {
                     return to_dyn(expression_error!(
@@ -483,6 +512,35 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 }
             },
         }
+    }
+
+    fn calculate_method_call(
+        &self,
+        object: VExprTyped,
+        method: &String,
+        args: &[ExprWithPos],
+    ) -> Result<(VExpr, VerifiedType), Box<dyn ExprError>> {
+        let std_method: Box<RawFunction>;
+        let raw_method = match &object.expr_type {
+            Type::Tuple(..) => {
+                return Err(Box::new(format!("Tuples have no methods")));
+            }
+            Type::Maybe(..) => {
+                return Err(Box::new(format!(
+                    "Use ?. operator to access methods for Maybe type"
+                )));
+            }
+
+            Type::Custom(symbol_type) => self.resolve_method(&symbol_type, method)?,
+            t => {
+                std_method = get_std_method(t, method)?;
+                std_method.as_ref()
+            }
+        };
+        // TODO: check if maybe type
+        let f_call = self.calculate_function_call(raw_method, args, Some(object));
+        let VExprTyped { expr, expr_type } = f_call?;
+        Ok((expr, expr_type))
     }
 
     fn calculate_function_call(
@@ -615,18 +673,6 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
         // is in fact unwrapped into two operators: (Int?[0] and Int?[1] == Int)
         // (check flag, then check value)
 
-        let get_temp = |n: &str, t: &VerifiedType| VExprTyped {
-            expr: VExpr::GetVar(n.into()),
-            expr_type: Type::Maybe(Box::new(t.clone())),
-        };
-        let get_flag = |n, t: &VerifiedType| VExprTyped {
-            expr: VExpr::AccessTupleItem { tuple: Box::new(get_temp(n, t)), index: 0 },
-            expr_type: Type::Bool,
-        };
-        let get_value = |n, t: &VerifiedType| VExprTyped {
-            expr: VExpr::AccessTupleItem { tuple: Box::new(get_temp(n, t)), index: 1 },
-            expr_type: t.clone(),
-        };
         let get_eq_op = |t: &VerifiedType, err_msg| match t {
             Type::Int => Ok(RawOperator::EqualInts),
             Type::Float => Ok(RawOperator::EqualFloats),
@@ -735,24 +781,10 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
         let inner_type = right.expr_type.clone();
         let left_temp = self.request_temp(left, seed);
 
-        let get_index_of_temp = |i| VExpr::AccessTupleItem {
-            tuple: Box::new(VExprTyped {
-                expr: VExpr::GetVar(left_temp.clone()),
-                expr_type: Type::Maybe(Box::new(inner_type.clone())),
-            }),
-            index: i,
-        };
-
         return Ok(VExprTyped {
             expr: VExpr::TernaryOp {
-                condition: Box::new(VExprTyped {
-                    expr: get_index_of_temp(0),
-                    expr_type: Type::Bool,
-                }),
-                if_true: Box::new(VExprTyped {
-                    expr: get_index_of_temp(1),
-                    expr_type: inner_type.clone(),
-                }),
+                condition: Box::new(get_flag(&left_temp, &inner_type)),
+                if_true: Box::new(get_value(&left_temp, &inner_type)),
                 if_false: Box::new(right),
             },
             expr_type: inner_type.clone(),
