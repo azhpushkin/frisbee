@@ -44,11 +44,6 @@ impl From<String> for Box<dyn ExprError> {
         Box::new(s) as Box<dyn ExprError>
     }
 }
-impl From<Box<String>> for Box<dyn ExprError> {
-    fn from(s: Box<String>) -> Self {
-        s as Box<dyn ExprError>
-    }
-}
 impl From<SemanticError> for Box<dyn ExprError> {
     fn from(e: SemanticError) -> Self {
         Box::new(e) as Box<dyn ExprError>
@@ -120,27 +115,27 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
         }
     }
 
-    fn resolve_func(&self, name: &str) -> Result<&'a RawFunction, Box<String>> {
-        let func = (self.func_resolver)(name).map_err(Box::new)?;
+    fn resolve_func(&self, name: &str) -> Result<&'a RawFunction, String> {
+        let func = (self.func_resolver)(name)?;
         // TODO: check for errors to be sure
         // Resolver oly returns verified functions so it is safe to unwrap from aggregate
         Ok(self.aggregate.functions.get(&func).unwrap())
     }
 
-    fn resolve_method(&self, t: &SymbolType, method: &str) -> Result<&'a RawFunction, Box<String>> {
+    fn resolve_method(&self, t: &SymbolType, method: &str) -> Result<&'a RawFunction, String> {
         let method_func: SymbolFunc = t.method(method);
         self.aggregate
             .functions
             .get(&method_func)
-            .ok_or_else(|| Box::new(format!("No method `{}` in type `{}`", method, t)))
+            .ok_or_else(|| format!("No method `{}` in type `{}`", method, t))
     }
 
-    fn resolve_field<'q>(&self, t: &'q CustomType, f: &str) -> Result<&'q VerifiedType, Box<String>> {
+    fn resolve_field<'q>(&self, t: &'q CustomType, f: &str) -> Result<&'q VerifiedType, String> {
         t.fields
             .iter()
             .find(|(name, _)| *name == f)
             .map(|(_, t)| t)
-            .ok_or_else(|| Box::new(format!("No field `{}` in type `{}`", f, t.name)))
+            .ok_or_else(|| format!("No field `{}` in type `{}`", f, t.name))
     }
 
     fn request_temp(&self, expr_to_store: VExprTyped, seed: usize) -> String {
@@ -157,8 +152,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
         let (v_expr, expr_type) = self
             .calculate(expr, expected)
             .map_err(|err| err.add_expr_info(expr))?;
-        if_as_expected(expected, &expr_type, v_expr)
-            .map_err(|e| Box::new(SemanticError::add_expr(expr)(e)))
+        if_as_expected(expected, &expr_type, v_expr).map_err(|e| (&e).add_expr_info(expr))
     }
 
     fn calculate<'e>(
@@ -173,23 +167,28 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
             Expr::String(s) => Ok((VExpr::String(s.clone()), Type::String)),
 
             Expr::Identifier(i) => {
-                let (identifier_type, real_name) =
-                    self.locals.borrow().get_variable(i)?;
+                let (identifier_type, real_name) = self.locals.borrow().get_variable(i)?;
                 if self.insights.is_uninitialized(i) {
-                    return  err(expression_error!(expr, "Variable `{}` might be uninitialized here", i));
+                    return err(expression_error!(
+                        expr,
+                        "Variable `{}` might be uninitialized here",
+                        i
+                    ));
                 }
 
                 Ok((VExpr::GetVar(real_name), identifier_type))
             }
             Expr::This => match &self.func.method_of {
                 Some(t) => Ok((VExpr::GetVar("this".into()), Type::Custom(t.clone()))),
-                None => err(expression_error!(expr, "Using \"this\" is not allowed outside of methods")),
+                None => err(expression_error!(
+                    expr,
+                    "Using \"this\" is not allowed outside of methods"
+                )),
             },
 
             Expr::UnaryOp { op, operand } => {
                 let operand = self.verify_expr(operand, None)?;
-                let VExprTyped { expr, expr_type } =
-                    calculate_unaryop(op, operand)?;
+                let VExprTyped { expr, expr_type } = calculate_unaryop(op, operand)?;
                 Ok((expr, expr_type))
             }
             Expr::BinOp { left, right, op }
@@ -223,8 +222,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                     let std_raw = get_std_function_raw(function);
                     self.calculate_function_call(expr, &std_raw, expected, args, None)
                 } else {
-                    let raw_called =
-                        self.resolve_func(function)?;
+                    let raw_called = self.resolve_func(function)?;
                     self.calculate_function_call(expr, raw_called, expected, args, None)
                 };
                 let VExprTyped { expr, expr_type } = f_call?;
@@ -235,7 +233,9 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
 
                 let std_method: Box<RawFunction>;
                 let raw_method = match &le_object.expr_type {
-                    Type::Tuple(..) => return err(expression_error!(expr, "Tuples have no methods")),
+                    Type::Tuple(..) => {
+                        return err(expression_error!(expr, "Tuples have no methods"))
+                    }
                     Type::Maybe(..) => {
                         return err(expression_error!(
                             expr,
@@ -243,16 +243,15 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                         ));
                     }
 
-                    Type::Custom(symbol_type) => {
-                        self.resolve_method(&symbol_type, method)?
-                    }
+                    Type::Custom(symbol_type) => self.resolve_method(&symbol_type, method)?,
                     t => {
                         std_method = get_std_method(t, method)?;
                         std_method.as_ref()
                     }
                 };
                 // TODO: check if maybe type
-                let f_call = self.calculate_function_call(expr, raw_method, expected, args, Some(le_object));
+                let f_call =
+                    self.calculate_function_call(expr, raw_method, expected, args, Some(le_object));
                 let VExprTyped { expr, expr_type } = f_call?;
                 Ok((expr, expr_type))
             }
@@ -267,7 +266,12 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
             Expr::OwnMethodCall { method, args } => {
                 let type_of_func = match &self.func.method_of {
                     Some(t) => t,
-                    _ => return err(expression_error!(expr, "Calling own method outside of class!")),
+                    _ => {
+                        return err(expression_error!(
+                            expr,
+                            "Calling own method outside of class!"
+                        ))
+                    }
                 };
                 // TODO: review exprwithpos for this, maybe too strange tbh
                 let this_object = self.verify_expr(
@@ -275,17 +279,22 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                     None,
                 )?;
                 let raw_method = self.resolve_method(type_of_func, method)?;
-                let f_call = self.calculate_function_call(expr, raw_method, expected, args, Some(this_object));
+                let f_call = self.calculate_function_call(
+                    expr,
+                    raw_method,
+                    expected,
+                    args,
+                    Some(this_object),
+                );
                 let VExprTyped { expr, expr_type } = f_call?;
                 Ok((expr, expr_type))
             }
             Expr::NewClassInstance { typename, args } => {
-                let symbol =
-                    &(self.type_resolver)(typename)?;
+                let symbol = &(self.type_resolver)(typename)?;
                 let raw_type = &self.aggregate.types[symbol];
-                let raw_constructor =
-                    self.resolve_method(&raw_type.name, typename)?;
-                let f_call = self.calculate_function_call(expr, raw_constructor, expected, args, None);
+                let raw_constructor = self.resolve_method(&raw_type.name, typename)?;
+                let f_call =
+                    self.calculate_function_call(expr, raw_constructor, expected, args, None);
                 let VExprTyped { expr, expr_type } = f_call?;
                 Ok((expr, expr_type))
             }
@@ -324,7 +333,10 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 Some(Type::List(item_type)) => {
                     let item_type = item_type.as_ref().clone();
 
-                    Ok((VExpr::ListValue { item_type: item_type.clone(), items: vec![] }, Type::List(Box::new(item_type.clone()))))
+                    Ok((
+                        VExpr::ListValue { item_type: item_type.clone(), items: vec![] },
+                        Type::List(Box::new(item_type.clone())),
+                    ))
                 }
                 Some(_) => {
                     return err(expression_error!(
@@ -333,7 +345,12 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                         expected.unwrap()
                     ))
                 }
-                None => return err(expression_error!(expr, "Can't figure out list type over here!")),
+                None => {
+                    return err(expression_error!(
+                        expr,
+                        "Can't figure out list type over here!"
+                    ))
+                }
             },
             Expr::ListValue(items) => {
                 // Due to previous check, we know that in this branch items are not empty
@@ -372,11 +389,11 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
 
                 Ok((
                     VExpr::ListValue { item_type: item_type.clone(), items: calculated_items },
-                    Type::List(Box::new(item_type.clone()))
+                    Type::List(Box::new(item_type.clone())),
                 ))
             }
             Expr::ListAccess { list, index } => {
-                let VExprTyped { expr, expr_type } = self.calculate_access_by_index(expr, list, index, expected)?;
+                let VExprTyped { expr, expr_type } = self.calculate_access_by_index(list, index)?;
                 Ok((expr, expr_type))
             }
             Expr::FieldAccess { object, field } => {
@@ -384,8 +401,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 match &object_calculated.expr_type {
                     Type::Custom(type_symbol) => {
                         let object_definition = &self.aggregate.types[type_symbol];
-                        let field_type =
-                            self.resolve_field(object_definition, field)?;
+                        let field_type = self.resolve_field(object_definition, field)?;
 
                         let vexpr = VExpr::AccessField {
                             object: Box::new(object_calculated),
@@ -393,19 +409,20 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                         };
                         Ok((vexpr, field_type.clone()))
                     }
-                    _ => {
-                        err(expression_error!(
-                            expr,
-                            "Accessing fields for type `{}` is prohobited",
-                            object_calculated.expr_type
-                        ))
-                    }
+                    _ => err(expression_error!(
+                        expr,
+                        "Accessing fields for type `{}` is prohobited",
+                        object_calculated.expr_type
+                    )),
                 }
             }
             Expr::OwnFieldAccess { field } => {
                 let func_type = match &self.func.method_of {
                     Some(t) => t,
-                    _ => err(expression_error!(expr, "Accessing own field outside of method func!"))?,
+                    _ => err(expression_error!(
+                        expr,
+                        "Accessing own field outside of method func!"
+                    ))?,
                 };
                 if self.func.is_constructor && !self.insights.initialized_own_fields.contains(field)
                 {
@@ -426,8 +443,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 )?;
 
                 let object_definition = self.aggregate.types.get(func_type).unwrap();
-                let field_type =
-                    self.resolve_field(object_definition, field)?;
+                let field_type = self.resolve_field(object_definition, field)?;
 
                 let vexpr =
                     VExpr::AccessField { object: Box::new(this_object), field: field.clone() };
@@ -464,7 +480,10 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                     ))
                 }
                 None => {
-                    return err(expression_error!(expr, "`nil` is not allowed here (can't derive type)"))
+                    return err(expression_error!(
+                        expr,
+                        "`nil` is not allowed here (can't derive type)"
+                    ))
                 }
             },
         }
@@ -510,35 +529,34 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
             return_type: raw_called.return_type.clone(),
             args: processed_args,
         };
-        Ok(VExprTyped{ expr: vexpr_call, expr_type: raw_called.return_type.clone() })
+        Ok(VExprTyped { expr: vexpr_call, expr_type: raw_called.return_type.clone() })
     }
 
     fn calculate_access_by_index(
         &self,
-        original: &ExprWithPos,
         object: &ExprWithPos,
         index: &ExprWithPos,
-        expected: Option<&VerifiedType>,
     ) -> Result<VExprTyped, ExprCheckError> {
         let calculated_object = self.verify_expr(object, None)?;
 
         match calculated_object.expr_type.clone() {
             Type::Tuple(item_types) => match index.expr {
-                Expr::Int(i) if i >= item_types.len() as i64 => {
-                    err(expression_error!(
-                        index,
-                        "Index of tuple is out of bounds (must be between 0 and {})",
-                        item_types.len()
-                    ))
-                }
+                Expr::Int(i) if i >= item_types.len() as i64 => err(expression_error!(
+                    index,
+                    "Index of tuple is out of bounds (must be between 0 and {})",
+                    item_types.len()
+                )),
                 Expr::Int(i) => {
                     let vexpr = VExpr::AccessTupleItem {
                         tuple: Box::new(calculated_object),
                         index: i as usize,
                     };
-                    Ok(VExprTyped{ expr: vexpr, expr_type: item_types[i as usize].clone() })
+                    Ok(VExprTyped { expr: vexpr, expr_type: item_types[i as usize].clone() })
                 }
-                _ => err(expression_error!(index, "Only integer allowed in tuple access!")),
+                _ => err(expression_error!(
+                    index,
+                    "Only integer allowed in tuple access!"
+                )),
             },
             Type::List(inner) => {
                 let calculated_index = self.verify_expr(index, Some(&Type::Int))?;
@@ -546,7 +564,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                     list: Box::new(calculated_object),
                     index: Box::new(calculated_index),
                 };
-                Ok(VExprTyped {expr: new_expr, expr_type: inner.as_ref().clone()})
+                Ok(VExprTyped { expr: new_expr, expr_type: inner.as_ref().clone() })
             }
             t => err(expression_error!(
                 object,
@@ -628,8 +646,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 if left_inner != right_inner {
                     return err(expression_error!(left_og, "{}", is_eq_error_msg));
                 }
-                let op = get_eq_op(&left_inner, is_eq_error_msg)
-                    .map_err(SemanticError::add_expr(left_og))?;
+                let op = get_eq_op(&left_inner, is_eq_error_msg)?;
 
                 let left_temp = self.request_temp(left, left_og.pos_first);
                 let right_temp = self.request_temp(right, right_og.pos_first);
@@ -670,8 +687,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 if left_inner.as_ref() != &rt {
                     return err(expression_error!(left_og, "{}", is_eq_error_msg));
                 }
-                let op = get_eq_op(&left_inner, is_eq_error_msg)
-                    .map_err(SemanticError::add_expr(left_og))?;
+                let op = get_eq_op(&left_inner, is_eq_error_msg)?;
 
                 let left_temp = self.request_temp(left, left_og.pos_first);
 
@@ -694,8 +710,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 ));
             }
             (_, _) => {
-                let op = get_eq_op(&left.expr_type, is_eq_error_msg)
-                    .map_err(SemanticError::add_expr(left_og))?;
+                let op = get_eq_op(&left.expr_type, is_eq_error_msg)?;
                 Ok(wrap_binary(op, vec![left, right], Type::Bool))
             }
         }

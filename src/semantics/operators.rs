@@ -2,17 +2,14 @@ use crate::ast::parsed::{BinaryOp, UnaryOp};
 use crate::ast::verified::{RawOperator, VExpr, VExprTyped};
 use crate::types::{Type, VerifiedType};
 
-pub fn calculate_unaryop(
-    operator: &UnaryOp,
-    operand: VExprTyped,
-) -> Result<VExprTyped, Box<String>> {
+pub fn calculate_unaryop(operator: &UnaryOp, operand: VExprTyped) -> Result<VExprTyped, String> {
     let exact_operator: RawOperator = match (operator, &operand.expr_type) {
         (UnaryOp::Negate, Type::Int) => RawOperator::UnaryNegateInt,
         (UnaryOp::Negate, Type::Float) => RawOperator::UnaryNegateFloat,
-        (UnaryOp::Negate, t) => return Err(Box::new(format!("Can't apply NEGATE to {} type", t))),
+        (UnaryOp::Negate, t) => return Err(format!("Can't apply NEGATE to {} type", t)),
 
         (UnaryOp::Not, Type::Bool) => RawOperator::UnaryNegateBool,
-        (UnaryOp::Not, t) => return Err(Box::new(format!("Can't apply NOT to {} type", t))),
+        (UnaryOp::Not, t) => return Err(format!("Can't apply NOT to {} type", t)),
     };
     let expr_type = operand.expr_type.clone();
 
@@ -40,7 +37,7 @@ pub fn calculate_binaryop(
     operator: &BinaryOp,
     left: VExprTyped,
     right: VExprTyped,
-) -> Result<VExprTyped, Box<String>> {
+) -> Result<VExprTyped, String> {
     let binaryop_error = format!(
         "Cannot apply {:?} to `{}` and `{}`",
         &operator, &left.expr_type, &right.expr_type
@@ -73,7 +70,7 @@ pub fn calculate_binaryop(
                 Type::Float => (RawOperator::AddFloats, Type::Float),
                 Type::String => (RawOperator::AddStrings, Type::String),
                 Type::List(_) => todo!("WOW i need to implement this to be fair"),
-                _ => return Err(Box::new(binaryop_error)),
+                _ => return Err(binaryop_error),
             }
         }
         BinaryOp::Minus => ensure_int_or_float(RawOperator::SubInts, RawOperator::SubFloats)?,
@@ -104,36 +101,14 @@ pub fn calculate_binaryop(
             ensure_same_types()?;
             (RawOperator::AndBools, Type::Bool)
         }
-        BinaryOp::And => return Err(Box::new(binaryop_error)),
+        BinaryOp::And => return Err(binaryop_error),
         BinaryOp::Or if matches!(left.expr_type, Type::Bool) => {
             ensure_same_types()?;
             (RawOperator::OrBools, Type::Bool)
         }
-        BinaryOp::Or => return Err(Box::new(binaryop_error)),
-        BinaryOp::IsEqual | BinaryOp::IsNotEqual => {
+        BinaryOp::Or => return Err(binaryop_error),
+        BinaryOp::IsEqual | BinaryOp::IsNotEqual | BinaryOp::Elvis => {
             unreachable!("Should be handled in ExpressionsVerifier")
-        }
-        BinaryOp::Elvis => {
-            todo!("Elvis not done yet!");
-            //     let inner_type = match &left.expr_type {
-            //         Type::Maybe(inner_type) => inner_type.as_ref(),
-            //         t => {
-            //             return Err(format!(
-            //                 "Expected Maybe type for elvis operator, got `{}`",
-            //                 t
-            //             ))
-            //         }
-            //     };
-            //     // TODO: what if the right part of elvis is confirmed via insights?
-            //     if &right.expr_type != inner_type {
-            //         return Err(format!(
-            //             "Right part of elvis must be `{}`, but got `{}`",
-            //             inner_type, &right.expr_type
-            //         ))
-            //     }
-            //     let condition = VExprTyped {
-            //         expr: VExpr::
-            //     }
         }
     };
 
