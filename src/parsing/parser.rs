@@ -469,8 +469,74 @@ impl<'a> Parser<'a> {
         }
     }
 
+    fn parse_function_call_args(&mut self) -> ParseResult<Vec<ExprWithPos>> {
+        if self.rel_token_check(1, Token::RightParenthesis) {
+            // Consume both left and right parenthesis
+            self.consume_token();
+            self.consume_token();
+            Ok(vec![])
+        } else {
+            // There is at least one expr here after check above
+            consume_and_check!(self, Token::LeftParenthesis);
+            let mut args_expr = vec![self.parse_expr()?];
+
+            while consume_if_matches_one_of!(self, [Token::Comma]) {
+                if self.rel_token_check(0, Token::RightParenthesis) {
+                    break;
+                }
+                args_expr.push(self.parse_expr()?);
+            }
+            consume_and_check!(self, Token::RightParenthesis);
+            Ok(args_expr)
+        }
+    }
+
     pub fn parse_expr(&mut self) -> ParseResult<ExprWithPos> {
-        self.parse_maybe_operators()
+        self.parse_elvis_operators()
+    }
+
+    fn parse_elvis_operators(&mut self) -> ParseResult<ExprWithPos> {
+        let start = self.position;
+        let mut res_expr = self.parse_expr_bool_operators()?;
+        while consume_if_matches_one_of!(self, [Token::QuestionElvis]) {
+            let right = self.parse_expr_bool_operators()?;
+            let inner = Expr::BinOp {
+                left: Box::new(res_expr),
+                right: Box::new(right),
+                op: BinaryOp::Elvis,
+            };
+            res_expr = self.expr_with_pos(inner, start, self.position - 1)?;
+        }
+
+        Ok(res_expr)
+    }
+
+    fn parse_expr_bool_operators(&mut self) -> ParseResult<ExprWithPos> {
+        let start = self.position;
+        let mut res_expr = self.parse_expr_equality()?;
+        while consume_if_matches_one_of!(self, [Token::And, Token::Or]) {
+            let op = bin_op_from_token(self.rel_token(-1));
+            let right = self.parse_expr_equality()?;
+
+            let inner = Expr::BinOp { left: Box::new(res_expr), right: Box::new(right), op };
+            res_expr = self.expr_with_pos(inner, start, self.position - 1)?;
+        }
+
+        Ok(res_expr)
+    }
+
+    fn parse_expr_equality(&mut self) -> ParseResult<ExprWithPos> {
+        let start = self.position;
+        let mut res_expr = self.parse_expr_comparison()?;
+        while consume_if_matches_one_of!(self, [Token::EqualEqual, Token::BangEqual]) {
+            let op = bin_op_from_token(self.rel_token(-1));
+            let right = self.parse_expr_comparison()?;
+
+            let inner = Expr::BinOp { left: Box::new(res_expr), right: Box::new(right), op };
+            res_expr = self.expr_with_pos(inner, start, self.position - 1)?;
+        }
+
+        Ok(res_expr)
     }
 
     fn parse_expr_comparison(&mut self) -> ParseResult<ExprWithPos> {
@@ -518,93 +584,34 @@ impl<'a> Parser<'a> {
         Ok(res_expr)
     }
 
-    fn parse_maybe_operators(&mut self) -> ParseResult<ExprWithPos> {
-        let start = self.position;
-        let mut res_expr = self.parse_expr_bool_operators()?;
-        while consume_if_matches_one_of!(self, [Token::QuestionElvis, Token::QuestionDot]) {
-            let inner;
-            if self.rel_token_check(-1, Token::QuestionElvis) {
-                let right = self.parse_expr_bool_operators()?;
-                inner = Expr::BinOp {
-                    left: Box::new(res_expr),
-                    right: Box::new(right),
-                    op: BinaryOp::Elvis,
-                };
-            } else {
-                let field_or_method = consume_and_check_ident!(self);
-                inner = Expr::MaybeMethodCall {
-                    object: Box::new(res_expr),
-                    method: field_or_method,
-                    args: self.parse_function_call_args()?,
-                };
-            }
-            res_expr = self.expr_with_pos(inner, start, self.position - 1)?;
-        }
-
-        Ok(res_expr)
-    }
-
-    fn parse_expr_bool_operators(&mut self) -> ParseResult<ExprWithPos> {
-        let start = self.position;
-        let mut res_expr = self.parse_expr_equality()?;
-        while consume_if_matches_one_of!(self, [Token::And, Token::Or]) {
-            let op = bin_op_from_token(self.rel_token(-1));
-            let right = self.parse_expr_equality()?;
-
-            let inner = Expr::BinOp { left: Box::new(res_expr), right: Box::new(right), op };
-            res_expr = self.expr_with_pos(inner, start, self.position - 1)?;
-        }
-
-        Ok(res_expr)
-    }
-
-    fn parse_expr_equality(&mut self) -> ParseResult<ExprWithPos> {
-        let start = self.position;
-        let mut res_expr = self.parse_expr_comparison()?;
-        while consume_if_matches_one_of!(self, [Token::EqualEqual, Token::BangEqual]) {
-            let op = bin_op_from_token(self.rel_token(-1));
-            let right = self.parse_expr_comparison()?;
-
-            let inner = Expr::BinOp { left: Box::new(res_expr), right: Box::new(right), op };
-            res_expr = self.expr_with_pos(inner, start, self.position - 1)?;
-        }
-
-        Ok(res_expr)
-    }
-
     fn parse_expr_unary(&mut self) -> ParseResult<ExprWithPos> {
         let start = self.position;
         if consume_if_matches_one_of!(self, [Token::Minus, Token::Not]) {
             let op = unary_op_from_token(self.rel_token(-1));
-            let operand = self.parse_method_or_field_access()?;
+            let operand = self.parse_maybe_method_call()?;
 
             let inner = Expr::UnaryOp { operand: Box::new(operand), op };
             return self.expr_with_pos(inner, start, self.position - 1);
         }
 
-        self.parse_method_or_field_access()
+        self.parse_maybe_method_call()
     }
 
-    fn parse_function_call_args(&mut self) -> ParseResult<Vec<ExprWithPos>> {
-        if self.rel_token_check(1, Token::RightParenthesis) {
-            // Consume both left and right parenthesis
-            self.consume_token();
-            self.consume_token();
-            Ok(vec![])
-        } else {
-            // There is at least one expr here after check above
-            consume_and_check!(self, Token::LeftParenthesis);
-            let mut args_expr = vec![self.parse_expr()?];
+    fn parse_maybe_method_call(&mut self) -> ParseResult<ExprWithPos> {
+        let start = self.position;
+        let mut res_expr = self.parse_method_or_field_access()?;
+        while consume_if_matches_one_of!(self, [Token::QuestionDot]) {
+            let field_or_method = consume_and_check_ident!(self);
+            let inner = Expr::MaybeMethodCall {
+                object: Box::new(res_expr),
+                method: field_or_method,
+                args: self.parse_function_call_args()?,
+            };
 
-            while consume_if_matches_one_of!(self, [Token::Comma]) {
-                if self.rel_token_check(0, Token::RightParenthesis) {
-                    break;
-                }
-                args_expr.push(self.parse_expr()?);
-            }
-            consume_and_check!(self, Token::RightParenthesis);
-            Ok(args_expr)
+            res_expr = self.expr_with_pos(inner, start, self.position - 1)?;
         }
+
+        Ok(res_expr)
     }
 
     fn parse_method_or_field_access(&mut self) -> ParseResult<ExprWithPos> {

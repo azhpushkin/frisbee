@@ -88,11 +88,7 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
             self.resolver.get_typenames_resolver(&self.func.defined_at),
             self.resolver.get_functions_resolver(&self.func.defined_at),
         );
-        let calculated_expr = expr_verified.verify_expr(expr, expected).map_err(
-            |e| {
-                *e
-            },
-        )?;
+        let calculated_expr = expr_verified.verify_expr(expr, expected).map_err(|e| *e)?;
         for (temp_name, temp_value) in expr_verified.required_temps.into_inner() {
             self.locals
                 .borrow_mut()

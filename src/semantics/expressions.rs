@@ -169,7 +169,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
         if let VExpr::GetVar(i) = expr_to_store.expr {
             return i.clone();
         }
-        let name = format!("$temp_{}", seed);
+        let name = format!("$temp{}_{}", self.required_temps.borrow().len(), seed);
         self.required_temps.borrow_mut().push((name.clone(), expr_to_store));
         name
     }
@@ -247,7 +247,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 };
 
                 let ve_right = self.verify_expr(right, Some(inner))?;
-                Ok(self.calculate_elvis(ve_left, ve_right, expr.pos_first)?)
+                Ok(self.calculate_elvis(ve_left, ve_right, left.pos_last)?)
             }
             Expr::BinOp { left, right, op } => Ok(calculate_binaryop(
                 op,
@@ -282,7 +282,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                     }
                 };
                 let inner_type = inner_type.clone();
-                let temp = self.request_temp(ve_object, object.pos_first);
+                let temp = self.request_temp(ve_object, object.pos_last);
                 let method_call =
                     self.calculate_method_call(get_value(&temp, &inner_type), method, args)?;
 
@@ -371,7 +371,6 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 })
             }
             Expr::ListValue(items) if items.is_empty() => {
-                println!("Got {:?}", unwrapped_if_maybe!(expected));
                 match unwrapped_if_maybe!(expected) {
                     // Case when list is empty, so expected will be always OK if it is list
                     Some(Type::List(item_type)) => {
@@ -693,7 +692,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 }
                 let op = get_eq_op(&left_inner, is_eq_error_msg)?;
 
-                let left_temp = self.request_temp(left, left_og.pos_first);
+                let left_temp = self.request_temp(left, left_og.pos_last);
                 let right_temp = self.request_temp(right, right_og.pos_first);
 
                 let are_both_false = wrap_binary(
