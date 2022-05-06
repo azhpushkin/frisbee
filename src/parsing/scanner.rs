@@ -129,8 +129,22 @@ fn identifier_to_token(s: String) -> Token {
 }
 
 fn scan_string(scanner: &mut Scanner, start: usize, quote: char) -> Result<(), ScanningError> {
+    let mut chars: Vec<char> = vec![];
+
     while !(scanner.is_finished() || scanner.check_ahead(0, quote)) {
-        scanner.consume_char();
+        let char = scanner.consume_char();
+        if char == '\\' {
+            match scanner.consume_char() {
+                'n' => chars.push('\n'),
+                't' => chars.push('\t'),
+                '\\' => chars.push('\\'),
+                '\'' => chars.push('\''),
+                '\"' => chars.push('\"'),
+                _ => return Err(("Unknown escape character", scanner.position - 1)),
+            }
+        } else {
+            chars.push(char);
+        }
         if scanner.char_ahead(0) == '\n' {
             return Err(("String must be terminated at the same newline!", start));
         }
@@ -138,7 +152,7 @@ fn scan_string(scanner: &mut Scanner, start: usize, quote: char) -> Result<(), S
     if scanner.is_finished() {
         return Err(("String is not terminated!", start));
     } else {
-        let content: String = scanner.chars[start + 1..scanner.position].iter().collect();
+        let content: String = chars.iter().collect();
         scanner.consume_char();
         scanner.add_token_with_position(Token::String(content), start);
     }

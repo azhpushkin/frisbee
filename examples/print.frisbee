@@ -3,6 +3,8 @@ fun void main() {
     println(2.to_string());
     println("This is not " + false.to_string());
     print("Line1\nLine2\n");
+    print("Double-Quote is \"\n");
+    print('\tSingle-Quote is \'\n');
     return;
 }
 
@@ -13,4 +15,6 @@ This is two: 2
 This is not false
 Line1
 Line2
+Double-Quote is "
+	Single-Quote is '
 ========== */
