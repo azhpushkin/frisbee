@@ -122,3 +122,104 @@ assert_semantic_check_is_fine!(
     }
     "#
 );
+
+
+assert_semantic_check_is_fine!(
+    normal_method_call_on_maybe_not_allowed,
+    r#"
+    ===== file: main.frisbee
+    fun void main() {
+        Int? i = nil;
+        i.to_string();  // ERR: Cannot call method `to_string` on `Int?`
+    }
+    "#
+);
+
+assert_semantic_check_is_fine!(
+    maybe_method_call_simple,
+    r#"
+    ===== file: main.frisbee
+    fun void main() {
+        Int? i = nil;
+        String? s = i?.to_string();
+        Int? a = i?.abs();
+    }
+    "#
+);
+
+assert_semantic_check_is_fine!(
+    maybe_method_call_and_elvis,
+    r#"
+    ===== file: main.frisbee
+    fun void main() {
+        Int? i = nil;
+        String s = i?.to_string() ?: "nil";
+        
+    }
+    "#
+);
+
+assert_semantic_check_is_fine!(
+    maybe_elvis_method_call,
+    r#"
+    ===== file: main.frisbee
+    fun void main() {
+        Int? i = nil;
+        String s = (i?:-1)?.to_string();
+    }
+    "#
+);
+
+assert_semantic_check_fails!(
+    maybe_method_on_non_maybe_fails,
+    r#"
+    ===== file: main.frisbee
+    fun void main() {
+        1?.to_string();  // ERR: 123
+    }
+    "#
+);
+
+assert_semantic_check_fails!(
+    maybe_method_on_nil_fails,
+    r#"
+    ===== file: main.frisbee
+    fun void main() {
+        nil?.to_string();  // ERR: cant decude type
+    }
+    "#
+);
+
+
+assert_semantic_check_is_fine!(
+    maybe_method_on_custom_type,
+    r#"
+    ===== file: main.frisbee
+    class Data {
+        Int x; Int y;
+        fun Int get_x() { return x; }
+        fun Int? get_x() { return x; }
+    }
+    fun void main() {
+        Data? d = Data(1, 2);
+
+        Int? x = d?.get_x();
+        Int? y = d?.get_y();
+    }
+    "#
+);
+
+assert_semantic_check_fails!(
+    maybe_method_on_void_function_is_still_void,
+    r#"
+    ===== file: main.frisbee
+    class Data {
+        fun void lol() {}
+    }
+    fun void main() {
+        Data? d = Data();
+        d?.lol();
+        Bool? q = d?.lol()?;
+    }
+    "#
+);
