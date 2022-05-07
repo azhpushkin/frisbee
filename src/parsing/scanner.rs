@@ -201,7 +201,7 @@ fn scan_and_add_token(scanner: &mut Scanner) -> Result<(), ScanningError> {
                 scanner.consume_char();
             } else if scanner.check_next('*') {
                 let is_commend_end = |s: &Scanner| s.check_ahead(0, '*') && s.check_ahead(1, '/');
-                while !scanner.is_finished() && !is_commend_end(&scanner) {
+                while !scanner.is_finished() && !is_commend_end(scanner) {
                     scanner.consume_char();
                 }
 

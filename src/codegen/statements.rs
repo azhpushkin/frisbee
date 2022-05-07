@@ -53,10 +53,10 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 // Push value before object, as we need to first pop a pointer
                 // to access the memory before writing value to it
                 self.push_expr(value);
-                self.push_expr(&object);
+                self.push_expr(object);
 
                 let field_offset = self.types_meta.get(object_type).field_offsets[field];
-                let tuple_offset = get_tuple_offset(&value.expr_type, &tuple_indexes);
+                let tuple_offset = get_tuple_offset(&value.expr_type, tuple_indexes);
 
                 self.push(op::SET_OBJ_FIELD);
                 self.push(field_offset + tuple_offset);
@@ -68,7 +68,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
                 self.push_expr(index);
                 self.push_expr(list);
 
-                let tuple_offset = get_tuple_offset(&list_type, &tuple_indexes);
+                let tuple_offset = get_tuple_offset(list_type, tuple_indexes);
 
                 self.push(op::SET_LIST_ITEM);
                 self.push(tuple_offset);

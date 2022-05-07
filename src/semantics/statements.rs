@@ -325,7 +325,7 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
 
                 let get_var = |locals: &RefCell<LocalVariables>, name: &str| {
                     let (t, n) = locals.borrow().get_variable(name).unwrap();
-                    VExprTyped { expr: VExpr::GetVar(n), expr_type: t.clone() }
+                    VExprTyped { expr: VExpr::GetVar(n), expr_type: t }
                 };
                 let int_expr = |i: i64| VExprTyped { expr: VExpr::Int(i), expr_type: Type::Int };
 
@@ -335,7 +335,7 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
                     value: int_expr(0),
                 });
                 self.emit_stmt(VStatement::AssignLocal {
-                    name: real_iterable_name.clone(),
+                    name: real_iterable_name,
                     tuple_indexes: vec![],
                     value: iterable_calculated,
                 });
@@ -359,20 +359,20 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
                     },
                 };
                 let get_by_index_from_iterable = VExprTyped {
-                    expr_type: item_type.clone(),
+                    expr_type: item_type,
                     expr: VExpr::AccessListItem {
                         list: Box::new(get_var(&self.locals, &iterable_name)),
                         index: Box::new(get_var(&self.locals, &index_name)),
                     },
                 };
                 let set_item_statement = VStatement::AssignLocal {
-                    name: real_item_name.clone(),
+                    name: real_item_name,
                     tuple_indexes: vec![],
                     value: get_by_index_from_iterable,
                 };
 
                 let increase_index_statement = VStatement::AssignLocal {
-                    name: real_index_name.clone(),
+                    name: real_index_name,
                     tuple_indexes: vec![],
                     value: VExprTyped {
                         expr_type: Type::Int,

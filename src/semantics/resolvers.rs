@@ -232,8 +232,8 @@ mod test {
         let modules_with_ast: Vec<_> = wp.iter().collect();
         let resolver = NameResolver::create(&modules_with_ast).unwrap();
 
-        let main_alias = ModuleAlias::new(&vec!["main".into()]);
-        let mod_alias = ModuleAlias::new(&vec!["mod".into()]);
+        let main_alias = ModuleAlias::new(&["main".into()]);
+        let mod_alias = ModuleAlias::new(&["mod".into()]);
 
         let main_types_resolver = resolver.get_typenames_resolver(&main_alias);
         assert_eq!(

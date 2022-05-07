@@ -27,7 +27,7 @@ impl WholeProgram {
     }
 }
 
-fn load_file<'a>(
+fn load_file(
     workdir: &PathBuf,
     module_path: &Vec<String>,
 ) -> Result<LoadedFile, (ModuleAlias, String, Box<dyn CompileError>)> {
@@ -60,7 +60,7 @@ fn load_file<'a>(
 }
 
 // TODO:  ensure both windows and Unix are working file
-pub fn load_program<'a>(
+pub fn load_program(
     entry_file_path: &Path,
 ) -> Result<WholeProgram, (ModuleAlias, String, Box<dyn CompileError>)> {
     let workdir = entry_file_path.parent().unwrap();

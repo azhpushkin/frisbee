@@ -108,7 +108,7 @@ fn noop(_stack: &mut [u64], _memory: &mut Heap) {
 }
 
 #[rustfmt::skip]
-pub static STD_RAW_FUNCTION_RUNNERS: [(&'static str, RawStdRunner); 21] = [
+pub static STD_RAW_FUNCTION_RUNNERS: [(&str, RawStdRunner); 21] = [
     ("std::print", std_print),
     ("std::println", std_println),
     ("std::range", std_range),

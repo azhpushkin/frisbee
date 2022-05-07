@@ -33,7 +33,7 @@ pub fn get_std_method(t: &VerifiedType, method_name: &str) -> Result<Box<RawFunc
 
     Ok(Box::new(RawFunction {
         name: SymbolFunc::new_std_method(t, method_name),
-        return_type: return_type.clone(),
+        return_type,
         args: TypedFields {
             types: args.clone(),
             names: args.iter().enumerate().map(|(i, _)| (i, "".into())).collect(),

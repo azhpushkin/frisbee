@@ -138,8 +138,8 @@ fn show_error(contents: &String, alias: &ModuleAlias, pos: ErrorCoordinates, err
 
 pub fn show_error_in_file(alias: &ModuleAlias, source: &String, error: Box<dyn CompileError>) {
     let (start, end) = error.get_position_window();
-    let error_window = adjust_error_window(&source, start, end);
+    let error_window = adjust_error_window(source, start, end);
     let error_msg = error.get_message();
 
-    show_error(&source, alias, error_window, error_msg)
+    show_error(source, alias, error_window, error_msg)
 }

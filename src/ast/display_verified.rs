@@ -8,12 +8,10 @@ impl fmt::Display for RawFunction {
             self.args.iter().map(|(name, t)| format!("{} {}", t, name)).collect();
         write!(
             f,
-            "fn {return} {name} ({args}) {{\n{loc_start}\n{locals}\n{loc_end}\n\n{body}\n }}",
+            "fn {return} {name} ({args}) {{\n    // LOCALS START\n{locals}\n    // LOCALS END\n\n{body}\n }}",
             return = self.return_type,
             name = self.name,
             args = args_repr.join(", "),
-            loc_start = "    // LOCALS START",
-            loc_end = "    // LOCALS END",
             locals = self
                 .locals
                 .iter()
@@ -91,7 +89,7 @@ impl VStatement {
             VStatement::Expression(e) => format!("{};", e.expr),
         };
         if with_ident {
-            res.split("\n")
+            res.split('\n')
                 .map(|s| format!("    {}", s))
                 .collect::<Vec<_>>()
                 .join("\n")

@@ -65,10 +65,10 @@ pub fn get_tuple_offset<T>(tuple_type: &Type<T>, tuple_indexes: &[usize]) -> u8 
 
 pub fn get_tuple_subitem_size<T>(tuple_type: &Type<T>, tuple_indexes: &[usize]) -> u8 {
     if tuple_indexes.is_empty() {
-        return get_type_size(tuple_type);
+        get_type_size(tuple_type)
     } else {
         return get_tuple_subitem_size(
-            &get_type_from_tuple(tuple_type, tuple_indexes[0]),
+            get_type_from_tuple(tuple_type, tuple_indexes[0]),
             &tuple_indexes[1..],
         );
     }

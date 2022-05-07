@@ -167,7 +167,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
     fn request_temp(&self, expr_to_store: VExprTyped, seed: usize) -> String {
         // If value is already stored - no need to create new temp
         if let VExpr::GetVar(i) = expr_to_store.expr {
-            return i.clone();
+            return i;
         }
         let name = format!("$temp{}_{}", self.required_temps.borrow().len(), seed);
         self.required_temps.borrow_mut().push((name.clone(), expr_to_store));
@@ -185,7 +185,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
         if_as_expected(expected, verified_expr).map_err(|e| (&e).add_expr_info(expr))
     }
 
-    fn calculate<'e>(
+    fn calculate(
         &self,
         expr: &ExprWithPos,
         expected: Option<&VerifiedType>,
@@ -378,7 +378,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
 
                         Ok(VExprTyped {
                             expr: VExpr::ListValue { item_type: item_type.clone(), items: vec![] },
-                            expr_type: Type::List(Box::new(item_type.clone())),
+                            expr_type: Type::List(Box::new(item_type)),
                         })
                     }
                     Some(_) => {
@@ -433,7 +433,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                         item_type: item_type.clone(),
                         items: calculated_items,
                     },
-                    expr_type: Type::List(Box::new(item_type.clone())),
+                    expr_type: Type::List(Box::new(item_type)),
                 })
             }
             Expr::ListAccess { list, index } => self.calculate_access_by_index(list, index),
@@ -530,15 +530,15 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
         let std_method: Box<RawFunction>;
         let raw_method = match &object.expr_type {
             Type::Tuple(..) => {
-                return Err(Box::new(format!("Tuples have no methods")));
+                return Err(Box::new("Tuples have no methods".to_string()));
             }
             Type::Maybe(..) => {
-                return Err(Box::new(format!(
-                    "Use ?. operator to access methods for Maybe type"
-                )));
+                return Err(Box::new(
+                    "Use ?. operator to access methods for Maybe type".to_string(),
+                ));
             }
 
-            Type::Custom(symbol_type) => self.resolve_method(&symbol_type, method)?,
+            Type::Custom(symbol_type) => self.resolve_method(symbol_type, method)?,
             t => {
                 std_method = get_std_method(t, method)?;
                 std_method.as_ref()
@@ -682,7 +682,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
             Type::Float => Ok(RawOperator::EqualFloats),
             Type::Bool => Ok(RawOperator::EqualBools),
             Type::String => Ok(RawOperator::EqualStrings),
-            _ => return Err(err_msg),
+            _ => Err(err_msg),
         };
 
         match (left.expr_type.clone(), right.expr_type.clone()) {
@@ -769,13 +769,13 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
         let inner_type = right.expr_type.clone();
         let left_temp = self.request_temp(left, seed);
 
-        return Ok(VExprTyped {
+        Ok(VExprTyped {
             expr: VExpr::TernaryOp {
                 condition: Box::new(get_flag(&left_temp, &inner_type)),
                 if_true: Box::new(get_value(&left_temp, &inner_type)),
                 if_false: Box::new(right),
             },
             expr_type: inner_type.clone(),
-        });
+        })
     }
 }

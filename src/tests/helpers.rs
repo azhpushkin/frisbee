@@ -35,11 +35,11 @@ impl TestFilesCreator {
         assert!(
             name.clone().into().ends_with(".frisbee"),
             "File to create must end with .frisbee, but {} given",
-            name.clone().into()
+            name.into()
         );
 
         let mut file_path = self.temp_workdir.path().to_owned();
-        file_path.extend(name.clone().into().split("/"));
+        file_path.extend(name.into().split('/'));
 
         if file_path.exists() {
             remove_file(file_path.as_path()).unwrap();
@@ -70,7 +70,7 @@ fn split_to_files(s: &str) -> HashMap<String, String> {
         if !group.contains(".frisbee") {
             continue;
         }
-        let (file, contents) = group.split_once("\n").expect("Error unwrapping test file content");
+        let (file, contents) = group.split_once('\n').expect("Error unwrapping test file content");
         res.insert(file.trim().into(), contents.trim().into());
     }
 

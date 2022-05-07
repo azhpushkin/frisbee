@@ -39,7 +39,7 @@ pub fn perform_semantic_analysis(
         .collect();
     for (name, module) in function_names {
         statements::verify_raw_function(
-            &functions_mapping[&name],
+            functions_mapping[&name],
             &name,
             &mut aggregate,
             &names_resolver,

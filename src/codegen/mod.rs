@@ -39,6 +39,6 @@ pub fn generate(types: &[&CustomType], functions: &[&RawFunction], entry: &Symbo
 }
 
 pub fn disassemble(program: &Vec<u8>) -> String {
-    let mut d = disassemble::Disassembler::new(&program);
-    return d.disassemble();
+    let mut d = disassemble::Disassembler::new(program);
+    d.disassemble()
 }

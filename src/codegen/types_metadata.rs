@@ -17,8 +17,8 @@ pub struct TypeMetadataTable {
 }
 
 fn metadata_for_type(definition: &CustomType) -> TypeMetadata {
-    let type_size: u8 = definition.fields.types.iter().map(|t| get_type_size(t)).sum();
-    let field_sizes: Vec<u8> = definition.fields.types.iter().map(|t| get_type_size(t)).collect();
+    let type_size: u8 = definition.fields.types.iter().map(get_type_size).sum();
+    let field_sizes: Vec<u8> = definition.fields.types.iter().map(get_type_size).collect();
 
     let mut field_offsets = vec![0; field_sizes.len()];
     for (i, _) in field_sizes.iter().enumerate().skip(1) {
@@ -38,7 +38,7 @@ impl TypeMetadataTable {
         let mut indexes = HashMap::new();
         let mut metadata = vec![];
 
-        for custom_type in types.into_iter() {
+        for custom_type in types.iter() {
             let index = indexes.len();
             indexes.insert(custom_type.name.clone(), index);
             metadata.push(metadata_for_type(custom_type));
@@ -62,7 +62,7 @@ mod test {
 
     #[test]
     fn check_offsets_and_sizes() {
-        let module_alias = ModuleAlias::new(&vec!["somemodule".into()]);
+        let module_alias = ModuleAlias::new(&["somemodule".into()]);
         let gen_symbol_type = || SymbolType::new(&module_alias, "Type");
         let field_types = vec![
             Type::Int,

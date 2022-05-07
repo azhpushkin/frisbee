@@ -30,7 +30,7 @@ pub fn create_basic_aggregate(
     };
 
     for (alias, file_ast) in modules.iter() {
-        let file_resolver = resolver.get_typenames_resolver(&alias);
+        let file_resolver = resolver.get_typenames_resolver(alias);
 
         let field_type_error = |err: String, class: &ClassDecl| {
             top_level_with_module!(
@@ -50,7 +50,7 @@ pub fn create_basic_aggregate(
                     name: full_name,
                     is_active: class_decl.is_active,
                     fields: annotate_typednamed_vec(&class_decl.fields, &file_resolver)
-                        .or_else(|err| field_type_error(err, &class_decl))?,
+                        .or_else(|err| field_type_error(err, class_decl))?,
                 },
             );
         }
@@ -99,7 +99,7 @@ pub fn fill_aggregate_with_funcs<'a>(
     let mut mapping_to_og_funcs = HashMap::new();
 
     for (alias, file_ast) in modules.iter() {
-        let file_resolver = resolver.get_typenames_resolver(&alias);
+        let file_resolver = resolver.get_typenames_resolver(alias);
 
         let return_type_err = |f: &FunctionDecl, e| {
             top_level_with_module!(*alias, f, "Bad return type of function {}: {}", f.name, e)
