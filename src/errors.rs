@@ -128,9 +128,8 @@ fn show_error(contents: &String, alias: &ModuleAlias, pos: ErrorCoordinates, err
     // Print lines of code, 2 if possible
 
     let first_list = (pos.line as i64 - 2).max(0) as usize;
-    for line in first_list..pos.line + 1 {
-        print!("{}", format!("{} | ", line).blue());
-        println!("{}", lines[line]);
+    for (i, line) in lines.iter().enumerate().take(pos.line + 1).skip(first_list) {
+        println!("{}{}", format!("{} | ", i + 1).blue(), line);
     }
     println!("{}", format!("{}^{}", spaces, underscored).yellow());
     println!("{}{}\n", spaces, error_msg.yellow());

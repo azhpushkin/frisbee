@@ -524,7 +524,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
     fn calculate_method_call(
         &self,
         object: VExprTyped,
-        method: &String,
+        method: &str,
         args: &[ExprWithPos],
     ) -> Result<VExprTyped, Box<dyn ExprError>> {
         let std_method: Box<RawFunction>;

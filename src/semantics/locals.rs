@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::ast::verified::TypedFields;
 use crate::types::VerifiedType;
 
+#[derive(Default)]
 pub struct LocalVariables {
     current_variables: HashMap<String, String>,
     all_locals: HashMap<String, VerifiedType>,
@@ -10,16 +11,6 @@ pub struct LocalVariables {
     current_level: usize,
 }
 
-impl Default for LocalVariables {
-    fn default() -> Self {
-        Self {
-            current_variables: HashMap::new(),
-            all_locals: HashMap::new(),
-            locals_order: vec![],
-            current_level: 0,
-        }
-    }
-}
 
 impl LocalVariables {
     pub fn from_function_arguments(args: &TypedFields) -> Self {

@@ -5,7 +5,7 @@ use crate::types::ParsedType;
 use super::helpers::{bin_op_from_token, unary_op_from_token};
 
 pub struct Parser<'a> {
-    tokens: &'a Vec<ScannedToken>,
+    tokens: &'a [ScannedToken],
     position: usize,
 }
 
@@ -88,7 +88,7 @@ macro_rules! until_closes {
 }
 
 impl<'a> Parser<'a> {
-    pub fn create(tokens: &'a Vec<ScannedToken>) -> Parser<'a> {
+    pub fn create(tokens: &'a [ScannedToken]) -> Parser<'a> {
         Parser { tokens, position: 0 }
     }
 
