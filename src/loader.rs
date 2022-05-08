@@ -29,7 +29,7 @@ impl WholeProgram {
 
 fn load_file(
     workdir: &Path,
-    module_path: &Vec<String>,
+    module_path: &[String],
 ) -> Result<LoadedFile, (ModuleAlias, String, Box<dyn CompileError>)> {
     if module_path.first().unwrap() == "std" {
         // TODO: do something with this?

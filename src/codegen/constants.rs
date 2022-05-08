@@ -7,7 +7,7 @@ pub enum Constant {
     String(String),
 }
 
-fn constants_to_bytecode(data: &Vec<Constant>) -> Vec<u8> {
+fn constants_to_bytecode(data: &[Constant]) -> Vec<u8> {
     let mut res = vec![];
     for constant in data.iter() {
         match constant {

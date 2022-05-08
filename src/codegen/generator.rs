@@ -21,10 +21,10 @@ pub struct JumpPlaceholder {
 pub struct BytecodeGenerator<'a, 'b> {
     pub types_meta: &'a TypeMetadataTable,
     constants: &'b mut ConstantsTable,
-    locals: HashMap<&'a String, u8>,
+    locals: HashMap<&'a str, u8>,
     locals_offset: u8,
-    locals_types: HashMap<&'a String, &'a VerifiedType>,
-    locals_order: Vec<&'a String>,
+    locals_types: HashMap<&'a str, &'a VerifiedType>,
+    locals_order: Vec<&'a str>,
     return_type: &'a VerifiedType,
     bytecode: FunctionBytecode,
 }
@@ -36,7 +36,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
         initial_locals: Vec<(&'a String, &'a VerifiedType)>,
         return_type: &'a VerifiedType,
     ) -> Self {
-        let mut locals: HashMap<&'a String, u8> = HashMap::new();
+        let mut locals: HashMap<&'a str, u8> = HashMap::new();
         let mut locals_offset: u8 = get_type_size(return_type);
         let mut locals_types = HashMap::new();
         let mut locals_order = vec![];
@@ -44,8 +44,8 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
         for (local_name, local_type) in initial_locals {
             locals.insert(local_name, locals_offset);
             locals_offset += get_type_size(local_type);
-            locals_types.insert(local_name, local_type);
-            locals_order.push(local_name)
+            locals_types.insert(local_name.as_str(), local_type);
+            locals_order.push(local_name.as_str());
         }
 
         BytecodeGenerator {
@@ -60,21 +60,21 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
         }
     }
 
-    pub fn add_local(&mut self, varname: &'a String, t: &'a VerifiedType) {
+    pub fn add_local(&mut self, varname: &'a str, t: &'a VerifiedType) {
         self.locals.insert(varname, self.locals_offset);
         self.locals_types.insert(varname, t);
         self.locals_offset += get_type_size(t);
         self.locals_order.push(varname);
     }
 
-    pub fn push_get_local(&mut self, varname: &String) {
+    pub fn push_get_local(&mut self, varname: &str) {
         let var_pos = *self.locals.get(varname).unwrap();
         self.push(op::GET_LOCAL);
         self.push(var_pos);
         self.push_type_size(self.locals_types[varname]);
     }
 
-    pub fn push_set_local(&mut self, varname: &String, tuple_indexes: &Vec<usize>) {
+    pub fn push_set_local(&mut self, varname: &str, tuple_indexes: &[usize]) {
         let var_pos = *self.locals.get(varname).unwrap();
         let offset = get_tuple_offset(self.locals_types[varname], tuple_indexes);
         self.push(op::SET_LOCAL);

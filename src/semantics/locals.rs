@@ -11,7 +11,6 @@ pub struct LocalVariables {
     current_level: usize,
 }
 
-
 impl LocalVariables {
     pub fn from_function_arguments(args: &TypedFields) -> Self {
         let mut new_storage = Self::default();

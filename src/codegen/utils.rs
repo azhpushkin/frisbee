@@ -41,8 +41,8 @@ pub fn get_tuple_offset<T>(tuple_type: &Type<T>, tuple_indexes: &[usize]) -> u8 
     match tuple_type {
         Type::Tuple(items) => {
             let mut offset: u8 = 0;
-            for i in 0..current_index {
-                offset += get_type_size(&items[i]);
+            for item in items.iter().take(current_index) {
+                offset += get_type_size(item);
             }
             offset += get_tuple_offset(&items[current_index], &tuple_indexes[1..]);
             offset

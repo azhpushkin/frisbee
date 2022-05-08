@@ -38,7 +38,7 @@ pub fn generate(types: &[&CustomType], functions: &[&RawFunction], entry: &Symbo
     assemble::assemble_chunks(c, f, entry)
 }
 
-pub fn disassemble(program: &Vec<u8>) -> String {
+pub fn disassemble(program: &[u8]) -> String {
     let mut d = disassemble::Disassembler::new(program);
     d.disassemble()
 }

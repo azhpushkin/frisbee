@@ -109,7 +109,7 @@ pub fn adjust_error_window(source: &str, start: usize, end: usize) -> ErrorCoord
     ErrorCoordinates { line: start_line, start: start_offset, end }
 }
 
-fn show_error(contents: &String, alias: &ModuleAlias, pos: ErrorCoordinates, error_msg: String) {
+fn show_error(contents: &str, alias: &ModuleAlias, pos: ErrorCoordinates, error_msg: String) {
     // TODO: add path here somehow, maybe just pass as an argument...
     let header = format!("Error at line {} (in {}):", pos.line, alias);
     println!("{}", header.red());
@@ -135,7 +135,7 @@ fn show_error(contents: &String, alias: &ModuleAlias, pos: ErrorCoordinates, err
     println!("{}{}\n", spaces, error_msg.yellow());
 }
 
-pub fn show_error_in_file(alias: &ModuleAlias, source: &String, error: Box<dyn CompileError>) {
+pub fn show_error_in_file(alias: &ModuleAlias, source: &str, error: Box<dyn CompileError>) {
     let (start, end) = error.get_position_window();
     let error_window = adjust_error_window(source, start, end);
     let error_msg = error.get_message();
