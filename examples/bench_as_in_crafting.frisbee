@@ -1,0 +1,30 @@
+class Zoo {
+    Int aardvark;
+    Int baboon;
+    Int cat;
+    Int donkey;
+    Int elephant;
+    Int fox;
+
+    fun Int get_aardvark() {return @aardvark; }
+    fun Int get_baboon() {return @baboon; }
+    fun Int get_cat() {return @cat; }
+    fun Int get_donkey() {return @donkey; }
+    fun Int get_elephant() {return @elephant; }
+    fun Int get_fox() {return @fox; }
+}
+
+fun void main() {
+    Zoo zoo = Zoo(1, 1, 1, 1, 1, 1);
+    Int sum = 0;
+    while (sum < 100000000) {
+        println(sum.to_string());
+        sum = sum + zoo.get_aardvark()
+            + zoo.get_baboon()
+            + zoo.get_cat()
+            + zoo.get_donkey()
+            + zoo.get_elephant()
+            + zoo.get_fox();
+    }
+    print(sum.to_string());
+}
