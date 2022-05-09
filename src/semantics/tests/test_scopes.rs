@@ -84,3 +84,20 @@ assert_semantic_check_is_fine!(
     }
     "#
 );
+
+
+assert_semantic_check_is_fine!(
+    same_iter_in_multiple_foreach,
+    r#"
+    ===== file: main.frisbee
+    fun void main() {
+        foreach i in range(0, 4) {
+            print((i + 1).to_string());
+        }
+
+        foreach s in ["a", "b", "c"] {
+            print(s);
+        }
+    }
+    "#
+);
