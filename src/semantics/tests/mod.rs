@@ -1,4 +1,5 @@
 #[rustfmt::skip] #[cfg(test)] pub mod helpers;
+#[rustfmt::skip] #[cfg(test)] pub mod test_active;
 #[rustfmt::skip] #[cfg(test)] pub mod test_symbols;
 #[rustfmt::skip] #[cfg(test)] pub mod test_return_required;
 #[rustfmt::skip] #[cfg(test)] pub mod test_scopes;
