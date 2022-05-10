@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
 use crate::ast::verified::{CustomType, RawFunction};
-use crate::symbols::SymbolFunc;
+use crate::symbols::{SymbolFunc, SymbolType};
+use crate::types::VerifiedType;
 
 use self::generator::FunctionBytecode;
 
@@ -14,17 +15,10 @@ mod statements;
 mod types_metadata;
 mod utils;
 
-fn generate_chunks(
-    types: &[&CustomType],
-    functions: &[&RawFunction],
-) -> (
-    Vec<u8>,
-    types_metadata::TypeMetadataTable,
-    HashMap<SymbolFunc, FunctionBytecode>,
-) {
+pub fn generate(types: &[&CustomType], functions: &[&RawFunction], entry: &SymbolFunc) -> Vec<u8> {
     let mut constants = constants::ConstantsTable::new();
-    let types_meta = types_metadata::TypeMetadataTable::new(types);
-    let mut list_types_meta = types_metadata::TypeMetadataTable::new(&[]);
+    let types_meta = types_metadata::meta_table_for_types(types);
+    let mut list_types_meta = types_metadata::TypeMetadataTable::new();
 
     let mut functions_bytecode: HashMap<SymbolFunc, FunctionBytecode> = HashMap::new();
     for raw_function in functions.iter() {
@@ -41,13 +35,10 @@ fn generate_chunks(
     }
 
     let constants_bytecode = constants.generate_bytecode();
-    (constants_bytecode, types_meta, functions_bytecode)
+    
+    assemble::assemble_chunks(constants_bytecode, types_meta, list_types_meta, functions_bytecode, entry)
 }
 
-pub fn generate(types: &[&CustomType], functions: &[&RawFunction], entry: &SymbolFunc) -> Vec<u8> {
-    let (c, types_meta, f) = generate_chunks(types, functions);
-    assemble::assemble_chunks(c, types_meta, f, entry)
-}
 
 pub fn disassemble(program: &[u8]) -> String {
     let mut d = disassemble::Disassembler::new(program);

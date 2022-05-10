@@ -12,8 +12,9 @@ pub struct TypeMetadata {
     pub pointer_mapping: Vec<usize>
 }
 
-pub struct TypeMetadataTable {
-    pub indexes: HashMap<SymbolType, usize>,
+#[derive(Default)]
+pub struct TypeMetadataTable<T> where T: std::hash::Hash + Eq {
+    pub indexes: HashMap<T, usize>,
     pub metadata: Vec<TypeMetadata>,
 }
 
@@ -35,23 +36,29 @@ fn metadata_for_type(definition: &CustomType) -> TypeMetadata {
     }
 }
 
-impl TypeMetadataTable {
-    pub fn new(types: &[&CustomType]) -> Self {
-        let mut indexes = HashMap::new();
-        let mut metadata = vec![];
+impl<T> TypeMetadataTable<T> where T: std::hash::Hash + Eq {
+    pub fn get(&self, flag: &T) -> &TypeMetadata {
+        &self.metadata[self.indexes[flag]]
+    }
 
-        for custom_type in types.iter() {
-            let index = indexes.len();
-            indexes.insert(custom_type.name.clone(), index);
-            metadata.push(metadata_for_type(custom_type));
+    pub fn new() -> Self {
+        TypeMetadataTable{
+            indexes: HashMap::new(),
+            metadata: vec![],
         }
+    }
+}
 
-        TypeMetadataTable { indexes, metadata }
+pub fn meta_table_for_types(types: &[&CustomType]) -> TypeMetadataTable<SymbolType> {
+    let mut table = TypeMetadataTable::new();
+
+    for custom_type in types.iter() {
+        let index = table.indexes.len();
+        table.indexes.insert(custom_type.name.clone(), index);
+        table.metadata.push(metadata_for_type(custom_type));
     }
 
-    pub fn get(&self, typename: &SymbolType) -> &TypeMetadata {
-        &self.metadata[self.indexes[typename]]
-    }
+    table
 }
 
 #[cfg(test)]

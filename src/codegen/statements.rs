@@ -1,4 +1,6 @@
 use crate::ast::verified::{RawFunction, VStatement};
+use crate::symbols::SymbolType;
+use crate::types::VerifiedType;
 use crate::vm::opcodes::op;
 
 use super::constants::ConstantsTable;
@@ -8,8 +10,8 @@ use super::utils::{extract_custom_type, get_list_inner_type, get_tuple_offset, g
 
 pub fn generate_function_bytecode(
     func: &RawFunction,
-    types_meta: &TypeMetadataTable,
-    list_types_meta: &mut TypeMetadataTable,
+    types_meta: &TypeMetadataTable<SymbolType>,
+    list_types_meta: &mut TypeMetadataTable<VerifiedType>,
     constants: &mut ConstantsTable,
 ) -> Result<FunctionBytecode, String> {
     let mut generator = BytecodeGenerator::new(

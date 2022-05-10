@@ -4,7 +4,7 @@ use crate::symbols::SymbolType;
 
 /// Type of a value in a program
 /// Generalized over the type of Custom (user-defined) type
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
 pub enum Type<T> {
     // Primitive types
     Int,

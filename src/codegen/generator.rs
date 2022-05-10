@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::symbols::SymbolFunc;
+use crate::symbols::{SymbolFunc, SymbolType};
 use crate::types::VerifiedType;
 use crate::vm::opcodes::op;
 
@@ -21,8 +21,8 @@ pub struct JumpPlaceholder {
 }
 
 pub struct BytecodeGenerator<'a> {
-    pub types_meta: &'a TypeMetadataTable,
-    pub list_types_meta: &'a mut TypeMetadataTable,
+    pub types_meta: &'a TypeMetadataTable<SymbolType>,
+    pub list_types_meta: &'a mut TypeMetadataTable<VerifiedType>,
     constants: &'a mut ConstantsTable,
     locals: HashMap<&'a str, u8>,
     locals_offset: u8,
@@ -34,8 +34,8 @@ pub struct BytecodeGenerator<'a> {
 
 impl<'a> BytecodeGenerator<'a> {
     pub fn new(
-        types_meta: &'a TypeMetadataTable,
-        list_types_meta: &'a mut TypeMetadataTable,
+        types_meta: &'a TypeMetadataTable<SymbolType>,
+        list_types_meta: &'a mut TypeMetadataTable<VerifiedType>,
         constants: &'a mut ConstantsTable,
         initial_locals: Vec<(&'a String, &'a VerifiedType)>,
         return_type: &'a VerifiedType,

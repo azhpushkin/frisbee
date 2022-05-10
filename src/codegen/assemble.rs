@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
-use crate::symbols::SymbolFunc;
+use crate::symbols::{SymbolFunc, SymbolType};
+use crate::types::VerifiedType;
 
 use super::generator::FunctionBytecode;
 use super::types_metadata::TypeMetadataTable;
@@ -21,7 +22,8 @@ static HEADER: [u8; 2] = [u8::MAX, u8::MAX];
 
 pub fn assemble_chunks(
     constants: Vec<u8>,
-    types_meta: TypeMetadataTable,
+    types_meta: TypeMetadataTable<SymbolType>,
+    list_types_meta: TypeMetadataTable<VerifiedType>,
     functions: HashMap<SymbolFunc, FunctionBytecode>,
     entry: &SymbolFunc,
 ) -> Vec<u8> {
