@@ -14,7 +14,7 @@ pub struct TypeMetadata {
 
 pub struct TypeMetadataTable {
     indexes: HashMap<SymbolType, usize>,
-    metadata: Vec<TypeMetadata>,
+    pub metadata: Vec<TypeMetadata>,
 }
 
 fn metadata_for_type(definition: &CustomType) -> TypeMetadata {

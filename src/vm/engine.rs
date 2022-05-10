@@ -159,6 +159,17 @@ impl Vm {
         }
     }
 
+    fn load_types_info(&mut self) {
+        let types_amount = self.read_opcode();
+        for _ in 0..types_amount {
+            self.read_opcode(); // read size
+            for _ in 0..self.read_opcode() {
+                self.read_opcode(); // read pointer type
+            }
+        }
+        self.check_header("End of types info");
+    }
+
     fn skip_symbol_names(&mut self) {
         loop {
             let symbol_name_len = u16::from_be_bytes(self.read_several::<2>());
@@ -180,7 +191,8 @@ impl Vm {
     pub fn run(&mut self, step_by_step: bool, show_debug: bool) {
         self.check_header("Initial header");
         self.load_consts();
-        self.skip_symbol_names();
+        self.load_types_info();
+        self.skip_symbol_names();  // symbol names are just for disasm, no need to decode
         let entry = self.load_entry();
 
         if show_debug {
