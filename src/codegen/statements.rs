@@ -9,10 +9,12 @@ use super::utils::{extract_custom_type, get_list_inner_type, get_tuple_offset, g
 pub fn generate_function_bytecode(
     func: &RawFunction,
     types_meta: &TypeMetadataTable,
+    list_types_meta: &mut TypeMetadataTable,
     constants: &mut ConstantsTable,
 ) -> Result<FunctionBytecode, String> {
     let mut generator = BytecodeGenerator::new(
         types_meta,
+        list_types_meta,
         constants,
         func.args.iter().collect(),
         &func.return_type,
@@ -32,7 +34,7 @@ pub fn generate_function_bytecode(
     Ok(generator.get_bytecode())
 }
 
-impl<'a, 'b> BytecodeGenerator<'a, 'b> {
+impl<'a> BytecodeGenerator<'a> {
     pub fn push_statement(
         &mut self,
         statement: &'a VStatement,

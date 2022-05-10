@@ -47,7 +47,7 @@ pub fn match_std_function(symbol: &SymbolFunc) -> u8 {
     }
 }
 
-impl<'a, 'b> BytecodeGenerator<'a, 'b> {
+impl<'a> BytecodeGenerator<'a> {
     pub fn push_expr(&mut self, expr: &VExprTyped) {
         let VExprTyped { expr, .. } = expr;
         match expr {

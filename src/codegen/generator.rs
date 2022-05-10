@@ -20,9 +20,10 @@ pub struct JumpPlaceholder {
     position: usize,
 }
 
-pub struct BytecodeGenerator<'a, 'b> {
+pub struct BytecodeGenerator<'a> {
     pub types_meta: &'a TypeMetadataTable,
-    constants: &'b mut ConstantsTable,
+    pub list_types_meta: &'a mut TypeMetadataTable,
+    constants: &'a mut ConstantsTable,
     locals: HashMap<&'a str, u8>,
     locals_offset: u8,
     locals_types: HashMap<&'a str, &'a VerifiedType>,
@@ -31,10 +32,11 @@ pub struct BytecodeGenerator<'a, 'b> {
     bytecode: FunctionBytecode,
 }
 
-impl<'a, 'b> BytecodeGenerator<'a, 'b> {
+impl<'a> BytecodeGenerator<'a> {
     pub fn new(
         types_meta: &'a TypeMetadataTable,
-        constants: &'b mut ConstantsTable,
+        list_types_meta: &'a mut TypeMetadataTable,
+        constants: &'a mut ConstantsTable,
         initial_locals: Vec<(&'a String, &'a VerifiedType)>,
         return_type: &'a VerifiedType,
     ) -> Self {
@@ -52,6 +54,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
 
         BytecodeGenerator {
             types_meta,
+            list_types_meta,
             constants,
             locals,
             locals_offset,

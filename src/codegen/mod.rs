@@ -17,15 +17,24 @@ mod utils;
 fn generate_chunks(
     types: &[&CustomType],
     functions: &[&RawFunction],
-) -> (Vec<u8>, types_metadata::TypeMetadataTable, HashMap<SymbolFunc, FunctionBytecode>) {
+) -> (
+    Vec<u8>,
+    types_metadata::TypeMetadataTable,
+    HashMap<SymbolFunc, FunctionBytecode>,
+) {
     let mut constants = constants::ConstantsTable::new();
     let types_meta = types_metadata::TypeMetadataTable::new(types);
+    let mut list_types_meta = types_metadata::TypeMetadataTable::new(&[]);
 
     let mut functions_bytecode: HashMap<SymbolFunc, FunctionBytecode> = HashMap::new();
     for raw_function in functions.iter() {
-        let mut bytecode =
-            statements::generate_function_bytecode(raw_function, &types_meta, &mut constants)
-                .unwrap();
+        let mut bytecode = statements::generate_function_bytecode(
+            raw_function,
+            &types_meta,
+            &mut list_types_meta,
+            &mut constants,
+        )
+        .unwrap();
         bytecode.stack_pointer_mapping = utils::generate_pointers_map(&raw_function.args.types);
 
         functions_bytecode.insert(raw_function.name.clone(), bytecode);
