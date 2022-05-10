@@ -17,8 +17,7 @@ class Zoo {
 fun void main() {
     Zoo zoo = Zoo(1, 1, 1, 1, 1, 1);
     Int sum = 0;
-    while (sum < 100000000) {
-        println(sum.to_string());
+    while (sum < 10000000) {
         sum = sum + zoo.get_aardvark()
             + zoo.get_baboon()
             + zoo.get_cat()
@@ -26,5 +25,5 @@ fun void main() {
             + zoo.get_elephant()
             + zoo.get_fox();
     }
-    print(sum.to_string());
+    println(sum.to_string());
 }

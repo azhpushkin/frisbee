@@ -6,18 +6,19 @@ impl fmt::Display for RawFunction {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let args_repr: Vec<_> =
             self.args.iter().map(|(name, t)| format!("{} {}", t, name)).collect();
+        let locals = if self.locals.is_empty() {
+            "".into()
+        } else {
+            let formatted = self.locals.iter().map(|(s, t)| format!("    {} {};", t, s));
+            format!("    // LOCALS START\n{}\n    // LOCALS_END\n\n", formatted.collect::<Vec<_>>().join("\n"))
+        };
         write!(
             f,
-            "fn {return} {name} ({args}) {{\n    // LOCALS START\n{locals}\n    // LOCALS END\n\n{body}\n }}",
+            "fn {return} {name} ({args}) {{\n{locals}{body}\n }}",
             return = self.return_type,
             name = self.name,
             args = args_repr.join(", "),
-            locals = self
-                .locals
-                .iter()
-                .map(|(s, t)| format!("    {} {};", t, s))
-                .collect::<Vec<_>>()
-                .join("\n"),
+            locals = locals,
             body = self
                 .body
                 .iter()
