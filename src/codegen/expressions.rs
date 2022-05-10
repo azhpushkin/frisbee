@@ -156,7 +156,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
             }
             VExpr::Allocate { typename } => {
                 self.push(op::ALLOCATE);
-                self.push(self.types_meta.get(typename).size);
+                self.push(self.types_meta.indexes[typename] as u8);
             }
             VExpr::Dummy(t) => {
                 self.push_reserve(t);

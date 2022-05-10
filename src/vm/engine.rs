@@ -27,6 +27,7 @@ pub struct Vm {
     memory: heap::Heap,
     stack: [u64; STACK_SIZE],
     stack_pointer: usize,
+    types_sizes: Vec<u8>,
     frames: Vec<CallFrame>, // TODO: limit size
 }
 
@@ -40,6 +41,7 @@ impl Vm {
             stack: [0; STACK_SIZE],
             stack_pointer: 0,
             frames: vec![],
+            types_sizes: vec![],
         }
     }
 
@@ -162,7 +164,8 @@ impl Vm {
     fn load_types_info(&mut self) {
         let types_amount = self.read_opcode();
         for _ in 0..types_amount {
-            self.read_opcode(); // read size
+            let size = self.read_opcode(); // read size
+            self.types_sizes.push(size);
             for _ in 0..self.read_opcode() {
                 self.read_opcode(); // read pointer type
             }
@@ -361,8 +364,8 @@ impl Vm {
                     }
                 }
                 op::ALLOCATE => {
-                    let size = self.read_opcode() as usize;
-                    // TODO: should
+                    let type_index = self.read_opcode() as usize;
+                    let size = self.types_sizes[type_index] as usize;
                     let (new_obj_pos, _) = self.memory.new_custom(size);
                     push!(self, new_obj_pos);
                 }

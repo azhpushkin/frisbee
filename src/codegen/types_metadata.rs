@@ -13,7 +13,7 @@ pub struct TypeMetadata {
 }
 
 pub struct TypeMetadataTable {
-    indexes: HashMap<SymbolType, usize>,
+    pub indexes: HashMap<SymbolType, usize>,
     pub metadata: Vec<TypeMetadata>,
 }
 

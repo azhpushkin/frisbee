@@ -1,4 +1,4 @@
-use crate::types::{Type, VerifiedType};
+use crate::types::Type;
 
 pub fn get_type_size<T>(t: &Type<T>) -> u8 {
     match t {
