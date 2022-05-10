@@ -3,12 +3,13 @@ use std::collections::HashMap;
 use crate::ast::verified::CustomType;
 use crate::symbols::SymbolType;
 
-use super::utils::get_type_size;
+use super::utils::{get_type_size, generate_pointers_map};
 
 pub struct TypeMetadata {
     pub size: u8,
     pub field_offsets: HashMap<String, u8>,
     pub field_sizes: HashMap<String, u8>,
+    pub pointer_mapping: Vec<usize>
 }
 
 pub struct TypeMetadataTable {
@@ -30,6 +31,7 @@ fn metadata_for_type(definition: &CustomType) -> TypeMetadata {
         size: type_size,
         field_offsets: generate_field_names().zip(field_offsets).collect(),
         field_sizes: generate_field_names().zip(field_sizes).collect(),
+        pointer_mapping: generate_pointers_map(&definition.fields.types),
     }
 }
 

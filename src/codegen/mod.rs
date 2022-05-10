@@ -23,9 +23,11 @@ fn generate_chunks(
 
     let mut functions_bytecode: HashMap<SymbolFunc, FunctionBytecode> = HashMap::new();
     for raw_function in functions.iter() {
-        let bytecode =
+        let mut bytecode =
             statements::generate_function_bytecode(raw_function, &types_metadata, &mut constants)
                 .unwrap();
+        bytecode.stack_pointer_mapping = utils::generate_pointers_map(&raw_function.args.types);
+        
         functions_bytecode.insert(raw_function.name.clone(), bytecode);
     }
 

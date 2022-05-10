@@ -10,9 +10,11 @@ use super::utils::{get_tuple_offset, get_tuple_subitem_size, get_type_size};
 
 pub type CallPlaceholders = (usize, SymbolFunc);
 
+#[derive(Default)]
 pub struct FunctionBytecode {
     pub bytecode: Vec<u8>,
     pub call_placeholders: Vec<CallPlaceholders>,
+    pub stack_pointer_mapping: Vec<usize>
 }
 pub struct JumpPlaceholder {
     position: usize,
@@ -56,7 +58,7 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
             locals_types,
             locals_order,
             return_type,
-            bytecode: FunctionBytecode { bytecode: vec![], call_placeholders: vec![] },
+            bytecode: FunctionBytecode::default(),
         }
     }
 
@@ -153,8 +155,6 @@ impl<'a, 'b> BytecodeGenerator<'a, 'b> {
     }
 
     pub fn get_bytecode(&mut self) -> FunctionBytecode {
-        let mut temp = FunctionBytecode { bytecode: vec![], call_placeholders: vec![] };
-        std::mem::swap(&mut self.bytecode, &mut temp);
-        temp
+        std::mem::take(&mut self.bytecode)
     }
 }
