@@ -1,4 +1,4 @@
-use crate::types::Type;
+use crate::types::{Type, VerifiedType};
 
 pub fn get_type_size<T>(t: &Type<T>) -> u8 {
     match t {
@@ -81,6 +81,39 @@ pub fn get_list_inner_type<T>(list_type: &Type<T>) -> &Type<T> {
     }
 }
 
+pub fn generate_map_for_single<T>(t: &Type<T>) -> Vec<usize> {
+    match t {
+        Type::Int | Type::Float | Type::Bool => vec![],
+        Type::Maybe(t) => {
+            let inner = generate_map_for_single(t.as_ref());
+            inner.into_iter().map(|i| i + 1).collect()
+        }
+        Type::List(_) | Type::Custom(_) | Type::String => vec![0],
+
+        Type::Tuple(items) => generate_pointers_map(&items),
+    }
+}
+
+pub fn generate_pointers_map<T>(types: &[Type<T>]) -> Vec<usize> {
+    if types.is_empty() {
+        return vec![];
+    }
+    if types.len() == 1 {
+        return generate_map_for_single(&types[0]);
+    }
+
+    let mut result = vec![];
+    let mut current_offset: usize = 0;
+    for t in types {
+        let inner = generate_map_for_single(t);
+        result.extend(inner.into_iter().map(|i| i + current_offset));
+        current_offset += get_type_size(t) as usize;
+    }
+    result.sort();
+
+    result
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -125,5 +158,39 @@ mod test {
         assert_eq!(get_tuple_offset(&test_type, &[1, 0, 1]), 2); // skip initial header + Int? header
         assert_eq!(get_tuple_offset(&test_type, &[1, 1]), 3); // skip both headers + Int? value
         assert_eq!(get_tuple_offset(&test_type, &[1, 1, 1]), 4); // skip both headers + Int? value + Float
+    }
+
+    #[test]
+    fn check_get_pointers_mapping() {
+        // (Int, ((Float, SomeType), String), ((), [SomeType]))
+
+        let items = vec![
+            Type::Int,
+            Type::Tuple(vec![
+                Type::Tuple(vec![Type::Float, Type::Custom("SomeType")]),
+                Type::String,
+            ]),
+            Type::Tuple(vec![
+                Type::Tuple(vec![]),
+                Type::List(Box::new(Type::Custom("SomeType"))),
+            ]),
+        ];
+
+        let mapping = generate_pointers_map(&items);
+        assert_eq!(mapping, vec![2, 3, 4]);
+    }
+
+    #[test]
+    fn check_get_pointers_mapping_for_maybe() {
+        // (Int?, (Float, SomeType))?
+        // (bool, bool, int, float, sometype)
+
+        let test_type = Type::Maybe(Box::new(Type::Tuple(vec![
+            Type::Maybe(Box::new(Type::Int)),
+            Type::Tuple(vec![Type::Float, Type::Custom("SomeType")]),
+        ])));
+
+        let mapping = generate_map_for_single(&test_type);
+        assert_eq!(mapping, vec![4]);
     }
 }
