@@ -82,8 +82,10 @@ impl<'a> Disassembler<'a> {
         self.read_header("Initial");
         self.read_constants();
         self.read_header("End of constants");
-        self.read_types();
+        self.read_types_meta();
         self.read_header("End of types data");
+        self.read_types_meta();
+        self.read_header("End of list types data");
         self.read_symbol_names();
         self.read_header("End of symbol names");
         self.read_entry();
@@ -140,7 +142,7 @@ impl<'a> Disassembler<'a> {
         }
     }
 
-    fn read_types(&mut self) {
+    fn read_types_meta(&mut self) {
         let (_, types_amount) = self.get_byte();
         for _ in 0..types_amount {
             self.get_byte(); // read size

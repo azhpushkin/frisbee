@@ -28,6 +28,7 @@ pub struct Vm {
     stack: [u64; STACK_SIZE],
     stack_pointer: usize,
     types_sizes: Vec<u8>,
+    list_types_sizes: Vec<u8>,
     frames: Vec<CallFrame>, // TODO: limit size
 }
 
@@ -42,6 +43,7 @@ impl Vm {
             stack_pointer: 0,
             frames: vec![],
             types_sizes: vec![],
+            list_types_sizes: vec![],
         }
     }
 
@@ -161,16 +163,18 @@ impl Vm {
         }
     }
 
-    fn load_types_info(&mut self) {
+    fn load_types_info(&mut self, info_name: &'static str) -> Vec<u8>{
+        let mut sizes = vec![];
         let types_amount = self.read_opcode();
         for _ in 0..types_amount {
             let size = self.read_opcode(); // read size
-            self.types_sizes.push(size);
+            sizes.push(size);
             for _ in 0..self.read_opcode() {
                 self.read_opcode(); // read pointer type
             }
         }
-        self.check_header("End of types info");
+        self.check_header(info_name);
+        sizes
     }
 
     fn skip_symbol_names(&mut self) {
@@ -194,7 +198,8 @@ impl Vm {
     pub fn run(&mut self, step_by_step: bool, show_debug: bool) {
         self.check_header("Initial header");
         self.load_consts();
-        self.load_types_info();
+        self.types_sizes = self.load_types_info("Types info");
+        self.list_types_sizes = self.load_types_info("Types info list");
         self.skip_symbol_names(); // symbol names are just for disasm, no need to decode
         let entry = self.load_entry();
 
@@ -370,7 +375,8 @@ impl Vm {
                     push!(self, new_obj_pos);
                 }
                 op::ALLOCATE_LIST => {
-                    let item_size = self.read_opcode() as usize;
+                    let list_item_index = self.read_opcode() as usize;
+                    let item_size = self.list_types_sizes[list_item_index] as usize;
                     let initial_items_amount = self.read_opcode() as usize;
 
                     self.stack_pointer -= item_size * initial_items_amount;

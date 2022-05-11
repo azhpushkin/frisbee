@@ -126,8 +126,11 @@ impl<'a> BytecodeGenerator<'a> {
                 for item in items.iter() {
                     self.push_expr(item);
                 }
+                
+                let list_flag = self.list_types_meta.get_or_insert(item_type);
+
                 self.push(op::ALLOCATE_LIST);
-                self.push_type_size(item_type);
+                self.push(list_flag as u8);
                 self.push(items.len() as u8);
             }
             VExpr::AccessTupleItem { tuple, index } => {

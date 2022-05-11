@@ -43,7 +43,16 @@ pub fn assemble_chunks(
     }
     bytecode.extend_from_slice(&HEADER);
 
-    // 4. Symbol names block
+    // 4. List types info (item size + pointer mapping)
+    bytecode.push(list_types_meta.metadata.len() as u8);
+    for list_type in list_types_meta.metadata.iter() {
+        bytecode.push(list_type.size);
+        bytecode.push(list_type.pointer_mapping.len() as u8);
+        bytecode.extend(list_type.pointer_mapping.iter().map(|x| *x as u8));
+    }
+    bytecode.extend_from_slice(&HEADER);
+
+    // 5. Symbol names block
     let mut encoded_symbols_info: HashMap<usize, &SymbolFunc> = HashMap::new();
 
     for (function_name, function_bytecode) in functions.iter() {
@@ -56,10 +65,11 @@ pub fn assemble_chunks(
     }
 
     // end of symbols info marked with 0, 0, 255, 255
+    // (0, 0) marks end of symbol names block and 255,255 is the default header
     bytecode.extend([0, 0]);
     bytecode.extend_from_slice(&HEADER);
 
-    // 5. Entry function pointer + header
+    // 6. Entry function pointer + header
     encoded_symbols_info.insert(bytecode.len(), entry);
     bytecode.extend([0, 0]);
     bytecode.extend_from_slice(&HEADER);
