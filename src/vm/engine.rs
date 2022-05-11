@@ -389,12 +389,13 @@ impl Vm {
                     push!(self, new_obj_pos);
                 }
                 op::RESERVE => {
-                    // TODO: this seems wrong, function might reserve at the very start tbh
-                    // should check after basic implementation probably
-                    let value = self.read_opcode();
-                    for _ in 0..value {
-                        push!(self, 0);
-                    }
+                    let value = self.read_opcode() as usize;
+
+                    // TODO: check if performance is increased when reserve does not fills with 0
+                    // If yes, probably worth giving some kind of flag 
+                    // this will make GC less precise, but 
+                    self.stack[self.stack_pointer..self.stack_pointer+value].fill(0);
+                    self.stack_pointer += value;
                 }
                 op::CALL | op::CALL_STD => {
                     let return_size = self.read_opcode() as usize;
