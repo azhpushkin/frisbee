@@ -32,22 +32,35 @@ fn std_range(stack: &mut [u64], memory: &mut Heap) {
 }
 
 fn std_get_input(stack: &mut [u64], memory: &mut Heap) {
-    let mut input = String::new();
-    io::stdin().read_line(&mut input).expect("Failed to read line");
+    let (pos, inner) = memory.allocate_string(0);
+    io::stdin().read_line(inner).expect("Failed to read line");
 
-    stack[0] = memory.new_string(input.trim().into()).0;
+    // Remove all trailing newlines in place
+    inner.truncate(inner.trim_end().len());
+
+    stack[0] = pos;
 }
 
 fn std_bool_to_string(stack: &mut [u64], memory: &mut Heap) {
-    let s = if stack[1] > 0 { "true" } else { "false" };
+    // Reserve for 5 chars, so both false and true fits
+    // (true will have 4 of 5 chars filled, which is fine)
+    let (pos, inner) = memory.allocate_string(5);
 
-    stack[0] = memory.new_string(s.into()).0;
+    if stack[1] == 1 {
+        inner.extend("true".chars());
+    } else if stack[1] == 0 {
+        inner.extend("false".chars());
+    } else {
+        panic!("Bool value is {}, must be 0 or 1", stack[1]);
+    }
+
+    stack[0] = pos;
 }
 
 fn std_int_to_string(stack: &mut [u64], memory: &mut Heap) {
     let s = (stack[1] as i64).to_string();
 
-    stack[0] = memory.new_string(s).0;
+    stack[0] = memory.move_string(s).0;
 }
 
 fn std_int_to_float(stack: &mut [u64], _memory: &mut Heap) {
@@ -65,7 +78,7 @@ fn std_float_round(stack: &mut [u64], _memory: &mut Heap) {
 fn std_float_to_string(stack: &mut [u64], memory: &mut Heap) {
     let s = u64_to_f64(stack[1]).to_string();
 
-    stack[0] = memory.new_string(s).0;
+    stack[0] = memory.move_string(s).0;
 }
 
 fn std_float_abs(stack: &mut [u64], _memory: &mut Heap) {

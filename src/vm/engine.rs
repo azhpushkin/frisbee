@@ -16,6 +16,7 @@ macro_rules! push {
 const STACK_SIZE: usize = 512; // TODO: maybe grow??
 
 struct CallFrame {
+    pub pointer_mapping: Vec<u8>,
     pub return_ip: usize,
     pub stack_start: usize,
     pub return_size: usize,
@@ -63,6 +64,7 @@ impl Vm {
 
     fn call_op(&mut self, func_pos: usize, return_size: usize, locals_size: usize) {
         self.frames.push(CallFrame {
+            pointer_mapping: self.metadata.functions_pointer_mapping[&func_pos].clone(),
             return_ip: self.ip,
             stack_start: self.stack_pointer - locals_size - return_size,
             return_size,
@@ -147,9 +149,9 @@ impl Vm {
                 op::CONST_STRING_FLAG => {
                     let str_len = u16::from_be_bytes(self.read_several::<2>());
                     let str_bytes = self.read_bytes(str_len as usize);
-                    let s = String::from_utf8(str_bytes).unwrap();
 
-                    let (obj_pos, _) = self.memory.new_string(s);
+                    let (obj_pos, inner) = self.memory.allocate_string(str_len as usize);
+                    inner.extend(std::str::from_utf8(&str_bytes).unwrap().chars());
                     self.constants.push(obj_pos);
                 }
                 op::CONST_END_FLAG => break,
@@ -270,9 +272,12 @@ impl Vm {
                     let s1 = self.memory.get(a).extract_string();
                     let s2 = self.memory.get(b).extract_string();
 
-                    let res = format!("{}{}", s1, s2);
-                    let (new_obj_pos, _) = self.memory.new_string(res);
-                    push!(self, new_obj_pos);
+                    let mut new_string = String::with_capacity(s1.len() + s2.len());
+                    new_string.extend(s1.chars());
+                    new_string.extend(s2.chars());
+
+                    let (pos, _) = self.memory.move_string(new_string);
+                    push!(self, pos);
                 }
                 op::EQ_STRINGS => {
                     let (b, a) = (self.pop(), self.pop());
@@ -309,9 +314,9 @@ impl Vm {
                     let size = self.read_opcode() as usize;
 
                     let heap_obj = self.memory.get_mut(pointer);
-                    let memory_chunk = heap_obj.extract_object_memory();
+                    let custom = heap_obj.extract_custom_object();
 
-                    for value in memory_chunk.iter().skip(offset).take(size) {
+                    for value in custom.data.iter().skip(offset).take(size) {
                         push!(self, *value);
                     }
                 }
@@ -321,11 +326,11 @@ impl Vm {
                     let size = self.read_opcode() as usize;
 
                     let heap_obj = self.memory.get_mut(pointer);
-                    let memory_chunk = heap_obj.extract_object_memory();
+                    let custom = heap_obj.extract_custom_object();
 
                     for i in 0..size {
                         let x = self.stack[self.stack_pointer - size + i];
-                        memory_chunk[offset + i] = x;
+                        custom.data[offset + i] = x;
                     }
                     self.stack_pointer -= size;
                 }
@@ -374,8 +379,7 @@ impl Vm {
                 }
                 op::ALLOCATE => {
                     let type_index = self.read_opcode() as usize;
-                    let size = self.metadata.types_sizes[type_index] as usize;
-                    let (new_obj_pos, _) = self.memory.new_custom(size);
+                    let (new_obj_pos, _) = self.memory.allocate_custom(type_index, self.metadata);
                     push!(self, new_obj_pos);
                 }
                 op::ALLOCATE_LIST => {

@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use super::metadata::Metadata;
+
 // Will be extended later on to support more metadata
 pub type HeapObjectHeader = (bool, u64); // flag for future gc, index in heap hashmap
 
@@ -11,10 +13,16 @@ pub struct List {
 }
 
 #[derive(Debug)]
+pub struct CustomObject {
+    pub type_index: u64,
+    pub data: Vec<u64>,
+}
+
+#[derive(Debug)]
 pub enum HeapObject {
     String(String),
     List(List),
-    Custom(Vec<u64>),
+    CustomObject(CustomObject),
 }
 
 #[derive(Debug, Default)]
@@ -26,7 +34,12 @@ pub struct Heap {
 
 impl HeapObject {
     pub fn extract_string(&self) -> &String {
-        // String are immutable so no &mut self needed
+        match self {
+            HeapObject::String(s) => s,
+            _ => unreachable!("Trying to extract string from non-string object"),
+        }
+    }
+    pub fn extract_string_mut(&mut self) -> &mut String {
         match self {
             HeapObject::String(s) => s,
             _ => unreachable!("Trying to extract string from non-string object"),
@@ -38,9 +51,9 @@ impl HeapObject {
             _ => unreachable!("Trying to extract list item memory from non-list object"),
         }
     }
-    pub fn extract_object_memory(&mut self) -> &mut Vec<u64> {
+    pub fn extract_custom_object(&mut self) -> &mut CustomObject {
         match self {
-            HeapObject::Custom(data) => data,
+            HeapObject::CustomObject(c) => c,
             _ => panic!("Trying to extract object memory from non-custom object"),
         }
     }
@@ -51,14 +64,33 @@ impl Heap {
         Self { data: HashMap::new(), counter: 0 }
     }
 
-    pub fn new_custom(&mut self, size: usize) -> (u64, &mut HeapObject) {
-        let obj = Box::new(HeapObject::Custom(vec![0; size]));
-        self.insert(obj)
+    pub fn allocate_custom(
+        &mut self,
+        type_index: usize,
+        meta: &Metadata,
+    ) -> (u64, &mut CustomObject) {
+        let obj_size = meta.types_sizes[type_index];
+        let obj = Box::new(HeapObject::CustomObject(CustomObject {
+            type_index: type_index as u64,
+            data: vec![0; obj_size as usize],
+        }));
+        let (pos, obj) = self.insert(obj);
+        (pos, obj.extract_custom_object())
     }
-    pub fn new_string(&mut self, s: String) -> (u64, &mut HeapObject) {
+
+    pub fn allocate_string(&mut self, capacity: usize) -> (u64, &mut String) {
+        let obj = Box::new(HeapObject::String(String::with_capacity(capacity)));
+
+        let (pos, obj) = self.insert(obj);
+        (pos, obj.extract_string_mut())
+    }
+
+    pub fn move_string(&mut self, s: String) -> (u64, &mut String) {
         let obj = Box::new(HeapObject::String(s));
-        self.insert(obj)
+        let (pos, obj) = self.insert(obj);
+        (pos, obj.extract_string_mut())
     }
+
     pub fn new_list(
         &mut self,
         item_size: usize,
