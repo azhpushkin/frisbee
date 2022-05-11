@@ -18,14 +18,13 @@ fn std_print(stack: &mut [u64], memory: &mut Heap) {
 fn std_range(stack: &mut [u64], memory: &mut Heap) {
     let start = stack[1] as i64;
     let end = stack[2] as i64;
-    // TODO: log this? println!(">> generating range from {} to {}", start, end - 1);
 
-    let (list_pos, list_object) = memory.new_list(1, 0, &[]);
-    let mut list_inner = list_object.extract_list();
-    list_inner.size = (end - start) as usize;
-    list_inner.data.resize(list_inner.size, 0);
+    let (list_pos, list_object) = memory.allocate_list(1, 0, &[]);
+    
+    list_object.size = (end - start) as usize;
+    list_object.data.resize(list_object.size, 0);
     for i in start..end {
-        list_inner.data[i as usize - start as usize] = i as u64;
+        list_object.data[i as usize - start as usize] = i as u64;
     }
 
     stack[0] = list_pos;

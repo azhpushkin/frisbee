@@ -389,7 +389,7 @@ impl Vm {
 
                     self.stack_pointer -= item_size * initial_items_amount;
 
-                    let (new_obj_pos, _) = self.memory.new_list(
+                    let (new_obj_pos, _) = self.memory.allocate_list(
                         item_size,
                         initial_items_amount,
                         &self.stack[self.stack_pointer..],

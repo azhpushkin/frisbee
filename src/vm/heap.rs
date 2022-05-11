@@ -91,12 +91,12 @@ impl Heap {
         (pos, obj.extract_string_mut())
     }
 
-    pub fn new_list(
+    pub fn allocate_list(
         &mut self,
         item_size: usize,
         initial_list_size: usize,
         copy_from: &[u64],
-    ) -> (u64, &mut HeapObject) {
+    ) -> (u64, &mut List) {
         let memory_size = item_size * initial_list_size;
 
         let mut list = vec![0; memory_size];
@@ -108,7 +108,8 @@ impl Heap {
             data: list,
         }));
 
-        self.insert(obj)
+        let (pos, obj) = self.insert(obj);
+        (pos, obj.extract_list())
     }
 
     fn insert(&mut self, object: Box<HeapObject>) -> (u64, &mut HeapObject) {
