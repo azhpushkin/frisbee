@@ -163,7 +163,7 @@ impl Vm {
         }
     }
 
-    fn load_types_info(&mut self, info_name: &'static str) -> Vec<u8>{
+    fn load_types_info(&mut self, info_name: &'static str) -> Vec<u8> {
         let mut sizes = vec![];
         let types_amount = self.read_opcode();
         for _ in 0..types_amount {
@@ -392,9 +392,9 @@ impl Vm {
                     let value = self.read_opcode() as usize;
 
                     // TODO: check if performance is increased when reserve does not fills with 0
-                    // If yes, probably worth giving some kind of flag 
-                    // this will make GC less precise, but 
-                    self.stack[self.stack_pointer..self.stack_pointer+value].fill(0);
+                    // If yes, probably worth giving some kind of flag
+                    // this will make GC less precise, but
+                    self.stack[self.stack_pointer..self.stack_pointer + value].fill(0);
                     self.stack_pointer += value;
                 }
                 op::CALL | op::CALL_STD => {

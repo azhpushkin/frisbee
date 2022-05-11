@@ -82,9 +82,9 @@ impl<'a> Disassembler<'a> {
         self.read_header("Initial");
         self.read_constants();
         self.read_header("End of constants");
-        self.read_types_meta();
+        self.read_info_block();
         self.read_header("End of types data");
-        self.read_types_meta();
+        self.read_info_block();
         self.read_header("End of list types data");
         self.read_symbol_names();
         self.read_header("End of symbol names");
@@ -142,26 +142,28 @@ impl<'a> Disassembler<'a> {
         }
     }
 
-    fn read_types_meta(&mut self) {
-        let (_, types_amount) = self.get_byte();
-        for _ in 0..types_amount {
-            self.get_byte(); // read size
-            let (_, pointers_count) = self.get_byte();
-            for _ in 0..pointers_count {
-                self.get_byte(); // read pointer type
+    fn read_info_block(&mut self) -> Vec<(String, u16, Vec<u8>)> {
+        let amount = self.get_byte().1;
+        let mut res = vec![];
+        for _ in 0..amount {
+            let name = self.get_str();
+            let flag = u16::from_be_bytes(self.get_bytes::<2>());
+
+            let pointer_mapping_len = self.get_byte().1;
+            let mut pointer_mapping = vec![];
+            for _ in 0..pointer_mapping_len {
+                pointer_mapping.push(self.get_byte().1);
             }
+
+            res.push((name, flag, pointer_mapping));
         }
+        res
     }
 
     fn read_symbol_names(&mut self) {
-        loop {
-            let symbol_name = self.get_str();
-            if symbol_name.is_empty() {
-                break;
-            }
-
-            let pos = u16::from_be_bytes(self.get_bytes::<2>()) as usize;
-            self.symbol_names.insert(pos, symbol_name);
+        let functions_info = self.read_info_block();
+        for (name, pos, _) in functions_info {
+            self.symbol_names.insert(pos as usize, name);
         }
     }
 

@@ -14,7 +14,7 @@ pub type CallPlaceholders = (usize, SymbolFunc);
 pub struct FunctionBytecode {
     pub bytecode: Vec<u8>,
     pub call_placeholders: Vec<CallPlaceholders>,
-    pub stack_pointer_mapping: Vec<usize>,
+    pub pointer_mapping: Vec<usize>,
 }
 pub struct JumpPlaceholder {
     position: usize,
