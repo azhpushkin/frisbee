@@ -65,7 +65,7 @@ pub fn opcode_to_s(c: u8) -> &'static str {
 pub struct Disassembler<'a> {
     program_iter: Box<dyn Iterator<Item = (usize, &'a u8)> + 'a>,
     result: Vec<String>,
-    symbol_names: HashMap<usize, String>,
+    function_names: HashMap<usize, String>,
     type_names: HashMap<usize, String>,
     list_type_names: HashMap<usize, String>,
 }
@@ -75,7 +75,7 @@ impl<'a> Disassembler<'a> {
         Disassembler {
             program_iter: Box::new(program.iter().enumerate()),
             result: vec![],
-            symbol_names: HashMap::new(),
+            function_names: HashMap::new(),
             type_names: HashMap::new(),
             list_type_names: HashMap::new(),
         }
@@ -90,22 +90,29 @@ impl<'a> Disassembler<'a> {
         self.read_header("End of constants");
 
         // Read types metadata
-        for (i, type_data) in self.read_info_block() {
-            self.type_names.insert(i, type_data.0);
+        for (i, type_name) in self.read_info_block() {
+            self.type_names.insert(i, type_name);
         }
-        self.read_header("End of types data");
+        self.read_header("End of types metadata");
 
         // Read lists metadata
-        for (i, item_data) in self.read_info_block() {
-            self.list_type_names.insert(i, item_data.0);
+        for (i, item_type) in self.read_info_block() {
+            self.list_type_names.insert(i, item_type);
         }
-        self.read_header("End of list types data");
+        self.read_header("End of list types metadata");
 
         // Read functions metadata
-        for (_, (name, pos)) in self.read_info_block() {
-            self.symbol_names.insert(pos as usize, name);
+        let mut function_names = vec![];
+        for (_, fname) in self.read_info_block() {
+            function_names.push(fname);
         }
-        self.read_header("End of symbol names");
+        self.read_header("End of function metadata");
+
+        for fname in function_names.into_iter() {
+            let pos = u16::from_be_bytes(self.get_bytes::<2>());
+            self.function_names.insert(pos as usize, fname);
+        }
+        self.read_header("End of function positions");
 
         self.read_entry();
         self.read_header("Start of functions");
@@ -165,33 +172,33 @@ impl<'a> Disassembler<'a> {
         }
     }
 
-    fn read_info_block(&mut self) -> Vec<(usize, (String, u16))> {
+    fn read_info_block(&mut self) -> Vec<(usize, String)> {
         let amount = self.get_byte().1;
         let mut res = vec![];
         for _ in 0..amount {
             let name = self.get_str();
-            let flag = u16::from_be_bytes(self.get_bytes::<2>());
 
-            // Skip through pointer mappings as they are not needed for disassembly
+            // Skip through sizes + pointer mappings as they are not needed for disassembly
+            self.get_bytes::<2>();
             for _ in 0..self.get_byte().1 {
                 self.get_byte();
             }
 
-            res.push((name, flag));
+            res.push(name);
         }
         res.into_iter().enumerate().collect()
     }
 
     fn read_entry(&mut self) {
         let entry = self.get_bytes::<2>();
-        let entry_name = &self.symbol_names[&(u16::from_be_bytes(entry) as usize)];
+        let entry_name = &self.function_names[&(u16::from_be_bytes(entry) as usize)];
         self.result
             .push(format!("Entry point:\n   -> {} {:02x?}", entry_name, entry));
     }
 
     fn read_functions(&mut self) {
         while let Some((i, opcode)) = self.program_iter.next() {
-            if let Some(name) = self.symbol_names.get(&i) {
+            if let Some(name) = self.function_names.get(&i) {
                 self.result
                     .push(format!("\n## Function {}", name).green().bold().to_string());
             }

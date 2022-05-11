@@ -17,6 +17,7 @@ const STACK_SIZE: usize = 512; // TODO: maybe grow??
 
 struct CallFrame {
     pub pointer_mapping: Vec<u8>,
+    pub locals_size: u8,
     pub return_ip: usize,
     pub stack_start: usize,
     pub return_size: usize,
@@ -63,8 +64,10 @@ impl Vm {
     }
 
     fn call_op(&mut self, func_pos: usize, return_size: usize, locals_size: usize) {
+        let func_index = self.metadata.function_positions[&func_pos];
         self.frames.push(CallFrame {
-            pointer_mapping: self.metadata.functions_pointer_mapping[&func_pos].clone(),
+            pointer_mapping: self.metadata.functions_pointer_mapping[func_index].clone(),
+            locals_size: self.metadata.function_locals_sizes[func_index],
             return_ip: self.ip,
             stack_start: self.stack_pointer - locals_size - return_size,
             return_size,
@@ -200,7 +203,14 @@ impl Vm {
         self.metadata.fill_lists_metadata(lm);
 
         let fm = self.read_metadata_block("Functions metadata");
+        let functions_count = fm.len();
         self.metadata.fill_function_metadata(fm);
+
+        for i in 0..functions_count {
+            let pos = u16::from_be_bytes(self.read_several::<2>()) as usize;
+            self.metadata.function_positions.insert(pos, i);
+        }
+        self.check_header("End of function positions");
     }
 
     pub fn run(&mut self, step_by_step: bool, show_debug: bool) {

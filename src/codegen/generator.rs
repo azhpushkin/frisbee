@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use crate::ast::verified::RawFunction;
 use crate::symbols::SymbolFunc;
 use crate::types::VerifiedType;
 use crate::vm::opcodes::op;
@@ -10,10 +11,11 @@ use super::utils::{get_tuple_offset, get_tuple_subitem_size, get_type_size};
 
 pub type CallPlaceholders = (usize, SymbolFunc);
 
-#[derive(Default)]
 pub struct FunctionBytecode {
+    pub name: SymbolFunc,
     pub bytecode: Vec<u8>,
     pub call_placeholders: Vec<CallPlaceholders>,
+    pub locals_size: usize,
     pub pointer_mapping: Vec<usize>,
 }
 pub struct JumpPlaceholder {
@@ -37,15 +39,14 @@ impl<'a> BytecodeGenerator<'a> {
         types_meta: &'a TypesMetadataTable,
         list_types_meta: &'a mut ListMetadataTable,
         constants: &'a mut ConstantsTable,
-        initial_locals: Vec<(&'a String, &'a VerifiedType)>,
-        return_type: &'a VerifiedType,
+        function: &'a RawFunction,
     ) -> Self {
         let mut locals: HashMap<&'a str, u8> = HashMap::new();
-        let mut locals_offset: u8 = get_type_size(return_type);
+        let mut locals_offset: u8 = get_type_size(&function.return_type);
         let mut locals_types = HashMap::new();
         let mut locals_order = vec![];
 
-        for (local_name, local_type) in initial_locals {
+        for (local_name, local_type) in function.args.iter() {
             locals.insert(local_name, locals_offset);
             locals_offset += get_type_size(local_type);
             locals_types.insert(local_name.as_str(), local_type);
@@ -60,8 +61,14 @@ impl<'a> BytecodeGenerator<'a> {
             locals_offset,
             locals_types,
             locals_order,
-            return_type,
-            bytecode: FunctionBytecode::default(),
+            return_type: &function.return_type,
+            bytecode: FunctionBytecode {
+                name: function.name.clone(),
+                bytecode: vec![],
+                call_placeholders: vec![],
+                locals_size: locals_offset as usize,
+                pointer_mapping: vec![],
+            },
         }
     }
 
@@ -157,7 +164,7 @@ impl<'a> BytecodeGenerator<'a> {
         self.bytecode.bytecode[placeholder.position + 1] = diff[1];
     }
 
-    pub fn get_bytecode(&mut self) -> FunctionBytecode {
-        std::mem::take(&mut self.bytecode)
+    pub fn get_bytecode(self) -> FunctionBytecode {
+        self.bytecode
     }
 }

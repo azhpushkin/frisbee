@@ -41,7 +41,7 @@ pub fn assemble_chunks(
     constants: Vec<u8>,
     types_meta: TypesMetadataTable,
     list_types_meta: ListMetadataTable,
-    functions: HashMap<SymbolFunc, FunctionBytecode>,
+    functions: Vec<FunctionBytecode>,
     entry: &SymbolFunc,
 ) -> Vec<u8> {
     // 1. Initial header
@@ -71,33 +71,36 @@ pub fn assemble_chunks(
     }
     bytecode.extend_from_slice(&HEADER);
 
-    // 5. Functions info (names + starts + pointer mapping)
-    let mut encoded_symbols_info: HashMap<usize, &SymbolFunc> = HashMap::new();
-
+    // 5. Functions info (names + locals sizes + pointer mapping)
     bytecode.push(functions.len() as u8);
-    for (function_name, function_bytecode) in functions.iter() {
-        push_str(&mut bytecode, &format!("{}", function_name));
-
-        // Save two bytes so we can later will it with the function start
-        encoded_symbols_info.insert(bytecode.len(), function_name);
-        push_usize_as_u16(&mut bytecode, 0);
-        push_pointers_map(&mut bytecode, &function_bytecode.pointer_mapping);
+    for function_info in functions.iter() {
+        push_str(&mut bytecode, &format!("{}", function_info.name));
+        push_usize_as_u16(&mut bytecode, function_info.locals_size);
+        push_pointers_map(&mut bytecode, &function_info.pointer_mapping);
     }
     bytecode.extend_from_slice(&HEADER);
 
-    // 6. Entry function pointer + header
+    // 6. Function positions (debug info)
+    let mut encoded_symbols_info: HashMap<usize, &SymbolFunc> = HashMap::new();
+    for function_info in functions.iter() {
+        encoded_symbols_info.insert(bytecode.len(), &function_info.name);
+        bytecode.extend([0, 0]);
+    }
+    bytecode.extend_from_slice(&HEADER);
+
+    // 7. Entry function pointer + header
     encoded_symbols_info.insert(bytecode.len(), entry);
     bytecode.extend([0, 0]); // placeholder, will be filled in later
     bytecode.extend_from_slice(&HEADER);
 
-    // 6. Functions bytecode, no headers anymore
+    // 8. Functions bytecode, no headers anymore
     let mut functions_start: HashMap<&SymbolFunc, usize> = HashMap::new();
 
-    for (name, function_bytecode) in functions.iter() {
+    for function_bytecode in functions.iter() {
         for (pos, called_func) in function_bytecode.call_placeholders.iter() {
             encoded_symbols_info.insert(*pos + bytecode.len(), called_func);
         }
-        functions_start.insert(name, bytecode.len());
+        functions_start.insert(&function_bytecode.name, bytecode.len());
         bytecode.extend_from_slice(&function_bytecode.bytecode);
     }
 

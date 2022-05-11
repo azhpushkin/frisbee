@@ -20,7 +20,7 @@ fn std_range(stack: &mut [u64], memory: &mut Heap) {
     let end = stack[2] as i64;
 
     let (list_pos, list_object) = memory.allocate_list(1, 0, &[]);
-    
+
     list_object.size = (end - start) as usize;
     list_object.data.resize(list_object.size, 0);
     for i in start..end {

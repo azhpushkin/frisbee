@@ -12,13 +12,7 @@ pub fn generate_function_bytecode(
     list_types_meta: &mut ListMetadataTable,
     constants: &mut ConstantsTable,
 ) -> Result<FunctionBytecode, String> {
-    let mut generator = BytecodeGenerator::new(
-        types_meta,
-        list_types_meta,
-        constants,
-        func.args.iter().collect(),
-        &func.return_type,
-    );
+    let mut generator = BytecodeGenerator::new(types_meta, list_types_meta, constants, func);
 
     for (local_name, local_type) in func.locals.iter() {
         generator.add_local(local_name, local_type);

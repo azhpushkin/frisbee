@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::ast::verified::{CustomType, RawFunction};
 use crate::symbols::SymbolFunc;
 
@@ -19,7 +17,7 @@ pub fn generate(types: &[CustomType], functions: &[RawFunction], entry: &SymbolF
     let types_meta = metadata::TypesMetadataTable::from_types(types);
     let mut list_types_meta = metadata::ListMetadataTable::default();
 
-    let mut functions_bytecode: HashMap<SymbolFunc, FunctionBytecode> = HashMap::new();
+    let mut functions_bytecode: Vec<FunctionBytecode> = vec![];
     for raw_function in functions.iter() {
         let mut bytecode = statements::generate_function_bytecode(
             raw_function,
@@ -30,7 +28,7 @@ pub fn generate(types: &[CustomType], functions: &[RawFunction], entry: &SymbolF
         .unwrap();
         bytecode.pointer_mapping = utils::get_pointers_map_for_sequence(&raw_function.args.types);
 
-        functions_bytecode.insert(raw_function.name.clone(), bytecode);
+        functions_bytecode.push(bytecode);
     }
 
     let constants_bytecode = constants.generate_bytecode();
