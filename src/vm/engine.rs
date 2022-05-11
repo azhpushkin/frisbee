@@ -1,7 +1,7 @@
-use std::collections::HashMap;
 use std::io;
 
 use super::heap;
+use super::metadata::{Metadata, MetadataBlock};
 use super::opcodes::op;
 use super::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
 use super::utils::{f64_to_u64, u64_to_f64};
@@ -13,7 +13,7 @@ macro_rules! push {
     };
 }
 
-const STACK_SIZE: usize = 256; // TODO: maybe grow??
+const STACK_SIZE: usize = 512; // TODO: maybe grow??
 
 struct CallFrame {
     pub return_ip: usize,
@@ -24,36 +24,29 @@ struct CallFrame {
 pub struct Vm {
     program: Vec<u8>,
     ip: usize,
+
     constants: Vec<u64>,
     memory: heap::Heap,
+    metadata: &'static mut Metadata,
+
     stack: [u64; STACK_SIZE],
     stack_pointer: usize,
-
-    types_sizes: Vec<u8>,
-    list_types_sizes: Vec<u8>,
-
-    types_pointer_mapping: Vec<Vec<u8>>,
-    lists_pointer_mapping: Vec<Vec<u8>>,
-    functions_pointer_mapping: HashMap<usize, Vec<u8>>,
 
     frames: Vec<CallFrame>, // TODO: limit size
 }
 
 impl Vm {
     pub fn new(program: Vec<u8>) -> Self {
+        let metadata = Box::new(Metadata::default());
         Vm {
             program,
             ip: 0,
             constants: vec![],
             memory: heap::Heap::new(),
+            metadata: Box::leak(metadata),
             stack: [0; STACK_SIZE],
             stack_pointer: 0,
             frames: vec![],
-            types_sizes: vec![],
-            list_types_sizes: vec![],
-            types_pointer_mapping: vec![],
-            lists_pointer_mapping: vec![],
-            functions_pointer_mapping: HashMap::new(),
         }
     }
 
@@ -173,7 +166,7 @@ impl Vm {
         }
     }
 
-    fn read_metadata_block(&mut self, info_name: &'static str) -> Vec<(usize, Vec<u8>)> {
+    fn read_metadata_block(&mut self, info_name: &'static str) -> MetadataBlock {
         let amount = self.read_opcode();
         let mut res = vec![];
         for _ in 0..amount {
@@ -198,19 +191,14 @@ impl Vm {
     }
 
     fn load_metadata(&mut self) {
-        for (flag, mapping) in self.read_metadata_block("Types metadata") {
-            self.types_sizes.push(flag as u8);
-            self.types_pointer_mapping.push(mapping);
-        }
+        let tm = self.read_metadata_block("Types metadata");
+        self.metadata.fill_types_metadata(tm);
 
-        for (flag, mapping) in self.read_metadata_block("Lists metadata") {
-            self.list_types_sizes.push(flag as u8);
-            self.lists_pointer_mapping.push(mapping);
-        }
+        let lm = self.read_metadata_block("Lists metadata");
+        self.metadata.fill_lists_metadata(lm);
 
-        for (pos, mapping) in self.read_metadata_block("Functions metadata") {
-            self.functions_pointer_mapping.insert(pos, mapping);
-        }
+        let fm = self.read_metadata_block("Functions metadata");
+        self.metadata.fill_function_metadata(fm);
     }
 
     pub fn run(&mut self, step_by_step: bool, show_debug: bool) {
@@ -386,13 +374,13 @@ impl Vm {
                 }
                 op::ALLOCATE => {
                     let type_index = self.read_opcode() as usize;
-                    let size = self.types_sizes[type_index] as usize;
+                    let size = self.metadata.types_sizes[type_index] as usize;
                     let (new_obj_pos, _) = self.memory.new_custom(size);
                     push!(self, new_obj_pos);
                 }
                 op::ALLOCATE_LIST => {
                     let list_item_index = self.read_opcode() as usize;
-                    let item_size = self.list_types_sizes[list_item_index] as usize;
+                    let item_size = self.metadata.list_types_sizes[list_item_index] as usize;
                     let initial_items_amount = self.read_opcode() as usize;
 
                     self.stack_pointer -= item_size * initial_items_amount;
