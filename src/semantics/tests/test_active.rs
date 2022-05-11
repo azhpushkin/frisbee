@@ -143,8 +143,6 @@ assert_semantic_check_is_fine!(
     "#
 );
 
-
-
 assert_semantic_check_fails!(
     spawning_passive_not_allowed,
     r#"
@@ -158,8 +156,6 @@ assert_semantic_check_fails!(
     }
     "#
 );
-
-
 
 assert_semantic_check_fails!(
     send_to_passive_not_allowed,

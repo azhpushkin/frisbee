@@ -3,7 +3,7 @@ use crate::vm::opcodes::op;
 
 use super::constants::ConstantsTable;
 use super::generator::{BytecodeGenerator, FunctionBytecode, JumpPlaceholder};
-use super::metadata::{TypesMetadataTable, ListMetadataTable};
+use super::metadata::{ListMetadataTable, TypesMetadataTable};
 use super::utils::{extract_custom_type, get_list_inner_type, get_tuple_offset, get_type_size};
 
 pub fn generate_function_bytecode(

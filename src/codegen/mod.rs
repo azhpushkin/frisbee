@@ -11,8 +11,8 @@ mod constants;
 mod disassemble;
 mod expressions;
 mod generator;
-mod statements;
 mod metadata;
+mod statements;
 mod utils;
 
 pub fn generate(types: &[CustomType], functions: &[RawFunction], entry: &SymbolFunc) -> Vec<u8> {
@@ -29,16 +29,22 @@ pub fn generate(types: &[CustomType], functions: &[RawFunction], entry: &SymbolF
             &mut constants,
         )
         .unwrap();
-        bytecode.stack_pointer_mapping = utils::get_pointers_map_for_sequence(&raw_function.args.types);
+        bytecode.stack_pointer_mapping =
+            utils::get_pointers_map_for_sequence(&raw_function.args.types);
 
         functions_bytecode.insert(raw_function.name.clone(), bytecode);
     }
 
     let constants_bytecode = constants.generate_bytecode();
-    
-    assemble::assemble_chunks(constants_bytecode, types_meta, list_types_meta, functions_bytecode, entry)
-}
 
+    assemble::assemble_chunks(
+        constants_bytecode,
+        types_meta,
+        list_types_meta,
+        functions_bytecode,
+        entry,
+    )
+}
 
 pub fn disassemble(program: &[u8]) -> String {
     let mut d = disassemble::Disassembler::new(program);

@@ -54,8 +54,7 @@ impl TypeMetadata {
     }
 }
 
-impl TypesMetadataTable
-{
+impl TypesMetadataTable {
     pub fn from_types(types: &[CustomType]) -> Self {
         let mut table = Self::default();
 
@@ -98,10 +97,6 @@ impl ListMetadataTable {
         }
     }
 }
-
-
-
-
 
 #[cfg(test)]
 mod test {

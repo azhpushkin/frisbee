@@ -112,9 +112,10 @@ fn compile_file(c: CompileCommand) {
         }
     }
 
-    let types: Vec<_> = aggregate.types.iter().map(|(_, value)| value).collect();
-    let functions: Vec<_> = aggregate.functions.iter().map(|(_, value)| value).collect();
-    let bytecode = codegen::generate(&types, &functions, &aggregate.entry);
+    let semantics::aggregate::ProgramAggregate { types, functions, entry } = aggregate;
+    let types: Vec<_> = types.into_iter().map(|(_, v)| v).collect();
+    let functions: Vec<_> = functions.into_iter().map(|(_, v)| v).collect();
+    let bytecode = codegen::generate(&types, &functions, &entry);
 
     let bytecode_path = file_path.with_extension("frisbee.bytecode");
     let mut bytecode_file = File::create(bytecode_path).expect("Cant open file for writing");

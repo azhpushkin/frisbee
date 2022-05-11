@@ -4,7 +4,7 @@ use crate::symbols::{SymbolFunc, SymbolType};
 use crate::types::VerifiedType;
 
 use super::generator::FunctionBytecode;
-use super::metadata::{TypesMetadataTable, ListMetadataTable};
+use super::metadata::{ListMetadataTable, TypesMetadataTable};
 
 /*
 Bytecode structure:

@@ -10,7 +10,10 @@ impl fmt::Display for RawFunction {
             "".into()
         } else {
             let formatted = self.locals.iter().map(|(s, t)| format!("    {} {};", t, s));
-            format!("    // LOCALS START\n{}\n    // LOCALS_END\n\n", formatted.collect::<Vec<_>>().join("\n"))
+            format!(
+                "    // LOCALS START\n{}\n    // LOCALS_END\n\n",
+                formatted.collect::<Vec<_>>().join("\n")
+            )
         };
         write!(
             f,

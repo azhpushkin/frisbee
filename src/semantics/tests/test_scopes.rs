@@ -85,7 +85,6 @@ assert_semantic_check_is_fine!(
     "#
 );
 
-
 assert_semantic_check_is_fine!(
     same_iter_in_multiple_foreach,
     r#"

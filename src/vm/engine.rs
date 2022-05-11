@@ -195,7 +195,7 @@ impl Vm {
         self.check_header("Initial header");
         self.load_consts();
         self.load_types_info();
-        self.skip_symbol_names();  // symbol names are just for disasm, no need to decode
+        self.skip_symbol_names(); // symbol names are just for disasm, no need to decode
         let entry = self.load_entry();
 
         if show_debug {

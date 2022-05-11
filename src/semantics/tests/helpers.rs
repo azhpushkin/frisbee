@@ -3,6 +3,7 @@ use regex::Regex;
 use crate::alias::ModuleAlias;
 use crate::errors::{adjust_error_window, CompileError};
 use crate::loader::WholeProgram;
+use crate::semantics::aggregate::ProgramAggregate;
 use crate::tests::helpers::setup_and_load_program;
 
 fn extract_expected_err<'a>(wp: &'a WholeProgram) -> (&'a ModuleAlias, usize, &'a str) {
@@ -52,9 +53,10 @@ pub(super) fn run_semantic_and_check_all_good(program: &str) {
     let res = res.unwrap();
 
     // BONUS: check that if the program is valid - it does not panic during codegen
-    let types: Vec<_> = res.types.iter().map(|(_, value)| value).collect();
-    let functions: Vec<_> = res.functions.iter().map(|(_, value)| value).collect();
-    crate::codegen::generate(&types, &functions, &res.entry);
+    let ProgramAggregate { types, functions, entry } = res;
+    let types: Vec<_> = types.into_iter().map(|(_, v)| v).collect();
+    let functions: Vec<_> = functions.into_iter().map(|(_, v)| v).collect();
+    crate::codegen::generate(&types, &functions, &entry);
 }
 
 macro_rules! assert_semantic_check_fails {
