@@ -1,17 +1,15 @@
 use crate::ast::verified::{RawFunction, VStatement};
-use crate::symbols::SymbolType;
-use crate::types::VerifiedType;
 use crate::vm::opcodes::op;
 
 use super::constants::ConstantsTable;
 use super::generator::{BytecodeGenerator, FunctionBytecode, JumpPlaceholder};
-use super::types_metadata::TypeMetadataTable;
+use super::metadata::{TypesMetadataTable, ListMetadataTable};
 use super::utils::{extract_custom_type, get_list_inner_type, get_tuple_offset, get_type_size};
 
 pub fn generate_function_bytecode(
     func: &RawFunction,
-    types_meta: &TypeMetadataTable<SymbolType>,
-    list_types_meta: &mut TypeMetadataTable<VerifiedType>,
+    types_meta: &TypesMetadataTable,
+    list_types_meta: &mut ListMetadataTable,
     constants: &mut ConstantsTable,
 ) -> Result<FunctionBytecode, String> {
     let mut generator = BytecodeGenerator::new(
@@ -59,7 +57,7 @@ impl<'a> BytecodeGenerator<'a> {
                 self.push_expr(value);
                 self.push_expr(object);
 
-                let field_offset = self.types_meta.get(object_type).field_offsets[field];
+                let field_offset = self.types_meta.get_meta(object_type).field_offsets[field];
                 let tuple_offset = get_tuple_offset(&value.expr_type, tuple_indexes);
 
                 self.push(op::SET_OBJ_FIELD);

@@ -146,8 +146,8 @@ impl<'a> BytecodeGenerator<'a> {
                 let object_type = extract_custom_type(&object.expr_type);
                 self.push_expr(object);
                 self.push(op::GET_OBJ_FIELD);
-                self.push(self.types_meta.get(object_type).field_offsets[field]);
-                self.push(self.types_meta.get(object_type).field_sizes[field]);
+                self.push(self.types_meta.get_meta(object_type).field_offsets[field]);
+                self.push(self.types_meta.get_meta(object_type).field_sizes[field]);
             }
             VExpr::AccessListItem { list, index } => {
                 self.push_expr(index);
@@ -156,7 +156,7 @@ impl<'a> BytecodeGenerator<'a> {
             }
             VExpr::Allocate { typename } => {
                 self.push(op::ALLOCATE);
-                self.push(self.types_meta.indexes[typename] as u8);
+                self.push(self.types_meta.get_index(typename) as u8);
             }
             VExpr::Dummy(t) => {
                 self.push_reserve(t);

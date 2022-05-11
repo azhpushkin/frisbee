@@ -12,13 +12,13 @@ mod disassemble;
 mod expressions;
 mod generator;
 mod statements;
-mod types_metadata;
+mod metadata;
 mod utils;
 
-pub fn generate(types: &[&CustomType], functions: &[&RawFunction], entry: &SymbolFunc) -> Vec<u8> {
+pub fn generate(types: &[CustomType], functions: &[RawFunction], entry: &SymbolFunc) -> Vec<u8> {
     let mut constants = constants::ConstantsTable::new();
-    let types_meta = types_metadata::meta_table_for_types(types);
-    let mut list_types_meta = types_metadata::TypeMetadataTable::new();
+    let types_meta = metadata::TypesMetadataTable::from_types(types);
+    let mut list_types_meta = metadata::ListMetadataTable::default();
 
     let mut functions_bytecode: HashMap<SymbolFunc, FunctionBytecode> = HashMap::new();
     for raw_function in functions.iter() {
@@ -29,7 +29,7 @@ pub fn generate(types: &[&CustomType], functions: &[&RawFunction], entry: &Symbo
             &mut constants,
         )
         .unwrap();
-        bytecode.stack_pointer_mapping = utils::generate_pointers_map(&raw_function.args.types);
+        bytecode.stack_pointer_mapping = utils::get_pointers_map_for_sequence(&raw_function.args.types);
 
         functions_bytecode.insert(raw_function.name.clone(), bytecode);
     }

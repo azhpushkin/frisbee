@@ -4,7 +4,7 @@ use crate::symbols::{SymbolFunc, SymbolType};
 use crate::types::VerifiedType;
 
 use super::generator::FunctionBytecode;
-use super::types_metadata::TypeMetadataTable;
+use super::metadata::{TypesMetadataTable, ListMetadataTable};
 
 /*
 Bytecode structure:
@@ -22,8 +22,8 @@ static HEADER: [u8; 2] = [u8::MAX, u8::MAX];
 
 pub fn assemble_chunks(
     constants: Vec<u8>,
-    types_meta: TypeMetadataTable<SymbolType>,
-    list_types_meta: TypeMetadataTable<VerifiedType>,
+    types_meta: TypesMetadataTable,
+    list_types_meta: ListMetadataTable,
     functions: HashMap<SymbolFunc, FunctionBytecode>,
     entry: &SymbolFunc,
 ) -> Vec<u8> {

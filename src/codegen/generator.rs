@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
-use crate::symbols::{SymbolFunc, SymbolType};
+use crate::symbols::SymbolFunc;
 use crate::types::VerifiedType;
 use crate::vm::opcodes::op;
 
 use super::constants::{Constant, ConstantsTable};
-use super::types_metadata::TypeMetadataTable;
+use super::metadata::{ListMetadataTable, TypesMetadataTable};
 use super::utils::{get_tuple_offset, get_tuple_subitem_size, get_type_size};
 
 pub type CallPlaceholders = (usize, SymbolFunc);
@@ -14,15 +14,15 @@ pub type CallPlaceholders = (usize, SymbolFunc);
 pub struct FunctionBytecode {
     pub bytecode: Vec<u8>,
     pub call_placeholders: Vec<CallPlaceholders>,
-    pub stack_pointer_mapping: Vec<usize>
+    pub stack_pointer_mapping: Vec<usize>,
 }
 pub struct JumpPlaceholder {
     position: usize,
 }
 
 pub struct BytecodeGenerator<'a> {
-    pub types_meta: &'a TypeMetadataTable<SymbolType>,
-    pub list_types_meta: &'a mut TypeMetadataTable<VerifiedType>,
+    pub types_meta: &'a TypesMetadataTable,
+    pub list_types_meta: &'a mut ListMetadataTable,
     constants: &'a mut ConstantsTable,
     locals: HashMap<&'a str, u8>,
     locals_offset: u8,
@@ -34,8 +34,8 @@ pub struct BytecodeGenerator<'a> {
 
 impl<'a> BytecodeGenerator<'a> {
     pub fn new(
-        types_meta: &'a TypeMetadataTable<SymbolType>,
-        list_types_meta: &'a mut TypeMetadataTable<VerifiedType>,
+        types_meta: &'a TypesMetadataTable,
+        list_types_meta: &'a mut ListMetadataTable,
         constants: &'a mut ConstantsTable,
         initial_locals: Vec<(&'a String, &'a VerifiedType)>,
         return_type: &'a VerifiedType,

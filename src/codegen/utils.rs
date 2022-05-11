@@ -81,31 +81,31 @@ pub fn get_list_inner_type<T>(list_type: &Type<T>) -> &Type<T> {
     }
 }
 
-pub fn generate_map_for_single<T>(t: &Type<T>) -> Vec<usize> {
+pub fn get_pointers_map_for_type<T>(t: &Type<T>) -> Vec<usize> {
     match t {
         Type::Int | Type::Float | Type::Bool => vec![],
         Type::Maybe(t) => {
-            let inner = generate_map_for_single(t.as_ref());
+            let inner = get_pointers_map_for_type(t.as_ref());
             inner.into_iter().map(|i| i + 1).collect()
         }
         Type::List(_) | Type::Custom(_) | Type::String => vec![0],
 
-        Type::Tuple(items) => generate_pointers_map(&items),
+        Type::Tuple(items) => get_pointers_map_for_sequence(&items),
     }
 }
 
-pub fn generate_pointers_map<T>(types: &[Type<T>]) -> Vec<usize> {
+pub fn get_pointers_map_for_sequence<T>(types: &[Type<T>]) -> Vec<usize> {
     if types.is_empty() {
         return vec![];
     }
     if types.len() == 1 {
-        return generate_map_for_single(&types[0]);
+        return get_pointers_map_for_type(&types[0]);
     }
 
     let mut result = vec![];
     let mut current_offset: usize = 0;
     for t in types {
-        let inner = generate_map_for_single(t);
+        let inner = get_pointers_map_for_type(t);
         result.extend(inner.into_iter().map(|i| i + current_offset));
         current_offset += get_type_size(t) as usize;
     }
@@ -176,7 +176,7 @@ mod test {
             ]),
         ];
 
-        let mapping = generate_pointers_map(&items);
+        let mapping = get_pointers_map_for_sequence(&items);
         assert_eq!(mapping, vec![2, 3, 4]);
     }
 
@@ -190,7 +190,7 @@ mod test {
             Type::Tuple(vec![Type::Float, Type::Custom("SomeType")]),
         ])));
 
-        let mapping = generate_map_for_single(&test_type);
+        let mapping = get_pointers_map_for_type(&test_type);
         assert_eq!(mapping, vec![4]);
     }
 }
