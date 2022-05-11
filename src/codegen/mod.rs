@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
 use crate::ast::verified::{CustomType, RawFunction};
-use crate::symbols::{SymbolFunc, SymbolType};
-use crate::types::VerifiedType;
+use crate::symbols::SymbolFunc;
 
 use self::generator::FunctionBytecode;
 

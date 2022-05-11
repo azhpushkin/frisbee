@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
-use crate::symbols::{SymbolFunc, SymbolType};
-use crate::types::VerifiedType;
+use crate::symbols::SymbolFunc;
 
 use super::generator::FunctionBytecode;
 use super::metadata::{ListMetadataTable, TypesMetadataTable};

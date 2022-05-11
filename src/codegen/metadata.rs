@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::hash::Hash;
 
 use crate::ast::verified::CustomType;
 use crate::symbols::SymbolType;

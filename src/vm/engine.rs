@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::io;
 
 use super::heap;
@@ -27,8 +28,14 @@ pub struct Vm {
     memory: heap::Heap,
     stack: [u64; STACK_SIZE],
     stack_pointer: usize,
+
     types_sizes: Vec<u8>,
     list_types_sizes: Vec<u8>,
+
+    types_pointer_mapping: Vec<Vec<u8>>,
+    lists_pointer_mapping: Vec<Vec<u8>>,
+    functions_pointer_mapping: HashMap<usize, Vec<u8>>,
+
     frames: Vec<CallFrame>, // TODO: limit size
 }
 
@@ -44,6 +51,9 @@ impl Vm {
             frames: vec![],
             types_sizes: vec![],
             list_types_sizes: vec![],
+            types_pointer_mapping: vec![],
+            lists_pointer_mapping: vec![],
+            functions_pointer_mapping: HashMap::new(),
         }
     }
 
@@ -163,30 +173,22 @@ impl Vm {
         }
     }
 
-    fn load_types_info(&mut self, info_name: &'static str) -> Vec<u8> {
-        let mut sizes = vec![];
-        let types_amount = self.read_opcode();
-        for _ in 0..types_amount {
-            let size = self.read_opcode(); // read size
-            sizes.push(size);
-            for _ in 0..self.read_opcode() {
-                self.read_opcode(); // read pointer type
-            }
+    fn read_metadata_block(&mut self, info_name: &'static str) -> Vec<(usize, Vec<u8>)> {
+        let amount = self.read_opcode();
+        let mut res = vec![];
+        for _ in 0..amount {
+            // Read string repr, do not save it - we have no use for it
+            let symbol_name_len = u16::from_be_bytes(self.read_several::<2>());
+            self.read_bytes(symbol_name_len as usize);
+
+            let flag = u16::from_be_bytes(self.read_several::<2>()) as usize;
+
+            let pointers_amount = self.read_opcode();
+            let pointer_mapping = self.read_bytes(pointers_amount as usize);
+            res.push((flag, pointer_mapping));
         }
         self.check_header(info_name);
-        sizes
-    }
-
-    fn skip_symbol_names(&mut self) {
-        loop {
-            let symbol_name_len = u16::from_be_bytes(self.read_several::<2>());
-            if symbol_name_len == 0 {
-                break;
-            }
-            self.read_bytes(symbol_name_len as usize); // symbol name
-            self.read_several::<2>(); // symbol position
-        }
-        self.check_header("End of symbol names");
+        res
     }
 
     fn load_entry(&mut self) -> usize {
@@ -195,18 +197,32 @@ impl Vm {
         entry as usize
     }
 
+    fn load_metadata(&mut self) {
+        for (flag, mapping) in self.read_metadata_block("Types metadata") {
+            self.types_sizes.push(flag as u8);
+            self.types_pointer_mapping.push(mapping);
+        }
+
+        for (flag, mapping) in self.read_metadata_block("Lists metadata") {
+            self.list_types_sizes.push(flag as u8);
+            self.lists_pointer_mapping.push(mapping);
+        }
+
+        for (pos, mapping) in self.read_metadata_block("Functions metadata") {
+            self.functions_pointer_mapping.insert(pos, mapping);
+        }
+    }
+
     pub fn run(&mut self, step_by_step: bool, show_debug: bool) {
         self.check_header("Initial header");
         self.load_consts();
-        self.types_sizes = self.load_types_info("Types info");
-        self.list_types_sizes = self.load_types_info("Types info list");
-        self.skip_symbol_names(); // symbol names are just for disasm, no need to decode
-        let entry = self.load_entry();
-
         if show_debug {
             println!("Loaded constants: {:?}", self.constants);
         }
 
+        self.load_metadata();
+
+        let entry = self.load_entry();
         self.call_op(entry, 0, 0);
 
         while self.ip < self.program.len() {

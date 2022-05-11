@@ -89,18 +89,27 @@ impl<'a> Disassembler<'a> {
         self.read_constants();
         self.read_header("End of constants");
 
-        let types_data = self.read_info_block();
-        self.type_names = types_data.into_iter().enumerate().map(|(i, t)| (i, t.0)).collect();
+        // Read types metadata
+        for (i, type_data) in self.read_info_block() {
+            self.type_names.insert(i, type_data.0);
+        }
         self.read_header("End of types data");
 
-        let list_types = self.read_info_block();
-        self.list_type_names = list_types.into_iter().enumerate().map(|(i, t)| (i, t.0)).collect();
+        // Read lists metadata
+        for (i, item_data) in self.read_info_block() {
+            self.list_type_names.insert(i, item_data.0);
+        }
         self.read_header("End of list types data");
 
-        self.read_symbol_names();
+        // Read functions metadata
+        for (_, (name, pos)) in self.read_info_block() {
+            self.symbol_names.insert(pos as usize, name);
+        }
         self.read_header("End of symbol names");
+
         self.read_entry();
         self.read_header("Start of functions");
+
         self.read_functions();
 
         self.result.join("\n")
@@ -156,29 +165,21 @@ impl<'a> Disassembler<'a> {
         }
     }
 
-    fn read_info_block(&mut self) -> Vec<(String, u16, Vec<u8>)> {
+    fn read_info_block(&mut self) -> Vec<(usize, (String, u16))> {
         let amount = self.get_byte().1;
         let mut res = vec![];
         for _ in 0..amount {
             let name = self.get_str();
             let flag = u16::from_be_bytes(self.get_bytes::<2>());
 
-            let pointer_mapping_len = self.get_byte().1;
-            let mut pointer_mapping = vec![];
-            for _ in 0..pointer_mapping_len {
-                pointer_mapping.push(self.get_byte().1);
+            // Skip through pointer mappings as they are not needed for disassembly
+            for _ in 0..self.get_byte().1 {
+                self.get_byte();
             }
 
-            res.push((name, flag, pointer_mapping));
+            res.push((name, flag));
         }
-        res
-    }
-
-    fn read_symbol_names(&mut self) {
-        let functions_info = self.read_info_block();
-        for (name, pos, _) in functions_info {
-            self.symbol_names.insert(pos as usize, name);
-        }
+        res.into_iter().enumerate().collect()
     }
 
     fn read_entry(&mut self) {
