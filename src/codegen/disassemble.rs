@@ -1,4 +1,5 @@
 use crate::vm::opcodes::{get_args_num, op};
+use owo_colors::OwoColorize;
 use std::collections::HashMap;
 
 pub fn opcode_to_s(c: u8) -> &'static str {
@@ -65,6 +66,8 @@ pub struct Disassembler<'a> {
     program_iter: Box<dyn Iterator<Item = (usize, &'a u8)> + 'a>,
     result: Vec<String>,
     symbol_names: HashMap<usize, String>,
+    type_names: HashMap<usize, String>,
+    list_type_names: HashMap<usize, String>,
 }
 
 impl<'a> Disassembler<'a> {
@@ -73,6 +76,8 @@ impl<'a> Disassembler<'a> {
             program_iter: Box::new(program.iter().enumerate()),
             result: vec![],
             symbol_names: HashMap::new(),
+            type_names: HashMap::new(),
+            list_type_names: HashMap::new(),
         }
     }
 
@@ -80,12 +85,18 @@ impl<'a> Disassembler<'a> {
         self.result.clear();
 
         self.read_header("Initial");
+
         self.read_constants();
         self.read_header("End of constants");
-        self.read_info_block();
+
+        let types_data = self.read_info_block();
+        self.type_names = types_data.into_iter().enumerate().map(|(i, t)| (i, t.0)).collect();
         self.read_header("End of types data");
-        self.read_info_block();
+
+        let list_types = self.read_info_block();
+        self.list_type_names = list_types.into_iter().enumerate().map(|(i, t)| (i, t.0)).collect();
         self.read_header("End of list types data");
+
         self.read_symbol_names();
         self.read_header("End of symbol names");
         self.read_entry();
@@ -119,8 +130,11 @@ impl<'a> Disassembler<'a> {
 
     fn read_header(&mut self, header_name: &str) {
         let header = self.get_bytes::<2>();
-        self.result
-            .push(format!("HEADER [{}] => {:02x?}", header_name, header));
+        self.result.push(format!(
+            "HEADER [{}] => {:02x?}",
+            header_name,
+            header.yellow()
+        ));
     }
 
     fn read_constants(&mut self) {
@@ -177,7 +191,8 @@ impl<'a> Disassembler<'a> {
     fn read_functions(&mut self) {
         while let Some((i, opcode)) = self.program_iter.next() {
             if let Some(name) = self.symbol_names.get(&i) {
-                self.result.push(format!("\n## Function {}", name));
+                self.result
+                    .push(format!("\n## Function {}", name).green().bold().to_string());
             }
 
             let mut number_of_args = get_args_num(*opcode);
@@ -186,7 +201,7 @@ impl<'a> Disassembler<'a> {
                 args.push(self.get_byte().1);
                 number_of_args -= 1;
             }
-            let mut op_text = format!(" {:02x?}   {} {:02x?}", i, opcode_to_s(*opcode), args);
+            let mut op_text = format!(" {:>4x?}  {} {:02x?}", i.blue(), opcode_to_s(*opcode), args);
 
             // + 3 is added, because jump offset is relative to instruction pointer
             // but `i` var points to jump opcode, which is 3 steps behind
@@ -197,6 +212,12 @@ impl<'a> Disassembler<'a> {
             } else if *opcode == op::JUMP_BACK {
                 let x = u16::from_be_bytes([args[0], args[1]]) as usize;
                 op_text = format!("{} (jumps to {:02x?}) ", op_text, i - x + 3);
+            } else if *opcode == op::ALLOCATE {
+                let typename = &self.type_names[&(args[0] as usize)];
+                op_text.push_str(&format!(" (type {}) ", typename).yellow().to_string());
+            } else if *opcode == op::ALLOCATE_LIST {
+                let typename = &self.list_type_names[&(args[0] as usize)];
+                op_text.push_str(&format!(" (list of {}) ", typename).yellow().to_string());
             }
 
             self.result.push(op_text);
