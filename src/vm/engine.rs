@@ -16,8 +16,7 @@ macro_rules! push {
 const STACK_SIZE: usize = 512; // TODO: maybe grow??
 
 struct CallFrame {
-    pub pointer_mapping: Vec<u8>,
-    pub locals_size: u8,
+    pub pos: usize,
     pub return_ip: usize,
     pub stack_start: usize,
     pub return_size: usize,
@@ -64,10 +63,10 @@ impl Vm {
     }
 
     fn call_op(&mut self, func_pos: usize, return_size: usize, locals_size: usize) {
-        let func_index = self.metadata.function_positions[&func_pos];
+        // This is a point of huge optimizations, probably worth tweaking callframe stack
+        // to make it smaller
         self.frames.push(CallFrame {
-            pointer_mapping: self.metadata.functions_pointer_mapping[func_index].clone(),
-            locals_size: self.metadata.function_locals_sizes[func_index],
+            pos: func_pos,
             return_ip: self.ip,
             stack_start: self.stack_pointer - locals_size - return_size,
             return_size,
