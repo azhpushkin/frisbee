@@ -1,66 +1,6 @@
-use crate::vm::opcodes::{get_args_num, op};
+use crate::vm::opcodes::op;
 use owo_colors::OwoColorize;
 use std::collections::HashMap;
-
-pub fn opcode_to_s(c: u8) -> &'static str {
-    match c {
-        op::RESERVE => "reserve",
-        op::LOAD_CONST => "load_const",
-        op::LOAD_SMALL_INT => "load_small_int",
-        op::LOAD_TRUE => "load_true",
-        op::LOAD_FALSE => "load_false",
-
-        op::NEGATE_INT => "negate_int",
-        op::ADD_INT => "add_int",
-        op::SUB_INT => "sub_int",
-        op::MUL_INT => "mul_int",
-        op::DIV_INT => "div_int",
-        op::GREATER_INT => "greater_int",
-        op::LESS_INT => "less_int",
-        op::EQ_INT => "eq_int",
-
-        op::NEGATE_FLOAT => "negate_float",
-        op::ADD_FLOAT => "add_float",
-        op::SUB_FLOAT => "sub_float",
-        op::MUL_FLOAT => "mul_float",
-        op::DIV_FLOAT => "div_float",
-        op::GREATER_FLOAT => "greater_float",
-        op::LESS_FLOAT => "less_float",
-        op::EQ_FLOAT => "eq_float",
-
-        op::NEGATE_BOOL => "negate_bool",
-        op::EQ_BOOL => "eq_bool",
-        op::AND_BOOL => "and_bool",
-        op::OR_BOOL => "or_bool",
-
-        op::ADD_STRINGS => "add_strings",
-        op::EQ_STRINGS => "eq_strings",
-
-        op::CALL => "call",
-        op::CALL_STD => "call_std",
-        op::RETURN => "return",
-        op::POP => "pop",
-        op::ALLOCATE => "allocate",
-        op::ALLOCATE_LIST => "allocate_list",
-
-        op::GET_LOCAL => "get_local",
-        op::SET_LOCAL => "set_local",
-
-        op::GET_TUPLE_ITEM => "get_tuple_item",
-
-        op::GET_OBJ_FIELD => "get_obj_field",
-        op::SET_OBJ_FIELD => "set_obj_field",
-
-        op::GET_LIST_ITEM => "get_list_item",
-        op::SET_LIST_ITEM => "set_list_item",
-
-        op::JUMP => "jump",
-        op::JUMP_BACK => "jump_back",
-        op::JUMP_IF_FALSE => "jump_if_false",
-
-        _ => panic!("DIS: unknown opcode {}", c),
-    }
-}
 
 pub struct Disassembler<'a> {
     program_iter: Box<dyn Iterator<Item = (usize, &'a u8)> + 'a>,
@@ -203,13 +143,18 @@ impl<'a> Disassembler<'a> {
                     .push(format!("\n## Function {}", name).green().bold().to_string());
             }
 
-            let mut number_of_args = get_args_num(*opcode);
+            let mut number_of_args = op::get_args_num(*opcode);
             let mut args: Vec<u8> = vec![];
             while number_of_args > 0 {
                 args.push(self.get_byte().1);
                 number_of_args -= 1;
             }
-            let mut op_text = format!(" {:>4x?}  {} {:02x?}", i.blue(), opcode_to_s(*opcode), args);
+            let mut op_text = format!(
+                " {:>4x?}  {} {:02x?}",
+                i.blue(),
+                op::get_display_name(*opcode),
+                args
+            );
 
             // + 3 is added, because jump offset is relative to instruction pointer
             // but `i` var points to jump opcode, which is 3 steps behind

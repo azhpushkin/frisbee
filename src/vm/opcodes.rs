@@ -1,131 +1,98 @@
-const ZERO_ARG_START: u8 = 0;
-const SINGLE_ARG_START: u8 = 128;
-const DOUBLE_ARG_START: u8 = 192;
-const TRIPLE_ARG_START: u8 = 224;
-const QUATRO_ARG_START: u8 = 240;
-
 macro_rules! opcodes_list {
-    ($s:expr, $c:ident ) => {
-        pub const $c: u8 = $s;
-    };
-    ($s:expr, $c:ident, $ ( $more:ident ),+ ) => {
+    ($s:expr, [$($acc:expr),*], $c:ident($args:literal)  ) => {
         pub const $c: u8 = $s;
 
-        opcodes_list!($s+1, $(  $more ),+ );
+        const OPCODES_INFO: [(u8, &str); $s+1] = [$($acc),*, ($args, stringify!($c))];
     };
-}
+    ($s:expr, [$($acc:expr),+], $c:ident($args:literal), $ ( $more:ident($margs:literal) ),+ $(,)? ) => {
+        pub const $c: u8 = $s;
 
-macro_rules! opcodes_with_0_args {
-    ($ ( $more:ident ),+ ) => { opcodes_list!(ZERO_ARG_START, $(  $more ),+ ); };
-}
-macro_rules! opcodes_with_1_arg {
-    ($ ( $more:ident ),+ ) => { opcodes_list!(SINGLE_ARG_START, $(  $more ),+ ); };
-}
-macro_rules! opcodes_with_2_args {
-    ($ ( $more:ident ),+ ) => { opcodes_list!(DOUBLE_ARG_START, $(  $more ),+ ); };
-}
-macro_rules! opcodes_with_3_args {
-    ($ ( $more:ident ),+ ) => { opcodes_list!(TRIPLE_ARG_START, $(  $more ),+ ); };
-}
-macro_rules! opcodes_with_4_args {
-    ($ ( $more:ident ),+ ) => { opcodes_list!(QUATRO_ARG_START, $(  $more ),+ ); };
+        opcodes_list!($s+1, [$($acc),*, ($args, stringify!($c))], $(  $more($margs) ),+ );
+    };
+
+    // Empty array call
+    ($s:expr, [], $c:ident($args:literal), $ ( $more:ident($margs:literal) ),+ $(,)? ) => {
+        pub const $c: u8 = $s;
+
+        opcodes_list!($s+1, [($args, stringify!($c))], $(  $more($margs) ),+ );
+    };
+
+    // Initial call
+    ($c:ident($args:literal), $ ( $more:ident($margs:literal) ),+ $(,)? ) => {
+        opcodes_list!(0, [], $c($args), $(  $more($margs) ),+ );
+    };
 }
 
 #[rustfmt::skip]
 pub mod op {
-    use super::*;
 
-    // Opcode without arguments
-    opcodes_with_0_args!(
-        LOAD_TRUE,
-        LOAD_FALSE,
+    opcodes_list!(
+        LOAD_TRUE(0),
+        LOAD_FALSE(0),
+        NEGATE_INT(0),
+        ADD_INT(0),
+        SUB_INT(0),
+        MUL_INT(0),
+        DIV_INT(0),
+        GREATER_INT(0),
+        LESS_INT(0),
+        EQ_INT(0),
+        NEGATE_FLOAT(0),
+        ADD_FLOAT(0),
+        SUB_FLOAT(0),
+        MUL_FLOAT(0),
+        DIV_FLOAT(0),
+        GREATER_FLOAT(0),
+        LESS_FLOAT(0),
+        EQ_FLOAT(0),
+        NEGATE_BOOL(0),
+        EQ_BOOL(0),
+        AND_BOOL(0),
+        OR_BOOL(0),
+        ADD_STRINGS(0),
+        EQ_STRINGS(0),
+        GET_LIST_ITEM(0),
+        RETURN(0),
 
-        NEGATE_INT,
-        ADD_INT,
-        SUB_INT,
-        MUL_INT,
-        DIV_INT,
-        GREATER_INT,
-        LESS_INT,
-        EQ_INT,
+        ALLOCATE(1),
 
-        NEGATE_FLOAT,
-        ADD_FLOAT,
-        SUB_FLOAT,
-        MUL_FLOAT,
-        DIV_FLOAT,
-        GREATER_FLOAT,
-        LESS_FLOAT,
-        EQ_FLOAT,
+        RESERVE(1),
+        POP(1),
 
-        NEGATE_BOOL,
-        EQ_BOOL,
-        AND_BOOL,
-        OR_BOOL,
+        LOAD_CONST(1),
+        LOAD_SMALL_INT(1),
 
-        ADD_STRINGS,
-        EQ_STRINGS,
+        ALLOCATE_LIST(2),  // item_size + initial_size
 
-        GET_LIST_ITEM,
+        JUMP(2),
+        JUMP_BACK(2),
+        JUMP_IF_FALSE(2),
 
-        RETURN
+        SET_LOCAL(2),  // offset + size
+        GET_LOCAL(2),  // offset + size
+
+        SET_OBJ_FIELD(2),  // offset from pointer, size
+        GET_OBJ_FIELD(2), // offset from pointer, size
+
+        SET_LIST_ITEM(2),  // offset from pointer, size of value to set
+
+        GET_TUPLE_ITEM(3),
+
+        // return size, total offset, call position
+        CALL(4),
+        CALL_STD(4)
     );
 
-    // Opcodes with single operand
-    opcodes_with_1_arg!(
-        ALLOCATE,
+    pub fn get_args_num(opcode: u8) -> usize {
+        OPCODES_INFO[opcode as usize].0 as usize
+    }
 
-        RESERVE,
-        POP,
-
-        LOAD_CONST,
-        LOAD_SMALL_INT
-    );
-
-    // Opcodes with two operands
-    opcodes_with_2_args!(
-        ALLOCATE_LIST,  // item_size + initial_size
-
-        JUMP,
-        JUMP_BACK,
-        JUMP_IF_FALSE,
-
-        SET_LOCAL,  // offset + size
-        GET_LOCAL,  // offset + size
-
-        SET_OBJ_FIELD,  // offset from pointer, size
-        GET_OBJ_FIELD, // offset from pointer, size
-
-        SET_LIST_ITEM  // offset from pointer, size of value to set
-    );
-
-    // Opcodes with three operands
-    opcodes_with_3_args!(
-        GET_TUPLE_ITEM
-    );
-
-    // Both have 4 operands: return size, total offset, call position
-    opcodes_with_4_args! (
-        CALL,
-        CALL_STD
-    );
+    pub fn get_display_name(opcode: u8) -> &'static str {
+        OPCODES_INFO[opcode as usize].1
+    }
 
     pub const CONST_END_FLAG: u8 = u8::MAX;
     pub const CONST_INT_FLAG: u8 = 1;    
     pub const CONST_FLOAT_FLAG: u8 = 2;
     pub const CONST_STRING_FLAG: u8 = 3;
-}
-
-pub fn get_args_num(op: u8) -> usize {
-    if op >= QUATRO_ARG_START {
-        4
-    } else if op >= TRIPLE_ARG_START {
-        3
-    } else if op >= DOUBLE_ARG_START {
-        2
-    } else if op >= SINGLE_ARG_START {
-        1
-    } else {
-        0
-    }
 }
