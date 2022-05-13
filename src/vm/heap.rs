@@ -90,13 +90,15 @@ impl Heap {
         let (pos, obj) = self.insert(obj);
         (pos, obj.extract_string_mut())
     }
-
+    
     pub fn allocate_list(
         &mut self,
-        item_size: usize,
+        list_type_index: usize,
         initial_list_size: usize,
         copy_from: &[u64],
+        meta: &Metadata,
     ) -> (u64, &mut List) {
+        let item_size = meta.list_types_sizes[list_type_index];
         let memory_size = item_size * initial_list_size;
 
         let mut list = vec![0; memory_size];

@@ -2,7 +2,8 @@ use std::collections::HashMap;
 
 use crate::ast::verified::CustomType;
 use crate::symbols::SymbolType;
-use crate::types::VerifiedType;
+use crate::types::{Type, VerifiedType};
+use crate::vm::stdlib_runners::LIST_OF_INTS_META_FLAG;
 
 use super::utils;
 
@@ -20,16 +21,30 @@ pub struct ListItemMetadata {
     pub pointer_mapping: Vec<usize>,
 }
 
-#[derive(Default)]
 pub struct TypesMetadataTable {
     pub indexes: HashMap<SymbolType, usize>,
     pub metadata: Vec<TypeMetadata>,
 }
 
-#[derive(Default)]
 pub struct ListMetadataTable {
     pub indexes: HashMap<VerifiedType, usize>,
     pub metadata: Vec<ListItemMetadata>,
+}
+
+/// Default for Types table adds STD types to overview
+impl Default for TypesMetadataTable {
+    fn default() -> Self {
+        Self { indexes: Default::default(), metadata: Default::default() }
+    }
+}
+
+impl Default for ListMetadataTable {
+    fn default() -> Self {
+        Self {
+            indexes: HashMap::from([(Type::List(Box::new(Type::Int)), LIST_OF_INTS_META_FLAG)]),
+            metadata: vec![ListItemMetadata::from_item_type(&Type::Int)],
+        }
+    }
 }
 
 impl TypeMetadata {
@@ -76,7 +91,7 @@ impl TypesMetadataTable {
 }
 
 impl ListItemMetadata {
-    pub fn from_type(t: &VerifiedType) -> Self {
+    pub fn from_item_type(t: &VerifiedType) -> Self {
         Self {
             size: utils::get_type_size(t),
             pointer_mapping: utils::get_pointers_map_for_type(t),
@@ -90,7 +105,7 @@ impl ListMetadataTable {
             return *index;
         } else {
             let index = self.indexes.len();
-            self.metadata.push(ListItemMetadata::from_type(t));
+            self.metadata.push(ListItemMetadata::from_item_type(t));
             self.indexes.insert(t.clone(), index);
             index
         }

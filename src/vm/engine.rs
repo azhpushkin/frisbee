@@ -79,6 +79,7 @@ impl Vm {
         STD_RAW_FUNCTION_RUNNERS[func_index].1(
             &mut self.stack[start..self.stack_pointer],
             &mut self.memory,
+            self.metadata
         );
         self.stack_pointer = start + return_size;
     }
@@ -392,16 +393,17 @@ impl Vm {
                     push!(self, new_obj_pos);
                 }
                 op::ALLOCATE_LIST => {
-                    let list_item_index = self.read_opcode() as usize;
-                    let item_size = self.metadata.list_types_sizes[list_item_index] as usize;
+                    let list_type_index = self.read_opcode() as usize;
+                    let item_size = self.metadata.list_types_sizes[list_type_index] as usize;
                     let initial_items_amount = self.read_opcode() as usize;
 
                     self.stack_pointer -= item_size * initial_items_amount;
 
                     let (new_obj_pos, _) = self.memory.allocate_list(
-                        item_size,
+                        list_type_index,
                         initial_items_amount,
                         &self.stack[self.stack_pointer..],
+                        self.metadata
                     );
                     push!(self, new_obj_pos);
                 }

@@ -1,25 +1,28 @@
 use super::heap::Heap;
+use super::metadata::Metadata;
 use super::utils::{f64_to_u64, u64_to_f64};
 use std::io::{self, Write};
 
-pub type RawStdRunner = for<'r, 's> fn(&'r mut [u64], &'s mut Heap);
+pub type RawStdRunner = for<'r, 's> fn(&'r mut [u64], &'s mut Heap, &'s Metadata);
 
-fn std_println(stack: &mut [u64], memory: &mut Heap) {
+pub const LIST_OF_INTS_META_FLAG: usize = 0;
+
+fn std_println(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) {
     let obj = memory.get_mut(stack[0]);
     println!("{}", obj.extract_string());
 }
 
-fn std_print(stack: &mut [u64], memory: &mut Heap) {
+fn std_print(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) {
     let obj = memory.get_mut(stack[0]);
     print!("{}", obj.extract_string());
     io::stdout().flush().unwrap();
 }
 
-fn std_range(stack: &mut [u64], memory: &mut Heap) {
+fn std_range(stack: &mut [u64], memory: &mut Heap, meta: &Metadata) {
     let start = stack[1] as i64;
     let end = stack[2] as i64;
 
-    let (list_pos, list_object) = memory.allocate_list(1, 0, &[]);
+    let (list_pos, list_object) = memory.allocate_list(LIST_OF_INTS_META_FLAG, 0, &[], meta);
 
     list_object.size = (end - start) as usize;
     list_object.data.resize(list_object.size, 0);
@@ -30,7 +33,7 @@ fn std_range(stack: &mut [u64], memory: &mut Heap) {
     stack[0] = list_pos;
 }
 
-fn std_get_input(stack: &mut [u64], memory: &mut Heap) {
+fn std_get_input(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) {
     let (pos, inner) = memory.allocate_string(0);
     io::stdin().read_line(inner).expect("Failed to read line");
 
@@ -40,7 +43,7 @@ fn std_get_input(stack: &mut [u64], memory: &mut Heap) {
     stack[0] = pos;
 }
 
-fn std_bool_to_string(stack: &mut [u64], memory: &mut Heap) {
+fn std_bool_to_string(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) {
     // Reserve for 5 chars, so both false and true fits
     // (true will have 4 of 5 chars filled, which is fine)
     let (pos, inner) = memory.allocate_string(5);
@@ -56,35 +59,35 @@ fn std_bool_to_string(stack: &mut [u64], memory: &mut Heap) {
     stack[0] = pos;
 }
 
-fn std_int_to_string(stack: &mut [u64], memory: &mut Heap) {
+fn std_int_to_string(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) {
     let s = (stack[1] as i64).to_string();
 
     stack[0] = memory.move_string(s).0;
 }
 
-fn std_int_to_float(stack: &mut [u64], _memory: &mut Heap) {
+fn std_int_to_float(stack: &mut [u64], _memory: &mut Heap, _meta: &Metadata) {
     stack[0] = f64_to_u64((stack[1] as i64) as f64);
 }
 
-fn std_int_abs(stack: &mut [u64], _memory: &mut Heap) {
+fn std_int_abs(stack: &mut [u64], _memory: &mut Heap, _meta: &Metadata) {
     stack[0] = (stack[1] as i64).abs() as u64;
 }
 
-fn std_float_round(stack: &mut [u64], _memory: &mut Heap) {
+fn std_float_round(stack: &mut [u64], _memory: &mut Heap, _meta: &Metadata) {
     stack[0] = (u64_to_f64(stack[1]).round() as i64) as u64;
 }
 
-fn std_float_to_string(stack: &mut [u64], memory: &mut Heap) {
+fn std_float_to_string(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) {
     let s = u64_to_f64(stack[1]).to_string();
 
     stack[0] = memory.move_string(s).0;
 }
 
-fn std_float_abs(stack: &mut [u64], _memory: &mut Heap) {
+fn std_float_abs(stack: &mut [u64], _memory: &mut Heap, _meta: &Metadata) {
     stack[0] = f64_to_u64(u64_to_f64(stack[1]).abs());
 }
 
-fn std_list_push(stack: &mut [u64], memory: &mut Heap) {
+fn std_list_push(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) {
     let list_obj = memory.get_mut(stack[0]);
     let list = list_obj.extract_list();
 
@@ -96,7 +99,7 @@ fn std_list_push(stack: &mut [u64], memory: &mut Heap) {
     }
 }
 
-fn std_list_pop(stack: &mut [u64], memory: &mut Heap) {
+fn std_list_pop(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) {
     let list_obj = memory.get_mut(stack[stack.len() - 1]);
     let list = list_obj.extract_list();
 
@@ -108,14 +111,14 @@ fn std_list_pop(stack: &mut [u64], memory: &mut Heap) {
     }
 }
 
-fn std_list_len(stack: &mut [u64], memory: &mut Heap) {
+fn std_list_len(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) {
     let list_obj = memory.get_mut(stack[1]);
     let list = list_obj.extract_list();
 
     stack[0] = list.size as u64;
 }
 
-fn noop(_stack: &mut [u64], _memory: &mut Heap) {
+fn noop(_stack: &mut [u64], _memory: &mut Heap, _meta: &Metadata) {
     panic!("not implemented yet");
 }
 
