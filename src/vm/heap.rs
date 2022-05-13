@@ -7,8 +7,9 @@ pub type HeapObjectHeader = (bool, u64); // flag for future gc, index in heap ha
 
 #[derive(Debug)]
 pub struct List {
+    pub list_item_type: usize,
     pub item_size: usize,
-    pub size: usize,
+    pub items_amount: usize,
     pub data: Vec<u64>,
 }
 
@@ -90,7 +91,7 @@ impl Heap {
         let (pos, obj) = self.insert(obj);
         (pos, obj.extract_string_mut())
     }
-    
+
     pub fn allocate_list(
         &mut self,
         list_type_index: usize,
@@ -105,8 +106,9 @@ impl Heap {
         list[..memory_size].clone_from_slice(&copy_from[..memory_size]);
 
         let obj = Box::new(HeapObject::List(List {
+            list_item_type: list_type_index,
             item_size,
-            size: initial_list_size,
+            items_amount: initial_list_size,
             data: list,
         }));
 
@@ -153,18 +155,18 @@ impl List {
 
     pub fn normalize_index(&self, index: i64) -> usize {
         if index < 0 {
-            if index.abs() > self.size as i64 {
+            if index.abs() > self.items_amount as i64 {
                 panic!(
                     "Negative out of bounds: list of size {} but {} requested",
-                    self.size, index
+                    self.items_amount, index
                 );
             }
-            (self.size as i64 + index) as usize
+            (self.items_amount as i64 + index) as usize
         } else {
-            if index >= self.size as i64 {
+            if index >= self.items_amount as i64 {
                 panic!(
                     "Out of bounds: list of size {} but {} requested",
-                    self.size, index
+                    self.items_amount, index
                 );
             }
             index as usize
@@ -178,7 +180,7 @@ mod test {
 
     #[test]
     fn test_normalize_index() {
-        let l = List { item_size: 1, size: 10, data: vec![0; 10] };
+        let l = List { list_item_type: 0, item_size: 1, items_amount: 10, data: vec![0; 10] };
 
         assert_eq!(l.normalize_index(0), 0);
         assert_eq!(l.normalize_index(1), 1);
@@ -189,14 +191,14 @@ mod test {
     #[test]
     #[should_panic(expected = "Out of bounds: list of size 10 but 10 requested")]
     fn too_big_index_panics() {
-        let l = List { item_size: 1, size: 10, data: vec![0; 10] };
+        let l = List { list_item_type: 0, item_size: 1, items_amount: 10, data: vec![0; 10] };
         l.normalize_index(10);
     }
 
     #[test]
     #[should_panic(expected = "Negative out of bounds: list of size 10 but -11 requested")]
     fn too_small_index_panics() {
-        let l = List { item_size: 1, size: 10, data: vec![0; 10] };
+        let l = List { list_item_type: 0, item_size: 1, items_amount: 10, data: vec![0; 10] };
         l.normalize_index(-11);
     }
 }

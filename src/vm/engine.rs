@@ -79,7 +79,7 @@ impl Vm {
         STD_RAW_FUNCTION_RUNNERS[func_index].1(
             &mut self.stack[start..self.stack_pointer],
             &mut self.memory,
-            self.metadata
+            self.metadata,
         );
         self.stack_pointer = start + return_size;
     }
@@ -403,7 +403,7 @@ impl Vm {
                         list_type_index,
                         initial_items_amount,
                         &self.stack[self.stack_pointer..],
-                        self.metadata
+                        self.metadata,
                     );
                     push!(self, new_obj_pos);
                 }

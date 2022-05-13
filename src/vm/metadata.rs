@@ -19,21 +19,24 @@ impl Metadata {
     pub fn fill_types_metadata(&mut self, types_metadata: MetadataBlock) {
         for (size, mapping) in types_metadata {
             self.types_sizes.push(size);
-            self.types_pointer_mapping.push(mapping.into_iter().map(|x| x as usize).collect());
+            self.types_pointer_mapping
+                .push(mapping.into_iter().map(|x| x as usize).collect());
         }
     }
 
     pub fn fill_lists_metadata(&mut self, lists_metadata: MetadataBlock) {
         for (size, mapping) in lists_metadata {
             self.list_types_sizes.push(size);
-            self.lists_pointer_mapping.push(mapping.into_iter().map(|x| x as usize).collect());
+            self.lists_pointer_mapping
+                .push(mapping.into_iter().map(|x| x as usize).collect());
         }
     }
 
     pub fn fill_function_metadata(&mut self, funcs_metadata: MetadataBlock) {
         for (size, mapping) in funcs_metadata {
             self.function_locals_sizes.push(size);
-            self.functions_pointer_mapping.push(mapping.into_iter().map(|x| x as usize).collect());
+            self.functions_pointer_mapping
+                .push(mapping.into_iter().map(|x| x as usize).collect());
         }
     }
 }

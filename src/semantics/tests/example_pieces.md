@@ -8,6 +8,7 @@
 * check that type fields and methods cannot overlap cannot 
 * check that variable is always assigned before using (all if branches)
 * check divide and minus ordering if chained (just to check everything is fine)
+* check that constructor does not refers to un-initialized own fields before they are initialized
 * check that conditions are bool in if and else
 * check that range start and end are OK
 * check range for negative values

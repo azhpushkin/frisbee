@@ -24,8 +24,8 @@ fn std_range(stack: &mut [u64], memory: &mut Heap, meta: &Metadata) {
 
     let (list_pos, list_object) = memory.allocate_list(LIST_OF_INTS_META_FLAG, 0, &[], meta);
 
-    list_object.size = (end - start) as usize;
-    list_object.data.resize(list_object.size, 0);
+    list_object.items_amount = (end - start) as usize;
+    list_object.data.resize(list_object.items_amount, 0);
     for i in start..end {
         list_object.data[i as usize - start as usize] = i as u64;
     }
@@ -91,7 +91,7 @@ fn std_list_push(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) {
     let list_obj = memory.get_mut(stack[0]);
     let list = list_obj.extract_list();
 
-    list.size += 1;
+    list.items_amount += 1;
     let item_size = list.item_size;
 
     for i in 0..item_size {
@@ -103,7 +103,7 @@ fn std_list_pop(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) {
     let list_obj = memory.get_mut(stack[stack.len() - 1]);
     let list = list_obj.extract_list();
 
-    list.size -= 1;
+    list.items_amount -= 1;
     let item_size = list.item_size;
 
     for i in 0..item_size {
@@ -115,7 +115,7 @@ fn std_list_len(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) {
     let list_obj = memory.get_mut(stack[1]);
     let list = list_obj.extract_list();
 
-    stack[0] = list.size as u64;
+    stack[0] = list.items_amount as u64;
 }
 
 fn noop(_stack: &mut [u64], _memory: &mut Heap, _meta: &Metadata) {
