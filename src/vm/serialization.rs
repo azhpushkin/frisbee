@@ -130,7 +130,7 @@ fn deserialize_function_args(
         .filter(|i| stack[**i] != 0)
         .cloned()
         .collect();
-    let mut heap_pointers_to_fill: Vec<&mut u64> = vec![];
+    let mut heap_pointers_to_fill: Vec<(u64, &Vec<usize>)> = vec![];
 
     let mut heap_objects_mapping: HashMap<usize, u64> = HashMap::new();
 
@@ -161,6 +161,18 @@ fn deserialize_function_args(
             );
             heap_objects_mapping.insert(heap_objects_mapping.len() + 1, pos);
             current_start += 1 + l.data.len();
+
+            heap_pointers_to_fill.push((pos, &metadata.lists_pointer_mapping[list_type as usize]));
+        } else if (obj_header & CUSTOM_OBJECT_FLAG) != 0 {
+            let obj_type = obj_header & !CUSTOM_OBJECT_FLAG;
+            let (pos, new_obj) = heap.allocate_custom(obj_type as usize, metadata);
+            new_obj.data.clone_from_slice(&chunk[current_start + 1..]);
+            heap_objects_mapping.insert(heap_objects_mapping.len() + 1, pos);
+            current_start += 1 + new_obj.data.len();
+
+            heap_pointers_to_fill.push((pos, &metadata.types_pointer_mapping[obj_type as usize]));
+        } else {
+            panic!("I have no idea what this {} flag is about..", obj_header);
         }
     }
 }
