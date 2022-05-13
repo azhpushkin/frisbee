@@ -9,6 +9,8 @@
 * check that variable is always assigned before using (all if branches)
 * check divide and minus ordering if chained (just to check everything is fine)
 * check that conditions are bool in if and else
+* check that range start and end are OK
+* check range for negative values
 * check foreach (conflict with other variable)
 * check how everything works when there is multiple values with same name (for i in ...)
 * check break and continue in loop only!
