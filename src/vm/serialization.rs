@@ -10,14 +10,15 @@ pub const CUSTOM_OBJECT_FLAG: u64 = 4 << 48;
 fn serialize_function_args(
     function_pos: usize,
     stack: &[u64],
-    memory: &Heap,
+    heap: &Heap,
     metadata: &Metadata,
 ) -> Vec<u64> {
     // TODO: active objects should not be copied when serializing
     let func_index = metadata.function_positions[&function_pos];
     let locals_size = metadata.function_locals_sizes[func_index];
 
-    let mut chunk: Vec<u64> = vec![0; locals_size];
+    let mut chunk: Vec<u64> = vec![function_pos as u64];
+    chunk.extend(stack[..locals_size as usize].iter());
     let mut pointers_to_pack: HashMap<u64, usize> = HashMap::new();
     let mut pointers_order: Vec<u64> = vec![];
     let mut processed_amount = 0;
@@ -26,7 +27,7 @@ fn serialize_function_args(
     // Stack will not be used anymore as all the processing after this cycle is just
     // heap-data packing
     for pointer_index in metadata.functions_pointer_mapping[func_index].iter() {
-        let heap_pointer = stack[*pointer_index];
+        let heap_pointer = stack[*pointer_index + 1];
         if heap_pointer == 0 {
             continue;
         }
@@ -40,16 +41,16 @@ fn serialize_function_args(
                 pos
             }
         };
-        chunk[*pointer_index] = pos as u64;
+        chunk[*pointer_index + 1] = pos as u64;
     }
 
     while processed_amount < pointers_order.len() {
         let pointer = pointers_order[processed_amount];
         processed_amount += 1;
 
-        let heap_object = memory.get(pointer);
+        let heap_object = heap.get(pointer);
 
-        chunk.push(get_heap_object_header(heap_object));
+        chunk.push(serialize_heap_object_header(heap_object));
         let object_start = chunk.len();
 
         let pointer_map: &[usize] = match heap_object {
@@ -89,7 +90,7 @@ fn serialize_function_args(
     chunk
 }
 
-fn get_heap_object_header(obj: &HeapObject) -> u64 {
+fn serialize_heap_object_header(obj: &HeapObject) -> u64 {
     let obj_header: u64;
 
     match obj {
@@ -104,4 +105,49 @@ fn get_heap_object_header(obj: &HeapObject) -> u64 {
         }
     }
     obj_header
+}
+
+fn deserialize_function_args(
+    function_pos: usize,
+    stack: &mut [u64],
+    heap: &mut Heap,
+    metadata: &Metadata,
+    chunk: &Vec<u64>,
+) {
+    assert_eq!(chunk[0], function_pos as u64, "wrong function extracted");
+
+    let func_index = metadata.function_positions[&function_pos];
+    let locals_size = metadata.function_locals_sizes[func_index];
+    let heap_mapping: HashMap<u64, u64> = HashMap::new();
+
+    for i in 0..locals_size {
+        stack[i] = chunk[i + 1];
+    }
+
+    let function_pointers = &metadata.functions_pointer_mapping[func_index];
+    let stack_pointers_to_fill: Vec<usize> = function_pointers
+        .iter()
+        .filter(|i| stack[**i] != 0)
+        .cloned()
+        .collect();
+    let mut heap_pointers_to_fill: Vec<&mut u64> = vec![];
+
+    let mut heap_objects_mapping: HashMap<usize, u64> = HashMap::new();
+
+    let mut current_start = locals_size + 1;
+    while current_start < chunk.len() {
+        let obj_header = chunk[current_start];
+        
+        if (obj_header & STRING_FLAG) != 0 {
+            let string_length = (obj_header & !STRING_FLAG) as usize;
+            // TODO: check utf-8 probably
+            let parsed_string = chunk[current_start + 1..current_start + 1 + string_length]
+                .iter()
+                .map(|c| char::from_u32(*c as u32).unwrap())
+                .collect::<String>();
+            let (pos, _) = heap.move_string(parsed_string);
+            heap_objects_mapping.insert(heap_objects_mapping.len() + 1, pos);
+            current_start += 1 + string_length;
+        }
+    }
 }
