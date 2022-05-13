@@ -3,9 +3,9 @@ use std::collections::HashMap;
 use super::heap::{Heap, HeapObject};
 use super::metadata::Metadata;
 
-pub const STRING_FLAG: u64 = 1 << 48;
-pub const LIST_FLAG: u64 = 2 << 48;
-pub const CUSTOM_OBJECT_FLAG: u64 = 4 << 48;
+pub const STRING_FLAG: u64 = 1 << 56;
+pub const LIST_FLAG: u64 = 2 << 56;
+pub const CUSTOM_OBJECT_FLAG: u64 = 4 << 56;
 
 fn serialize_function_args(
     function_pos: usize,
@@ -98,10 +98,10 @@ fn serialize_heap_object_header(obj: &HeapObject) -> u64 {
             obj_header = s.len() as u64 | STRING_FLAG;
         }
         HeapObject::List(l) => {
-            obj_header = l.items_amount as u64 | LIST_FLAG;
+            obj_header = (l.list_item_type as u64) << 32 | (l.items_amount as u64) | LIST_FLAG;
         }
         HeapObject::CustomObject(obj) => {
-            obj_header = 0 | CUSTOM_OBJECT_FLAG;
+            obj_header = obj.type_index | CUSTOM_OBJECT_FLAG;
         }
     }
     obj_header
@@ -137,7 +137,7 @@ fn deserialize_function_args(
     let mut current_start = locals_size + 1;
     while current_start < chunk.len() {
         let obj_header = chunk[current_start];
-        
+
         if (obj_header & STRING_FLAG) != 0 {
             let string_length = (obj_header & !STRING_FLAG) as usize;
             // TODO: check utf-8 probably
@@ -148,6 +148,19 @@ fn deserialize_function_args(
             let (pos, _) = heap.move_string(parsed_string);
             heap_objects_mapping.insert(heap_objects_mapping.len() + 1, pos);
             current_start += 1 + string_length;
+        } else if (obj_header & LIST_FLAG) != 0 {
+            let obj_header = obj_header & !LIST_FLAG;
+            let list_type = obj_header >> 32;
+            let list_items_amount = (obj_header & !list_type) as usize; // TODO: improve this, 0fff or smth like this
+
+            let (pos, l) = heap.allocate_list(
+                list_type as usize,
+                list_items_amount,
+                &chunk[current_start + 1..],
+                metadata,
+            );
+            heap_objects_mapping.insert(heap_objects_mapping.len() + 1, pos);
+            current_start += 1 + l.data.len();
         }
     }
 }
