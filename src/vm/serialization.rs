@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use crate::vm::heap::{CustomObject, List};
+
 use super::heap::{Heap, HeapObject};
 use super::metadata::Metadata;
 
@@ -118,18 +120,11 @@ fn deserialize_function_args(
 
     let func_index = metadata.function_positions[&function_pos];
     let locals_size = metadata.function_locals_sizes[func_index];
-    let heap_mapping: HashMap<u64, u64> = HashMap::new();
 
     for i in 0..locals_size {
         stack[i] = chunk[i + 1];
     }
 
-    let function_pointers = &metadata.functions_pointer_mapping[func_index];
-    let stack_pointers_to_fill: Vec<usize> = function_pointers
-        .iter()
-        .filter(|i| stack[**i] != 0)
-        .cloned()
-        .collect();
     let mut heap_pointers_to_fill: Vec<(u64, &Vec<usize>)> = vec![];
 
     let mut heap_objects_mapping: HashMap<usize, u64> = HashMap::new();
@@ -173,6 +168,31 @@ fn deserialize_function_args(
             heap_pointers_to_fill.push((pos, &metadata.types_pointer_mapping[obj_type as usize]));
         } else {
             panic!("I have no idea what this {} flag is about..", obj_header);
+        }
+    }
+
+    // Now fill all the pointers
+    // Start with the stack
+    for pointer in metadata.functions_pointer_mapping[func_index].iter() {
+        let stack_value = stack[*pointer] as usize;
+        if stack_value != 0 {
+            stack[*pointer] = heap_objects_mapping[&stack_value];
+        }
+    }
+
+    // And proceed with a heap
+    for (heap_obj_pointer, pointers) in heap_pointers_to_fill {
+        let heap_obj = heap.get_mut(heap_obj_pointer);
+        let data = match heap_obj {
+            HeapObject::String(_) => unreachable!(),
+            HeapObject::List(List { data, .. }) => data,
+            HeapObject::CustomObject(CustomObject { data, .. }) => data,
+        };
+        for pointer in pointers.iter() {
+            let value = data[*pointer] as usize;
+            if value != 0 {
+                data[*pointer] = heap_objects_mapping[&value];
+            }
         }
     }
 }
