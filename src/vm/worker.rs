@@ -5,7 +5,7 @@ use super::metadata::{Metadata, MetadataBlock};
 use super::opcodes::op;
 use super::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
 use super::utils::{f64_to_u64, u64_to_f64};
-use super::vm::{Vm, LOCAL_VM};
+use super::vm::Vm;
 
 macro_rules! push {
     ($vm:ident, $value:expr) => {
@@ -29,7 +29,8 @@ pub struct Worker<'a> {
 
     constants: &'a [u64],
     metadata: &'a Metadata,
-    
+    vm: &'a Vm,
+
     memory: heap::Heap,
     stack: [u64; STACK_SIZE],
     stack_pointer: usize,
@@ -45,7 +46,8 @@ impl<'a> Worker<'a> {
             constants: &vm.constants,
             memory: heap::Heap::default(),
             metadata: &vm.metadata,
-            
+            vm,
+
             stack: [0; STACK_SIZE],
             stack_pointer: 0,
             frames: vec![],
@@ -132,12 +134,12 @@ impl<'a> Worker<'a> {
 
     pub fn run(&mut self, entry: usize) {
         self.call_op(entry, 0, 0);
-        
+
         while self.ip < self.program.len() {
-            if LOCAL_VM.show_debug {
+            if self.vm.show_debug {
                 println!(">> preparing to exec pc: {:02x?}", self.ip);
             }
-            if LOCAL_VM.step_by_step {
+            if self.vm.step_by_step {
                 io::stdin().read_line(&mut String::from("")).unwrap();
             }
 
@@ -364,7 +366,7 @@ impl<'a> Worker<'a> {
                 }
                 _ => panic!("Unknown opcode: {}", opcode),
             }
-            if LOCAL_VM.show_debug {
+            if self.vm.show_debug {
                 println!(" ## STACK: {:02x?}", &self.stack[0..self.stack_pointer]);
                 println!(" ## {}", &self.memory.simple_debug_view());
             }

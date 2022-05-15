@@ -3,8 +3,6 @@ use super::metadata::{Metadata, MetadataBlock};
 use super::opcodes::op;
 use super::worker::Worker;
 
-pub static LOCAL_VM: Vm = Vm::default();
-
 #[derive(Default)]
 pub struct Vm {
     ip: usize,
@@ -19,19 +17,23 @@ pub struct Vm {
 }
 
 impl Vm {
-    pub fn setup(&mut self, program: Vec<u8>) {
-        self.program = program;
-        self.ip = 0;
-        self.check_header("Initial header");
-        self.load_consts();
-        // TODO: show constants?
-        // if show_debug {
-        //     println!("Loaded constants: {:?}", self.constants);
-        // }
+    pub fn setup(program: Vec<u8>) -> Self {
+        let mut new_vm = Self {
+            ip: 0,
+            program,
+            constants: vec![],
+            metadata: Metadata::default(),
+            entry: 0,
+            step_by_step: false,
+            show_debug: false,
+        };
 
-        self.load_metadata();
+        new_vm.check_header("Initial header");
 
-        let entry = self.load_entry();
+        new_vm.load_consts();
+        new_vm.load_metadata();
+        new_vm.load_entry();
+        new_vm
     }
 
     pub fn set_debug_params(&mut self, step_by_step: bool, show_debug: bool) {
@@ -40,7 +42,7 @@ impl Vm {
     }
 
     pub fn spawn_entry(&mut self) {
-        let worker = Worker::new(self);
+        let mut worker = Worker::new(self);
         worker.run(self.entry);
     }
 
@@ -69,10 +71,9 @@ impl Vm {
         res
     }
 
-    fn load_entry(&mut self) -> usize {
-        let entry = u16::from_be_bytes(self.read_several::<2>());
+    fn load_entry(&mut self) {
+        self.entry = u16::from_be_bytes(self.read_several::<2>()) as usize;
         self.check_header("Entry loaded, start of functions");
-        entry as usize
     }
 
     fn load_metadata(&mut self) {

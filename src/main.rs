@@ -4,6 +4,7 @@ use std::path::Path;
 
 use argh::FromArgs;
 use owo_colors::OwoColorize;
+use vm::vm::Vm;
 
 pub mod alias;
 pub mod ast;
@@ -123,8 +124,9 @@ fn compile_file(c: CompileCommand) {
 
     println!("{}", "File compiled successfully!".green());
     if run {
-        let mut vm = vm::Vm::new(bytecode);
-        vm.run(false, false);
+        let mut vm = Vm::setup(bytecode);
+        vm.set_debug_params(false, false);
+        vm.spawn_entry();
     }
 }
 
@@ -141,8 +143,9 @@ fn run_file(c: RunCommand) {
 
     let bytecode = std::fs::read(program).expect("Cant read file");
 
-    let mut vm = vm::Vm::new(bytecode);
-    vm.run(step_by_step, show_debug_info);
+    let mut vm = Vm::setup(bytecode);
+    vm.set_debug_params(step_by_step, show_debug_info);
+    vm.spawn_entry();
 }
 
 fn main() {

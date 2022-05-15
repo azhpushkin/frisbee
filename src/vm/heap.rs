@@ -26,10 +26,9 @@ pub enum HeapObject {
     CustomObject(CustomObject),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Heap {
-    data: HashMap<u64, (HeapObjectHeader, Box<HeapObject>)>,
-    counter: u64,
+    data: Vec<u64>,
 }
 // TODO: check performance gains from using unreachable_unchecked or smth like that
 
@@ -57,12 +56,6 @@ impl HeapObject {
             HeapObject::CustomObject(c) => c,
             _ => panic!("Trying to extract object memory from non-custom object"),
         }
-    }
-}
-
-impl Default for Heap {
-    fn default() -> Self {
-        Self { data: Default::default(), counter: 1 }
     }
 }
 
@@ -119,32 +112,26 @@ impl Heap {
     }
 
     fn insert(&mut self, object: Box<HeapObject>) -> (u64, &mut HeapObject) {
-        let index = u64::MAX - self.counter;
-        self.counter += 1;
+        let index = Box::into_raw(object);
 
-        self.data.insert(index, ((false, index), object));
-        (index, self.get_mut(index))
+        // TODO: this is kinda lol, need to get rid of all of this unsafe
+        (index as u64, unsafe { &mut *index })
     }
 
     pub fn get_mut(&mut self, index: u64) -> &mut HeapObject {
-        let obj = self.data.get_mut(&index).unwrap();
-        &mut obj.1
+        let q = index as *mut HeapObject;
+        unsafe { &mut *q }
     }
     pub fn get(&self, index: u64) -> &HeapObject {
-        let obj = self.data.get(&index).unwrap();
-        &obj.1
+        let q = index as *mut HeapObject;
+        unsafe { &*q }
     }
 
     pub fn simple_debug_view(&self) -> String {
         let mut s = String::from("HEAP STATE: \n");
-        for (index, obj) in self.data.iter() {
-            s.push_str(
-                format!(
-                    "\t{} => {:?}\t// meta: {{is_marked: {}, inner_index: {}}}\n",
-                    index, obj.1, obj.0 .0, obj.0 .1
-                )
-                .as_str(),
-            );
+        for pointer in self.data.iter() {
+            let obj = self.get(*pointer);
+            s.push_str(format!("\t{} => {:?}\n", pointer, obj).as_str());
         }
         s
     }
