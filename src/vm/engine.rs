@@ -24,12 +24,11 @@ struct CallFrame {
 
 pub struct Vm {
     program: Vec<u8>,
-    ip: usize,
-
     constants: Vec<u64>,
-    memory: heap::Heap,
-    metadata: &'static mut Metadata,
+    metadata: Metadata,
 
+    ip: usize,
+    memory: heap::Heap,
     stack: [u64; STACK_SIZE],
     stack_pointer: usize,
 
@@ -38,13 +37,12 @@ pub struct Vm {
 
 impl Vm {
     pub fn new(program: Vec<u8>) -> Self {
-        let metadata = Box::new(Metadata::default());
         Vm {
             program,
             ip: 0,
             constants: vec![],
             memory: heap::Heap::new(),
-            metadata: Box::leak(metadata),
+            metadata: Metadata::default(),
             stack: [0; STACK_SIZE],
             stack_pointer: 0,
             frames: vec![],
@@ -79,7 +77,7 @@ impl Vm {
         STD_RAW_FUNCTION_RUNNERS[func_index].1(
             &mut self.stack[start..self.stack_pointer],
             &mut self.memory,
-            self.metadata,
+            &self.metadata,
         );
         self.stack_pointer = start + return_size;
     }
@@ -389,7 +387,7 @@ impl Vm {
                 }
                 op::ALLOCATE => {
                     let type_index = self.read_opcode() as usize;
-                    let (new_obj_pos, _) = self.memory.allocate_custom(type_index, self.metadata);
+                    let (new_obj_pos, _) = self.memory.allocate_custom(type_index, &self.metadata);
                     push!(self, new_obj_pos);
                 }
                 op::ALLOCATE_LIST => {
@@ -403,7 +401,7 @@ impl Vm {
                         list_type_index,
                         initial_items_amount,
                         &self.stack[self.stack_pointer..],
-                        self.metadata,
+                        &self.metadata,
                     );
                     push!(self, new_obj_pos);
                 }
