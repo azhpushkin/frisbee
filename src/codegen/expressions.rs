@@ -96,8 +96,10 @@ impl<'a> BytecodeGenerator<'a> {
                 self.push_get_local(varname);
             }
             VExpr::CallFunction { name, return_type, args } => {
-                // TODO: review this, as args_num now can have variable length
-                self.push_reserve(return_type);
+                if !name.is_std() {
+                    self.push_reserve(return_type);
+                }
+
                 for arg in args.iter() {
                     self.push_expr(arg);
                 }
@@ -106,7 +108,9 @@ impl<'a> BytecodeGenerator<'a> {
 
                 if name.is_std() {
                     self.push(op::CALL_STD);
-                    self.push_type_size(return_type);
+                    self.push(0);
+                    // TODO: remove
+                    // self.push_type_size(return_type);
                     self.push(func_locals_size);
                     self.push(0);
                     self.push(match_std_function(name));

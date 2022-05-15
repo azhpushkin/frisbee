@@ -77,14 +77,16 @@ impl<'a> Worker<'a> {
         self.ip = func_pos;
     }
 
-    fn call_std(&mut self, func_index: usize, return_size: usize, locals_size: usize) {
-        let start = self.stack_pointer - locals_size - return_size;
-        STD_RAW_FUNCTION_RUNNERS[func_index].1(
-            &mut self.stack[start..self.stack_pointer],
+    fn call_std(&mut self, func_index: usize, locals_size: usize) {
+        self.stack_pointer -= locals_size;
+        let res = STD_RAW_FUNCTION_RUNNERS[func_index].1(
+            &mut self.stack[self.stack_pointer..self.stack_pointer + locals_size],
             &mut self.memory,
             &self.metadata,
         );
-        self.stack_pointer = start + return_size;
+        for o in res {
+            push!(self, o);
+        }
     }
 
     fn return_op(&mut self) {
@@ -333,7 +335,7 @@ impl<'a> Worker<'a> {
 
                     match opcode {
                         op::CALL => self.call_op(function_pos, return_size, args_size),
-                        op::CALL_STD => self.call_std(function_pos, return_size, args_size),
+                        op::CALL_STD => self.call_std(function_pos, args_size),
                         _ => unreachable!(),
                     }
                 }

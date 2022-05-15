@@ -113,6 +113,7 @@ impl Heap {
 
     fn insert(&mut self, object: Box<HeapObject>) -> (u64, &mut HeapObject) {
         let index = Box::into_raw(object);
+        self.data.push(index as u64);
 
         // TODO: this is kinda lol, need to get rid of all of this unsafe
         (index as u64, unsafe { &mut *index })
@@ -131,7 +132,7 @@ impl Heap {
         let mut s = String::from("HEAP STATE: \n");
         for pointer in self.data.iter() {
             let obj = self.get(*pointer);
-            s.push_str(format!("\t{} => {:?}\n", pointer, obj).as_str());
+            s.push_str(format!("\t{:x} => {:?}\n", pointer, obj).as_str());
         }
         s
     }

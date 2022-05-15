@@ -124,8 +124,7 @@ fn compile_file(c: CompileCommand) {
 
     println!("{}", "File compiled successfully!".green());
     if run {
-        let mut vm = Vm::setup(bytecode);
-        vm.set_debug_params(false, false);
+        let mut vm = Vm::setup(bytecode, false, false);
         vm.spawn_entry();
     }
 }
@@ -143,8 +142,7 @@ fn run_file(c: RunCommand) {
 
     let bytecode = std::fs::read(program).expect("Cant read file");
 
-    let mut vm = Vm::setup(bytecode);
-    vm.set_debug_params(step_by_step, show_debug_info);
+    let mut vm = Vm::setup(bytecode, step_by_step, show_debug_info);
     vm.spawn_entry();
 }
 

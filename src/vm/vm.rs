@@ -17,15 +17,15 @@ pub struct Vm {
 }
 
 impl Vm {
-    pub fn setup(program: Vec<u8>) -> Self {
+    pub fn setup(program: Vec<u8>, step_by_step: bool, show_debug: bool) -> Self {
         let mut new_vm = Self {
             ip: 0,
             program,
             constants: vec![],
             metadata: Metadata::default(),
             entry: 0,
-            step_by_step: false,
-            show_debug: false,
+            step_by_step,
+            show_debug,
         };
 
         new_vm.check_header("Initial header");
@@ -34,11 +34,6 @@ impl Vm {
         new_vm.load_metadata();
         new_vm.load_entry();
         new_vm
-    }
-
-    pub fn set_debug_params(&mut self, step_by_step: bool, show_debug: bool) {
-        self.step_by_step = step_by_step;
-        self.show_debug = show_debug;
     }
 
     pub fn spawn_entry(&mut self) {
@@ -95,16 +90,20 @@ impl Vm {
     }
 
     fn load_consts(&mut self) {
+        let mut string_repr: Vec<String> = vec![];
+
         loop {
             let const_type = self.read_opcode();
             match const_type {
                 op::CONST_INT_FLAG => {
                     let i = i64::from_be_bytes(self.read_several::<8>());
                     self.constants.push(i as u64);
+                    string_repr.push(i.to_string());
                 }
                 op::CONST_FLOAT_FLAG => {
                     let f = u64::from_be_bytes(self.read_several::<8>());
                     self.constants.push(f);
+                    string_repr.push(f.to_string());
                 }
                 op::CONST_STRING_FLAG => {
                     let str_len = u16::from_be_bytes(self.read_several::<2>());
@@ -113,6 +112,7 @@ impl Vm {
                     let q = std::str::from_utf8(&str_bytes).unwrap();
                     let s = Box::new(HeapObject::String(q.to_owned()));
                     let pointer = Box::into_raw(s);
+                    string_repr.push(format!("string {:x}: \"{}\"", pointer as u64, q));
 
                     self.constants.push(pointer as u64);
                 }
@@ -121,6 +121,12 @@ impl Vm {
             };
         }
         self.check_header("End of constants table");
+        if self.show_debug {
+            println!("Loaded constants:");
+            for (i, s) in string_repr.iter().enumerate() {
+                println!("# {}  --  {}", i, s);
+            }
+        }
     }
 
     fn read_bytes(&mut self, num: usize) -> Vec<u8> {

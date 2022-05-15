@@ -3,24 +3,26 @@ use super::metadata::Metadata;
 use super::utils::{f64_to_u64, u64_to_f64};
 use std::io::{self, Write};
 
-pub type RawStdRunner = for<'r, 's> fn(&'r mut [u64], &'s mut Heap, &'s Metadata);
+pub type RawStdRunner = for<'r, 's> fn(&'r mut [u64], &'s mut Heap, &'s Metadata) -> Vec<u64>;
 
 pub const LIST_OF_INTS_META_FLAG: usize = 0;
 
-fn std_println(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) {
+fn std_println(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
     let obj = memory.get_mut(stack[0]);
     println!("{}", obj.extract_string());
+    vec![]
 }
 
-fn std_print(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) {
+fn std_print(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
     let obj = memory.get_mut(stack[0]);
     print!("{}", obj.extract_string());
     io::stdout().flush().unwrap();
+    vec![]
 }
 
-fn std_range(stack: &mut [u64], memory: &mut Heap, meta: &Metadata) {
-    let start = stack[1] as i64;
-    let end = stack[2] as i64;
+fn std_range(stack: &mut [u64], memory: &mut Heap, meta: &Metadata) -> Vec<u64> {
+    let start = stack[0] as i64;
+    let end = stack[1] as i64;
 
     let (list_pos, list_object) = memory.allocate_list(LIST_OF_INTS_META_FLAG, 0, &[], meta);
 
@@ -30,64 +32,64 @@ fn std_range(stack: &mut [u64], memory: &mut Heap, meta: &Metadata) {
         list_object.data[i as usize - start as usize] = i as u64;
     }
 
-    stack[0] = list_pos;
+    vec![list_pos]
 }
 
-fn std_get_input(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) {
+fn std_get_input(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
     let (pos, inner) = memory.allocate_string(0);
     io::stdin().read_line(inner).expect("Failed to read line");
 
     // Remove all trailing newlines in place
     inner.truncate(inner.trim_end().len());
 
-    stack[0] = pos;
+    vec![pos]
 }
 
-fn std_bool_to_string(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) {
+fn std_bool_to_string(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
     // Reserve for 5 chars, so both false and true fits
     // (true will have 4 of 5 chars filled, which is fine)
     let (pos, inner) = memory.allocate_string(5);
 
-    if stack[1] == 1 {
+    if stack[0] == 1 {
         inner.extend("true".chars());
-    } else if stack[1] == 0 {
+    } else if stack[0] == 0 {
         inner.extend("false".chars());
     } else {
-        panic!("Bool value is {}, must be 0 or 1", stack[1]);
+        panic!("Bool value is {}, must be 0 or 1", stack[0]);
     }
 
-    stack[0] = pos;
+    vec![pos]
 }
 
-fn std_int_to_string(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) {
-    let s = (stack[1] as i64).to_string();
+fn std_int_to_string(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
+    let s = (stack[0] as i64).to_string();
 
-    stack[0] = memory.move_string(s).0;
+    vec![memory.move_string(s).0]
 }
 
-fn std_int_to_float(stack: &mut [u64], _memory: &mut Heap, _meta: &Metadata) {
-    stack[0] = f64_to_u64((stack[1] as i64) as f64);
+fn std_int_to_float(stack: &mut [u64], _memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
+    vec![f64_to_u64((stack[0] as i64) as f64)]
 }
 
-fn std_int_abs(stack: &mut [u64], _memory: &mut Heap, _meta: &Metadata) {
-    stack[0] = (stack[1] as i64).abs() as u64;
+fn std_int_abs(stack: &mut [u64], _memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
+    vec![(stack[0] as i64).abs() as u64]
 }
 
-fn std_float_round(stack: &mut [u64], _memory: &mut Heap, _meta: &Metadata) {
-    stack[0] = (u64_to_f64(stack[1]).round() as i64) as u64;
+fn std_float_round(stack: &mut [u64], _memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
+    vec![(u64_to_f64(stack[0]).round() as i64) as u64]
 }
 
-fn std_float_to_string(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) {
-    let s = u64_to_f64(stack[1]).to_string();
+fn std_float_to_string(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
+    let s = u64_to_f64(stack[0]).to_string();
 
-    stack[0] = memory.move_string(s).0;
+    vec![memory.move_string(s).0]
 }
 
-fn std_float_abs(stack: &mut [u64], _memory: &mut Heap, _meta: &Metadata) {
-    stack[0] = f64_to_u64(u64_to_f64(stack[1]).abs());
+fn std_float_abs(stack: &mut [u64], _memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
+    vec![f64_to_u64(u64_to_f64(stack[0]).abs())]
 }
 
-fn std_list_push(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) {
+fn std_list_push(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
     let list_obj = memory.get_mut(stack[0]);
     let list = list_obj.extract_list();
 
@@ -97,28 +99,35 @@ fn std_list_push(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) {
     for i in 0..item_size {
         list.data.push(stack[1 + i]);
     }
+    vec![]
 }
 
-fn std_list_pop(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) {
-    let list_obj = memory.get_mut(stack[stack.len() - 1]);
+fn std_list_pop(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
+    let list_obj = memory.get_mut(stack[0]);
     let list = list_obj.extract_list();
 
     list.items_amount -= 1;
     let item_size = list.item_size;
 
-    for i in 0..item_size {
-        stack[item_size - i - 1] = list.data.pop().unwrap();
+    let mut res = vec![];
+    for _ in 0..item_size {
+        res.push(list.data.pop().expect("Popped from empty list!"));
     }
+
+    // Pop are returning items in reverse order, so we need to reverse them for saving to stack
+    res.reverse();
+
+    res
 }
 
-fn std_list_len(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) {
-    let list_obj = memory.get_mut(stack[1]);
+fn std_list_len(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
+    let list_obj = memory.get_mut(stack[0]);
     let list = list_obj.extract_list();
 
-    stack[0] = list.items_amount as u64;
+    vec![list.items_amount as u64]
 }
 
-fn noop(_stack: &mut [u64], _memory: &mut Heap, _meta: &Metadata) {
+fn noop(_stack: &mut [u64], _memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
     panic!("not implemented yet");
 }
 
