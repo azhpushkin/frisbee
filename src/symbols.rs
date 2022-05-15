@@ -66,4 +66,17 @@ impl SymbolType {
     pub fn method(&self, method: &str) -> SymbolFunc {
         SymbolFunc(format!("{}::{}", self.0, method))
     }
+
+    pub fn constructor(&self) -> SymbolFunc {
+        let (_, name) = self
+            .0
+            .split_once("::")
+            .unwrap_or_else(|| panic!("No :: in SymbolType {}", self));
+        println!(
+            "Constructor for {} is {}",
+            self,
+            SymbolFunc(format!("{}::{}", self.0, name))
+        );
+        SymbolFunc(format!("{}::{}", self.0, name))
+    }
 }

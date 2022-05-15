@@ -78,9 +78,12 @@ pub mod op {
 
         GET_TUPLE_ITEM(3),
 
-        // total offset, call position
+        // locals size, call position (u16)
         CALL(3),
-        CALL_STD(3)
+        CALL_STD(3),
+
+        // locals size, type index, call position (u16)
+        SPAWN(4),
     );
 
     pub fn get_args_num(opcode: u8) -> usize {

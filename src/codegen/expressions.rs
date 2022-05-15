@@ -160,6 +160,23 @@ impl<'a> BytecodeGenerator<'a> {
                 self.push(op::ALLOCATE);
                 self.push(self.types_meta.get_index(typename) as u8);
             }
+            VExpr::Spawn { typename, args } => {
+                self.push(op::RESERVE);
+                self.push(1);
+                for arg in args {
+                    self.push_expr(arg);
+                }
+
+                let constructor_name = typename.constructor();
+                let args_size: u8 =
+                    args.iter().map(|arg| get_type_size(&arg.expr_type)).sum();
+
+                self.push(op::SPAWN);
+                self.push(args_size);
+                self.push(self.types_meta.get_index(typename) as u8);
+                self.push_function_placeholder(&constructor_name);
+
+            }
             VExpr::Dummy(t) => {
                 self.push_reserve(t);
             }
