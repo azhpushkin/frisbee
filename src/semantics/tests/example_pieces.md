@@ -1,6 +1,7 @@
 // TODO: should checks have some kind of error codes?
 
 * check that return statement is required
+* check spawn as an argument
 * no return for constructors!!
 * check order of tuple indexes
 * check that `this` in arguments is not allowed (this will ensure this is only for methods)

@@ -334,6 +334,13 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
             Expr::NewClassInstance { typename, args } => {
                 let symbol = &(self.type_resolver)(typename)?;
                 let raw_type = &self.aggregate.types[symbol];
+                if raw_type.is_active {
+                    return to_dyn(expression_error!(
+                        expr,
+                        "Active objects must be spawned, but `{}` is created as a passive object",
+                        symbol
+                    ));
+                }
                 let raw_constructor = self.resolve_method(&raw_type.name, typename)?;
                 self.calculate_function_call(raw_constructor, args, None)
             }
@@ -491,17 +498,42 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 Ok(VExprTyped { expr, expr_type: field_type.clone() })
             }
 
-            // Expr::SpawnActive { typename, args } => {
-            //     let class_signature = self.get_class_signature(typename)?;
+            Expr::SpawnActive { typename, args } => {
+                let symbol = &(self.type_resolver)(typename)?;
+                let raw_type = &self.aggregate.types[symbol];
+                if !raw_type.is_active {
+                    return to_dyn(expression_error!(
+                        expr,
+                        "Only active objects can be spawned, but `{}` is not active",
+                        symbol
+                    ));
+                }
 
-            //     if !class_signature.is_active {
-            //         panic!("{} Cant spawn passive {}!", self.err_prefix(), typename);
-            //     }
-            //     let constuctor =
-            //         class_signature.methods.get(typename).expect("Constructor not found");
-            //     self.check_function_call(constuctor, args)?
-            // }
-            Expr::SpawnActive { .. } => todo!("Expression SpawnActive is not yet done!"),
+                // TODO: this is copy-pasted from function_call, needs refactoring
+                let raw_constructor = self.resolve_method(&raw_type.name, typename)?;
+                if args.len() != raw_constructor.args.len() {
+                    return to_dyn(expression_error!(
+                        expr,
+                        "Active constructor `{}` expects {} arguments, but {} are given",
+                        symbol,
+                        raw_constructor.args.len(),
+                        args.len()
+                    ));
+                };
+                let processed_args: Result<Vec<VExprTyped>, _> = args
+                    .iter()
+                    .zip(raw_constructor.args.types.iter())
+                    .map(|(arg, expected_type)| self.verify_expr(arg, Some(expected_type)))
+                    .collect();
+
+                let vexpr_spawn = VExpr::Spawn { typename: symbol.clone(), args: processed_args? };
+                Ok(
+                    VExprTyped {
+                        expr: vexpr_spawn,
+                        expr_type: raw_constructor.return_type.clone(),
+                    },
+                )
+            }
             Expr::Nil => match expected {
                 Some(Type::Maybe(i)) => Ok(dummy_maybe(i.as_ref())),
                 Some(t) => {

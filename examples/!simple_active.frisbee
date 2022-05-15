@@ -1,0 +1,17 @@
+active A {
+    fun void say_hello(String name) {
+        println("Hello, " + name);
+    }
+}
+
+fun void main() {
+    A a = spawn A();
+    // a ! say_hello("Stranger");
+}
+
+
+/* EXPECTED STDOUT
+==========
+Hello, Stranger
+========== */
+

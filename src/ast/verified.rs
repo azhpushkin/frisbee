@@ -164,11 +164,18 @@ pub enum VExpr {
     Allocate {
         typename: SymbolType,
     },
-    // TODO: spawn!
+    Spawn {
+        typename: SymbolType,
+        args: Vec<VExprTyped>,
+    }, // TODO: spawn!
 }
 
 impl TypedFields {
     pub fn iter(&self) -> impl Iterator<Item = (&String, &VerifiedType)> {
         self.types.iter().enumerate().map(move |(i, t)| (&self.names[&i], t))
+    }
+
+    pub fn len(&self) -> usize {
+        self.types.len()
     }
 }
