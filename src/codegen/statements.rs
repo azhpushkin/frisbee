@@ -72,8 +72,7 @@ impl<'a> BytecodeGenerator<'a> {
             }
             VStatement::Return(expr) => {
                 self.push_expr(expr);
-                self.push_set_return();
-                self.push(op::RETURN);
+                self.push_return();
             }
             VStatement::IfElse { condition, if_body, else_body } if else_body.is_empty() => {
                 self.push_expr(condition);

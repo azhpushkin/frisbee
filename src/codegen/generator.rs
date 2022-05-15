@@ -42,7 +42,7 @@ impl<'a> BytecodeGenerator<'a> {
         function: &'a RawFunction,
     ) -> Self {
         let mut locals: HashMap<&'a str, u8> = HashMap::new();
-        let mut locals_offset: u8 = get_type_size(&function.return_type);
+        let mut locals_offset: u8 = 0;
         let mut locals_types = HashMap::new();
         let mut locals_order = vec![];
 
@@ -97,9 +97,8 @@ impl<'a> BytecodeGenerator<'a> {
         ));
     }
 
-    pub fn push_set_return(&mut self) {
-        self.push(op::SET_LOCAL);
-        self.push(0);
+    pub fn push_return(&mut self) {
+        self.push(op::RETURN);
         self.push_type_size(self.return_type);
     }
 

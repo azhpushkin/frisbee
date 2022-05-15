@@ -16,11 +16,11 @@ macro_rules! push {
 
 const STACK_SIZE: usize = 512; // TODO: maybe grow??
 
+#[derive(Debug)]
 struct CallFrame {
     pub pos: usize,
     pub return_ip: usize,
     pub stack_start: usize,
-    pub return_size: usize,
 }
 
 pub struct Worker<'a> {
@@ -65,14 +65,13 @@ impl<'a> Worker<'a> {
         byte
     }
 
-    fn call_op(&mut self, func_pos: usize, return_size: usize, locals_size: usize) {
+    fn call_op(&mut self, func_pos: usize, locals_size: usize) {
         // This is a point of huge optimizations, probably worth tweaking callframe stack
         // to make it smaller
         self.frames.push(CallFrame {
             pos: func_pos,
             return_ip: self.ip,
-            stack_start: self.stack_pointer - locals_size - return_size,
-            return_size,
+            stack_start: self.stack_pointer - locals_size,
         });
         self.ip = func_pos;
     }
@@ -89,10 +88,10 @@ impl<'a> Worker<'a> {
         }
     }
 
-    fn return_op(&mut self) {
+    fn drop_current_frame(&mut self) {
         let frame = self.frames.pop().unwrap();
         self.ip = frame.return_ip;
-        self.stack_pointer = frame.stack_start + frame.return_size;
+        self.stack_pointer = frame.stack_start;
     }
 
     fn current_frame(&self) -> &CallFrame {
@@ -135,7 +134,7 @@ impl<'a> Worker<'a> {
     }
 
     pub fn run(&mut self, entry: usize) {
-        self.call_op(entry, 0, 0);
+        self.call_op(entry, 0);
 
         while self.ip < self.program.len() {
             if self.vm.show_debug {
@@ -329,12 +328,11 @@ impl<'a> Worker<'a> {
                     self.stack_pointer += value;
                 }
                 op::CALL | op::CALL_STD => {
-                    let return_size = self.read_opcode() as usize;
                     let args_size = self.read_opcode() as usize;
                     let function_pos = u16::from_be_bytes(self.read_several::<2>()) as usize;
 
                     match opcode {
-                        op::CALL => self.call_op(function_pos, return_size, args_size),
+                        op::CALL => self.call_op(function_pos, args_size),
                         op::CALL_STD => self.call_std(function_pos, args_size),
                         _ => unreachable!(),
                     }
@@ -346,7 +344,13 @@ impl<'a> Worker<'a> {
                     }
                 }
                 op::RETURN => {
-                    self.return_op();
+                    let return_size = self.read_opcode() as usize;
+                    let current_start = self.current_frame().stack_start;
+                    for i in 0..return_size {
+                        self.stack[current_start - i - 1] = self.stack[self.stack_pointer - i - 1];
+                    }
+
+                    self.drop_current_frame();
                     if self.frames.is_empty() {
                         break;
                     }
@@ -369,6 +373,7 @@ impl<'a> Worker<'a> {
                 _ => panic!("Unknown opcode: {}", opcode),
             }
             if self.vm.show_debug {
+                println!(" ## FRAME: {:?}", self.current_frame());
                 println!(" ## STACK: {:02x?}", &self.stack[0..self.stack_pointer]);
                 println!(" ## {}", &self.memory.simple_debug_view());
             }

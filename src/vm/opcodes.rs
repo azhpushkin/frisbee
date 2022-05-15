@@ -52,7 +52,7 @@ pub mod op {
         ADD_STRINGS(0),
         EQ_STRINGS(0),
         GET_LIST_ITEM(0),
-        RETURN(0),
+        RETURN(1),  // size of return value
 
         ALLOCATE(1),
 
@@ -78,9 +78,9 @@ pub mod op {
 
         GET_TUPLE_ITEM(3),
 
-        // return size, total offset, call position
-        CALL(4),
-        CALL_STD(4)
+        // total offset, call position
+        CALL(3),
+        CALL_STD(3)
     );
 
     pub fn get_args_num(opcode: u8) -> usize {
