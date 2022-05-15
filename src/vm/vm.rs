@@ -1,8 +1,7 @@
-use super::heap::Heap;
+use super::heap::HeapObject;
 use super::metadata::{Metadata, MetadataBlock};
 use super::opcodes::op;
-use super::utils::{f64_to_u64, u64_to_f64};
-
+use super::worker::Worker;
 
 pub static LOCAL_VM: Vm = Vm::default();
 
@@ -14,10 +13,10 @@ pub struct Vm {
     pub constants: Vec<u64>,
     pub metadata: Metadata,
     pub entry: usize,
-    pub memory: Heap
-    
-}
 
+    pub step_by_step: bool,
+    pub show_debug: bool,
+}
 
 impl Vm {
     pub fn setup(&mut self, program: Vec<u8>) {
@@ -33,6 +32,16 @@ impl Vm {
         self.load_metadata();
 
         let entry = self.load_entry();
+    }
+
+    pub fn set_debug_params(&mut self, step_by_step: bool, show_debug: bool) {
+        self.step_by_step = step_by_step;
+        self.show_debug = show_debug;
+    }
+
+    pub fn spawn_entry(&mut self) {
+        let worker = Worker::new(self);
+        worker.run(self.entry);
     }
 
     fn check_header(&mut self, header_name: &'static str) {
@@ -100,9 +109,11 @@ impl Vm {
                     let str_len = u16::from_be_bytes(self.read_several::<2>());
                     let str_bytes = self.read_bytes(str_len as usize);
 
-                    let (obj_pos, inner) = self.memory.allocate_string(str_len as usize);
-                    inner.extend(std::str::from_utf8(&str_bytes).unwrap().chars());
-                    self.constants.push(obj_pos);
+                    let q = std::str::from_utf8(&str_bytes).unwrap();
+                    let s = Box::new(HeapObject::String(q.to_owned()));
+                    let pointer = Box::into_raw(s);
+
+                    self.constants.push(pointer as u64);
                 }
                 op::CONST_END_FLAG => break,
                 c => panic!("Unknown const flag: {:02x}", c),
