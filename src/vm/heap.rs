@@ -26,7 +26,7 @@ pub enum HeapObject {
     CustomObject(CustomObject),
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Heap {
     data: HashMap<u64, (HeapObjectHeader, Box<HeapObject>)>,
     counter: u64,
@@ -60,11 +60,13 @@ impl HeapObject {
     }
 }
 
-impl Heap {
-    pub fn new() -> Self {
-        Self { data: HashMap::new(), counter: 0 }
+impl Default for Heap {
+    fn default() -> Self {
+        Self { data: Default::default(), counter: 1 }
     }
+}
 
+impl Heap {
     pub fn allocate_custom(
         &mut self,
         type_index: usize,

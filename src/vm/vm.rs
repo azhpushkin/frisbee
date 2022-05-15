@@ -8,12 +8,13 @@ pub static LOCAL_VM: Vm = Vm::default();
 
 #[derive(Default)]
 pub struct Vm {
-    program: Vec<u8>,
     ip: usize,
-    constants: Vec<u64>,
-    metadata: Metadata,
-    entry: usize,
-    memory: Heap
+
+    pub program: Vec<u8>,
+    pub constants: Vec<u64>,
+    pub metadata: Metadata,
+    pub entry: usize,
+    pub memory: Heap
     
 }
 

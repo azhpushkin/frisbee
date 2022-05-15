@@ -5,6 +5,7 @@ use super::metadata::{Metadata, MetadataBlock};
 use super::opcodes::op;
 use super::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
 use super::utils::{f64_to_u64, u64_to_f64};
+use super::vm::Vm;
 
 macro_rules! push {
     ($vm:ident, $value:expr) => {
@@ -22,12 +23,13 @@ struct CallFrame {
     pub return_size: usize,
 }
 
-pub struct Vm {
-    program: Vec<u8>,
-    constants: Vec<u64>,
-    metadata: Metadata,
-
+pub struct Worker<'a> {
+    program: &'a [u8],
     ip: usize,
+
+    constants: &'a [u64],
+    metadata: &'a Metadata,
+    
     memory: heap::Heap,
     stack: [u64; STACK_SIZE],
     stack_pointer: usize,
@@ -35,14 +37,15 @@ pub struct Vm {
     frames: Vec<CallFrame>, // TODO: limit size
 }
 
-impl Vm {
-    pub fn new(program: Vec<u8>) -> Self {
-        Vm {
-            program,
+impl<'a> Worker<'a> {
+    pub fn new(vm: &'a Vm) -> Self {
+        Worker {
+            program: &vm.program,
             ip: 0,
-            constants: vec![],
-            memory: heap::Heap::new(),
-            metadata: Metadata::default(),
+            constants: &vm.constants,
+            memory: heap::Heap::default(),
+            metadata: &vm.metadata,
+            
             stack: [0; STACK_SIZE],
             stack_pointer: 0,
             frames: vec![],
@@ -100,14 +103,6 @@ impl Vm {
         bytes
     }
 
-    fn read_bytes(&mut self, num: usize) -> Vec<u8> {
-        let mut bytes: Vec<u8> = vec![];
-        for _ in 0..num {
-            bytes.push(self.read_opcode());
-        }
-        bytes
-    }
-
     // NOTE: items are pushed on stack in-order (from left to right)
     // which means that they are popped in reverse order (from right to left)
     // so first pop b, than pop a
@@ -135,94 +130,11 @@ impl Vm {
         push!(self, op(a));
     }
 
-    fn load_consts(&mut self) {
-        loop {
-            let const_type = self.read_opcode();
-            match const_type {
-                op::CONST_INT_FLAG => {
-                    let i = i64::from_be_bytes(self.read_several::<8>());
-                    self.constants.push(i as u64);
-                }
-                op::CONST_FLOAT_FLAG => {
-                    let f = u64::from_be_bytes(self.read_several::<8>());
-                    self.constants.push(f);
-                }
-                op::CONST_STRING_FLAG => {
-                    let str_len = u16::from_be_bytes(self.read_several::<2>());
-                    let str_bytes = self.read_bytes(str_len as usize);
+    
 
-                    let (obj_pos, inner) = self.memory.allocate_string(str_len as usize);
-                    inner.extend(std::str::from_utf8(&str_bytes).unwrap().chars());
-                    self.constants.push(obj_pos);
-                }
-                op::CONST_END_FLAG => break,
-                c => panic!("Unknown const flag: {:02x}", c),
-            };
-        }
-        self.check_header("End of constants table");
-    }
-
-    fn check_header(&mut self, header_name: &'static str) {
-        let header = self.read_several::<2>();
-        if header != [0xff, 0xff] {
-            panic!("Cannot find header: {}", header_name);
-        }
-    }
-
-    fn read_metadata_block(&mut self, info_name: &'static str) -> MetadataBlock {
-        let amount = self.read_opcode();
-        let mut res = vec![];
-        for _ in 0..amount {
-            // Read string repr, do not save it - we have no use for it
-            let symbol_name_len = u16::from_be_bytes(self.read_several::<2>());
-            self.read_bytes(symbol_name_len as usize);
-
-            let flag = u16::from_be_bytes(self.read_several::<2>()) as usize;
-
-            let pointers_amount = self.read_opcode();
-            let pointer_mapping = self.read_bytes(pointers_amount as usize);
-            res.push((flag, pointer_mapping));
-        }
-        self.check_header(info_name);
-        res
-    }
-
-    fn load_entry(&mut self) -> usize {
-        let entry = u16::from_be_bytes(self.read_several::<2>());
-        self.check_header("Entry loaded, start of functions");
-        entry as usize
-    }
-
-    fn load_metadata(&mut self) {
-        let tm = self.read_metadata_block("Types metadata");
-        self.metadata.fill_types_metadata(tm);
-
-        let lm = self.read_metadata_block("Lists metadata");
-        self.metadata.fill_lists_metadata(lm);
-
-        let fm = self.read_metadata_block("Functions metadata");
-        let functions_count = fm.len();
-        self.metadata.fill_function_metadata(fm);
-
-        for i in 0..functions_count {
-            let pos = u16::from_be_bytes(self.read_several::<2>()) as usize;
-            self.metadata.function_positions.insert(pos, i);
-        }
-        self.check_header("End of function positions");
-    }
+    
 
     pub fn run(&mut self, step_by_step: bool, show_debug: bool) {
-        self.check_header("Initial header");
-        self.load_consts();
-        if show_debug {
-            println!("Loaded constants: {:?}", self.constants);
-        }
-
-        self.load_metadata();
-
-        let entry = self.load_entry();
-        self.call_op(entry, 0, 0);
-
         while self.ip < self.program.len() {
             if show_debug {
                 println!(">> preparing to exec pc: {:02x?}", self.ip);
