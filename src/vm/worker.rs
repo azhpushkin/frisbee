@@ -29,6 +29,7 @@ pub struct Worker {
 
     constants: &'static [u64],
     metadata: &'static Metadata,
+    vm: &'static Vm,
     step_by_step: bool,
     show_debug: bool,
 
@@ -49,6 +50,7 @@ impl Worker {
             metadata: &vm.metadata,
             step_by_step: vm.step_by_step,
             show_debug: vm.show_debug,
+            vm,
 
             stack: [0; STACK_SIZE],
             stack_pointer: 0,

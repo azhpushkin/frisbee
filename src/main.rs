@@ -6,6 +6,8 @@ use argh::FromArgs;
 use owo_colors::OwoColorize;
 use vm::vm::{spawn_worker, Vm};
 
+use crate::vm::vm::run_entry_and_wait_if_spawned;
+
 pub mod alias;
 pub mod ast;
 pub mod codegen;
@@ -126,7 +128,7 @@ fn compile_file(c: CompileCommand) {
     if run {
         let vm = Vm::setup(bytecode, false, false);
         let vm = Box::leak(vm);
-        spawn_worker(vm, vm.entry).join().unwrap();
+        run_entry_and_wait_if_spawned(vm);
     }
 }
 
@@ -145,7 +147,7 @@ fn run_file(c: RunCommand) {
 
     let vm = Vm::setup(bytecode, step_by_step, show_debug_info);
     let vm = Box::leak(vm);
-    spawn_worker(vm, vm.entry).join().unwrap();
+    run_entry_and_wait_if_spawned(vm);
 }
 
 fn main() {
