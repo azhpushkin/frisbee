@@ -4,7 +4,7 @@ use std::path::Path;
 
 use argh::FromArgs;
 use owo_colors::OwoColorize;
-use vm::vm::Vm;
+use vm::vm::{spawn_worker, Vm};
 
 pub mod alias;
 pub mod ast;
@@ -124,8 +124,9 @@ fn compile_file(c: CompileCommand) {
 
     println!("{}", "File compiled successfully!".green());
     if run {
-        let mut vm = Vm::setup(bytecode, false, false);
-        vm.spawn_entry();
+        let vm = Vm::setup(bytecode, false, false);
+        let vm = Box::leak(vm);
+        spawn_worker(vm, vm.entry).join().unwrap();
     }
 }
 
@@ -142,8 +143,9 @@ fn run_file(c: RunCommand) {
 
     let bytecode = std::fs::read(program).expect("Cant read file");
 
-    let mut vm = Vm::setup(bytecode, step_by_step, show_debug_info);
-    vm.spawn_entry();
+    let vm = Vm::setup(bytecode, step_by_step, show_debug_info);
+    let vm = Box::leak(vm);
+    spawn_worker(vm, vm.entry).join().unwrap();
 }
 
 fn main() {

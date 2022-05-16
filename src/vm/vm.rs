@@ -2,6 +2,7 @@ use super::heap::HeapObject;
 use super::metadata::{Metadata, MetadataBlock};
 use super::opcodes::op;
 use super::worker::Worker;
+use std::thread;
 
 #[derive(Default)]
 pub struct Vm {
@@ -17,8 +18,8 @@ pub struct Vm {
 }
 
 impl Vm {
-    pub fn setup(program: Vec<u8>, step_by_step: bool, show_debug: bool) -> Self {
-        let mut new_vm = Self {
+    pub fn setup(program: Vec<u8>, step_by_step: bool, show_debug: bool) -> Box<Self> {
+        let mut new_vm = Box::new(Self {
             ip: 0,
             program,
             constants: vec![],
@@ -26,7 +27,7 @@ impl Vm {
             entry: 0,
             step_by_step,
             show_debug,
-        };
+        });
 
         new_vm.check_header("Initial header");
 
@@ -34,11 +35,6 @@ impl Vm {
         new_vm.load_metadata();
         new_vm.load_entry();
         new_vm
-    }
-
-    pub fn spawn_entry(&mut self) {
-        let mut worker = Worker::new(self);
-        worker.run(self.entry);
     }
 
     fn check_header(&mut self, header_name: &'static str) {
@@ -150,4 +146,12 @@ impl Vm {
         }
         bytes
     }
+}
+
+pub fn spawn_worker(vm: &'static Vm, position: usize) -> thread::JoinHandle<()> {
+    let mut worker = Worker::new(vm);
+
+    thread::spawn(move || {
+        worker.run(position);
+    })
 }

@@ -8,9 +8,9 @@ use super::utils::{f64_to_u64, u64_to_f64};
 use super::vm::Vm;
 
 macro_rules! push {
-    ($vm:ident, $value:expr) => {
-        $vm.stack[$vm.stack_pointer] = $value;
-        $vm.stack_pointer += 1;
+    ($worker:ident, $value:expr) => {
+        $worker.stack[$worker.stack_pointer] = $value;
+        $worker.stack_pointer += 1;
     };
 }
 
@@ -23,13 +23,14 @@ struct CallFrame {
     pub stack_start: usize,
 }
 
-pub struct Worker<'a> {
-    program: &'a [u8],
+pub struct Worker {
+    program: &'static [u8],
     ip: usize,
 
-    constants: &'a [u64],
-    metadata: &'a Metadata,
-    vm: &'a Vm,
+    constants: &'static [u64],
+    metadata: &'static Metadata,
+    step_by_step: bool,
+    show_debug: bool,
 
     memory: heap::Heap,
     stack: [u64; STACK_SIZE],
@@ -38,15 +39,16 @@ pub struct Worker<'a> {
     frames: Vec<CallFrame>, // TODO: limit size
 }
 
-impl<'a> Worker<'a> {
-    pub fn new(vm: &'a Vm) -> Self {
+impl Worker {
+    pub fn new<'b>(vm: &'static Vm) -> Self {
         Worker {
             program: &vm.program,
             ip: 0,
             constants: &vm.constants,
             memory: heap::Heap::default(),
             metadata: &vm.metadata,
-            vm,
+            step_by_step: vm.step_by_step,
+            show_debug: vm.show_debug,
 
             stack: [0; STACK_SIZE],
             stack_pointer: 0,
@@ -137,10 +139,10 @@ impl<'a> Worker<'a> {
         self.call_op(entry, 0);
 
         while self.ip < self.program.len() {
-            if self.vm.show_debug {
+            if self.show_debug {
                 println!(">> preparing to exec pc: {:02x?}", self.ip);
             }
-            if self.vm.step_by_step {
+            if self.step_by_step {
                 io::stdin().read_line(&mut String::from("")).unwrap();
             }
 
@@ -372,7 +374,7 @@ impl<'a> Worker<'a> {
                 }
                 _ => panic!("Unknown opcode: {}", opcode),
             }
-            if self.vm.show_debug {
+            if self.show_debug {
                 println!(" ## FRAME: {:?}", self.current_frame());
                 println!(" ## STACK: {:02x?}", &self.stack[0..self.stack_pointer]);
                 println!(" ## {}", &self.memory.simple_debug_view());

@@ -167,6 +167,17 @@ impl fmt::Display for VExpr {
             VExpr::Allocate { typename } => {
                 write!(f, "new {}", typename)
             }
+            VExpr::Spawn { typename, args } => {
+                write!(
+                    f,
+                    "@spawn({}; {})",
+                    typename,
+                    args.iter()
+                        .map(|e| format!("{}", e.expr))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            }
         }
     }
 }
