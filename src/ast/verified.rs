@@ -22,6 +22,7 @@ pub struct RawFunction {
     pub short_name: String,
     pub method_of: Option<SymbolType>,
     pub is_constructor: bool,
+    pub is_active_method: bool,
     pub defined_at: ModuleAlias,
 }
 

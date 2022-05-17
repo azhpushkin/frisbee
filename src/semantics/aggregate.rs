@@ -151,6 +151,7 @@ pub fn fill_aggregate_with_funcs<'a>(
                         short_name: method.name.clone(),
                         method_of: Some(type_full_name.clone()),
                         is_constructor: method.name == class_decl.name,
+                        is_active_method: class_decl.is_active,
                         defined_at: (*alias).clone(),
                     },
                 );
@@ -184,6 +185,7 @@ pub fn fill_aggregate_with_funcs<'a>(
                     short_name: function_decl.name.clone(),
                     method_of: None,
                     is_constructor: false,
+                    is_active_method: false,
                     defined_at: (*alias).clone(),
                 },
             );
