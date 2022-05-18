@@ -134,9 +134,6 @@ impl fmt::Display for VExpr {
                 let items_str = items.iter().map(|e| format!("{}", e.expr)).collect::<Vec<_>>();
                 write!(f, "[{}]", items_str.join(", "))
             }
-            VExpr::CompareMaybe { left, right, .. } => {
-                write!(f, "@comp_maybe({} = {})", left.expr, right.expr)
-            }
             VExpr::ApplyOp { operator, operands } => match operands.len() {
                 0 => panic!(" no arguments to operator!"),
                 1 => write!(f, "({} {})", operator, operands[0].expr),
@@ -178,6 +175,8 @@ impl fmt::Display for VExpr {
                         .join(", ")
                 )
             }
+            VExpr::CurrentActive => write!(f, "@current_active"),
+            VExpr::CurrentActiveField(field) => write!(f, "@current_active.{}", field),
         }
     }
 }

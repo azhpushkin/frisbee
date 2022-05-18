@@ -178,7 +178,8 @@ impl<'a> BytecodeGenerator<'a> {
             VExpr::Dummy(t) => {
                 self.push_reserve(t);
             }
-            VExpr::CompareMaybe { .. } => todo!(),
+            VExpr::CurrentActive => todo!(),
+            VExpr::CurrentActiveField(..) => todo!(),
         }
     }
 }
