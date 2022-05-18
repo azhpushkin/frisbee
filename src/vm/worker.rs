@@ -5,7 +5,7 @@ use super::metadata::{Metadata, MetadataBlock};
 use super::opcodes::op;
 use super::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
 use super::utils::{f64_to_u64, u64_to_f64};
-use super::vm::Vm;
+use super::vm::{Vm, spawn_worker};
 
 macro_rules! push {
     ($worker:ident, $value:expr) => {
@@ -34,6 +34,7 @@ pub struct Worker {
     show_debug: bool,
 
     memory: heap::Heap,
+    locals: Vec<u64>,
     stack: [u64; STACK_SIZE],
     stack_pointer: usize,
 
@@ -41,7 +42,7 @@ pub struct Worker {
 }
 
 impl Worker {
-    pub fn new<'b>(vm: &'static Vm) -> Self {
+    pub fn new<'b>(size: usize, vm: &'static Vm) -> Self {
         Worker {
             program: &vm.program,
             ip: 0,
@@ -52,6 +53,7 @@ impl Worker {
             show_debug: vm.show_debug,
             vm,
 
+            locals: Vec::with_capacity(size),
             stack: [0; STACK_SIZE],
             stack_pointer: 0,
             frames: vec![],
@@ -373,6 +375,11 @@ impl Worker {
                 op::JUMP_BACK => {
                     let x = u16::from_be_bytes(self.read_several::<2>());
                     self.ip -= x as usize;
+                }
+                op::SPAWN => {
+                    let item_type = self.read_opcode() as usize;
+                    let constructor_pos = u16::from_be_bytes(self.read_several::<2>());
+                    spawn_worker(self.vm, item_type, constructor_pos as usize);
                 }
                 _ => panic!("Unknown opcode: {}", opcode),
             }

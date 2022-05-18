@@ -4,7 +4,7 @@ use std::path::Path;
 
 use argh::FromArgs;
 use owo_colors::OwoColorize;
-use vm::vm::{spawn_worker, Vm};
+use vm::vm::Vm;
 
 use crate::vm::vm::run_entry_and_wait_if_spawned;
 

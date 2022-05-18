@@ -1,11 +1,16 @@
 active A {
+    fun A() {
+        println("Spawned new A");
+    }
+
     fun void say_hello(String name) {
         println("Hello, " + name);
     }
 }
 
 fun void main() {
-    A a = spawn A();
+    A a1 = spawn A();
+    A a2 = spawn A();
     // a ! say_hello("Stranger");
 }
 
