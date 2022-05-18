@@ -90,6 +90,9 @@ pub mod op {
 
         // ACTIVE-RELATED OPCODES
         SPAWN(3),  // type index, call position (u16)
+        // CURRENT_ACTIVE(0),
+        // GET_CURRENT_ACTIVE_FIELD(2), // offset from pointer, size
+        // SET_CURRENT_ACTIVE_FIELD(2), // offset from pointer, size
     );
 
     pub fn get_args_num(opcode: u8) -> usize {

@@ -167,7 +167,7 @@ impl fmt::Display for VExpr {
             VExpr::Spawn { typename, args } => {
                 write!(
                     f,
-                    "@spawn({}; {})",
+                    "@spawn({} with {})",
                     typename,
                     args.iter()
                         .map(|e| format!("{}", e.expr))

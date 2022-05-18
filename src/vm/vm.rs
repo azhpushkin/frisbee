@@ -150,11 +150,11 @@ impl Vm {
     }
 }
 
-pub static ACTIVE_SPAWNED: AtomicUsize =  AtomicUsize::new(0);
+pub static ACTIVE_SPAWNED: AtomicUsize = AtomicUsize::new(0);
 
 pub fn spawn_worker(vm: &'static Vm, position: usize) -> thread::JoinHandle<()> {
     ACTIVE_SPAWNED.fetch_add(1, Ordering::SeqCst);
-    
+
     let mut worker = Worker::new(vm);
 
     thread::spawn(move || {
@@ -165,7 +165,7 @@ pub fn spawn_worker(vm: &'static Vm, position: usize) -> thread::JoinHandle<()> 
 pub fn run_entry_and_wait_if_spawned(vm: &'static Vm) {
     let mut worker = Worker::new(vm);
     worker.run(vm.entry);
-    
+
     while ACTIVE_SPAWNED.load(Ordering::SeqCst) > 0 {
         thread::sleep(Duration::from_secs(1));
     }

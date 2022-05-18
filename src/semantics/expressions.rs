@@ -527,12 +527,10 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                     .collect();
 
                 let vexpr_spawn = VExpr::Spawn { typename: symbol.clone(), args: processed_args? };
-                Ok(
-                    VExprTyped {
-                        expr: vexpr_spawn,
-                        expr_type: raw_constructor.return_type.clone(),
-                    },
-                )
+                Ok(VExprTyped {
+                    expr: vexpr_spawn,
+                    expr_type: Type::Custom(raw_constructor.method_of.clone().unwrap()),
+                })
             }
             Expr::Nil => match expected {
                 Some(Type::Maybe(i)) => Ok(dummy_maybe(i.as_ref())),

@@ -413,9 +413,10 @@ pub fn verify_raw_function(
         &func.args,
     )));
 
-    if func.is_constructor {
+    if func.is_constructor && !func.is_active_method {
         // Add this to the insights so that semantic checker assumer that object is already allocated
         // Allocate statement itself is added later on
+        // Do not add `this` for active constructor as it uses another way to construct actor
         locals
             .borrow_mut()
             .add_variable_exact("this", &func.return_type)
@@ -466,7 +467,9 @@ pub fn verify_raw_function(
             }
         }
 
-        verified.insert(0, allocate_object_for_constructor(func));
+        if !func.is_active_method {
+            verified.insert(0, allocate_object_for_constructor(func));
+        }
     }
 
     let mut all_locals = gen.locals.take().move_all_variables();
@@ -497,10 +500,17 @@ fn split_left_part_of_assignment(vexpr: VExprTyped) -> (VExprTyped, Vec<usize>) 
 pub fn return_statement_for_constructor(func: &RawFunction) -> VStatement {
     let class_name = func.method_of.as_ref().unwrap();
 
-    VStatement::Return(VExprTyped {
-        expr: VExpr::GetVar("this".into()),
-        expr_type: Type::Custom(class_name.clone()),
-    })
+    if func.is_active_method {
+        VStatement::Return(VExprTyped {
+            expr: VExpr::TupleValue(vec![]),
+            expr_type: Type::Tuple(vec![]),
+        })
+    } else {
+        VStatement::Return(VExprTyped {
+            expr: VExpr::GetVar("this".into()),
+            expr_type: Type::Custom(class_name.clone()),
+        })
+    }
 }
 
 fn allocate_object_for_constructor(func: &RawFunction) -> VStatement {

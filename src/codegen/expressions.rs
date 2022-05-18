@@ -169,7 +169,7 @@ impl<'a> BytecodeGenerator<'a> {
 
                 let constructor_name = typename.constructor();
 
-                self.push(op::SPAWN);                
+                self.push(op::SPAWN);
                 self.push(self.types_meta.get_index(typename) as u8);
                 self.push_function_placeholder(&constructor_name);
             }

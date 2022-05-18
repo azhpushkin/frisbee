@@ -129,7 +129,9 @@ pub fn fill_aggregate_with_funcs<'a>(
                 }
 
                 let mut args = method.args.clone();
-                if method.name != class_decl.name {
+                if !class_decl.is_active && method.name != class_decl.name {
+                    // Add implicit `this` argument, but only for non-active classes
+                    // as active are referred in another way (see VExpr::CurrentActive)
                     args.insert(
                         0,
                         TypedItem {
@@ -138,12 +140,16 @@ pub fn fill_aggregate_with_funcs<'a>(
                         },
                     );
                 };
+                let return_type = if method.name == class_decl.name && class_decl.is_active {
+                    Type::Tuple(vec![])
+                } else {
+                    get_return_type(&method.rettype).or_else(|e| return_type_err(method, e))?
+                };
                 aggregate.functions.insert(
                     method_full_name.clone(),
                     RawFunction {
                         name: method_full_name.clone(),
-                        return_type: get_return_type(&method.rettype)
-                            .or_else(|e| return_type_err(method, e))?,
+                        return_type,
                         args: annotate_typednamed_vec(&args, &file_resolver)
                             .or_else(|e| args_type_err(method, e))?,
                         body: vec![],
