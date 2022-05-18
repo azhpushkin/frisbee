@@ -9,7 +9,7 @@ pub const STRING_FLAG: u64 = 1 << 56;
 pub const LIST_FLAG: u64 = 2 << 56;
 pub const CUSTOM_OBJECT_FLAG: u64 = 4 << 56;
 
-fn serialize_function_args(
+pub fn serialize_function_args(
     function_pos: usize,
     stack: &[u64],
     heap: &Heap,
@@ -18,6 +18,7 @@ fn serialize_function_args(
     // TODO: active objects should not be copied when serializing
     let func_index = metadata.function_positions[&function_pos];
     let locals_size = metadata.function_locals_sizes[func_index];
+    println!("Serializing {:?} for locals size {}", &stack[..10], locals_size);
 
     let mut chunk: Vec<u64> = vec![function_pos as u64];
     chunk.extend(stack[..locals_size as usize].iter());
@@ -89,6 +90,7 @@ fn serialize_function_args(
             chunk[offset] = pos as u64;
         }
     }
+    println!("  chunk is {:?}", chunk);
     chunk
 }
 
@@ -109,7 +111,7 @@ fn serialize_heap_object_header(obj: &HeapObject) -> u64 {
     obj_header
 }
 
-fn deserialize_function_args(
+pub fn deserialize_function_args(
     function_pos: usize,
     stack: &mut [u64],
     heap: &mut Heap,
@@ -117,6 +119,7 @@ fn deserialize_function_args(
     chunk: &Vec<u64>,
 ) {
     assert_eq!(chunk[0], function_pos as u64, "wrong function extracted");
+    println!("deserializing {:?}", chunk);
 
     let func_index = metadata.function_positions[&function_pos];
     let locals_size = metadata.function_locals_sizes[func_index];

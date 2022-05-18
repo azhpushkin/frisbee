@@ -1,11 +1,14 @@
 use std::io;
 
+use crate::vm::serialization::serialize_function_args;
+
 use super::heap;
 use super::metadata::{Metadata, MetadataBlock};
 use super::opcodes::op;
+use super::serialization::deserialize_function_args;
 use super::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
 use super::utils::{f64_to_u64, u64_to_f64};
-use super::vm::{Vm, spawn_worker};
+use super::vm::{spawn_worker, Vm};
 
 macro_rules! push {
     ($worker:ident, $value:expr) => {
@@ -139,8 +142,19 @@ impl Worker {
         push!(self, op(a));
     }
 
-    pub fn run(&mut self, entry: usize) {
-        self.call_op(entry, 0);
+    pub fn run(&mut self, func_pos: usize, data: Vec<u64>) {
+        deserialize_function_args(
+            func_pos,
+            &mut self.stack,
+            &mut self.memory,
+            self.metadata,
+            &data,
+        );
+        let func_index = self.metadata.function_positions[&func_pos];
+        let locals_size = self.metadata.function_locals_sizes[func_index];
+        self.stack_pointer = locals_size;
+
+        self.call_op(func_pos, self.stack_pointer);
 
         while self.ip < self.program.len() {
             if self.show_debug {
@@ -378,8 +392,19 @@ impl Worker {
                 }
                 op::SPAWN => {
                     let item_type = self.read_opcode() as usize;
+                    let locals_amount = self.read_opcode() as usize;
                     let constructor_pos = u16::from_be_bytes(self.read_several::<2>());
-                    spawn_worker(self.vm, item_type, constructor_pos as usize);
+                    spawn_worker(
+                        self.vm,
+                        item_type,
+                        constructor_pos as usize,
+                        serialize_function_args(
+                            constructor_pos as usize,
+                            &self.stack[self.stack_pointer - locals_amount..],
+                            &self.memory,
+                            &self.metadata
+                        ),
+                    );
                 }
                 _ => panic!("Unknown opcode: {}", opcode),
             }

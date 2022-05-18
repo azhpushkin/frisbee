@@ -2,7 +2,7 @@ use super::heap::HeapObject;
 use super::metadata::{Metadata, MetadataBlock};
 use super::opcodes::op;
 use super::worker::Worker;
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread;
 use std::time::Duration;
 
@@ -152,20 +152,20 @@ impl Vm {
 
 pub static ACTIVE_SPAWNED: AtomicUsize = AtomicUsize::new(0);
 
-pub fn spawn_worker(vm: &'static Vm, item_type: usize, position: usize) -> thread::JoinHandle<()> {
+pub fn spawn_worker(vm: &'static Vm, item_type: usize, position: usize, data: Vec<u64>) -> thread::JoinHandle<()> {
     ACTIVE_SPAWNED.fetch_add(1, Ordering::SeqCst);
     let item_size = vm.metadata.types_sizes[item_type];
 
     let mut worker = Worker::new(item_size, vm);
 
     thread::spawn(move || {
-        worker.run(position);
+        worker.run(position, data);
     })
 }
 
 pub fn run_entry_and_wait_if_spawned(vm: &'static Vm) {
     let mut worker = Worker::new(0, vm);
-    worker.run(vm.entry);
+    worker.run(vm.entry, vec![vm.entry as u64]);
 
     loop {
         let value = ACTIVE_SPAWNED.load(Ordering::SeqCst);
