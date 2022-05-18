@@ -29,6 +29,10 @@ pub mod op {
     opcodes_list!(
         LOAD_TRUE(0),
         LOAD_FALSE(0),
+        LOAD_CONST(1),  // constant index
+        LOAD_SMALL_INT(1),  // small int value (0-255)
+
+        // Integer operators
         NEGATE_INT(0),
         ADD_INT(0),
         SUB_INT(0),
@@ -37,6 +41,8 @@ pub mod op {
         GREATER_INT(0),
         LESS_INT(0),
         EQ_INT(0),
+
+        // Float operators
         NEGATE_FLOAT(0),
         ADD_FLOAT(0),
         SUB_FLOAT(0),
@@ -45,45 +51,45 @@ pub mod op {
         GREATER_FLOAT(0),
         LESS_FLOAT(0),
         EQ_FLOAT(0),
+
+        // Bool operators
         NEGATE_BOOL(0),
         EQ_BOOL(0),
         AND_BOOL(0),
         OR_BOOL(0),
         ADD_STRINGS(0),
         EQ_STRINGS(0),
-        GET_LIST_ITEM(0),
-        RETURN(1),  // size of return value
 
-        ALLOCATE(1),
-
-        RESERVE(1),
-        POP(1),
-
-        LOAD_CONST(1),
-        LOAD_SMALL_INT(1),
-
-        ALLOCATE_LIST(2),  // item_size + initial_size
-
-        JUMP(2),
-        JUMP_BACK(2),
-        JUMP_IF_FALSE(2),
+        RESERVE(1),  // size to reserve
+        POP(1),  // size to pop
 
         SET_LOCAL(2),  // offset + size
         GET_LOCAL(2),  // offset + size
 
+        // Extract part of the tuple when whole tuple is on stack
+        // args: total tuple size, offset to extract, size to extract
+        GET_TUPLE_ITEM(3),
+
+        JUMP(2),  // relative position as u16
+        JUMP_BACK(2),  // relative position as u16
+        JUMP_IF_FALSE(2),  // relative position as u16
+
+        CALL(3),  // locals size, call position as u16
+        CALL_STD(3),  // locals size, call position as u16
+        RETURN(1),  // size of return value
+
+        ALLOCATE(1),  // object type index
         SET_OBJ_FIELD(2),  // offset from pointer, size
         GET_OBJ_FIELD(2), // offset from pointer, size
 
+        ALLOCATE_LIST(2),  // list_item_type, initial_list_size
+        // no operands, because list pointer is on the stack,
+        // and list index value is calculated on stack as well
+        GET_LIST_ITEM(0),
         SET_LIST_ITEM(2),  // offset from pointer, size of value to set
 
-        GET_TUPLE_ITEM(3),
-
-        // locals size, call position (u16)
-        CALL(3),
-        CALL_STD(3),
-
-        // locals size, type index, call position (u16)
-        SPAWN(4),
+        // ACTIVE-RELATED OPCODES
+        SPAWN(3),  // type index, call position (u16)
     );
 
     pub fn get_args_num(opcode: u8) -> usize {
