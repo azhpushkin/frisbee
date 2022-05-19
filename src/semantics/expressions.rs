@@ -324,12 +324,18 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                     }
                 };
                 // TODO: review exprwithpos for this, maybe too strange tbh
-                let this_object = self.verify_expr(
-                    &ExprWithPos { expr: Expr::This, pos_first: 0, pos_last: 0 },
-                    None,
-                )?;
+                let this_object = if self.func.is_active_method {
+                    None
+                } else {
+                    let implicit_this = ExprWithPos {
+                        expr: Expr::This,
+                        pos_first: expr.pos_first,
+                        pos_last: expr.pos_first,
+                    };
+                    Some(self.verify_expr(&implicit_this, None)?)
+                };
                 let raw_method = self.resolve_method(type_of_func, method)?;
-                self.calculate_function_call(raw_method, args, Some(this_object))
+                self.calculate_function_call(raw_method, args, this_object)
             }
             Expr::NewClassInstance { typename, args } => {
                 let symbol = &(self.type_resolver)(typename)?;

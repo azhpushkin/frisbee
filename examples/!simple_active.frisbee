@@ -1,13 +1,15 @@
 active A {
     String name;
+    
     fun A(String name) {
         @name = name;
         println("Spawned new A for " + @name);
-
+        
+        @say_hello("from constructor");
     }
 
-    fun void say_hello(String name) {
-        println("Hello, " + name);
+    fun void say_hello(String to_whom) {
+        println(@name + ": Hello " + to_whom);
     }
 }
 
