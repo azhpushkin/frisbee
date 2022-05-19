@@ -91,8 +91,8 @@ pub mod op {
         // ACTIVE-RELATED OPCODES
         SPAWN(4),  // type index, locals_size, call position (u16)
         // CURRENT_ACTIVE(0),
-        // GET_CURRENT_ACTIVE_FIELD(2), // offset from pointer, size
-        // SET_CURRENT_ACTIVE_FIELD(2), // offset from pointer, size
+        GET_CURRENT_ACTIVE_FIELD(2), // offset from pointer, size
+        SET_CURRENT_ACTIVE_FIELD(2), // offset from pointer, size
     );
 
     pub fn get_args_num(opcode: u8) -> usize {

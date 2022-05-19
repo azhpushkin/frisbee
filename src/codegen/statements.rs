@@ -140,7 +140,16 @@ impl<'a> BytecodeGenerator<'a> {
                 self.fill_placeholder_backward(&placeholder_to_jump_back, loop_start.unwrap());
             }
             VStatement::AssignToCurrentActiveField { active_type, field, value, tuple_indexes } => {
-                todo!()
+                // Push value before object, as we need to first pop a pointer
+                // to access the memory before writing value to it
+                self.push_expr(value);
+
+                let field_offset = self.types_meta.get_meta(active_type).field_offsets[field];
+                let tuple_offset = get_tuple_offset(&value.expr_type, tuple_indexes);
+
+                self.push(op::SET_CURRENT_ACTIVE_FIELD);
+                self.push(field_offset + tuple_offset);
+                self.push_type_size(&value.expr_type);
             }
         };
         outer_break_placeholders

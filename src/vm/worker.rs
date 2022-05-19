@@ -37,7 +37,7 @@ pub struct Worker {
     show_debug: bool,
 
     memory: heap::Heap,
-    locals: Vec<u64>,
+    current_active_fields: Vec<u64>,
     stack: [u64; STACK_SIZE],
     stack_pointer: usize,
 
@@ -56,7 +56,7 @@ impl Worker {
             show_debug: vm.show_debug,
             vm,
 
-            locals: Vec::with_capacity(size),
+            current_active_fields: vec![0; size],
             stack: [0; STACK_SIZE],
             stack_pointer: 0,
             frames: vec![],
@@ -405,6 +405,24 @@ impl Worker {
                             &self.metadata,
                         ),
                     );
+                }
+                op::GET_CURRENT_ACTIVE_FIELD => {
+                    let offset = self.read_opcode() as usize;
+                    let size = self.read_opcode() as usize;
+
+                    for value in self.current_active_fields.iter().skip(offset).take(size) {
+                        push!(self, *value);
+                    }
+                }
+                op::SET_CURRENT_ACTIVE_FIELD => {
+                    let offset = self.read_opcode() as usize;
+                    let size = self.read_opcode() as usize;
+
+                    for i in 0..size {
+                        let x = self.stack[self.stack_pointer - size + i];
+                        self.current_active_fields[offset + i] = x;
+                    }
+                    self.stack_pointer -= size;
                 }
                 _ => panic!("Unknown opcode: {}", opcode),
             }
