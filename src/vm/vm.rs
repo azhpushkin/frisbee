@@ -1,13 +1,14 @@
 use super::heap::HeapObject;
 use super::metadata::{Metadata, MetadataBlock};
 use super::opcodes::op;
-use super::worker::Worker;
+use super::worker::ActiveObject;
+use std::sync::RwLock;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread;
 use std::time::Duration;
 
 #[derive(Default)]
-pub struct Vm {
+pub struct Vm<'a> {
     ip: usize,
 
     pub program: Vec<u8>,
@@ -17,9 +18,11 @@ pub struct Vm {
 
     pub step_by_step: bool,
     pub show_debug: bool,
+
+    active_objects: RwLock<Vec<ActiveObject<'a>>>,
 }
 
-impl Vm {
+impl<'a> Vm<'a> {
     pub fn setup(program: Vec<u8>, step_by_step: bool, show_debug: bool) -> Box<Self> {
         let mut new_vm = Box::new(Self {
             ip: 0,
@@ -29,6 +32,7 @@ impl Vm {
             entry: 0,
             step_by_step,
             show_debug,
+            active_objects: RwLock::new(vec![]),
         });
 
         new_vm.check_header("Initial header");
@@ -148,35 +152,48 @@ impl Vm {
         }
         bytes
     }
-}
 
-pub static ACTIVE_SPAWNED: AtomicUsize = AtomicUsize::new(0);
+    pub fn spawn_new_active(&'a self, item_type: usize, data: Vec<u64>) -> u64 {
+        let item_size = self.metadata.types_sizes[item_type];
 
-pub fn spawn_worker(
-    vm: &'static Vm,
-    item_type: usize,
-    data: Vec<u64>,
-) -> thread::JoinHandle<()> {
-    ACTIVE_SPAWNED.fetch_add(1, Ordering::SeqCst);
-    let item_size = vm.metadata.types_sizes[item_type];
+        let mut active_object = ActiveObject::new(item_size, self);
+        self.active_objects.write().unwrap().push(active_object);
 
-    let mut worker = Worker::new(item_size, vm);
+        (self.active_objects.read().unwrap().len() - 1) as u64
+    }
 
-    thread::spawn(move || {
-        worker.run(data);
-    })
-}
-
-pub fn run_entry_and_wait_if_spawned(vm: &'static Vm) {
-    let mut worker = Worker::new(0, vm);
-    worker.run(vec![vm.entry as u64]);
-
-    loop {
-        let value = ACTIVE_SPAWNED.load(Ordering::SeqCst);
-        if value == 0 {
-            break;
-        }
-        println!("Waiting for {} spawned threads...", value);
-        thread::sleep(Duration::from_secs(1));
+    pub fn spawn_entry(&'a self) {
+        let mut active_object = ActiveObject::new(0, self);
+        self.active_objects.write().unwrap().push(active_object);
     }
 }
+
+
+// pub fn spawn_worker(
+//     vm: &'static Vm,
+//     item_type: usize,
+//     data: Vec<u64>,
+// )  {
+//     ACTIVE_SPAWNED.fetch_add(1, Ordering::SeqCst);
+//     let item_size = vm.metadata.types_sizes[item_type];
+
+//     let mut worker = ActiveObject::new(item_size, vm);
+
+//     thread::spawn(move || {
+//         worker.run(data);
+//     })
+// }
+
+// pub fn run_entry_and_wait_if_spawned(vm: &Vm) {
+//     let mut worker = ActiveObject::new(0, vm);
+//     worker.run(vec![vm.entry as u64]);
+
+//     loop {
+//         let value = ACTIVE_SPAWNED.load(Ordering::SeqCst);
+//         if value == 0 {
+//             break;
+//         }
+//         println!("Waiting for {} spawned threads...", value);
+//         thread::sleep(Duration::from_secs(1));
+//     }
+// }

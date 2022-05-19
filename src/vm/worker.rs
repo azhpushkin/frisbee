@@ -8,7 +8,7 @@ use super::opcodes::op;
 use super::serialization::deserialize_function_args;
 use super::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
 use super::utils::{f64_to_u64, u64_to_f64};
-use super::vm::{spawn_worker, Vm};
+use super::vm::Vm;
 
 macro_rules! push {
     ($worker:ident, $value:expr) => {
@@ -26,13 +26,13 @@ struct CallFrame {
     pub stack_start: usize,
 }
 
-pub struct Worker {
-    program: &'static [u8],
+pub struct ActiveObject<'a> {
+    program: &'a [u8],
     ip: usize,
 
-    constants: &'static [u64],
-    metadata: &'static Metadata,
-    vm: &'static Vm,
+    constants: &'a [u64],
+    metadata: &'a Metadata,
+    vm: &'a Vm<'a>,
     step_by_step: bool,
     show_debug: bool,
 
@@ -44,9 +44,9 @@ pub struct Worker {
     frames: Vec<CallFrame>, // TODO: limit size
 }
 
-impl Worker {
-    pub fn new<'b>(size: usize, vm: &'static Vm) -> Self {
-        Worker {
+impl<'a> ActiveObject<'a> {
+    pub fn new<'b>(size: usize, vm: &'a Vm<'a>) -> Self {
+        ActiveObject {
             program: &vm.program,
             ip: 0,
             constants: &vm.constants,
