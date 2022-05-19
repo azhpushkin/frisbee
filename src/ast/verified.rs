@@ -71,6 +71,13 @@ pub enum VStatement {
         tuple_indexes: Vec<usize>,
         value: VExprTyped,
     },
+    // Assign to current active object memory by offset
+    AssignToCurrentActiveField {
+        active_type: SymbolType,
+        field: String,
+        tuple_indexes: Vec<usize>,
+        value: VExprTyped,
+    },
 
     Expression(VExprTyped),
 }
@@ -165,7 +172,10 @@ pub enum VExpr {
         args: Vec<VExprTyped>,
     },
     CurrentActive,
-    CurrentActiveField(String),
+    CurrentActiveField {
+        active_type: SymbolType,
+        field: String,
+    },
 }
 
 impl TypedFields {

@@ -139,6 +139,9 @@ impl<'a> BytecodeGenerator<'a> {
                 let placeholder_to_jump_back = self.push_placeholder();
                 self.fill_placeholder_backward(&placeholder_to_jump_back, loop_start.unwrap());
             }
+            VStatement::AssignToCurrentActiveField { active_type, field, value, tuple_indexes } => {
+                todo!()
+            }
         };
         outer_break_placeholders
     }

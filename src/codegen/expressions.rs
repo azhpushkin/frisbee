@@ -178,7 +178,7 @@ impl<'a> BytecodeGenerator<'a> {
                 self.push_reserve(t);
             }
             VExpr::CurrentActive => todo!(),
-            VExpr::CurrentActiveField(..) => todo!(),
+            VExpr::CurrentActiveField { .. } => todo!(),
         }
     }
 }

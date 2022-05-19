@@ -91,6 +91,21 @@ assert_semantic_check_fails!(
     "#
 );
 
+assert_semantic_check_fails!(
+    active_constructor_cant_use_uninited,
+    r#"
+    ===== file: main.frisbee
+    active Actor {
+        Int counter;
+        
+        fun Actor() {
+            @counter = @counter + 1;  // ERR: constructor does not initialize all
+        }  
+    }
+    fun void main() {}
+    "#
+);
+
 assert_semantic_check_is_fine!(
     active_receivers_accessed_through_send,
     r#"

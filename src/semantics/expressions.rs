@@ -465,7 +465,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 }
             }
             Expr::OwnFieldAccess { field } => {
-                let func_type = match &self.func.method_of {
+                let object_type = match &self.func.method_of {
                     Some(t) => t,
                     _ => to_dyn(expression_error!(
                         expr,
@@ -480,21 +480,28 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                         field
                     ));
                 }
-                // TODO: review exprwithpos for this, maybe too strange tbh
-                let this_object = self.verify_expr(
-                    &ExprWithPos {
-                        expr: Expr::This,
-                        pos_first: expr.pos_first,
-                        pos_last: expr.pos_first,
-                    },
-                    None,
-                )?;
 
-                let object_definition = self.aggregate.types.get(func_type).unwrap();
+                let object_definition = self.aggregate.types.get(object_type).unwrap();
                 let field_type = self.resolve_field(object_definition, field)?;
 
-                let expr =
-                    VExpr::AccessField { object: Box::new(this_object), field: field.clone() };
+                let expr = if self.func.is_active_method {
+                    VExpr::CurrentActiveField {
+                        active_type: object_type.clone(),
+                        field: field.clone(),
+                    }
+                } else {
+                    // TODO: review exprwithpos for this, maybe too strange tbh
+                    let this_object = self.verify_expr(
+                        &ExprWithPos {
+                            expr: Expr::This,
+                            pos_first: expr.pos_first,
+                            pos_last: expr.pos_first,
+                        },
+                        None,
+                    )?;
+                    VExpr::AccessField { object: Box::new(this_object), field: field.clone() }
+                };
+
                 Ok(VExprTyped { expr, expr_type: field_type.clone() })
             }
 

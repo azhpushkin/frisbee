@@ -402,7 +402,7 @@ impl Worker {
                             constructor_pos as usize,
                             &self.stack[self.stack_pointer - locals_amount..],
                             &self.memory,
-                            &self.metadata
+                            &self.metadata,
                         ),
                     );
                 }

@@ -15,6 +15,7 @@
 * check range for negative values
 * check foreach (conflict with other variable)
 * check how utf-8 (cyrrylic) works?
+* check assign to own field and to var with tuple indexes (is check required?)
 * check how everything works when there is multiple values with same name (for i in ...)
 * check break and continue in loop only!
 * check and implement something for cases when index is bigger than list

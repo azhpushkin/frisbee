@@ -1,6 +1,9 @@
 active A {
+    String name;
     fun A(String name) {
-        println("Spawned new A for " + name);
+        @name = name;
+        println("Spawned new A for " + @name);
+
     }
 
     fun void say_hello(String name) {

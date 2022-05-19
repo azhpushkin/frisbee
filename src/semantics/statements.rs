@@ -202,6 +202,9 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
                 let (base_object, tuple_indexes) = split_left_part_of_assignment(left_calculated);
                 let assign_stmt = match base_object.expr {
                     VExpr::GetVar(name) => {
+                        // TODO: review if this check of tuple_indexes is needed, because if there are any indexes - then
+                        // `if let Expr::OwnFieldAccess` will not work and field would not be allowed
+                        // write test for this
                         if tuple_indexes.is_empty() {
                             insights.mark_as_initialized(&name);
                         }
@@ -209,6 +212,9 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
                         VStatement::AssignLocal { name, tuple_indexes, value: right_calculated }
                     }
                     VExpr::AccessField { object, field } => {
+                        // TODO: review if this check of tuple_indexes is needed, because if there are any indexes - then
+                        // `if let Expr::OwnFieldAccess` will not work and field would not be allowed
+                        // write test for this
                         if tuple_indexes.is_empty() {
                             insights.mark_own_field_as_initialized(&field);
                         }
@@ -226,6 +232,16 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
                         tuple_indexes,
                         value: right_calculated,
                     },
+                    VExpr::CurrentActiveField { active_type, field } => {
+                        insights.mark_own_field_as_initialized(&field);
+
+                        VStatement::AssignToCurrentActiveField {
+                            active_type,
+                            field,
+                            tuple_indexes,
+                            value: right_calculated,
+                        }
+                    }
                     _ => {
                         return statement_error!(
                             statement,

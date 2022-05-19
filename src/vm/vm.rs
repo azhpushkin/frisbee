@@ -152,7 +152,12 @@ impl Vm {
 
 pub static ACTIVE_SPAWNED: AtomicUsize = AtomicUsize::new(0);
 
-pub fn spawn_worker(vm: &'static Vm, item_type: usize, position: usize, data: Vec<u64>) -> thread::JoinHandle<()> {
+pub fn spawn_worker(
+    vm: &'static Vm,
+    item_type: usize,
+    position: usize,
+    data: Vec<u64>,
+) -> thread::JoinHandle<()> {
     ACTIVE_SPAWNED.fetch_add(1, Ordering::SeqCst);
     let item_size = vm.metadata.types_sizes[item_type];
 

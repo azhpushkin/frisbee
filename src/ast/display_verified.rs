@@ -91,6 +91,9 @@ impl VStatement {
                 )
             }
             VStatement::Expression(e) => format!("{};", e.expr),
+            VStatement::AssignToCurrentActiveField { field, value, .. } => {
+                format!("@current_active.{} = {};", field, value.expr)
+            }
         };
         if with_ident {
             res.split('\n')
@@ -176,7 +179,7 @@ impl fmt::Display for VExpr {
                 )
             }
             VExpr::CurrentActive => write!(f, "@current_active"),
-            VExpr::CurrentActiveField(field) => write!(f, "@current_active.{}", field),
+            VExpr::CurrentActiveField { field, .. } => write!(f, "@current_active.{}", field),
         }
     }
 }
