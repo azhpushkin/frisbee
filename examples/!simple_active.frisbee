@@ -1,6 +1,6 @@
 active A {
     String name;
-    
+
     fun A(String name) {
         @name = name;
         println("Spawned new A for " + @name);

@@ -142,7 +142,8 @@ impl Worker {
         push!(self, op(a));
     }
 
-    pub fn run(&mut self, func_pos: usize, data: Vec<u64>) {
+    pub fn run(&mut self, data: Vec<u64>) {
+        let func_pos = data[0] as usize;
         deserialize_function_args(
             func_pos,
             &mut self.stack,
@@ -397,7 +398,6 @@ impl Worker {
                     spawn_worker(
                         self.vm,
                         item_type,
-                        constructor_pos as usize,
                         serialize_function_args(
                             constructor_pos as usize,
                             &self.stack[self.stack_pointer - locals_amount..],

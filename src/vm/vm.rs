@@ -155,7 +155,6 @@ pub static ACTIVE_SPAWNED: AtomicUsize = AtomicUsize::new(0);
 pub fn spawn_worker(
     vm: &'static Vm,
     item_type: usize,
-    position: usize,
     data: Vec<u64>,
 ) -> thread::JoinHandle<()> {
     ACTIVE_SPAWNED.fetch_add(1, Ordering::SeqCst);
@@ -164,13 +163,13 @@ pub fn spawn_worker(
     let mut worker = Worker::new(item_size, vm);
 
     thread::spawn(move || {
-        worker.run(position, data);
+        worker.run(data);
     })
 }
 
 pub fn run_entry_and_wait_if_spawned(vm: &'static Vm) {
     let mut worker = Worker::new(0, vm);
-    worker.run(vm.entry, vec![vm.entry as u64]);
+    worker.run(vec![vm.entry as u64]);
 
     loop {
         let value = ACTIVE_SPAWNED.load(Ordering::SeqCst);
