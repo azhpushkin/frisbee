@@ -18,7 +18,7 @@ pub fn serialize_function_args(
     // TODO: active objects should not be copied when serializing
     let func_index = metadata.function_positions[&function_pos];
     let locals_size = metadata.function_locals_sizes[func_index];
-    println!("Serializing {:?} for locals size {}", &stack[..10], locals_size);
+    // println!("Serializing {:?} for locals size {}", &stack[..10], locals_size);
 
     let mut chunk: Vec<u64> = vec![function_pos as u64];
     chunk.extend(stack[..locals_size as usize].iter());
@@ -30,7 +30,7 @@ pub fn serialize_function_args(
     // Stack will not be used anymore as all the processing after this cycle is just
     // heap-data packing
     for pointer_index in metadata.functions_pointer_mapping[func_index].iter() {
-        let heap_pointer = stack[*pointer_index + 1];
+        let heap_pointer = chunk[*pointer_index + 1];
         if heap_pointer == 0 {
             continue;
         }
@@ -90,7 +90,7 @@ pub fn serialize_function_args(
             chunk[offset] = pos as u64;
         }
     }
-    println!("  chunk is {:?}", chunk);
+    // println!("  chunk is {:?}", chunk);
     chunk
 }
 
@@ -119,7 +119,7 @@ pub fn deserialize_function_args(
     chunk: &Vec<u64>,
 ) {
     assert_eq!(chunk[0], function_pos as u64, "wrong function extracted");
-    println!("deserializing {:?}", chunk);
+    // println!("deserializing {:?}", chunk);
 
     let func_index = metadata.function_positions[&function_pos];
     let locals_size = metadata.function_locals_sizes[func_index];
