@@ -423,6 +423,18 @@ impl ActiveObject {
                     }
                     self.stack_pointer -= size;
                 }
+                op::SEND_MESSAGE => {
+                    let receiver_pos = u16::from_be_bytes(self.read_several::<2>());
+                    let msg = serialize_function_args(
+                        receiver_pos as usize,
+                        &self.stack,
+                        &mut self.stack_pointer,
+                        &self.memory,
+                        &self.vm.metadata,
+                    );
+                    let active_obj = self.pop();
+                    self.gateway.send((active_obj, msg)).expect("Cant send message");
+                }
                 _ => panic!("Unknown opcode: {}", opcode),
             }
             if self.show_debug {

@@ -151,14 +151,14 @@ impl<'a> BytecodeGenerator<'a> {
                 self.push(field_offset + tuple_offset);
                 self.push_type_size(&value.expr_type);
             }
-            VStatement::SendMessage { active, receiver, args  } => {
+            VStatement::SendMessage { active, receiver, args } => {
                 self.push_expr(active);
                 for arg in args.iter() {
                     self.push_expr(arg);
                 }
                 self.push(op::SEND_MESSAGE);
                 self.push_function_placeholder(&receiver);
-            },
+            }
         };
         outer_break_placeholders
     }

@@ -195,9 +195,10 @@ impl Vm {
         let mut active_object = ActiveObject::new(0, vm.clone(), vm.gateways_for_active.clone());
         active_object.run(vec![vm.entry as u64]);
 
-        if vm.active_objects.read().unwrap().len() > 0 {
-            println!("Waiting 3 secs for spawned threads...");
-            thread::sleep(Duration::from_secs(3));
+        loop {
+            let (target, msg) = vm.receiver.recv().unwrap();
+            let sink = &vm.active_objects.read().unwrap()[target as usize];
+            sink.inbox.send(msg).unwrap();
         }
     }
 }
