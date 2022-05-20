@@ -93,6 +93,7 @@ pub mod op {
         // CURRENT_ACTIVE(0),
         GET_CURRENT_ACTIVE_FIELD(2), // offset from pointer, size
         SET_CURRENT_ACTIVE_FIELD(2), // offset from pointer, size
+        SEND_MESSAGE(2),  // function_pos (u16),   active object ptr is on the stack
     );
 
     pub fn get_args_num(opcode: u8) -> usize {
