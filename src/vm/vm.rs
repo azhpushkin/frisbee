@@ -8,6 +8,8 @@ use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 use std::time::Duration;
 
+use owo_colors::OwoColorize;
+
 pub struct StoredActiveObject {
     // pub active_object: Arc<ActiveObject>,
     pub inbox: mpsc::Sender<Vec<u64>>,
@@ -194,6 +196,10 @@ impl Vm {
     pub fn setup_entry_and_run(vm: Arc<Vm>) {
         let mut active_object = ActiveObject::new(0, vm.clone(), vm.gateways_for_active.clone());
         active_object.run(vec![vm.entry as u64]);
+
+        if vm.show_debug {
+            println!("{}", "## ENTRY FINISHED!".red());
+        }
 
         loop {
             let (target, msg) = vm.receiver.recv().unwrap();

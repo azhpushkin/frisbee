@@ -16,6 +16,7 @@ pub struct FunctionBytecode {
     pub bytecode: Vec<u8>,
     pub call_placeholders: Vec<CallPlaceholders>,
     pub locals_size: usize,
+    pub args_size: usize,
     pub pointer_mapping: Vec<usize>,
 }
 pub struct JumpPlaceholder {
@@ -67,6 +68,7 @@ impl<'a> BytecodeGenerator<'a> {
                 bytecode: vec![],
                 call_placeholders: vec![],
                 locals_size: locals_offset as usize,
+                args_size: function.args.types.iter().map(get_type_size).sum::<u8>() as usize,
                 pointer_mapping: vec![],
             },
         }

@@ -11,14 +11,22 @@ active A {
     fun void say_hello(String to_whom) {
         println(@name + ": Hello " + to_whom);
     }
+
+    fun void say_hello_to_many([String] names) {
+        foreach name in names {
+            @say_hello(name);
+        }
+    }
 }
 
 fun void main() {
     A a1 = spawn A("Alice");
     A a2 = spawn A("Bob");
-    a1 ! say_hello("Stranger");
-    a2 ! say_hello(", I am Bob");
-    a1 ! say_hello("Another stranger");
+
+    a1 ! say_hello_to_many(["Anton", "Tony", "Antonio"]);
+
+    // a2 ! say_hello("Stranger");
+    // a2 ! say_hello("Another stranger");
 
 }
 

@@ -11,6 +11,7 @@ pub const CUSTOM_OBJECT_FLAG: u64 = 4 << 56;
 
 pub fn serialize_function_args(
     function_pos: usize,
+    args_size: usize,
     stack: &[u64],
     stack_pointer: &mut usize,
     heap: &Heap,
@@ -18,15 +19,16 @@ pub fn serialize_function_args(
 ) -> Vec<u64> {
     // TODO: active objects should not be copied when serializing
     let func_index = metadata.function_positions[&function_pos];
-    let locals_size = metadata.function_locals_sizes[func_index];
-    *stack_pointer -= locals_size;
+    
+    *stack_pointer -= args_size;
     // println!("Serializing {:?} for locals size {}", &stack[..10], locals_size);
 
     let mut chunk: Vec<u64> = vec![function_pos as u64];
-    chunk.extend(stack.iter().skip(*stack_pointer).take(locals_size));
+    chunk.extend(stack.iter().skip(*stack_pointer).take(args_size));
     let mut pointers_to_pack: HashMap<u64, usize> = HashMap::new();
     let mut pointers_order: Vec<u64> = vec![];
     let mut processed_amount = 0;
+    println!("Initial chunk {} {:?}", args_size, chunk);
 
     // Prepare initial pointers for packing
     // Stack will not be used anymore as all the processing after this cycle is just

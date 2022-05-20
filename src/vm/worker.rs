@@ -51,7 +51,7 @@ impl ActiveObject {
             memory: heap::Heap::default(),
 
             step_by_step: vm.step_by_step,
-            show_debug: vm.show_debug,
+            show_debug: size == 0,
             vm,
             gateway,
 
@@ -391,12 +391,14 @@ impl ActiveObject {
                 }
                 op::SPAWN => {
                     let item_type = self.read_opcode() as usize;
+                    let args_size = self.read_opcode() as usize;
                     let constructor_pos = u16::from_be_bytes(self.read_several::<2>());
                     let active_link = Vm::spawn_new_active(
                         self.vm.clone(),
                         item_type,
                         serialize_function_args(
                             constructor_pos as usize,
+                            args_size,
                             &self.stack,
                             &mut self.stack_pointer,
                             &self.memory,
@@ -424,14 +426,17 @@ impl ActiveObject {
                     self.stack_pointer -= size;
                 }
                 op::SEND_MESSAGE => {
+                    let args_size = self.read_opcode() as usize;
                     let receiver_pos = u16::from_be_bytes(self.read_several::<2>());
                     let msg = serialize_function_args(
                         receiver_pos as usize,
+                        args_size,
                         &self.stack,
                         &mut self.stack_pointer,
                         &self.memory,
                         &self.vm.metadata,
                     );
+                    println!("Serialized for send {}: {:?}", receiver_pos, msg);
                     let active_obj = self.pop();
                     self.gateway.send((active_obj, msg)).expect("Cant send message");
                 }

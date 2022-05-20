@@ -1,5 +1,6 @@
 // TODO: should checks have some kind of error codes?
 
+* check how message send works when there is return value
 * check that return statement is required
 * check spawn as an argument
 * no return for constructors!!
