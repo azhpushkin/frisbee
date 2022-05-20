@@ -16,7 +16,7 @@ active A {
 fun void main() {
     A a1 = spawn A("Alice");
     A a2 = spawn A("Bob");
-    a1 ! say_hello("Stranger");
+    //a1 ! say_hello("Stranger");
 }
 
 

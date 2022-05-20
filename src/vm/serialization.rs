@@ -12,16 +12,18 @@ pub const CUSTOM_OBJECT_FLAG: u64 = 4 << 56;
 pub fn serialize_function_args(
     function_pos: usize,
     stack: &[u64],
+    stack_pointer: &mut usize,
     heap: &Heap,
     metadata: &Metadata,
 ) -> Vec<u64> {
     // TODO: active objects should not be copied when serializing
     let func_index = metadata.function_positions[&function_pos];
     let locals_size = metadata.function_locals_sizes[func_index];
+    *stack_pointer -= locals_size;
     // println!("Serializing {:?} for locals size {}", &stack[..10], locals_size);
 
     let mut chunk: Vec<u64> = vec![function_pos as u64];
-    chunk.extend(stack[..locals_size as usize].iter());
+    chunk.extend(stack.iter().skip(*stack_pointer).take(locals_size));
     let mut pointers_to_pack: HashMap<u64, usize> = HashMap::new();
     let mut pointers_order: Vec<u64> = vec![];
     let mut processed_amount = 0;
@@ -114,6 +116,7 @@ fn serialize_heap_object_header(obj: &HeapObject) -> u64 {
 pub fn deserialize_function_args(
     function_pos: usize,
     stack: &mut [u64],
+    stack_pointer: &mut usize,
     heap: &mut Heap,
     metadata: &Metadata,
     chunk: &Vec<u64>,
@@ -125,8 +128,9 @@ pub fn deserialize_function_args(
     let locals_size = metadata.function_locals_sizes[func_index];
 
     for i in 0..locals_size {
-        stack[i] = chunk[i + 1];
+        stack[*stack_pointer + i] = chunk[i + 1];
     }
+    *stack_pointer += locals_size;
 
     let mut heap_pointers_to_fill: Vec<(u64, &Vec<usize>)> = vec![];
 

@@ -147,13 +147,11 @@ impl ActiveObject {
         deserialize_function_args(
             func_pos,
             &mut self.stack,
+            &mut self.stack_pointer,
             &mut self.memory,
             &self.vm.metadata,
             &data,
         );
-        let func_index = self.vm.metadata.function_positions[&func_pos];
-        let locals_size = self.vm.metadata.function_locals_sizes[func_index];
-        self.stack_pointer = locals_size;
 
         self.call_op(func_pos, self.stack_pointer);
 
@@ -394,14 +392,14 @@ impl ActiveObject {
                 }
                 op::SPAWN => {
                     let item_type = self.read_opcode() as usize;
-                    let locals_amount = self.read_opcode() as usize;
                     let constructor_pos = u16::from_be_bytes(self.read_several::<2>());
                     let active_link = Vm::spawn_new_active(
                         self.vm.clone(),
                         item_type,
                         serialize_function_args(
                             constructor_pos as usize,
-                            &self.stack[self.stack_pointer - locals_amount..],
+                            &self.stack,
+                            &mut self.stack_pointer,
                             &self.memory,
                             &self.vm.metadata,
                         ),

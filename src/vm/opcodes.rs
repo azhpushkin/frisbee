@@ -89,7 +89,7 @@ pub mod op {
         SET_LIST_ITEM(2),  // offset from pointer, size of value to set
 
         // ACTIVE-RELATED OPCODES
-        SPAWN(4),  // type index, locals_size, call position (u16)
+        SPAWN(3),  // type index, call position (u16)
         // CURRENT_ACTIVE(0),
         GET_CURRENT_ACTIVE_FIELD(2), // offset from pointer, size
         SET_CURRENT_ACTIVE_FIELD(2), // offset from pointer, size
