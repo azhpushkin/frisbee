@@ -35,7 +35,7 @@ fn std_range(stack: &mut [u64], memory: &mut Heap, meta: &Metadata) -> Vec<u64> 
     vec![list_pos]
 }
 
-fn std_get_input(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
+fn std_get_input(_stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
     let (pos, inner) = memory.allocate_string(0);
     io::stdin().read_line(inner).expect("Failed to read line");
 

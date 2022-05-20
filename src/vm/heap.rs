@@ -1,9 +1,4 @@
-use std::collections::HashMap;
-
 use super::metadata::Metadata;
-
-// Will be extended later on to support more metadata
-pub type HeapObjectHeader = (bool, u64); // flag for future gc, index in heap hashmap
 
 #[derive(Debug)]
 pub struct List {

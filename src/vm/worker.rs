@@ -4,7 +4,6 @@ use std::sync::{mpsc, Arc};
 use crate::vm::serialization::serialize_function_args;
 
 use super::heap;
-use super::metadata::Metadata;
 use super::opcodes::op;
 use super::serialization::deserialize_function_args;
 use super::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
