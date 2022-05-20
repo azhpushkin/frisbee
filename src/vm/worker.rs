@@ -432,7 +432,7 @@ impl ActiveObject {
                         &self.memory,
                         &self.vm.metadata,
                     );
-                    println!("Serialized for send {}: {:?}", receiver_pos, msg);
+                    // println!("Serialized for send {}: {:?}", receiver_pos, msg);
                     let active_obj = self.pop();
                     self.gateway.send((active_obj, msg)).expect("Cant send message");
                 }

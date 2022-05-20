@@ -28,7 +28,7 @@ pub fn serialize_function_args(
     let mut pointers_to_pack: HashMap<u64, usize> = HashMap::new();
     let mut pointers_order: Vec<u64> = vec![];
     let mut processed_amount = 0;
-    println!("Initial chunk {} {:?}", args_size, chunk);
+    // println!("Initial chunk {} {:?}", args_size, chunk);
 
     // Prepare initial pointers for packing
     // Stack will not be used anymore as all the processing after this cycle is just
@@ -50,11 +50,11 @@ pub fn serialize_function_args(
         };
         chunk[*pointer_index + 1] = pos as u64;
     }
-    println!("processed {} to pack {:?}", processed_amount, pointers_to_pack);
+    // println!("processed {} to pack {:?}", processed_amount, pointers_to_pack);
 
     while processed_amount < pointers_order.len() {
         let pointer = pointers_order[processed_amount];
-        println!("processing {}", pointer);
+        // println!("processing {}", pointer);
         processed_amount += 1;
 
         let heap_object = heap.get(pointer);
@@ -85,7 +85,7 @@ pub fn serialize_function_args(
                 metadata.types_pointer_mapping[obj.type_index as usize].clone()
             }
         };
-        println!("Pointer map {:?}", pointer_map);
+        // println!("Pointer map {:?}", pointer_map);
 
         for offset in pointer_map.iter().map(|i| *i + object_start) {
             if chunk[offset] == 0 {
@@ -117,7 +117,7 @@ fn serialize_heap_object_header(obj: &HeapObject) -> u64 {
             obj_header = s.len() as u64 | STRING_FLAG;
         }
         HeapObject::List(l) => {
-            println!("Serializing {} {}", l.list_item_type, l.items_amount);
+            // println!("Serializing {} {}", l.list_item_type, l.items_amount);
             obj_header = (l.list_item_type as u64) << 32 | (l.items_amount as u64) | LIST_FLAG;
         }
         HeapObject::CustomObject(obj) => {
@@ -136,7 +136,7 @@ pub fn deserialize_function_args(
     chunk: &Vec<u64>,
 ) {
     assert_eq!(chunk[0], function_pos as u64, "wrong function extracted");
-    println!("deserializing {:?}", chunk);
+    // println!("deserializing {:?}", chunk);
 
     let func_index = metadata.function_positions[&function_pos];
     let args_size = metadata.function_args_sizes[func_index];
@@ -169,7 +169,7 @@ pub fn deserialize_function_args(
             let obj_header = obj_header & !LIST_FLAG;
             let list_type = obj_header >> 32;
             let list_items_amount = (obj_header ^ (list_type << 32)) as usize; // TODO: improve this, 0fff or smth like this
-            println!("Found list of {} items of type {}", list_items_amount, list_type);
+            // println!("Found list of {} items of type {}", list_items_amount, list_type);
 
             let (pos, l) = heap.allocate_list(
                 list_type as usize,
