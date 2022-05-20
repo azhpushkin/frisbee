@@ -28,7 +28,7 @@ pub fn serialize_function_args(
     let mut pointers_to_pack: HashMap<u64, usize> = HashMap::new();
     let mut pointers_order: Vec<u64> = vec![];
     let mut processed_amount = 0;
-    // println!("Initial chunk {} {:?}", args_size, chunk);
+    println!("Initial chunk {} {:?}", args_size, chunk);
 
     // Prepare initial pointers for packing
     // Stack will not be used anymore as all the processing after this cycle is just
@@ -106,6 +106,7 @@ fn serialize_heap_object_header(obj: &HeapObject) -> u64 {
             obj_header = s.len() as u64 | STRING_FLAG;
         }
         HeapObject::List(l) => {
+            println!("Serializing {} {}", l.list_item_type, l.items_amount);
             obj_header = (l.list_item_type as u64) << 32 | (l.items_amount as u64) | LIST_FLAG;
         }
         HeapObject::CustomObject(obj) => {
@@ -153,9 +154,10 @@ pub fn deserialize_function_args(
             heap_objects_mapping.insert(heap_objects_mapping.len() + 1, pos);
             current_start += 1 + string_length;
         } else if (obj_header & LIST_FLAG) != 0 {
+            
             let obj_header = obj_header & !LIST_FLAG;
             let list_type = obj_header >> 32;
-            let list_items_amount = (obj_header & !list_type) as usize; // TODO: improve this, 0fff or smth like this
+            let list_items_amount = (obj_header ^ (list_type << 32)) as usize; // TODO: improve this, 0fff or smth like this
 
             let (pos, l) = heap.allocate_list(
                 list_type as usize,
