@@ -12,6 +12,7 @@
 * check that constructor does not refers to un-initialized own fields before they are initialized
 * check that conditions are bool in if and else
 * check that range start and end are OK
+* check maybe and send message (what if Actor? is referred? How insights work?)
 * check range for negative values
 * check foreach (conflict with other variable)
 * check how utf-8 (cyrrylic) works?

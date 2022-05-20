@@ -151,6 +151,7 @@ impl<'a> BytecodeGenerator<'a> {
                 self.push(field_offset + tuple_offset);
                 self.push_type_size(&value.expr_type);
             }
+            VStatement::SendMessage { .. } => todo!(),
         };
         outer_break_placeholders
     }

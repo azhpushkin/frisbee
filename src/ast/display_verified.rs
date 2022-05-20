@@ -94,6 +94,17 @@ impl VStatement {
             VStatement::AssignToCurrentActiveField { field, value, .. } => {
                 format!("@current_active.{} = {};", field, value.expr)
             }
+            VStatement::SendMessage { active, receiver, args } => {
+                format!(
+                    "@send({}, {} : ({}));",
+                    active.expr,
+                    receiver,
+                    args.iter()
+                        .map(|e| format!("{}", e.expr))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            }
         };
         if with_ident {
             res.split('\n')

@@ -80,6 +80,11 @@ pub enum VStatement {
     },
 
     Expression(VExprTyped),
+    SendMessage {
+        active: VExprTyped,
+        receiver: SymbolFunc,
+        args: Vec<VExprTyped>,
+    },
 }
 
 #[derive(Debug, PartialEq)]

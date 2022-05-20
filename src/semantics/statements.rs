@@ -412,7 +412,58 @@ impl<'a, 'c> StatementsVerifier<'a, 'c> {
                 self.locals.borrow_mut().drop_current_scope();
             }
 
-            Statement::SendMessage { .. } => todo!("No SendMessage processing yet!"),
+            Statement::SendMessage { active, method, args } => {
+                let verified_active = self.check_expr(active, None, insights)?;
+                let method_raw = match &verified_active.expr_type {
+                    Type::Custom(typename) if self.aggregate.types[typename].is_active => {
+                        let possible_error: Result<(), _> = statement_error!(
+                            statement,
+                            "No method `{}` in type `{}`",
+                            method,
+                            typename
+                        );
+                        self.aggregate
+                            .functions
+                            .get(&typename.method(method))
+                            .ok_or(possible_error.unwrap_err())?
+                    }
+                    Type::Maybe(_) => {
+                        return expression_error!(
+                            active,
+                            "Sending messages to nullable actors is not supported",
+                        );
+                    }
+                    t => {
+                        return expression_error!(
+                            active,
+                            "Can only send message to active objects, but `{}` is not active",
+                            t
+                        );
+                    }
+                };
+
+                if args.len() != method_raw.args.len() {
+                    return statement_error!(
+                        statement,
+                        "Method `{}` in type `{}` expects {} arguments, but got {}",
+                        method,
+                        method_raw.method_of.as_ref().unwrap(),
+                        method_raw.args.len(),
+                        args.len()
+                    );
+                }
+                let verified_args: Result<Vec<VExprTyped>, _> = args
+                    .iter()
+                    .zip(method_raw.args.types.iter())
+                    .map(|(arg, expected_type)| self.check_expr(arg, Some(expected_type), insights))
+                    .collect();
+
+                self.emit_stmt(VStatement::SendMessage {
+                    active: verified_active,
+                    receiver: method_raw.name.clone(),
+                    args: verified_args?,
+                })
+            }
         };
         Ok(())
     }
