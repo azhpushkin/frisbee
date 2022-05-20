@@ -2,21 +2,17 @@ use super::heap::HeapObject;
 use super::metadata::{Metadata, MetadataBlock};
 use super::opcodes::op;
 use super::worker::ActiveObject;
-use std::cell::RefCell;
-use std::collections::VecDeque;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc;
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 use std::time::Duration;
 
-
 pub struct StoredActiveObject {
     // pub active_object: Arc<ActiveObject>,
     pub inbox: mpsc::Sender<Vec<u64>>,
 }
 
-#[derive(Default)]
 pub struct Vm {
     ip: usize,
 
@@ -24,6 +20,9 @@ pub struct Vm {
     pub constants: Vec<u64>,
     pub metadata: Metadata,
     pub entry: usize,
+
+    gateways_for_active: mpsc::Sender<(u64, Vec<u64>)>,
+    receiver: mpsc::Receiver<(u64, Vec<u64>)>,
 
     pub step_by_step: bool,
     pub show_debug: bool,
@@ -33,9 +32,9 @@ pub struct Vm {
 
 unsafe impl Sync for Vm {}
 
-
 impl Vm {
     pub fn setup(program: Vec<u8>, step_by_step: bool, show_debug: bool) -> Arc<Self> {
+        let (sender, receiver) = mpsc::channel();
         let mut new_vm = Self {
             ip: 0,
             program,
@@ -45,6 +44,9 @@ impl Vm {
             step_by_step,
             show_debug,
             active_objects: RwLock::new(vec![]),
+
+            gateways_for_active: sender,
+            receiver,
         };
 
         new_vm.check_header("Initial header");
@@ -170,8 +172,9 @@ impl Vm {
 
         let active_index = vm.active_objects.read().unwrap().len() as u64;
 
-        let mut active_object = ActiveObject::new(item_size, vm.clone());
-        
+        let mut active_object =
+            ActiveObject::new(item_size, vm.clone(), vm.gateways_for_active.clone());
+
         let (send, recv) = mpsc::channel();
         send.send(constructor_args).unwrap();
 
@@ -189,7 +192,7 @@ impl Vm {
     }
 
     pub fn setup_entry_and_run(vm: Arc<Vm>) {
-        let mut active_object = ActiveObject::new(0, vm.clone());
+        let mut active_object = ActiveObject::new(0, vm.clone(), vm.gateways_for_active.clone());
         active_object.run(vec![vm.entry as u64]);
 
         if vm.active_objects.read().unwrap().len() > 0 {

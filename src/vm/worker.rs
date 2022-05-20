@@ -1,5 +1,5 @@
 use std::io;
-use std::sync::Arc;
+use std::sync::{mpsc, Arc};
 
 use crate::vm::serialization::serialize_function_args;
 
@@ -34,6 +34,7 @@ pub struct ActiveObject {
     vm: Arc<Vm>,
     step_by_step: bool,
     show_debug: bool,
+    gateway: mpsc::Sender<(u64, Vec<u64>)>,
 
     memory: heap::Heap,
     current_active_fields: Vec<u64>,
@@ -44,14 +45,16 @@ pub struct ActiveObject {
 }
 
 impl ActiveObject {
-    pub fn new<'b>(size: usize, vm: Arc<Vm>) -> Self {
+    pub fn new(size: usize, vm: Arc<Vm>, gateway: mpsc::Sender<(u64, Vec<u64>)>) -> Self {
         ActiveObject {
             program: vm.program.clone(),
             ip: 0,
             memory: heap::Heap::default(),
+
             step_by_step: vm.step_by_step,
             show_debug: vm.show_debug,
             vm,
+            gateway,
 
             current_active_fields: vec![0; size],
             stack: [0; STACK_SIZE],
@@ -318,7 +321,8 @@ impl ActiveObject {
                 }
                 op::ALLOCATE => {
                     let type_index = self.read_opcode() as usize;
-                    let (new_obj_pos, _) = self.memory.allocate_custom(type_index, &self.vm.metadata);
+                    let (new_obj_pos, _) =
+                        self.memory.allocate_custom(type_index, &self.vm.metadata);
                     push!(self, new_obj_pos);
                 }
                 op::ALLOCATE_LIST => {
