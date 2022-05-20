@@ -12,7 +12,7 @@ active A {
         println(@name + ": Hello " + to_whom);
     }
 
-    fun void say_hello_to_many([(Int, Int)] names) {
+    fun void say_hello_to_many([[Int]] names) {
         foreach name in names {
             println("Item # " + name[1].to_string());
             @say_hello(name[0].to_string());
@@ -22,9 +22,9 @@ active A {
 
 fun void main() {
     A a1 = spawn A("Alice");
-    A a2 = spawn A("Bob");
+    //A a2 = spawn A("Bob");
 
-    a1 ! say_hello_to_many([(123, 1), (555, 2), (898, -5)]);
+    a1 ! say_hello_to_many([[123, 1], [555, 2], [898, -5]]);
 
     // a2 ! say_hello("Stranger");
     // a2 ! say_hello("Another stranger");

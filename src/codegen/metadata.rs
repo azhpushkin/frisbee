@@ -7,7 +7,7 @@ use crate::vm::stdlib_runners::LIST_OF_INTS_META_FLAG;
 
 use super::utils;
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct TypeMetadata {
     pub size: u8,
     pub field_offsets: HashMap<String, u8>,
@@ -15,17 +15,19 @@ pub struct TypeMetadata {
     pub pointer_mapping: Vec<usize>,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct ListItemMetadata {
     pub size: u8,
     pub pointer_mapping: Vec<usize>,
 }
 
+#[derive(Debug)]
 pub struct TypesMetadataTable {
     pub indexes: HashMap<SymbolType, usize>,
     pub metadata: Vec<TypeMetadata>,
 }
 
+#[derive(Debug)]
 pub struct ListMetadataTable {
     pub indexes: HashMap<VerifiedType, usize>,
     pub metadata: Vec<ListItemMetadata>,
@@ -41,7 +43,7 @@ impl Default for TypesMetadataTable {
 impl Default for ListMetadataTable {
     fn default() -> Self {
         Self {
-            indexes: HashMap::from([(Type::List(Box::new(Type::Int)), LIST_OF_INTS_META_FLAG)]),
+            indexes: HashMap::from([(Type::Int, LIST_OF_INTS_META_FLAG)]),
             metadata: vec![ListItemMetadata::from_item_type(&Type::Int)],
         }
     }

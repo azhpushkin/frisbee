@@ -50,9 +50,11 @@ pub fn serialize_function_args(
         };
         chunk[*pointer_index + 1] = pos as u64;
     }
+    println!("processed {} to pack {:?}", processed_amount, pointers_to_pack);
 
     while processed_amount < pointers_order.len() {
         let pointer = pointers_order[processed_amount];
+        println!("processing {}", pointer);
         processed_amount += 1;
 
         let heap_object = heap.get(pointer);
@@ -60,21 +62,30 @@ pub fn serialize_function_args(
         chunk.push(serialize_heap_object_header(heap_object));
         let object_start = chunk.len();
 
-        let pointer_map: &[usize] = match heap_object {
+        let pointer_map: Vec<usize> = match heap_object {
             HeapObject::String(s) => {
                 // TODO: this needs to be refactored to make chars "tighter"
                 chunk.extend(s.chars().map(|c| c as u64));
-                &[]
+                vec![]
             }
             HeapObject::List(l) => {
+                // TODO: make this faster
                 chunk.extend(l.data.iter());
-                &metadata.lists_pointer_mapping[l.list_item_type]
+                let item_map = &metadata.lists_pointer_mapping[l.list_item_type];
+                let mut res = vec![];
+                for i in 0..l.items_amount {
+                    for pos in item_map {
+                        res.push(pos + l.item_size*i);
+                    }
+                }
+                res
             }
             HeapObject::CustomObject(obj) => {
                 chunk.extend(obj.data.iter());
-                &metadata.types_pointer_mapping[obj.type_index as usize]
+                metadata.types_pointer_mapping[obj.type_index as usize].clone()
             }
         };
+        println!("Pointer map {:?}", pointer_map);
 
         for offset in pointer_map.iter().map(|i| *i + object_start) {
             if chunk[offset] == 0 {
@@ -125,7 +136,7 @@ pub fn deserialize_function_args(
     chunk: &Vec<u64>,
 ) {
     assert_eq!(chunk[0], function_pos as u64, "wrong function extracted");
-    // println!("deserializing {:?}", chunk);
+    println!("deserializing {:?}", chunk);
 
     let func_index = metadata.function_positions[&function_pos];
     let args_size = metadata.function_args_sizes[func_index];
@@ -158,6 +169,7 @@ pub fn deserialize_function_args(
             let obj_header = obj_header & !LIST_FLAG;
             let list_type = obj_header >> 32;
             let list_items_amount = (obj_header ^ (list_type << 32)) as usize; // TODO: improve this, 0fff or smth like this
+            println!("Found list of {} items of type {}", list_items_amount, list_type);
 
             let (pos, l) = heap.allocate_list(
                 list_type as usize,
@@ -194,16 +206,26 @@ pub fn deserialize_function_args(
     // And proceed with a heap
     for (heap_obj_pointer, pointers) in heap_pointers_to_fill {
         let heap_obj = heap.get_mut(heap_obj_pointer);
-        let data = match heap_obj {
+        match heap_obj {
             HeapObject::String(_) => unreachable!(),
-            HeapObject::List(List { data, .. }) => data,
-            HeapObject::CustomObject(CustomObject { data, .. }) => data,
-        };
-        for pointer in pointers.iter() {
-            let value = data[*pointer] as usize;
-            if value != 0 {
-                data[*pointer] = heap_objects_mapping[&value];
-            }
+            HeapObject::List(List { data, items_amount, item_size, .. }) => {
+                for i in 0..*items_amount {
+                    for pointer in pointers.iter() {
+                        let value = data[*pointer + (i* *item_size)] as usize;
+                        if value != 0 {
+                            data[*pointer + (i* *item_size)] = heap_objects_mapping[&value];
+                        }
+                    }
+                }
+            },
+            HeapObject::CustomObject(CustomObject { data, .. }) => {
+                for pointer in pointers.iter() {
+                    let value = data[*pointer] as usize;
+                    if value != 0 {
+                        data[*pointer] = heap_objects_mapping[&value];
+                    }
+                }
+            },
         }
     }
 }
