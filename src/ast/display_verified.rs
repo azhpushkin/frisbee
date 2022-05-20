@@ -1,3 +1,4 @@
+use owo_colors::OwoColorize;
 use std::fmt;
 
 use super::verified::{RawFunction, RawOperator, VExpr, VStatement};
@@ -19,7 +20,7 @@ impl fmt::Display for RawFunction {
             f,
             "fn {return} {name} ({args}) {{\n{locals}{body}\n }}",
             return = self.return_type,
-            name = self.name,
+            name = self.name.blue(),
             args = args_repr.join(", "),
             locals = locals,
             body = self
@@ -92,11 +93,12 @@ impl VStatement {
             }
             VStatement::Expression(e) => format!("{};", e.expr),
             VStatement::AssignToCurrentActiveField { field, value, .. } => {
-                format!("@current_active.{} = {};", field, value.expr)
+                format!("{}.{} = {};", "@current_active".yellow(), field, value.expr)
             }
             VStatement::SendMessage { active, receiver, args } => {
                 format!(
-                    "@send({}, {} : ({}));",
+                    "{}({}, {} : ({}));",
+                    "@send".yellow(),
                     active.expr,
                     receiver,
                     args.iter()
@@ -136,7 +138,7 @@ impl fmt::Display for VExpr {
             VExpr::String(i) => write!(f, "\"{}\"", i),
             VExpr::Bool(i) => write!(f, "{}", i),
             VExpr::Float(i) => write!(f, "{}", i),
-            VExpr::Dummy(t) => write!(f, "@dummy({})", t),
+            VExpr::Dummy(t) => write!(f, "{}({})", "@dummy".yellow(), t),
             // VExpr::MaybeEmpty(i) => write!(f, "Some({})", i.expr),
             VExpr::GetVar(i) => write!(f, "{}", i),
             VExpr::AccessTupleItem { tuple, index } => write!(f, "{}[{}]", tuple.expr, index),
@@ -181,7 +183,8 @@ impl fmt::Display for VExpr {
             VExpr::Spawn { typename, args } => {
                 write!(
                     f,
-                    "@spawn({} with {})",
+                    "{}({} : {})",
+                    "@spawn".yellow(),
                     typename,
                     args.iter()
                         .map(|e| format!("{}", e.expr))
@@ -189,8 +192,10 @@ impl fmt::Display for VExpr {
                         .join(", ")
                 )
             }
-            VExpr::CurrentActive => write!(f, "@current_active"),
-            VExpr::CurrentActiveField { field, .. } => write!(f, "@current_active.{}", field),
+            VExpr::CurrentActive => write!(f, "{}", "@current_active".yellow()),
+            VExpr::CurrentActiveField { field, .. } => {
+                write!(f, "{}.{}", "@current_active".yellow(), field)
+            }
         }
     }
 }
