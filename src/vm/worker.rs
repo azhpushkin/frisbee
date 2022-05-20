@@ -1,9 +1,10 @@
 use std::io;
+use std::sync::Arc;
 
 use crate::vm::serialization::serialize_function_args;
 
 use super::heap;
-use super::metadata::{Metadata, MetadataBlock};
+use super::metadata::Metadata;
 use super::opcodes::op;
 use super::serialization::deserialize_function_args;
 use super::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
@@ -26,13 +27,11 @@ struct CallFrame {
     pub stack_start: usize,
 }
 
-pub struct ActiveObject<'a> {
-    program: &'a [u8],
+pub struct ActiveObject {
+    program: Vec<u8>,
     ip: usize,
 
-    constants: &'a [u64],
-    metadata: &'a Metadata,
-    vm: &'a Vm<'a>,
+    vm: Arc<Vm>,
     step_by_step: bool,
     show_debug: bool,
 
@@ -44,14 +43,12 @@ pub struct ActiveObject<'a> {
     frames: Vec<CallFrame>, // TODO: limit size
 }
 
-impl<'a> ActiveObject<'a> {
-    pub fn new<'b>(size: usize, vm: &'a Vm<'a>) -> Self {
+impl ActiveObject {
+    pub fn new<'b>(size: usize, vm: Arc<Vm>) -> Self {
         ActiveObject {
-            program: &vm.program,
+            program: vm.program.clone(),
             ip: 0,
-            constants: &vm.constants,
             memory: heap::Heap::default(),
-            metadata: &vm.metadata,
             step_by_step: vm.step_by_step,
             show_debug: vm.show_debug,
             vm,
@@ -90,7 +87,7 @@ impl<'a> ActiveObject<'a> {
         let res = STD_RAW_FUNCTION_RUNNERS[func_index].1(
             &mut self.stack[self.stack_pointer..self.stack_pointer + locals_size],
             &mut self.memory,
-            &self.metadata,
+            &self.vm.metadata,
         );
         for o in res {
             push!(self, o);
@@ -148,11 +145,11 @@ impl<'a> ActiveObject<'a> {
             func_pos,
             &mut self.stack,
             &mut self.memory,
-            self.metadata,
+            &self.vm.metadata,
             &data,
         );
-        let func_index = self.metadata.function_positions[&func_pos];
-        let locals_size = self.metadata.function_locals_sizes[func_index];
+        let func_index = self.vm.metadata.function_positions[&func_pos];
+        let locals_size = self.vm.metadata.function_locals_sizes[func_index];
         self.stack_pointer = locals_size;
 
         self.call_op(func_pos, self.stack_pointer);
@@ -169,7 +166,7 @@ impl<'a> ActiveObject<'a> {
             match opcode {
                 op::LOAD_CONST => {
                     let index = self.read_opcode();
-                    push!(self, self.constants[index as usize]);
+                    push!(self, self.vm.constants[index as usize]);
                 }
                 op::LOAD_SMALL_INT => {
                     let value = self.read_opcode();
@@ -321,12 +318,12 @@ impl<'a> ActiveObject<'a> {
                 }
                 op::ALLOCATE => {
                     let type_index = self.read_opcode() as usize;
-                    let (new_obj_pos, _) = self.memory.allocate_custom(type_index, &self.metadata);
+                    let (new_obj_pos, _) = self.memory.allocate_custom(type_index, &self.vm.metadata);
                     push!(self, new_obj_pos);
                 }
                 op::ALLOCATE_LIST => {
                     let list_type_index = self.read_opcode() as usize;
-                    let item_size = self.metadata.list_types_sizes[list_type_index] as usize;
+                    let item_size = self.vm.metadata.list_types_sizes[list_type_index] as usize;
                     let initial_items_amount = self.read_opcode() as usize;
 
                     self.stack_pointer -= item_size * initial_items_amount;
@@ -335,7 +332,7 @@ impl<'a> ActiveObject<'a> {
                         list_type_index,
                         initial_items_amount,
                         &self.stack[self.stack_pointer..],
-                        &self.metadata,
+                        &self.vm.metadata,
                     );
                     push!(self, new_obj_pos);
                 }
@@ -395,16 +392,16 @@ impl<'a> ActiveObject<'a> {
                     let item_type = self.read_opcode() as usize;
                     let locals_amount = self.read_opcode() as usize;
                     let constructor_pos = u16::from_be_bytes(self.read_several::<2>());
-                    spawn_worker(
-                        self.vm,
-                        item_type,
-                        serialize_function_args(
-                            constructor_pos as usize,
-                            &self.stack[self.stack_pointer - locals_amount..],
-                            &self.memory,
-                            &self.metadata,
-                        ),
-                    );
+                    // let active_link = self.vm.spawn_new_active(
+                    //     item_type,
+                    //     serialize_function_args(
+                    //         constructor_pos as usize,
+                    //         &self.stack[self.stack_pointer - locals_amount..],
+                    //         &self.memory,
+                    //         &self.vm.metadata,
+                    //     ),
+                    // );
+                    // push!(self, active_link);
                 }
                 op::GET_CURRENT_ACTIVE_FIELD => {
                     let offset = self.read_opcode() as usize;

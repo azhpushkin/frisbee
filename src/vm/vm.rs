@@ -2,13 +2,22 @@ use super::heap::HeapObject;
 use super::metadata::{Metadata, MetadataBlock};
 use super::opcodes::op;
 use super::worker::ActiveObject;
-use std::sync::RwLock;
+use std::cell::RefCell;
+use std::collections::VecDeque;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::mpsc;
+use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
 use std::time::Duration;
 
+
+pub struct StoredActiveObject {
+    // pub active_object: Arc<ActiveObject>,
+    pub inbox: mpsc::Sender<Vec<u64>>,
+}
+
 #[derive(Default)]
-pub struct Vm<'a> {
+pub struct Vm {
     ip: usize,
 
     pub program: Vec<u8>,
@@ -19,12 +28,15 @@ pub struct Vm<'a> {
     pub step_by_step: bool,
     pub show_debug: bool,
 
-    active_objects: RwLock<Vec<ActiveObject<'a>>>,
+    active_objects: RwLock<Vec<StoredActiveObject>>,
 }
 
-impl<'a> Vm<'a> {
-    pub fn setup(program: Vec<u8>, step_by_step: bool, show_debug: bool) -> Box<Self> {
-        let mut new_vm = Box::new(Self {
+unsafe impl Sync for Vm {}
+
+
+impl Vm {
+    pub fn setup(program: Vec<u8>, step_by_step: bool, show_debug: bool) -> Arc<Self> {
+        let mut new_vm = Self {
             ip: 0,
             program,
             constants: vec![],
@@ -33,14 +45,14 @@ impl<'a> Vm<'a> {
             step_by_step,
             show_debug,
             active_objects: RwLock::new(vec![]),
-        });
+        };
 
         new_vm.check_header("Initial header");
 
         new_vm.load_consts();
         new_vm.load_metadata();
         new_vm.load_entry();
-        new_vm
+        Arc::new(new_vm)
     }
 
     fn check_header(&mut self, header_name: &'static str) {
@@ -153,21 +165,39 @@ impl<'a> Vm<'a> {
         bytes
     }
 
-    pub fn spawn_new_active(&'a self, item_type: usize, data: Vec<u64>) -> u64 {
-        let item_size = self.metadata.types_sizes[item_type];
+    pub fn spawn_new_active(vm: Arc<Vm>, item_type: usize, constructor_args: Vec<u64>) -> u64 {
+        let item_size = vm.metadata.types_sizes[item_type];
 
-        let mut active_object = ActiveObject::new(item_size, self);
-        self.active_objects.write().unwrap().push(active_object);
+        let active_index = vm.active_objects.read().unwrap().len() as u64;
 
-        (self.active_objects.read().unwrap().len() - 1) as u64
+        let mut active_object = ActiveObject::new(item_size, vm.clone());
+        
+        let (send, recv) = mpsc::channel();
+        send.send(constructor_args).unwrap();
+
+        vm.active_objects
+            .write()
+            .unwrap()
+            .push(StoredActiveObject { inbox: send });
+
+        thread::spawn(move || loop {
+            let msg = recv.recv().unwrap();
+            active_object.run(msg);
+        });
+
+        active_index
     }
 
-    pub fn spawn_entry(&'a self) {
-        let mut active_object = ActiveObject::new(0, self);
-        self.active_objects.write().unwrap().push(active_object);
+    pub fn setup_entry_and_run(vm: Arc<Vm>) {
+        let mut active_object = ActiveObject::new(0, vm.clone());
+        active_object.run(vec![vm.entry as u64]);
+
+        if vm.active_objects.read().unwrap().len() > 0 {
+            println!("Waiting 3 secs for spawned threads...");
+            thread::sleep(Duration::from_secs(3));
+        }
     }
 }
-
 
 // pub fn spawn_worker(
 //     vm: &'static Vm,
