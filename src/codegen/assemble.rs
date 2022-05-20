@@ -75,8 +75,8 @@ pub fn assemble_chunks(
     bytecode.push(functions.len() as u8);
     for function_info in functions.iter() {
         push_str(&mut bytecode, &format!("{}", function_info.name));
-        push_usize_as_u16(&mut bytecode, function_info.locals_size);
-        push_pointers_map(&mut bytecode, &function_info.pointer_mapping);
+        push_usize_as_u16(&mut bytecode, function_info.args_size);
+        push_pointers_map(&mut bytecode, &function_info.args_pointer_mapping);
     }
     bytecode.extend_from_slice(&HEADER);
 
