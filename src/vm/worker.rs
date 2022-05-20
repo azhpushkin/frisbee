@@ -392,16 +392,17 @@ impl ActiveObject {
                     let item_type = self.read_opcode() as usize;
                     let locals_amount = self.read_opcode() as usize;
                     let constructor_pos = u16::from_be_bytes(self.read_several::<2>());
-                    // let active_link = self.vm.spawn_new_active(
-                    //     item_type,
-                    //     serialize_function_args(
-                    //         constructor_pos as usize,
-                    //         &self.stack[self.stack_pointer - locals_amount..],
-                    //         &self.memory,
-                    //         &self.vm.metadata,
-                    //     ),
-                    // );
-                    // push!(self, active_link);
+                    let active_link = Vm::spawn_new_active(
+                        self.vm.clone(),
+                        item_type,
+                        serialize_function_args(
+                            constructor_pos as usize,
+                            &self.stack[self.stack_pointer - locals_amount..],
+                            &self.memory,
+                            &self.vm.metadata,
+                        ),
+                    );
+                    push!(self, active_link);
                 }
                 op::GET_CURRENT_ACTIVE_FIELD => {
                     let offset = self.read_opcode() as usize;
