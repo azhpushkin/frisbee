@@ -212,8 +212,8 @@ impl ActiveObject {
                     let s2 = self.memory.get(b).extract_string();
 
                     let mut new_string = String::with_capacity(s1.len() + s2.len());
-                    new_string.extend(s1.chars());
-                    new_string.extend(s2.chars());
+                    new_string.push_str(s1);
+                    new_string.push_str(s2);
 
                     let (pos, _) = self.memory.move_string(new_string);
                     push!(self, pos);

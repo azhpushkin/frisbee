@@ -75,7 +75,7 @@ pub fn serialize_function_args(
                 let mut res = vec![];
                 for i in 0..l.items_amount {
                     for pos in item_map {
-                        res.push(pos + l.item_size*i);
+                        res.push(pos + l.item_size * i);
                     }
                 }
                 res
@@ -165,11 +165,10 @@ pub fn deserialize_function_args(
             heap_objects_mapping.insert(heap_objects_mapping.len() + 1, pos);
             current_start += 1 + string_length;
         } else if (obj_header & LIST_FLAG) != 0 {
-            
             let obj_header = obj_header & !LIST_FLAG;
             let list_type = obj_header >> 32;
             let list_items_amount = (obj_header ^ (list_type << 32)) as usize; // TODO: improve this, 0fff or smth like this
-            // println!("Found list of {} items of type {}", list_items_amount, list_type);
+                                                                               // println!("Found list of {} items of type {}", list_items_amount, list_type);
 
             let (pos, l) = heap.allocate_list(
                 list_type as usize,
@@ -211,13 +210,13 @@ pub fn deserialize_function_args(
             HeapObject::List(List { data, items_amount, item_size, .. }) => {
                 for i in 0..*items_amount {
                     for pointer in pointers.iter() {
-                        let value = data[*pointer + (i* *item_size)] as usize;
+                        let value = data[*pointer + (i * *item_size)] as usize;
                         if value != 0 {
-                            data[*pointer + (i* *item_size)] = heap_objects_mapping[&value];
+                            data[*pointer + (i * *item_size)] = heap_objects_mapping[&value];
                         }
                     }
                 }
-            },
+            }
             HeapObject::CustomObject(CustomObject { data, .. }) => {
                 for pointer in pointers.iter() {
                     let value = data[*pointer] as usize;
@@ -225,7 +224,7 @@ pub fn deserialize_function_args(
                         data[*pointer] = heap_objects_mapping[&value];
                     }
                 }
-            },
+            }
         }
     }
 }

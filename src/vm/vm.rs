@@ -2,11 +2,10 @@ use super::heap::HeapObject;
 use super::metadata::{Metadata, MetadataBlock};
 use super::opcodes::op;
 use super::worker::ActiveObject;
-use std::sync::atomic::{AtomicUsize, Ordering};
+
 use std::sync::mpsc;
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, RwLock};
 use std::thread;
-use std::time::Duration;
 
 use owo_colors::OwoColorize;
 

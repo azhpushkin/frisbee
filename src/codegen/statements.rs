@@ -157,7 +157,7 @@ impl<'a> BytecodeGenerator<'a> {
                     self.push_expr(arg);
                 }
                 self.push(op::SEND_MESSAGE);
-                self.push_function_placeholder(&receiver);
+                self.push_function_placeholder(receiver);
             }
         };
         outer_break_placeholders

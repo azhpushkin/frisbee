@@ -104,7 +104,7 @@ impl ListItemMetadata {
 impl ListMetadataTable {
     pub fn get_or_insert(&mut self, t: &VerifiedType) -> usize {
         if let Some(index) = self.indexes.get(t) {
-            return *index;
+            *index
         } else {
             let index = self.indexes.len();
             self.metadata.push(ListItemMetadata::from_item_type(t));

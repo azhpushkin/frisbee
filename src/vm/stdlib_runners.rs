@@ -51,9 +51,9 @@ fn std_bool_to_string(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) ->
     let (pos, inner) = memory.allocate_string(5);
 
     if stack[0] == 1 {
-        inner.extend("true".chars());
+        inner.push_str("true");
     } else if stack[0] == 0 {
-        inner.extend("false".chars());
+        inner.push_str("false");
     } else {
         panic!("Bool value is {}, must be 0 or 1", stack[0]);
     }
