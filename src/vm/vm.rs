@@ -3,15 +3,17 @@ use super::metadata::{Metadata, MetadataBlock};
 use super::opcodes::op;
 use super::worker::ActiveObject;
 
-use std::sync::mpsc;
+use std::sync::{atomic, mpsc};
 use std::sync::{Arc, RwLock};
 use std::thread;
+use std::time::Duration;
 
 use owo_colors::OwoColorize;
 
 pub struct StoredActiveObject {
     // pub active_object: Arc<ActiveObject>,
     pub inbox: mpsc::Sender<Vec<u64>>,
+    pub is_running: Arc<atomic::AtomicBool>,
 }
 
 pub struct Vm {
@@ -179,14 +181,18 @@ impl Vm {
         let (send, recv) = mpsc::channel();
         send.send(constructor_args).unwrap();
 
+        let is_running = Arc::new(atomic::AtomicBool::new(true));
+
         vm.active_objects
             .write()
             .unwrap()
-            .push(StoredActiveObject { inbox: send });
+            .push(StoredActiveObject { is_running: Arc::clone(&is_running), inbox: send });
 
         thread::spawn(move || loop {
             let msg = recv.recv().unwrap();
+            is_running.store(true, atomic::Ordering::Relaxed);
             active_object.run(msg);
+            is_running.store(false, atomic::Ordering::Relaxed);
         });
 
         active_index
@@ -201,9 +207,21 @@ impl Vm {
         }
 
         loop {
-            let (target, msg) = vm.receiver.recv().unwrap();
-            let sink = &vm.active_objects.read().unwrap()[target as usize];
-            sink.inbox.send(msg).unwrap();
+            match vm.receiver.recv_timeout(Duration::from_secs(1)) {
+                Ok((target, msg)) => {
+                    let sink = &vm.active_objects.read().unwrap()[target as usize];
+                    sink.inbox.send(msg).unwrap();
+                }
+                Err(mpsc::RecvTimeoutError::Timeout) => {
+                    // Check if there are any running actors, exit if not
+                    let actives = vm.active_objects.read().unwrap();
+                    if actives.iter().all(|e| e.is_running.load(atomic::Ordering::Relaxed)) {
+                        // println!("All messages processed!");
+                        return;
+                    }
+                }
+                Err(e) => panic!("Error! {}", e),
+            }
         }
     }
 }

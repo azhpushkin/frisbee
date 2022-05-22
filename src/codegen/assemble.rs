@@ -62,7 +62,6 @@ pub fn assemble_chunks(
     bytecode.extend_from_slice(&HEADER);
 
     // 4. List types info (item size + pointer mapping)
-    println!("TTTT {:?}", list_types_meta);
     bytecode.push(list_types_meta.metadata.len() as u8);
     for (i, list_meta) in list_types_meta.metadata.iter().enumerate() {
         let item_type = get_by_value(&list_types_meta.indexes, i);
