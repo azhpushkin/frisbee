@@ -183,7 +183,8 @@ pub fn deserialize_function_args(
         } else if (obj_header & CUSTOM_OBJECT_FLAG) != 0 {
             let obj_type = obj_header & !CUSTOM_OBJECT_FLAG;
             let (pos, new_obj) = heap.allocate_custom(obj_type as usize, metadata);
-            new_obj.data.clone_from_slice(&chunk[current_start + 1..]);
+            let serialized_obj_data = &chunk[current_start + 1..][..new_obj.data.len()];
+            new_obj.data.clone_from_slice(serialized_obj_data);
             heap_objects_mapping.insert(heap_objects_mapping.len() + 1, pos);
             current_start += 1 + new_obj.data.len();
 

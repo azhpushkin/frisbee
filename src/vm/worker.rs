@@ -418,7 +418,6 @@ impl ActiveObject {
                     push!(self, active_link);
                 }
                 op::CURRENT_ACTIVE => {
-                    println!("Found current active!");
                     push!(self, self.worker_id);
                 }
                 op::GET_CURRENT_ACTIVE_FIELD => {
