@@ -3,7 +3,7 @@ active A {
 
     fun A(String name) {
         @name = name;
-        println("Spawned new A for " + @name);
+        println("Spawned " + @name);
         
         @say_hello("from constructor");
     }
@@ -24,15 +24,21 @@ fun void main() {
     A a2 = spawn A("Bob");
 
     a1 ! say_hello_to_many(["Anton", 'Tony', "Antonio"]);
-
     a2 ! say_hello("Stranger");
     a2 ! say_hello("Another stranger");
-
 }
 
 
 /* EXPECTED STDOUT
-==========
-Hello, Stranger
+========== [UNORDERED]
+Spawned Alice
+Alice: Hello from constructor
+Alice: Hello Anton
+Alice: Hello Tony
+Alice: Hello Antonio
+Spawned Bob
+Bob: Hello from constructor
+Bob: Hello Stranger
+Bob: Hello Another stranger
 ========== */
 

@@ -215,7 +215,7 @@ impl Vm {
                 Err(mpsc::RecvTimeoutError::Timeout) => {
                     // Check if there are any running actors, exit if not
                     let actives = vm.active_objects.read().unwrap();
-                    if actives.iter().all(|e| e.is_running.load(atomic::Ordering::Relaxed)) {
+                    if actives.iter().all(|e| !e.is_running.load(atomic::Ordering::Relaxed)) {
                         // println!("All messages processed!");
                         return;
                     }

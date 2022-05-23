@@ -25,7 +25,14 @@ def check_output(filename: Path, actual_output: str):
     expected = expected.group('output').strip()
     actual_output = actual_output.strip()
 
-    if actual_output != expected:
+    if expected.startswith('[UNORDERED]'):
+        expected = set(expected.replace('[UNORDERED]', '').strip().split('\n'))
+        actual_output = set(actual_output.split('\n'))
+        if expected != actual_output:
+            print('Extra lines: ', actual_output - expected)
+            print('Missing lines: ', expected - actual_output)
+            exit(-1)
+    elif actual_output != expected:
         d = difflib.Differ()
         diff = d.compare(expected.splitlines(), actual_output.splitlines())
         for line in diff:
