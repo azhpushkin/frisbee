@@ -171,22 +171,23 @@ impl Vm {
     }
 
     pub fn spawn_new_active(vm: Arc<Vm>, item_type: usize, constructor_args: Vec<u64>) -> u64 {
-        let item_size = vm.metadata.types_sizes[item_type];
-
-        let active_index = vm.active_objects.read().unwrap().len() as u64;
-
-        let mut active_object =
-            ActiveObject::new(item_size, vm.clone(), vm.gateways_for_active.clone());
+        let active_index: u64;
 
         let (send, recv) = mpsc::channel();
         send.send(constructor_args).unwrap();
 
         let is_running = Arc::new(atomic::AtomicBool::new(true));
+        let mut active_object =
+            ActiveObject::new(item_type, vm.clone(), vm.gateways_for_active.clone());
 
-        vm.active_objects
-            .write()
-            .unwrap()
-            .push(StoredActiveObject { is_running: Arc::clone(&is_running), inbox: send });
+        {
+            let mut locked_list = vm.active_objects.write().unwrap();
+            active_index = locked_list.len() as u64;
+            active_object.set_id(active_index);
+
+            locked_list
+                .push(StoredActiveObject { is_running: Arc::clone(&is_running), inbox: send });
+        }
 
         thread::spawn(move || loop {
             let msg = recv.recv().unwrap();

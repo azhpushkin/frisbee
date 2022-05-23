@@ -35,6 +35,9 @@ pub struct ActiveObject {
     show_debug: bool,
     gateway: mpsc::Sender<(u64, Vec<u64>)>,
 
+    item_type: usize,
+    worker_id: u64,
+
     memory: heap::Heap,
     current_active_fields: Vec<u64>,
     stack: [u64; STACK_SIZE],
@@ -44,7 +47,9 @@ pub struct ActiveObject {
 }
 
 impl ActiveObject {
-    pub fn new(size: usize, vm: Arc<Vm>, gateway: mpsc::Sender<(u64, Vec<u64>)>) -> Self {
+    pub fn new(item_type: usize, vm: Arc<Vm>, gateway: mpsc::Sender<(u64, Vec<u64>)>) -> Self {
+        let item_size = vm.metadata.types_sizes[item_type];
+
         ActiveObject {
             program: vm.program.clone(),
             ip: 0,
@@ -55,11 +60,18 @@ impl ActiveObject {
             vm,
             gateway,
 
-            current_active_fields: vec![0; size],
+            item_type,
+            worker_id: 0,
+
+            current_active_fields: vec![0; item_size],
             stack: [0; STACK_SIZE],
             stack_pointer: 0,
             frames: vec![],
         }
+    }
+
+    pub fn set_id(&mut self, worker_id: u64) {
+        self.worker_id = worker_id;
     }
 
     fn pop(&mut self) -> u64 {
@@ -404,6 +416,10 @@ impl ActiveObject {
                         ),
                     );
                     push!(self, active_link);
+                }
+                op::CURRENT_ACTIVE => {
+                    println!("Found current active!");
+                    push!(self, self.worker_id);
                 }
                 op::GET_CURRENT_ACTIVE_FIELD => {
                     let offset = self.read_opcode() as usize;

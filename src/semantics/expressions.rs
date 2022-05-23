@@ -216,10 +216,7 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                     } else {
                         VExpr::GetVar("this".into())
                     };
-                    Ok(VExprTyped {
-                        expr: this_expr,
-                        expr_type: Type::Custom(t.clone()),
-                    })
+                    Ok(VExprTyped { expr: this_expr, expr_type: Type::Custom(t.clone()) })
                 }
                 None => to_dyn(expression_error!(
                     expr,

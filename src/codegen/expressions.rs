@@ -176,7 +176,9 @@ impl<'a> BytecodeGenerator<'a> {
             VExpr::Dummy(t) => {
                 self.push_reserve(t);
             }
-            VExpr::CurrentActive => todo!(),
+            VExpr::CurrentActive => {
+                self.push(op::CURRENT_ACTIVE);
+            }
             VExpr::CurrentActiveField { active_type, field } => {
                 self.push(op::GET_CURRENT_ACTIVE_FIELD);
                 self.push(self.types_meta.get_meta(active_type).field_offsets[field]);
