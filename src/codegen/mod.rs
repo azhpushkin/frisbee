@@ -26,7 +26,8 @@ pub fn generate(types: &[CustomType], functions: &[RawFunction], entry: &SymbolF
             &mut constants,
         )
         .unwrap();
-        bytecode.pointer_mapping = utils::get_pointers_map_for_sequence(&raw_function.args.types);
+        bytecode.args_pointer_mapping =
+            utils::get_pointers_map_for_sequence(&raw_function.args.types);
 
         functions_bytecode.push(bytecode);
     }

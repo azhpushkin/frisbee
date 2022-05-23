@@ -1,14 +1,14 @@
 use std::io;
+use std::sync::{mpsc, Arc};
 
 use crate::vm::serialization::serialize_function_args;
 
 use super::heap;
-use super::metadata::{Metadata, MetadataBlock};
 use super::opcodes::op;
 use super::serialization::deserialize_function_args;
 use super::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
 use super::utils::{f64_to_u64, u64_to_f64};
-use super::vm::{spawn_worker, Vm};
+use super::vm::Vm;
 
 macro_rules! push {
     ($worker:ident, $value:expr) => {
@@ -21,20 +21,21 @@ const STACK_SIZE: usize = 512; // TODO: maybe grow??
 
 #[derive(Debug)]
 struct CallFrame {
-    pub pos: usize,
     pub return_ip: usize,
     pub stack_start: usize,
 }
 
-pub struct Worker {
-    program: &'static [u8],
+pub struct ActiveObject {
+    program: Vec<u8>,
     ip: usize,
 
-    constants: &'static [u64],
-    metadata: &'static Metadata,
-    vm: &'static Vm,
+    vm: Arc<Vm>,
     step_by_step: bool,
     show_debug: bool,
+    gateway: mpsc::Sender<(u64, Vec<u64>)>,
+
+    item_type: usize,
+    worker_id: u64,
 
     memory: heap::Heap,
     current_active_fields: Vec<u64>,
@@ -44,23 +45,36 @@ pub struct Worker {
     frames: Vec<CallFrame>, // TODO: limit size
 }
 
-impl Worker {
-    pub fn new<'b>(size: usize, vm: &'static Vm) -> Self {
-        Worker {
-            program: &vm.program,
+impl ActiveObject {
+    pub fn new(
+        item_type: usize,
+        item_size: usize,
+        vm: Arc<Vm>,
+        gateway: mpsc::Sender<(u64, Vec<u64>)>,
+    ) -> Self {
+        // TODO: do something with item_size for stdlib types
+        ActiveObject {
+            program: vm.program.clone(),
             ip: 0,
-            constants: &vm.constants,
             memory: heap::Heap::default(),
-            metadata: &vm.metadata,
+
             step_by_step: vm.step_by_step,
             show_debug: vm.show_debug,
             vm,
+            gateway,
 
-            current_active_fields: vec![0; size],
+            item_type,
+            worker_id: 0,
+
+            current_active_fields: vec![0; item_size],
             stack: [0; STACK_SIZE],
             stack_pointer: 0,
             frames: vec![],
         }
+    }
+
+    pub fn set_id(&mut self, worker_id: u64) {
+        self.worker_id = worker_id;
     }
 
     fn pop(&mut self) -> u64 {
@@ -77,11 +91,8 @@ impl Worker {
     fn call_op(&mut self, func_pos: usize, locals_size: usize) {
         // This is a point of huge optimizations, probably worth tweaking callframe stack
         // to make it smaller
-        self.frames.push(CallFrame {
-            pos: func_pos,
-            return_ip: self.ip,
-            stack_start: self.stack_pointer - locals_size,
-        });
+        self.frames
+            .push(CallFrame { return_ip: self.ip, stack_start: self.stack_pointer - locals_size });
         self.ip = func_pos;
     }
 
@@ -90,7 +101,7 @@ impl Worker {
         let res = STD_RAW_FUNCTION_RUNNERS[func_index].1(
             &mut self.stack[self.stack_pointer..self.stack_pointer + locals_size],
             &mut self.memory,
-            &self.metadata,
+            &self.vm.metadata,
         );
         for o in res {
             push!(self, o);
@@ -147,13 +158,11 @@ impl Worker {
         deserialize_function_args(
             func_pos,
             &mut self.stack,
+            &mut self.stack_pointer,
             &mut self.memory,
-            self.metadata,
+            &self.vm.metadata,
             &data,
         );
-        let func_index = self.metadata.function_positions[&func_pos];
-        let locals_size = self.metadata.function_locals_sizes[func_index];
-        self.stack_pointer = locals_size;
 
         self.call_op(func_pos, self.stack_pointer);
 
@@ -169,7 +178,7 @@ impl Worker {
             match opcode {
                 op::LOAD_CONST => {
                     let index = self.read_opcode();
-                    push!(self, self.constants[index as usize]);
+                    push!(self, self.vm.constants[index as usize]);
                 }
                 op::LOAD_SMALL_INT => {
                     let value = self.read_opcode();
@@ -215,8 +224,8 @@ impl Worker {
                     let s2 = self.memory.get(b).extract_string();
 
                     let mut new_string = String::with_capacity(s1.len() + s2.len());
-                    new_string.extend(s1.chars());
-                    new_string.extend(s2.chars());
+                    new_string.push_str(s1);
+                    new_string.push_str(s2);
 
                     let (pos, _) = self.memory.move_string(new_string);
                     push!(self, pos);
@@ -321,12 +330,13 @@ impl Worker {
                 }
                 op::ALLOCATE => {
                     let type_index = self.read_opcode() as usize;
-                    let (new_obj_pos, _) = self.memory.allocate_custom(type_index, &self.metadata);
+                    let (new_obj_pos, _) =
+                        self.memory.allocate_custom(type_index, &self.vm.metadata);
                     push!(self, new_obj_pos);
                 }
                 op::ALLOCATE_LIST => {
                     let list_type_index = self.read_opcode() as usize;
-                    let item_size = self.metadata.list_types_sizes[list_type_index] as usize;
+                    let item_size = self.vm.metadata.list_types_sizes[list_type_index] as usize;
                     let initial_items_amount = self.read_opcode() as usize;
 
                     self.stack_pointer -= item_size * initial_items_amount;
@@ -335,7 +345,7 @@ impl Worker {
                         list_type_index,
                         initial_items_amount,
                         &self.stack[self.stack_pointer..],
-                        &self.metadata,
+                        &self.vm.metadata,
                     );
                     push!(self, new_obj_pos);
                 }
@@ -393,18 +403,23 @@ impl Worker {
                 }
                 op::SPAWN => {
                     let item_type = self.read_opcode() as usize;
-                    let locals_amount = self.read_opcode() as usize;
                     let constructor_pos = u16::from_be_bytes(self.read_several::<2>());
-                    spawn_worker(
-                        self.vm,
+                    let active_link = Vm::spawn_new_active(
+                        self.vm.clone(),
                         item_type,
                         serialize_function_args(
                             constructor_pos as usize,
-                            &self.stack[self.stack_pointer - locals_amount..],
+                            &self.stack,
+                            &mut self.stack_pointer,
                             &self.memory,
-                            &self.metadata,
+                            &self.vm.metadata,
                         ),
                     );
+                    push!(self, active_link);
+                }
+                op::CURRENT_ACTIVE => {
+                    println!("Found current active!");
+                    push!(self, self.worker_id);
                 }
                 op::GET_CURRENT_ACTIVE_FIELD => {
                     let offset = self.read_opcode() as usize;
@@ -423,6 +438,19 @@ impl Worker {
                         self.current_active_fields[offset + i] = x;
                     }
                     self.stack_pointer -= size;
+                }
+                op::SEND_MESSAGE => {
+                    let receiver_pos = u16::from_be_bytes(self.read_several::<2>());
+                    let msg = serialize_function_args(
+                        receiver_pos as usize,
+                        &self.stack,
+                        &mut self.stack_pointer,
+                        &self.memory,
+                        &self.vm.metadata,
+                    );
+                    // println!("Serialized for send {}: {:?}", receiver_pos, msg);
+                    let active_obj = self.pop();
+                    self.gateway.send((active_obj, msg)).expect("Cant send message");
                 }
                 _ => panic!("Unknown opcode: {}", opcode),
             }

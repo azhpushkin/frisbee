@@ -72,11 +72,6 @@ impl SymbolType {
             .0
             .split_once("::")
             .unwrap_or_else(|| panic!("No :: in SymbolType {}", self));
-        println!(
-            "Constructor for {} is {}",
-            self,
-            SymbolFunc(format!("{}::{}", self.0, name))
-        );
         SymbolFunc(format!("{}::{}", self.0, name))
     }
 }

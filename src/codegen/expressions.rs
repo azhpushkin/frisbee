@@ -171,13 +171,14 @@ impl<'a> BytecodeGenerator<'a> {
 
                 self.push(op::SPAWN);
                 self.push(self.types_meta.get_index(typename) as u8);
-                self.push(args.iter().map(|arg| get_type_size(&arg.expr_type)).sum());
                 self.push_function_placeholder(&constructor_name);
             }
             VExpr::Dummy(t) => {
                 self.push_reserve(t);
             }
-            VExpr::CurrentActive => todo!(),
+            VExpr::CurrentActive => {
+                self.push(op::CURRENT_ACTIVE);
+            }
             VExpr::CurrentActiveField { active_type, field } => {
                 self.push(op::GET_CURRENT_ACTIVE_FIELD);
                 self.push(self.types_meta.get_meta(active_type).field_offsets[field]);

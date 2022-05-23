@@ -90,7 +90,7 @@ pub fn get_pointers_map_for_type<T>(t: &Type<T>) -> Vec<usize> {
         }
         Type::List(_) | Type::Custom(_) | Type::String => vec![0],
 
-        Type::Tuple(items) => get_pointers_map_for_sequence(&items),
+        Type::Tuple(items) => get_pointers_map_for_sequence(items),
     }
 }
 
@@ -109,7 +109,7 @@ pub fn get_pointers_map_for_sequence<T>(types: &[Type<T>]) -> Vec<usize> {
         result.extend(inner.into_iter().map(|i| i + current_offset));
         current_offset += get_type_size(t) as usize;
     }
-    result.sort();
+    result.sort_unstable();
 
     result
 }

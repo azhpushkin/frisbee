@@ -6,8 +6,6 @@ use argh::FromArgs;
 use owo_colors::OwoColorize;
 use vm::vm::Vm;
 
-use crate::vm::vm::run_entry_and_wait_if_spawned;
-
 pub mod alias;
 pub mod ast;
 pub mod codegen;
@@ -127,8 +125,7 @@ fn compile_file(c: CompileCommand) {
     println!("{}", "File compiled successfully!".green());
     if run {
         let vm = Vm::setup(bytecode, false, false);
-        let vm = Box::leak(vm);
-        run_entry_and_wait_if_spawned(vm);
+        Vm::setup_entry_and_run(vm)
     }
 }
 
@@ -146,8 +143,7 @@ fn run_file(c: RunCommand) {
     let bytecode = std::fs::read(program).expect("Cant read file");
 
     let vm = Vm::setup(bytecode, step_by_step, show_debug_info);
-    let vm = Box::leak(vm);
-    run_entry_and_wait_if_spawned(vm);
+    Vm::setup_entry_and_run(vm)
 }
 
 fn main() {

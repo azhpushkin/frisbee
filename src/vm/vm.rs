@@ -1,12 +1,21 @@
 use super::heap::HeapObject;
 use super::metadata::{Metadata, MetadataBlock};
 use super::opcodes::op;
-use super::worker::Worker;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use super::worker::ActiveObject;
+
+use std::sync::{atomic, mpsc};
+use std::sync::{Arc, RwLock};
 use std::thread;
 use std::time::Duration;
 
-#[derive(Default)]
+use owo_colors::OwoColorize;
+
+pub struct StoredActiveObject {
+    // pub active_object: Arc<ActiveObject>,
+    pub inbox: mpsc::Sender<Vec<u64>>,
+    pub is_running: Arc<atomic::AtomicBool>,
+}
+
 pub struct Vm {
     ip: usize,
 
@@ -15,13 +24,21 @@ pub struct Vm {
     pub metadata: Metadata,
     pub entry: usize,
 
+    gateways_for_active: mpsc::Sender<(u64, Vec<u64>)>,
+    receiver: mpsc::Receiver<(u64, Vec<u64>)>,
+
     pub step_by_step: bool,
     pub show_debug: bool,
+
+    active_objects: RwLock<Vec<StoredActiveObject>>,
 }
 
+unsafe impl Sync for Vm {}
+
 impl Vm {
-    pub fn setup(program: Vec<u8>, step_by_step: bool, show_debug: bool) -> Box<Self> {
-        let mut new_vm = Box::new(Self {
+    pub fn setup(program: Vec<u8>, step_by_step: bool, show_debug: bool) -> Arc<Self> {
+        let (sender, receiver) = mpsc::channel();
+        let mut new_vm = Self {
             ip: 0,
             program,
             constants: vec![],
@@ -29,14 +46,18 @@ impl Vm {
             entry: 0,
             step_by_step,
             show_debug,
-        });
+            active_objects: RwLock::new(vec![]),
+
+            gateways_for_active: sender,
+            receiver,
+        };
 
         new_vm.check_header("Initial header");
 
         new_vm.load_consts();
         new_vm.load_metadata();
         new_vm.load_entry();
-        new_vm
+        Arc::new(new_vm)
     }
 
     fn check_header(&mut self, header_name: &'static str) {
@@ -148,35 +169,93 @@ impl Vm {
         }
         bytes
     }
-}
 
-pub static ACTIVE_SPAWNED: AtomicUsize = AtomicUsize::new(0);
+    pub fn spawn_new_active(vm: Arc<Vm>, item_type: usize, constructor_args: Vec<u64>) -> u64 {
+        let active_index: u64;
 
-pub fn spawn_worker(
-    vm: &'static Vm,
-    item_type: usize,
-    data: Vec<u64>,
-) -> thread::JoinHandle<()> {
-    ACTIVE_SPAWNED.fetch_add(1, Ordering::SeqCst);
-    let item_size = vm.metadata.types_sizes[item_type];
+        let (send, recv) = mpsc::channel();
+        send.send(constructor_args).unwrap();
 
-    let mut worker = Worker::new(item_size, vm);
+        let is_running = Arc::new(atomic::AtomicBool::new(true));
+        let mut active_object = ActiveObject::new(
+            item_type,
+            vm.metadata.types_sizes[item_type],
+            vm.clone(),
+            vm.gateways_for_active.clone(),
+        );
 
-    thread::spawn(move || {
-        worker.run(data);
-    })
-}
+        {
+            let mut locked_list = vm.active_objects.write().unwrap();
+            active_index = locked_list.len() as u64;
+            active_object.set_id(active_index);
 
-pub fn run_entry_and_wait_if_spawned(vm: &'static Vm) {
-    let mut worker = Worker::new(0, vm);
-    worker.run(vec![vm.entry as u64]);
-
-    loop {
-        let value = ACTIVE_SPAWNED.load(Ordering::SeqCst);
-        if value == 0 {
-            break;
+            locked_list
+                .push(StoredActiveObject { is_running: Arc::clone(&is_running), inbox: send });
         }
-        println!("Waiting for {} spawned threads...", value);
-        thread::sleep(Duration::from_secs(1));
+
+        thread::spawn(move || loop {
+            let msg = recv.recv().unwrap();
+            is_running.store(true, atomic::Ordering::Relaxed);
+            active_object.run(msg);
+            is_running.store(false, atomic::Ordering::Relaxed);
+        });
+
+        active_index
+    }
+
+    pub fn setup_entry_and_run(vm: Arc<Vm>) {
+        let mut active_object = ActiveObject::new(0, 0, vm.clone(), vm.gateways_for_active.clone());
+        active_object.run(vec![vm.entry as u64]);
+
+        if vm.show_debug {
+            println!("{}", "## ENTRY FINISHED!".red());
+        }
+
+        loop {
+            match vm.receiver.recv_timeout(Duration::from_secs(1)) {
+                Ok((target, msg)) => {
+                    let sink = &vm.active_objects.read().unwrap()[target as usize];
+                    sink.inbox.send(msg).unwrap();
+                }
+                Err(mpsc::RecvTimeoutError::Timeout) => {
+                    // Check if there are any running actors, exit if not
+                    let actives = vm.active_objects.read().unwrap();
+                    if actives.iter().all(|e| !e.is_running.load(atomic::Ordering::Relaxed)) {
+                        // println!("All messages processed!");
+                        return;
+                    }
+                }
+                Err(e) => panic!("Error! {}", e),
+            }
+        }
     }
 }
+
+// pub fn spawn_worker(
+//     vm: &'static Vm,
+//     item_type: usize,
+//     data: Vec<u64>,
+// )  {
+//     ACTIVE_SPAWNED.fetch_add(1, Ordering::SeqCst);
+//     let item_size = vm.metadata.types_sizes[item_type];
+
+//     let mut worker = ActiveObject::new(item_size, vm);
+
+//     thread::spawn(move || {
+//         worker.run(data);
+//     })
+// }
+
+// pub fn run_entry_and_wait_if_spawned(vm: &Vm) {
+//     let mut worker = ActiveObject::new(0, vm);
+//     worker.run(vec![vm.entry as u64]);
+
+//     loop {
+//         let value = ACTIVE_SPAWNED.load(Ordering::SeqCst);
+//         if value == 0 {
+//             break;
+//         }
+//         println!("Waiting for {} spawned threads...", value);
+//         thread::sleep(Duration::from_secs(1));
+//     }
+// }

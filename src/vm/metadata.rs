@@ -6,7 +6,7 @@ pub type MetadataBlock = Vec<(usize, Vec<u8>)>;
 pub struct Metadata {
     pub types_sizes: Vec<usize>,
     pub list_types_sizes: Vec<usize>,
-    pub function_locals_sizes: Vec<usize>,
+    pub function_args_sizes: Vec<usize>,
 
     pub types_pointer_mapping: Vec<Vec<usize>>,
     pub lists_pointer_mapping: Vec<Vec<usize>>,
@@ -34,7 +34,7 @@ impl Metadata {
 
     pub fn fill_function_metadata(&mut self, funcs_metadata: MetadataBlock) {
         for (size, mapping) in funcs_metadata {
-            self.function_locals_sizes.push(size);
+            self.function_args_sizes.push(size);
             self.functions_pointer_mapping
                 .push(mapping.into_iter().map(|x| x as usize).collect());
         }
