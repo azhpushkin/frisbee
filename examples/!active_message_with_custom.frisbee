@@ -1,0 +1,60 @@
+class Wallet {
+    String owner;
+    [Int] coins;
+
+    fun Wallet(String name) {
+        @owner = name;
+        @coins = [];
+    }
+
+    fun void add_coin(Int c) {
+        @coins.push(c);
+    }
+}
+
+
+
+active Calc {
+    Int sum;
+
+    fun void add_wallet(Wallet w) {
+        println("Adding wallet of " + w.owner);
+        foreach c in w.coins {
+            @sum = @sum + c;
+        }
+        println("Now, total is " + @sum.to_string());
+    }
+
+    fun void add_few_wallets([Wallet] ws) {
+        foreach w in ws {
+            this ! add_wallet(w);
+        }
+        println("Total is " + @sum.to_string());
+    }
+}
+
+fun void main() {
+    Wallet w1 = Wallet("John");
+    foreach c in [1, 1, 5, 10, 5] {
+        w1.add_coin(c);
+    }
+    
+    Wallet w2 = Wallet("Not John");
+    foreach c in [5, 10, 10, 1] {
+        w2.add_coin(c);
+    }
+
+    Calc calc = spawn Calc(-1);
+    calc ! add_few_wallets([w1, w2]);
+}
+
+
+/* EXPECTED STDOUT
+==========
+Total is -1
+Adding wallet of John
+Now, total is 21
+Adding wallet of Not John
+Now, total is 47
+========== */
+

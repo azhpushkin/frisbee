@@ -210,10 +210,17 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 Ok(VExprTyped { expr: VExpr::GetVar(real_name), expr_type: identifier_type })
             }
             Expr::This => match &self.func.method_of {
-                Some(t) => Ok(VExprTyped {
-                    expr: VExpr::GetVar("this".into()),
-                    expr_type: Type::Custom(t.clone()),
-                }),
+                Some(t) => {
+                    let this_expr = if self.func.is_active_method {
+                        VExpr::CurrentActive
+                    } else {
+                        VExpr::GetVar("this".into())
+                    };
+                    Ok(VExprTyped {
+                        expr: this_expr,
+                        expr_type: Type::Custom(t.clone()),
+                    })
+                }
                 None => to_dyn(expression_error!(
                     expr,
                     "Using \"this\" is not allowed outside of methods"
