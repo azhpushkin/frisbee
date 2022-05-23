@@ -177,8 +177,12 @@ impl Vm {
         send.send(constructor_args).unwrap();
 
         let is_running = Arc::new(atomic::AtomicBool::new(true));
-        let mut active_object =
-            ActiveObject::new(item_type, vm.clone(), vm.gateways_for_active.clone());
+        let mut active_object = ActiveObject::new(
+            item_type,
+            vm.metadata.types_sizes[item_type],
+            vm.clone(),
+            vm.gateways_for_active.clone(),
+        );
 
         {
             let mut locked_list = vm.active_objects.write().unwrap();
@@ -200,7 +204,7 @@ impl Vm {
     }
 
     pub fn setup_entry_and_run(vm: Arc<Vm>) {
-        let mut active_object = ActiveObject::new(0, vm.clone(), vm.gateways_for_active.clone());
+        let mut active_object = ActiveObject::new(0, 0, vm.clone(), vm.gateways_for_active.clone());
         active_object.run(vec![vm.entry as u64]);
 
         if vm.show_debug {

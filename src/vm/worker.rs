@@ -21,7 +21,6 @@ const STACK_SIZE: usize = 512; // TODO: maybe grow??
 
 #[derive(Debug)]
 struct CallFrame {
-    pub pos: usize,
     pub return_ip: usize,
     pub stack_start: usize,
 }
@@ -47,9 +46,13 @@ pub struct ActiveObject {
 }
 
 impl ActiveObject {
-    pub fn new(item_type: usize, vm: Arc<Vm>, gateway: mpsc::Sender<(u64, Vec<u64>)>) -> Self {
-        let item_size = vm.metadata.types_sizes[item_type];
-
+    pub fn new(
+        item_type: usize,
+        item_size: usize,
+        vm: Arc<Vm>,
+        gateway: mpsc::Sender<(u64, Vec<u64>)>,
+    ) -> Self {
+        // TODO: do something with item_size for stdlib types
         ActiveObject {
             program: vm.program.clone(),
             ip: 0,
@@ -88,11 +91,8 @@ impl ActiveObject {
     fn call_op(&mut self, func_pos: usize, locals_size: usize) {
         // This is a point of huge optimizations, probably worth tweaking callframe stack
         // to make it smaller
-        self.frames.push(CallFrame {
-            pos: func_pos,
-            return_ip: self.ip,
-            stack_start: self.stack_pointer - locals_size,
-        });
+        self.frames
+            .push(CallFrame { return_ip: self.ip, stack_start: self.stack_pointer - locals_size });
         self.ip = func_pos;
     }
 
