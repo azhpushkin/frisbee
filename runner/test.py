@@ -53,6 +53,28 @@ def get_input(filename: Path):
     return '\n'.join(match.split('~')) + '\n'
 
 
+def run_file(filename):
+    print(f"Running {filename}... ")
+    res = sp.run(['cargo', 'run', '-q', 'cc', filename])
+    assert res.returncode == 0, f"Error compiling {filename}"
+    
+    res = sp.run(['cargo', 'run', 'dis', f'{filename}.bytecode'], capture_output=True, text=True)
+    assert res.returncode == 0, f"Error disassembling {filename}: \n{res.stderr}"
+
+    file_input = get_input(filename)
+    
+    res = sp.run(
+        ['cargo', 'run', '-q', 'run', f'{filename}.bytecode'],
+        capture_output=True,
+        text=True,
+        input=file_input,
+        timeout=5  # 5 seconds is enough to determine infinite loop 
+    )
+    assert res.returncode == 0, f"Error running {filename}: \n{res.stderr}"
+
+    check_output(filename, res.stdout)
+
+
 if __name__ == '__main__':
     if len(sys.argv) == 1:
         examples_dir = Path(__file__).parent.parent / 'examples'
@@ -69,27 +91,4 @@ if __name__ == '__main__':
     sp.run(['cargo', 'build'])
 
     for filename in files_to_run:
-        print(f"Running {filename}... ")
-        res = sp.run(['cargo', 'run', '-q', 'cc', filename])
-        assert res.returncode == 0, f"Error compiling {filename}"
-        
-        res = sp.run(['cargo', 'run', 'dis', f'{filename}.bytecode'], capture_output=True, text=True)
-        assert res.returncode == 0, f"Error disassembling {filename}: \n{res.stderr}"
-
-        file_input = get_input(filename)
-        
-        res = sp.run(
-            ['cargo', 'run', '-q', 'run', f'{filename}.bytecode'],
-            capture_output=True,
-            text=True,
-            input=file_input,
-            timeout=5  # 5 seconds is enough to determine infinite loop 
-        )
-        assert res.returncode == 0, f"Error running {filename}: \n{res.stderr}"
-
-        check_output(filename, res.stdout)
-        
-
-        
-
-    
+        run_file(filename)
