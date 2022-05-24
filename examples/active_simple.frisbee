@@ -19,6 +19,10 @@ active A {
     }
 }
 
+fun void say_hi_to_noone(A a) {
+    a ! say_hello("Noone");
+}
+
 fun void main() {
     A a1 = spawn A("Alice");
     A a2 = spawn A("Bob");
@@ -26,6 +30,7 @@ fun void main() {
     a1 ! say_hello_to_many(["Anton", 'Tony', "Antonio"]);
     a2 ! say_hello("Stranger");
     a2 ! say_hello("Another stranger");
+    say_hi_to_noone(a2);
 }
 
 
@@ -40,5 +45,6 @@ Spawned Bob
 Bob: Hello from constructor
 Bob: Hello Stranger
 Bob: Hello Another stranger
+Bob: Hello Noone
 ========== */
 
