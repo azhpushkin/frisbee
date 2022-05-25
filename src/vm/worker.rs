@@ -382,10 +382,10 @@ impl ActiveObject {
                     // then there is no place for return value on the stack, so just ignore writing return value
                     if current_start >= return_size {
                         for i in 0..return_size {
-                            self.stack[current_start - i - 1] = self.stack[self.stack_pointer - i - 1];
+                            self.stack[current_start - i - 1] =
+                                self.stack[self.stack_pointer - i - 1];
                         }
                     }
-                    
 
                     self.drop_current_frame();
                     if self.frames.is_empty() {
