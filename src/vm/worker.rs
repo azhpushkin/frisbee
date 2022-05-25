@@ -377,9 +377,15 @@ impl ActiveObject {
                 op::RETURN => {
                     let return_size = self.read_opcode() as usize;
                     let current_start = self.current_frame().stack_start;
-                    for i in 0..return_size {
-                        self.stack[current_start - i - 1] = self.stack[self.stack_pointer - i - 1];
+
+                    // If function that returns some value is called via message send
+                    // then there is no place for return value on the stack, so just ignore writing return value
+                    if current_start >= return_size {
+                        for i in 0..return_size {
+                            self.stack[current_start - i - 1] = self.stack[self.stack_pointer - i - 1];
+                        }
                     }
+                    
 
                     self.drop_current_frame();
                     if self.frames.is_empty() {

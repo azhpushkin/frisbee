@@ -17,12 +17,13 @@ class Wallet {
 active Calc {
     Int sum;
 
-    fun void add_wallet(Wallet w) {
+    fun Int add_wallet(Wallet w) {
         println("Adding wallet of " + w.owner);
         foreach c in w.coins {
             @sum = @sum + c;
         }
         println("Now, total is " + @sum.to_string());
+        return @sum;
     }
 
     fun void add_few_wallets([Wallet] ws) {
