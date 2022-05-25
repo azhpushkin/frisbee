@@ -23,7 +23,26 @@ assert_semantic_check_fails!(
 
     fun void main() {
         Actor a = spawn Actor(0);
-        a.counter;  // ERR: sorry no way
+        a.counter;  // ERR: Can't access fields of active objects (only accessible from inside as @counter)
+    }
+    "#
+);
+
+assert_semantic_check_fails!(
+    active_fields_cant_be_used_via_this,
+    r#"
+    ===== file: main.frisbee
+    active Actor {
+        Int counter;
+
+        fun void reset() {
+            this.counter = 0;  // ERR: Can't access fields of active objects (only accessible from inside as @counter)
+        }
+    }
+
+    fun void main() {
+        Actor a = spawn Actor(0);
+        a ! reset();
     }
     "#
 );
@@ -38,7 +57,7 @@ assert_semantic_check_fails!(
 
     fun void main() {
         Actor a = spawn Actor();
-        a.receiver();  // ERR: sorry no way
+        a.receiver();  // ERR: Can't call methods of active objects directly (use ! to send message or @receiver for access from inside)
     }
     "#
 );

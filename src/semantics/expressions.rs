@@ -460,6 +460,13 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                     Type::Custom(type_symbol) => {
                         let object_definition = &self.aggregate.types[type_symbol];
                         let field_type = self.resolve_field(object_definition, field)?;
+                        if object_definition.is_active {
+                            return to_dyn(expression_error!(
+                                expr,
+                                "Can't access fields of active objects (only accessible from inside as @{})",
+                                field
+                            ));
+                        }
 
                         let expr = VExpr::AccessField {
                             object: Box::new(object_calculated),
@@ -585,7 +592,16 @@ impl<'a, 'i> ExpressionsVerifier<'a, 'i> {
                 ));
             }
 
-            Type::Custom(symbol_type) => self.resolve_method(symbol_type, method)?,
+            Type::Custom(symbol_type) => {
+                let object_definition = &self.aggregate.types[symbol_type];
+                if object_definition.is_active {
+                    return Err(Box::new(format!(
+                        "Can't call methods of active objects directly (use ! to send message or @{} for access from inside)",
+                        method
+                    )));
+                }
+                self.resolve_method(symbol_type, method)?
+            }
             t => {
                 std_method = get_std_method(t, method)?;
                 std_method.as_ref()
