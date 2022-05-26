@@ -24,5 +24,5 @@ g:
 	cargo modules generate graph --layout fdp  --with-uses | grep -vwE owns | xdot -
 
 check:
-	@python runner/test.py || rm examples/*.bytecode -rf
+	@python examples_runner.py || rm examples/*.bytecode -rf
 	@rm examples/*.bytecode -rf

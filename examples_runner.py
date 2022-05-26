@@ -77,7 +77,7 @@ def run_file(filename):
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
-        examples_dir = Path(__file__).parent.parent / 'examples'
+        examples_dir = Path(__file__).parent / 'examples'
 
         files_to_run = [
             filename 
