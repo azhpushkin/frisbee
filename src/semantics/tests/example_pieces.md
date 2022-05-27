@@ -25,6 +25,7 @@
 * check that max tuple size is 255
 * check that max locals size is 255
 * check that max custom type size is 255
+* check thatown methods are now called before init
 * check that max list item size is 255
 * check that initial list size is no more than 255
 * check different variations of tuple typecheck (items should match)
