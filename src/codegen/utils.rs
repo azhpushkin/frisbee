@@ -13,41 +13,41 @@ pub fn get_type_size<T>(t: &Type<T>) -> u8 {
     }
 }
 
-pub fn extract_custom_type<T>(t: &Type<T>) -> &T {
-    match t {
-        Type::Custom(s) => s,
-        _ => panic!("Field or method access on non-custom type, emantics failed"),
-    }
+macro_rules! unwrap_type_as {
+    ($value:expr, $variant:path $(,)?) => {
+        match $value {
+            $variant(a) => a,
+            other => panic!(
+                "Wrong unwrap, expected {:?}, got {:?}",
+                stringify!($variant),
+                other
+            ),
+        }
+    };
 }
+pub(crate) use unwrap_type_as;
 
-pub fn get_tuple_offset<T>(tuple_type: &Type<T>, tuple_indexes: &[usize]) -> u8 {
+pub fn get_tuple_offset<T: std::fmt::Debug>(tuple_type: &Type<T>, tuple_indexes: &[usize]) -> u8 {
     if tuple_indexes.is_empty() {
         return 0;
     }
     let current_index = tuple_indexes[0];
+    let next_indexes = &tuple_indexes[1..];
 
-    match tuple_type {
-        Type::Tuple(items) => {
-            let mut offset: u8 = 0;
-            for item in items.iter().take(current_index) {
-                offset += get_type_size(item);
-            }
-            offset += get_tuple_offset(&items[current_index], &tuple_indexes[1..]);
-            offset
+    if let Type::Maybe(inner) = tuple_type {
+        match current_index {
+            0 if !next_indexes.is_empty() => panic!("Accessing inners of maybe flag"),
+            0 => 0,
+            1 => 1 + get_tuple_offset(inner.as_ref(), next_indexes),
+            _ => panic!("Maybe indexes must be 0 or 1, but got {}", current_index),
         }
-        Type::Maybe(_) if current_index == 0 => {
-            assert!(
-                tuple_indexes.len() == 1,
-                "Accessing inners of maybe flag, wtf?"
-            );
-            0
-        }
-        Type::Maybe(i) if current_index == 1 => {
-            let next = get_tuple_offset(i.as_ref(), &tuple_indexes[1..]);
-            next + 1
-        }
-        Type::Maybe(_) => panic!("Maybe indexes must be 0 or 1, but got {}", current_index),
-        _ => 0,
+    } else {
+        let items = unwrap_type_as!(tuple_type, Type::Tuple);
+
+        let current_item_offset: u8 = items.iter().take(current_index).map(get_type_size).sum();
+        let offset_inside_current_item = get_tuple_offset(&items[current_index], next_indexes);
+
+        current_item_offset + offset_inside_current_item
     }
 }
 

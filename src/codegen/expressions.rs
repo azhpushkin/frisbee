@@ -1,8 +1,9 @@
 use super::constants::Constant;
 use super::generator::BytecodeGenerator;
-use super::utils::{extract_custom_type, get_tuple_offset, get_tuple_subitem_type, get_type_size};
+use super::utils::{unwrap_type_as, get_tuple_offset, get_tuple_subitem_type, get_type_size};
 use crate::ast::verified::{RawOperator, VExpr, VExprTyped};
 use crate::symbols::SymbolFunc;
+use crate::types::Type;
 use crate::vm::opcodes::op;
 use crate::vm::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
 
@@ -145,7 +146,7 @@ impl<'a> BytecodeGenerator<'a> {
                 self.push_type_size(item_type);
             }
             VExpr::AccessField { object, field } => {
-                let object_type = extract_custom_type(&object.expr_type);
+                let object_type = unwrap_type_as!(&object.expr_type, Type::Custom);
                 self.push_expr(object);
                 self.push(op::GET_OBJ_FIELD);
                 self.push(self.types_meta.get_meta(object_type).field_offsets[field]);
