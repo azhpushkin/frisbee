@@ -7,49 +7,22 @@ use crate::vm::stdlib_runners::LIST_OF_INTS_META_FLAG;
 
 use super::utils;
 
-#[derive(Default, Debug)]
-pub struct TypeMetadata {
+#[derive(Debug)]
+pub struct CustomTypeMetadata {
     pub size: u8,
     pub field_offsets: HashMap<String, u8>,
     pub field_sizes: HashMap<String, u8>,
     pub pointer_mapping: Vec<usize>,
 }
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct ListKindMetadata {
     pub size: u8,
     pub pointer_mapping: Vec<usize>,
 }
 
-#[derive(Debug)]
-pub struct TypesMetadataTable {
-    pub indexes: HashMap<SymbolType, usize>,
-    pub metadata: Vec<TypeMetadata>,
-}
 
-#[derive(Debug)]
-pub struct ListMetadataTable {
-    pub indexes: HashMap<VerifiedType, usize>,
-    pub metadata: Vec<ListKindMetadata>,
-}
-
-/// Default for Types table adds STD types to overview
-impl Default for TypesMetadataTable {
-    fn default() -> Self {
-        Self { indexes: Default::default(), metadata: Default::default() }
-    }
-}
-
-impl Default for ListMetadataTable {
-    fn default() -> Self {
-        Self {
-            indexes: HashMap::from([(Type::Int, LIST_OF_INTS_META_FLAG)]),
-            metadata: vec![ListKindMetadata::from_item_type(&Type::Int)],
-        }
-    }
-}
-
-impl TypeMetadata {
+impl CustomTypeMetadata {
     pub fn from_custom(definition: &CustomType) -> Self {
         let fields_sizes = definition.fields.types.iter().map(utils::get_type_size);
         let type_size: u8 = fields_sizes.clone().sum();
@@ -70,27 +43,6 @@ impl TypeMetadata {
     }
 }
 
-impl TypesMetadataTable {
-    pub fn from_types(types: &[CustomType]) -> Self {
-        let mut table = Self::default();
-
-        for custom_type in types.iter() {
-            let index = table.indexes.len();
-            table.indexes.insert(custom_type.name.clone(), index);
-            table.metadata.push(TypeMetadata::from_custom(custom_type));
-        }
-
-        table
-    }
-
-    pub fn get_meta(&self, flag: &SymbolType) -> &TypeMetadata {
-        &self.metadata[self.indexes[flag]]
-    }
-
-    pub fn get_index(&self, flag: &SymbolType) -> usize {
-        self.indexes[flag]
-    }
-}
 
 impl ListKindMetadata {
     pub fn from_item_type(t: &VerifiedType) -> Self {
@@ -101,7 +53,55 @@ impl ListKindMetadata {
     }
 }
 
-impl ListMetadataTable {
+
+#[derive(Debug)]
+pub struct CustomTypesMetadataTable {
+    pub indexes: HashMap<SymbolType, usize>,
+    pub metadata: Vec<CustomTypeMetadata>,
+}
+
+#[derive(Debug)]
+pub struct ListKindsMetadataTable {
+    pub indexes: HashMap<VerifiedType, usize>,
+    pub metadata: Vec<ListKindMetadata>,
+}
+
+
+impl CustomTypesMetadataTable {
+    pub fn from_types(types: &[CustomType]) -> Self {
+        let mut table = Self {
+            indexes: HashMap::new(),
+            metadata: vec![],
+        };
+
+        for custom_type in types.iter() {
+            let index = table.indexes.len();
+            table.indexes.insert(custom_type.name.clone(), index);
+            table.metadata.push(CustomTypeMetadata::from_custom(custom_type));
+        }
+
+        table
+    }
+
+    pub fn get_meta(&self, flag: &SymbolType) -> &CustomTypeMetadata {
+        &self.metadata[self.indexes[flag]]
+    }
+
+    pub fn get_index(&self, flag: &SymbolType) -> usize {
+        self.indexes[flag]
+    }
+}
+
+
+impl ListKindsMetadataTable {
+    pub fn new_empty() -> Self {
+        Self {
+            // Add std kinds
+            indexes: HashMap::from([(Type::Int, LIST_OF_INTS_META_FLAG)]),
+            metadata: vec![ListKindMetadata::from_item_type(&Type::Int)],
+        }
+    }
+
     pub fn get_or_insert(&mut self, t: &VerifiedType) -> usize {
         if let Some(index) = self.indexes.get(t) {
             *index
@@ -138,7 +138,7 @@ mod test {
         };
         let custom_type = CustomType { name: gen_symbol_type(), is_active: false, fields };
 
-        let metadata = TypeMetadata::from_custom(&custom_type);
+        let metadata = CustomTypeMetadata::from_custom(&custom_type);
 
         assert_eq!(metadata.size, 4);
         assert_eq!(metadata.field_offsets.len(), 3);

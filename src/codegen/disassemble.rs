@@ -7,7 +7,7 @@ pub struct Disassembler<'a> {
     result: Vec<String>,
     function_names: HashMap<usize, String>,
     type_names: HashMap<usize, String>,
-    list_type_names: HashMap<usize, String>,
+    list_kind_names: HashMap<usize, String>,
 }
 
 impl<'a> Disassembler<'a> {
@@ -17,7 +17,7 @@ impl<'a> Disassembler<'a> {
             result: vec![],
             function_names: HashMap::new(),
             type_names: HashMap::new(),
-            list_type_names: HashMap::new(),
+            list_kind_names: HashMap::new(),
         }
     }
 
@@ -37,7 +37,7 @@ impl<'a> Disassembler<'a> {
 
         // Read lists metadata
         for (i, item_type) in self.read_info_block() {
-            self.list_type_names.insert(i, item_type);
+            self.list_kind_names.insert(i, item_type);
         }
         self.read_header("End of list types metadata");
 
@@ -169,7 +169,7 @@ impl<'a> Disassembler<'a> {
                 let typename = &self.type_names[&(args[0] as usize)];
                 op_text.push_str(&format!(" (type {}) ", typename).yellow().to_string());
             } else if *opcode == op::ALLOCATE_LIST {
-                let typename = &self.list_type_names[&(args[0] as usize)];
+                let typename = &self.list_kind_names[&(args[0] as usize)];
                 op_text.push_str(&format!(" (list of {}) ", typename).yellow().to_string());
             }
 

@@ -6,7 +6,7 @@ use crate::types::VerifiedType;
 use crate::vm::opcodes::op;
 
 use super::constants::{Constant, ConstantsTable};
-use super::metadata::{ListMetadataTable, TypesMetadataTable};
+use super::metadata::{ListKindsMetadataTable, CustomTypesMetadataTable};
 use super::utils::{get_tuple_offset, get_tuple_subitem_size, get_type_size};
 
 pub type CallPlaceholders = (usize, SymbolFunc);
@@ -24,8 +24,8 @@ pub struct JumpPlaceholder {
 }
 
 pub struct BytecodeGenerator<'a> {
-    pub types_meta: &'a TypesMetadataTable,
-    pub list_types_meta: &'a mut ListMetadataTable,
+    pub custom_types_meta: &'a CustomTypesMetadataTable,
+    pub list_kinds_meta: &'a mut ListKindsMetadataTable,
     constants: &'a mut ConstantsTable,
     locals: HashMap<&'a str, u8>,
     locals_offset: u8,
@@ -37,8 +37,8 @@ pub struct BytecodeGenerator<'a> {
 
 impl<'a> BytecodeGenerator<'a> {
     pub fn new(
-        types_meta: &'a TypesMetadataTable,
-        list_types_meta: &'a mut ListMetadataTable,
+        custom_types_meta: &'a CustomTypesMetadataTable,
+        list_kinds_meta: &'a mut ListKindsMetadataTable,
         constants: &'a mut ConstantsTable,
         function: &'a RawFunction,
     ) -> Self {
@@ -55,8 +55,8 @@ impl<'a> BytecodeGenerator<'a> {
         }
 
         BytecodeGenerator {
-            types_meta,
-            list_types_meta,
+            custom_types_meta,
+            list_kinds_meta,
             constants,
             locals,
             locals_offset,

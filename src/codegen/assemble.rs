@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::symbols::SymbolFunc;
 
 use super::generator::FunctionBytecode;
-use super::metadata::{ListMetadataTable, TypesMetadataTable};
+use super::metadata::{CustomTypesMetadataTable, ListKindsMetadataTable};
 
 /*
 Bytecode structure:
@@ -39,8 +39,8 @@ fn push_usize_as_u16(bytecode: &mut Vec<u8>, value: usize) {
 
 pub fn assemble_chunks(
     constants: Vec<u8>,
-    types_meta: TypesMetadataTable,
-    list_types_meta: ListMetadataTable,
+    custom_types_meta: CustomTypesMetadataTable,
+    list_kinds_meta: ListKindsMetadataTable,
     functions: Vec<FunctionBytecode>,
     entry: &SymbolFunc,
 ) -> Vec<u8> {
@@ -52,22 +52,22 @@ pub fn assemble_chunks(
     bytecode.extend_from_slice(&HEADER);
 
     // 3. Types info (size + pointer mapping)
-    bytecode.push(types_meta.metadata.len() as u8);
-    for (i, type_meta) in types_meta.metadata.iter().enumerate() {
-        let type_name = get_by_value(&types_meta.indexes, i);
+    bytecode.push(custom_types_meta.metadata.len() as u8);
+    for (i, type_meta) in custom_types_meta.metadata.iter().enumerate() {
+        let type_name = get_by_value(&custom_types_meta.indexes, i);
         push_str(&mut bytecode, &format!("{}", type_name));
         push_usize_as_u16(&mut bytecode, type_meta.size as usize);
         push_pointers_map(&mut bytecode, &type_meta.pointer_mapping);
     }
     bytecode.extend_from_slice(&HEADER);
 
-    // 4. List types info (item size + pointer mapping)
-    bytecode.push(list_types_meta.metadata.len() as u8);
-    for (i, list_meta) in list_types_meta.metadata.iter().enumerate() {
-        let item_type = get_by_value(&list_types_meta.indexes, i);
+    // 4. List kinds info (item size + pointer mapping)
+    bytecode.push(list_kinds_meta.metadata.len() as u8);
+    for (i, list_kind_meta) in list_kinds_meta.metadata.iter().enumerate() {
+        let item_type = get_by_value(&list_kinds_meta.indexes, i);
         push_str(&mut bytecode, &format!("{}", item_type));
-        push_usize_as_u16(&mut bytecode, list_meta.size as usize);
-        push_pointers_map(&mut bytecode, &list_meta.pointer_mapping);
+        push_usize_as_u16(&mut bytecode, list_kind_meta.size as usize);
+        push_pointers_map(&mut bytecode, &list_kind_meta.pointer_mapping);
     }
     bytecode.extend_from_slice(&HEADER);
 

@@ -4,16 +4,16 @@ use crate::vm::opcodes::op;
 
 use super::constants::ConstantsTable;
 use super::generator::{BytecodeGenerator, FunctionBytecode, JumpPlaceholder};
-use super::metadata::{ListMetadataTable, TypesMetadataTable};
+use super::metadata::{ListKindsMetadataTable, CustomTypesMetadataTable};
 use super::utils::{unwrap_type_as, get_tuple_offset, get_type_size};
 
 pub fn generate_function_bytecode(
     func: &RawFunction,
-    types_meta: &TypesMetadataTable,
-    list_types_meta: &mut ListMetadataTable,
+    custom_types_meta: &CustomTypesMetadataTable,
+    list_kinds_meta: &mut ListKindsMetadataTable,
     constants: &mut ConstantsTable,
 ) -> Result<FunctionBytecode, String> {
-    let mut generator = BytecodeGenerator::new(types_meta, list_types_meta, constants, func);
+    let mut generator = BytecodeGenerator::new(custom_types_meta, list_kinds_meta, constants, func);
 
     for (local_name, local_type) in func.locals.iter() {
         generator.add_local(local_name, local_type);
@@ -52,7 +52,9 @@ impl<'a> BytecodeGenerator<'a> {
                 self.push_expr(value);
                 self.push_expr(object);
 
-                let field_offset = self.types_meta.get_meta(object_type).field_offsets[field];
+                let field_offset = self.custom_types_meta.get_meta(object_type).field_offsets[field];
+                // let field_type = self.custom_types_meta.get_meta(object_type).field_types[field];
+                
                 let tuple_offset = get_tuple_offset(&value.expr_type, tuple_indexes);
 
                 self.push(op::SET_OBJ_FIELD);
@@ -146,7 +148,7 @@ impl<'a> BytecodeGenerator<'a> {
                 // to access the memory before writing value to it
                 self.push_expr(value);
 
-                let field_offset = self.types_meta.get_meta(active_type).field_offsets[field];
+                let field_offset = self.custom_types_meta.get_meta(active_type).field_offsets[field];
                 let tuple_offset = get_tuple_offset(&value.expr_type, tuple_indexes);
 
                 self.push(op::SET_CURRENT_ACTIVE_FIELD);

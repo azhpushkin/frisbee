@@ -127,7 +127,7 @@ impl<'a> BytecodeGenerator<'a> {
                     self.push_expr(item);
                 }
 
-                let list_flag = self.list_types_meta.get_or_insert(item_type);
+                let list_flag = self.list_kinds_meta.get_or_insert(item_type);
 
                 self.push(op::ALLOCATE_LIST);
                 self.push(list_flag as u8);
@@ -149,8 +149,8 @@ impl<'a> BytecodeGenerator<'a> {
                 let object_type = unwrap_type_as!(&object.expr_type, Type::Custom);
                 self.push_expr(object);
                 self.push(op::GET_OBJ_FIELD);
-                self.push(self.types_meta.get_meta(object_type).field_offsets[field]);
-                self.push(self.types_meta.get_meta(object_type).field_sizes[field]);
+                self.push(self.custom_types_meta.get_meta(object_type).field_offsets[field]);
+                self.push(self.custom_types_meta.get_meta(object_type).field_sizes[field]);
             }
             VExpr::AccessListItem { list, index } => {
                 self.push_expr(index);
@@ -159,7 +159,7 @@ impl<'a> BytecodeGenerator<'a> {
             }
             VExpr::Allocate { typename } => {
                 self.push(op::ALLOCATE);
-                self.push(self.types_meta.get_index(typename) as u8);
+                self.push(self.custom_types_meta.get_index(typename) as u8);
             }
             VExpr::Spawn { typename, args } => {
                 self.push(op::RESERVE);
@@ -171,7 +171,7 @@ impl<'a> BytecodeGenerator<'a> {
                 let constructor_name = typename.constructor();
 
                 self.push(op::SPAWN);
-                self.push(self.types_meta.get_index(typename) as u8);
+                self.push(self.custom_types_meta.get_index(typename) as u8);
                 self.push_function_placeholder(&constructor_name);
             }
             VExpr::Dummy(t) => {
@@ -182,8 +182,8 @@ impl<'a> BytecodeGenerator<'a> {
             }
             VExpr::CurrentActiveField { active_type, field } => {
                 self.push(op::GET_CURRENT_ACTIVE_FIELD);
-                self.push(self.types_meta.get_meta(active_type).field_offsets[field]);
-                self.push(self.types_meta.get_meta(active_type).field_sizes[field]);
+                self.push(self.custom_types_meta.get_meta(active_type).field_offsets[field]);
+                self.push(self.custom_types_meta.get_meta(active_type).field_sizes[field]);
             }
         }
     }
