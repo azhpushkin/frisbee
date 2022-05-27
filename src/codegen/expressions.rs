@@ -1,6 +1,6 @@
 use super::constants::Constant;
 use super::generator::BytecodeGenerator;
-use super::utils::{extract_custom_type, get_tuple_offset, get_type_from_tuple, get_type_size};
+use super::utils::{extract_custom_type, get_tuple_offset, get_tuple_subitem_type, get_type_size};
 use crate::ast::verified::{RawOperator, VExpr, VExprTyped};
 use crate::symbols::SymbolFunc;
 use crate::vm::opcodes::op;
@@ -134,7 +134,7 @@ impl<'a> BytecodeGenerator<'a> {
             }
             VExpr::AccessTupleItem { tuple, index } => {
                 let tuple_type = &tuple.as_ref().expr_type;
-                let item_type = get_type_from_tuple(tuple_type, *index);
+                let item_type = get_tuple_subitem_type(tuple_type, *index);
                 self.push_reserve(item_type);
                 self.push_expr(tuple.as_ref());
 

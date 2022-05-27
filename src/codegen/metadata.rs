@@ -16,7 +16,7 @@ pub struct TypeMetadata {
 }
 
 #[derive(Default, Debug)]
-pub struct ListItemMetadata {
+pub struct ListKindMetadata {
     pub size: u8,
     pub pointer_mapping: Vec<usize>,
 }
@@ -30,7 +30,7 @@ pub struct TypesMetadataTable {
 #[derive(Debug)]
 pub struct ListMetadataTable {
     pub indexes: HashMap<VerifiedType, usize>,
-    pub metadata: Vec<ListItemMetadata>,
+    pub metadata: Vec<ListKindMetadata>,
 }
 
 /// Default for Types table adds STD types to overview
@@ -44,7 +44,7 @@ impl Default for ListMetadataTable {
     fn default() -> Self {
         Self {
             indexes: HashMap::from([(Type::Int, LIST_OF_INTS_META_FLAG)]),
-            metadata: vec![ListItemMetadata::from_item_type(&Type::Int)],
+            metadata: vec![ListKindMetadata::from_item_type(&Type::Int)],
         }
     }
 }
@@ -92,7 +92,7 @@ impl TypesMetadataTable {
     }
 }
 
-impl ListItemMetadata {
+impl ListKindMetadata {
     pub fn from_item_type(t: &VerifiedType) -> Self {
         Self {
             size: utils::get_type_size(t),
@@ -107,7 +107,7 @@ impl ListMetadataTable {
             *index
         } else {
             let index = self.indexes.len();
-            self.metadata.push(ListItemMetadata::from_item_type(t));
+            self.metadata.push(ListKindMetadata::from_item_type(t));
             self.indexes.insert(t.clone(), index);
             index
         }

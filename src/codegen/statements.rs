@@ -1,10 +1,11 @@
 use crate::ast::verified::{RawFunction, VStatement};
+use crate::types::Type;
 use crate::vm::opcodes::op;
 
 use super::constants::ConstantsTable;
 use super::generator::{BytecodeGenerator, FunctionBytecode, JumpPlaceholder};
 use super::metadata::{ListMetadataTable, TypesMetadataTable};
-use super::utils::{extract_custom_type, get_list_inner_type, get_tuple_offset, get_type_size};
+use super::utils::{extract_custom_type, get_tuple_offset, get_type_size};
 
 pub fn generate_function_bytecode(
     func: &RawFunction,
@@ -59,12 +60,17 @@ impl<'a> BytecodeGenerator<'a> {
                 self.push_type_size(&value.expr_type);
             }
             VStatement::AssignToList { list, index, tuple_indexes, value } => {
-                let list_type = get_list_inner_type(&list.expr_type);
+                assert_eq!(
+                    &list.expr_type,
+                    &Type::List(Box::new(value.expr_type.clone())),
+                    "Assigning value of wrong type"
+                );
+
                 self.push_expr(value);
                 self.push_expr(index);
                 self.push_expr(list);
 
-                let tuple_offset = get_tuple_offset(list_type, tuple_indexes);
+                let tuple_offset = get_tuple_offset(&value.expr_type, tuple_indexes);
 
                 self.push(op::SET_LIST_ITEM);
                 self.push(tuple_offset);

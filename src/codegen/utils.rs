@@ -13,18 +13,6 @@ pub fn get_type_size<T>(t: &Type<T>) -> u8 {
     }
 }
 
-pub fn get_type_from_tuple<T>(t: &Type<T>, i: usize) -> &Type<T> {
-    match t {
-        Type::Tuple(items) => &items[i],
-        Type::Maybe(inner) => match i {
-            0 => &Type::Bool,
-            1 => inner.as_ref(),
-            i => panic!("Accessing maybe with wrong index {}, semantics failed", i),
-        },
-        _ => panic!("Tuple access on non-tuple type, semantics failed"),
-    }
-}
-
 pub fn extract_custom_type<T>(t: &Type<T>) -> &T {
     match t {
         Type::Custom(s) => s,
@@ -63,21 +51,26 @@ pub fn get_tuple_offset<T>(tuple_type: &Type<T>, tuple_indexes: &[usize]) -> u8 
     }
 }
 
+pub fn get_tuple_subitem_type<T>(t: &Type<T>, i: usize) -> &Type<T> {
+    match t {
+        Type::Tuple(items) => &items[i],
+        Type::Maybe(inner) => match i {
+            0 => &Type::Bool,
+            1 => inner.as_ref(),
+            i => panic!("Accessing maybe with wrong index {}, semantics failed", i),
+        },
+        _ => panic!("Tuple access on non-tuple type, semantics failed"),
+    }
+}
+
 pub fn get_tuple_subitem_size<T>(tuple_type: &Type<T>, tuple_indexes: &[usize]) -> u8 {
     if tuple_indexes.is_empty() {
         get_type_size(tuple_type)
     } else {
         return get_tuple_subitem_size(
-            get_type_from_tuple(tuple_type, tuple_indexes[0]),
+            get_tuple_subitem_type(tuple_type, tuple_indexes[0]),
             &tuple_indexes[1..],
         );
-    }
-}
-
-pub fn get_list_inner_type<T>(list_type: &Type<T>) -> &Type<T> {
-    match list_type {
-        Type::List(inner_type) => inner_type.as_ref(),
-        _ => panic!("List index access on non-list type, semantics failed"),
     }
 }
 
