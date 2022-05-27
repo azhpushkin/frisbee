@@ -4,8 +4,8 @@ use crate::vm::opcodes::op;
 
 use super::constants::ConstantsTable;
 use super::generator::{BytecodeGenerator, FunctionBytecode, JumpPlaceholder};
-use super::metadata::{ListKindsMetadataTable, CustomTypesMetadataTable};
-use super::utils::{unwrap_type_as, get_tuple_offset, get_type_size};
+use super::metadata::{CustomTypesMetadataTable, ListKindsMetadataTable};
+use super::utils::{get_tuple_offset, get_type_size, unwrap_type_as};
 
 pub fn generate_function_bytecode(
     func: &RawFunction,
@@ -47,15 +47,18 @@ impl<'a> BytecodeGenerator<'a> {
             }
             VStatement::AssignToField { object, field, tuple_indexes, value } => {
                 let object_type = unwrap_type_as!(&object.expr_type, Type::Custom);
+                let object_meta = self.custom_types_meta.get_meta(object_type);
                 // Push value before object, as we need to first pop a pointer
                 // to access the memory before writing value to it
                 self.push_expr(value);
                 self.push_expr(object);
 
-                let field_offset = self.custom_types_meta.get_meta(object_type).field_offsets[field];
-                // let field_type = self.custom_types_meta.get_meta(object_type).field_types[field];
                 
-                let tuple_offset = get_tuple_offset(&value.expr_type, tuple_indexes);
+
+                let field_offset = object_meta.field_offsets[field];
+                let field_type = &object_meta.field_types[field];
+
+                let tuple_offset = get_tuple_offset(field_type, tuple_indexes);
 
                 self.push(op::SET_OBJ_FIELD);
                 self.push(field_offset + tuple_offset);
@@ -148,7 +151,8 @@ impl<'a> BytecodeGenerator<'a> {
                 // to access the memory before writing value to it
                 self.push_expr(value);
 
-                let field_offset = self.custom_types_meta.get_meta(active_type).field_offsets[field];
+                let field_offset =
+                    self.custom_types_meta.get_meta(active_type).field_offsets[field];
                 let tuple_offset = get_tuple_offset(&value.expr_type, tuple_indexes);
 
                 self.push(op::SET_CURRENT_ACTIVE_FIELD);

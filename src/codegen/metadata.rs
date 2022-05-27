@@ -12,15 +12,16 @@ pub struct CustomTypeMetadata {
     pub size: u8,
     pub field_offsets: HashMap<String, u8>,
     pub field_sizes: HashMap<String, u8>,
+    pub field_types: HashMap<String, VerifiedType>,
     pub pointer_mapping: Vec<usize>,
 }
 
 #[derive(Debug)]
 pub struct ListKindMetadata {
     pub size: u8,
+    pub item_type: VerifiedType,
     pub pointer_mapping: Vec<usize>,
 }
-
 
 impl CustomTypeMetadata {
     pub fn from_custom(definition: &CustomType) -> Self {
@@ -38,21 +39,23 @@ impl CustomTypeMetadata {
             size: type_size,
             field_offsets: generate_field_names().zip(field_offsets).collect(),
             field_sizes: generate_field_names().zip(field_sizes).collect(),
+            field_types: generate_field_names()
+                .zip(definition.fields.types.iter().cloned())
+                .collect(),
             pointer_mapping: utils::get_pointers_map_for_sequence(&definition.fields.types),
         }
     }
 }
 
-
 impl ListKindMetadata {
     pub fn from_item_type(t: &VerifiedType) -> Self {
         Self {
             size: utils::get_type_size(t),
+            item_type: t.clone(),
             pointer_mapping: utils::get_pointers_map_for_type(t),
         }
     }
 }
-
 
 #[derive(Debug)]
 pub struct CustomTypesMetadataTable {
@@ -66,13 +69,9 @@ pub struct ListKindsMetadataTable {
     pub metadata: Vec<ListKindMetadata>,
 }
 
-
 impl CustomTypesMetadataTable {
     pub fn from_types(types: &[CustomType]) -> Self {
-        let mut table = Self {
-            indexes: HashMap::new(),
-            metadata: vec![],
-        };
+        let mut table = Self { indexes: HashMap::new(), metadata: vec![] };
 
         for custom_type in types.iter() {
             let index = table.indexes.len();
@@ -91,7 +90,6 @@ impl CustomTypesMetadataTable {
         self.indexes[flag]
     }
 }
-
 
 impl ListKindsMetadataTable {
     pub fn new_empty() -> Self {
