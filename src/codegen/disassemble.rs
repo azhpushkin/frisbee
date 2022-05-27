@@ -101,7 +101,7 @@ impl<'a> Disassembler<'a> {
             let const_text: String = match self.get_byte().1 {
                 op::CONST_INT_FLAG => i64::from_be_bytes(self.get_bytes::<8>()).to_string(),
                 op::CONST_FLOAT_FLAG => f64::from_be_bytes(self.get_bytes::<8>()).to_string(),
-                op::CONST_STRING_FLAG => format!("\"{}\"", self.get_str()),
+                op::CONST_STRING_FLAG => format!("{:?}", self.get_str()),  // Debug pring escapes string
                 op::CONST_END_FLAG => {
                     break;
                 }
@@ -171,6 +171,9 @@ impl<'a> Disassembler<'a> {
             } else if *opcode == op::ALLOCATE_LIST {
                 let typename = &self.list_kind_names[&(args[0] as usize)];
                 op_text.push_str(&format!(" (list of {}) ", typename).yellow().to_string());
+            } else if *opcode == op::SPAWN {
+                let typename = &self.type_names[&(args[0] as usize)];
+                op_text.push_str(&format!(" (type {}) ", typename).yellow().to_string());
             }
 
             self.result.push(op_text);

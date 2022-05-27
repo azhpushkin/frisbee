@@ -53,8 +53,6 @@ impl<'a> BytecodeGenerator<'a> {
                 self.push_expr(value);
                 self.push_expr(object);
 
-                
-
                 let field_offset = object_meta.field_offsets[field];
                 let field_type = &object_meta.field_types[field];
 
