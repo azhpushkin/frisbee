@@ -1,4 +1,4 @@
-use crate::vm::opcodes::op;
+use crate::runtime::opcodes::op;
 
 #[derive(Debug, PartialEq)]
 pub enum Constant {

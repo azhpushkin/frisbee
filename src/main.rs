@@ -4,7 +4,7 @@ use std::path::Path;
 
 use argh::FromArgs;
 use owo_colors::OwoColorize;
-use vm::vm::Vm;
+use runtime::vm::Vm;
 
 pub mod alias;
 pub mod ast;
@@ -17,7 +17,7 @@ pub mod stdlib;
 pub mod symbols;
 pub mod tests;
 pub mod types;
-pub mod vm;
+pub mod runtime;
 
 // TODO: color output?
 

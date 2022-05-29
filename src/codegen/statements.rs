@@ -1,6 +1,6 @@
 use crate::ast::verified::{RawFunction, VStatement};
 use crate::types::Type;
-use crate::vm::opcodes::op;
+use crate::runtime::opcodes::op;
 
 use super::constants::ConstantsTable;
 use super::generator::{BytecodeGenerator, FunctionBytecode, JumpPlaceholder};

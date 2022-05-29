@@ -4,8 +4,8 @@ use super::utils::{unwrap_type_as, get_tuple_offset, get_tuple_subitem_type, get
 use crate::ast::verified::{RawOperator, VExpr, VExprTyped};
 use crate::symbols::SymbolFunc;
 use crate::types::Type;
-use crate::vm::opcodes::op;
-use crate::vm::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
+use crate::runtime::opcodes::op;
+use crate::runtime::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
 
 fn match_operator(raw_op: &RawOperator) -> u8 {
     match raw_op {
@@ -194,7 +194,7 @@ mod test {
     use crate::stdlib;
     use crate::symbols::SymbolFunc;
     use crate::types::{Type, VerifiedType};
-    use crate::vm::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
+    use crate::runtime::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
 
     #[test]
     fn check_that_all_std_functions_are_there() {

@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::ast::verified::RawFunction;
 use crate::symbols::SymbolFunc;
 use crate::types::VerifiedType;
-use crate::vm::opcodes::op;
+use crate::runtime::opcodes::op;
 
 use super::constants::{Constant, ConstantsTable};
 use super::metadata::{ListKindsMetadataTable, CustomTypesMetadataTable};

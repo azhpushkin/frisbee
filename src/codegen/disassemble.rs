@@ -1,4 +1,4 @@
-use crate::vm::opcodes::op;
+use crate::runtime::opcodes::op;
 use owo_colors::OwoColorize;
 use std::collections::HashMap;
 

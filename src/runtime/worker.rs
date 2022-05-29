@@ -1,7 +1,7 @@
 use std::io;
 use std::sync::{mpsc, Arc};
 
-use crate::vm::serialization::serialize_function_args;
+use crate::runtime::serialization::serialize_function_args;
 
 use super::heap;
 use super::opcodes::op;

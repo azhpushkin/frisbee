@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::vm::heap::{CustomObject, List};
+use crate::runtime::heap::{CustomObject, List};
 
 use super::heap::{Heap, HeapObject};
 use super::metadata::Metadata;
