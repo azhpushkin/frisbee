@@ -4,7 +4,8 @@ fun void main() {
     println("This is not " + false.to_string());
     print("Line1\nLine2\n");
     print("Double-Quote is \"\n");
-    print('\tSingle-Quote is \'\n');
+    println('\tHere\tare\tsome\ttabs\n');
+    print('Single-Quote is \'\n');
     return;
 }
 
@@ -16,5 +17,7 @@ This is not false
 Line1
 Line2
 Double-Quote is "
-	Single-Quote is '
+	Here	are	some	tabs
+
+Single-Quote is '
 ========== */

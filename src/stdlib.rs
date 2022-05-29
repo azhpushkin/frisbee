@@ -7,9 +7,11 @@ pub type StdMethod<'a> = (
 );
 const VOID_TYPE: VerifiedType = Type::Tuple(vec![]);
 
-pub const STD_FUNCTIONS: [StdFunction; 4] = [
+pub const STD_FUNCTIONS: [StdFunction; 6] = [
     ("print", || (vec![Type::String], VOID_TYPE)),
     ("println", || (vec![Type::String], VOID_TYPE)),
+    ("fprint", || (vec![Type::String, Type::List(Box::new(Type::String))], VOID_TYPE)),
+    ("fprintln", || (vec![Type::String, Type::List(Box::new(Type::String))], VOID_TYPE)),
     ("range", || {
         (vec![Type::Int, Type::Int], Type::List(Box::new(Type::Int)))
     }),

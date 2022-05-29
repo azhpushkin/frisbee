@@ -1,0 +1,16 @@
+fun void main() {
+    fprint("Hello %%!\n", ["world"]);
+    fprintln("No placeholders here", ['this', 'is', 'not used']);
+    fprintln("Got empty array: %%", []);
+    fprintln("%%|%%|%%", [12.to_string(), '', (-5.5).to_string()]);
+    return;
+}
+
+
+/* EXPECTED STDOUT
+==========
+Hello world!
+No placeholders here
+Got empty array: %%
+12||-5.5
+========== */

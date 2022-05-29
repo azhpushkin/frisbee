@@ -20,6 +20,19 @@ fn std_print(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64>
     vec![]
 }
 
+fn std_fprintln(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
+    let obj = memory.get_mut(stack[0]);
+    println!("{}", obj.extract_string());
+    vec![]
+}
+
+fn std_fprint(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
+    let obj = memory.get_mut(stack[0]);
+    print!("{}", obj.extract_string());
+    io::stdout().flush().unwrap();
+    vec![]
+}
+
 fn std_range(stack: &mut [u64], memory: &mut Heap, meta: &Metadata) -> Vec<u64> {
     let start = stack[0] as i64;
     let end = stack[1] as i64;
@@ -132,9 +145,11 @@ fn noop(_stack: &mut [u64], _memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
 }
 
 #[rustfmt::skip]
-pub static STD_RAW_FUNCTION_RUNNERS: [(&str, RawStdRunner); 21] = [
+pub static STD_RAW_FUNCTION_RUNNERS: [(&str, RawStdRunner); 23] = [
     ("std::print", std_print),
     ("std::println", std_println),
+    ("std::fprint", std_fprint),
+    ("std::fprintln", std_fprintln),
     ("std::range", std_range),
     ("std::get_input", std_get_input),
 
