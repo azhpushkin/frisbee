@@ -22,7 +22,7 @@ fn std_print(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64>
 
 fn std_fprintln(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
     let str_with_format = memory.get(stack[0]);
-    let parts = str_with_format.extract_string().split("%").collect::<Vec<_>>();
+    let parts = str_with_format.extract_string().split('%').collect::<Vec<_>>();
 
     let args = memory.get(stack[1]).extract_list();
     for (i, part) in parts.iter().enumerate() {
@@ -36,15 +36,14 @@ fn std_fprintln(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u
         } else {
             print!("%");
         }
-        
     }
-    println!("");
+    println!();
     vec![]
 }
 
 fn std_fprint(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
     let str_with_format = memory.get(stack[0]);
-    let parts = str_with_format.extract_string().split("%").collect::<Vec<_>>();
+    let parts = str_with_format.extract_string().split('%').collect::<Vec<_>>();
 
     let args = memory.get(stack[1]).extract_list();
     for (i, part) in parts.iter().enumerate() {
@@ -58,7 +57,6 @@ fn std_fprint(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64
         } else {
             print!("%");
         }
-        
     }
     io::stdout().flush().unwrap();
     vec![]

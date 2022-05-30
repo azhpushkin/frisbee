@@ -101,7 +101,7 @@ impl<'a> Disassembler<'a> {
             let const_text: String = match self.get_byte().1 {
                 op::CONST_INT_FLAG => i64::from_be_bytes(self.get_bytes::<8>()).to_string(),
                 op::CONST_FLOAT_FLAG => f64::from_be_bytes(self.get_bytes::<8>()).to_string(),
-                op::CONST_STRING_FLAG => format!("{:?}", self.get_str()),  // Debug pring escapes string
+                op::CONST_STRING_FLAG => format!("{:?}", self.get_str()), // Debug pring escapes string
                 op::CONST_END_FLAG => {
                     break;
                 }

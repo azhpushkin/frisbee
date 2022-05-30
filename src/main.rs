@@ -12,12 +12,12 @@ pub mod codegen;
 pub mod errors;
 pub mod loader;
 pub mod parsing;
+pub mod runtime;
 pub mod semantics;
 pub mod stdlib;
 pub mod symbols;
 pub mod tests;
 pub mod types;
-pub mod runtime;
 
 // TODO: color output?
 

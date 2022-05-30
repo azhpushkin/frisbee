@@ -1,11 +1,11 @@
 use crate::ast::verified::{RawFunction, VStatement};
-use crate::types::Type;
 use crate::runtime::opcodes::op;
+use crate::types::Type;
 
 use super::constants::ConstantsTable;
 use super::generator::{BytecodeGenerator, FunctionBytecode, JumpPlaceholder};
 use super::metadata::{CustomTypesMetadataTable, ListKindsMetadataTable};
-use super::utils::{get_tuple_offset, get_type_size, unwrap_type_as};
+use super::utils::{get_tuple_offset, get_tuple_subitem_size, get_type_size, unwrap_type_as};
 
 pub fn generate_function_bytecode(
     func: &RawFunction,
@@ -43,7 +43,14 @@ impl<'a> BytecodeGenerator<'a> {
             }
             VStatement::AssignLocal { name, tuple_indexes, value } => {
                 self.push_expr(value);
-                self.push_set_local(name, tuple_indexes);
+                let var_pos = *self.locals.get(name.as_str()).unwrap();
+                let offset = get_tuple_offset(self.locals_types[name.as_str()], tuple_indexes);
+                self.push(op::SET_LOCAL);
+                self.push(var_pos + offset);
+                self.push(get_tuple_subitem_size(
+                    self.locals_types[name.as_str()],
+                    tuple_indexes,
+                ));
             }
             VStatement::AssignToField { object, field, tuple_indexes, value } => {
                 let object_type = unwrap_type_as!(&object.expr_type, Type::Custom);
@@ -77,7 +84,8 @@ impl<'a> BytecodeGenerator<'a> {
             }
             VStatement::Return(expr) => {
                 self.push_expr(expr);
-                self.push_return();
+                self.push(op::RETURN);
+                self.push_type_size(self.return_type);
             }
             VStatement::IfElse { condition, if_body, else_body } if else_body.is_empty() => {
                 self.push_expr(condition);

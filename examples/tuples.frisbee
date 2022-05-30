@@ -1,5 +1,5 @@
 fun void main() {
-    (String, (String, Int)) person = ("", ('' , 123));
+    (String, (String, Int)) person = ("", ('' , 777));
     
     println("Input name:");
     person[0] = get_input();
@@ -12,11 +12,11 @@ fun void main() {
     return;
 }
 
-// INPUT: Bob~Nystrom
+// INPUT: Bob~Smith
 
 /* EXPECTED STDOUT
 ==========
 Input name:
 Input surname:
-Person Bob|Nystrom is of age 123
+Person Bob|Smith is of age 777
 ========== */

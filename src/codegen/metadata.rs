@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use crate::ast::verified::CustomType;
+use crate::runtime::stdlib_runners::LIST_OF_INTS_META_FLAG;
 use crate::symbols::SymbolType;
 use crate::types::{Type, VerifiedType};
-use crate::runtime::stdlib_runners::LIST_OF_INTS_META_FLAG;
 
 use super::utils;
 

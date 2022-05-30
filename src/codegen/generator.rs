@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 
 use crate::ast::verified::RawFunction;
+use crate::runtime::opcodes::op;
 use crate::symbols::SymbolFunc;
 use crate::types::VerifiedType;
-use crate::runtime::opcodes::op;
 
 use super::constants::{Constant, ConstantsTable};
-use super::metadata::{ListKindsMetadataTable, CustomTypesMetadataTable};
-use super::utils::{get_tuple_offset, get_tuple_subitem_size, get_type_size};
+use super::metadata::{CustomTypesMetadataTable, ListKindsMetadataTable};
+use super::utils::get_type_size;
 
 pub type CallPlaceholders = (usize, SymbolFunc);
 
@@ -26,12 +26,12 @@ pub struct JumpPlaceholder {
 pub struct BytecodeGenerator<'a> {
     pub custom_types_meta: &'a CustomTypesMetadataTable,
     pub list_kinds_meta: &'a mut ListKindsMetadataTable,
-    constants: &'a mut ConstantsTable,
-    locals: HashMap<&'a str, u8>,
-    locals_offset: u8,
-    locals_types: HashMap<&'a str, &'a VerifiedType>,
-    locals_order: Vec<&'a str>,
-    return_type: &'a VerifiedType,
+    pub constants: &'a mut ConstantsTable,
+    pub locals: HashMap<&'a str, u8>,
+    pub locals_offset: u8,
+    pub locals_types: HashMap<&'a str, &'a VerifiedType>,
+    pub locals_order: Vec<&'a str>,
+    pub return_type: &'a VerifiedType,
     bytecode: FunctionBytecode,
 }
 
@@ -79,29 +79,6 @@ impl<'a> BytecodeGenerator<'a> {
         self.locals_types.insert(varname, t);
         self.locals_offset += get_type_size(t);
         self.locals_order.push(varname);
-    }
-
-    pub fn push_get_local(&mut self, varname: &str) {
-        let var_pos = *self.locals.get(varname).unwrap();
-        self.push(op::GET_LOCAL);
-        self.push(var_pos);
-        self.push_type_size(self.locals_types[varname]);
-    }
-
-    pub fn push_set_local(&mut self, varname: &str, tuple_indexes: &[usize]) {
-        let var_pos = *self.locals.get(varname).unwrap();
-        let offset = get_tuple_offset(self.locals_types[varname], tuple_indexes);
-        self.push(op::SET_LOCAL);
-        self.push(var_pos + offset);
-        self.push(get_tuple_subitem_size(
-            self.locals_types[varname],
-            tuple_indexes,
-        ));
-    }
-
-    pub fn push_return(&mut self) {
-        self.push(op::RETURN);
-        self.push_type_size(self.return_type);
     }
 
     pub fn push_constant(&mut self, constant: Constant) {
