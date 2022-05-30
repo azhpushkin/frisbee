@@ -21,14 +21,45 @@ fn std_print(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64>
 }
 
 fn std_fprintln(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
-    let obj = memory.get_mut(stack[0]);
-    println!("{}", obj.extract_string());
+    let str_with_format = memory.get(stack[0]);
+    let parts = str_with_format.extract_string().split("%").collect::<Vec<_>>();
+
+    let args = memory.get(stack[1]).extract_list();
+    for (i, part) in parts.iter().enumerate() {
+        print!("{}", part);
+        if i == parts.len() - 1 {
+            break;
+        }
+        if i < args.items_amount {
+            let s_ptr = args.data[i];
+            print!("{}", memory.get(s_ptr).extract_string());
+        } else {
+            print!("%");
+        }
+        
+    }
+    println!("");
     vec![]
 }
 
 fn std_fprint(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
-    let obj = memory.get_mut(stack[0]);
-    print!("{}", obj.extract_string());
+    let str_with_format = memory.get(stack[0]);
+    let parts = str_with_format.extract_string().split("%").collect::<Vec<_>>();
+
+    let args = memory.get(stack[1]).extract_list();
+    for (i, part) in parts.iter().enumerate() {
+        print!("{}", part);
+        if i == parts.len() - 1 {
+            break;
+        }
+        if i < args.items_amount {
+            let s_ptr = args.data[i];
+            print!("{}", memory.get(s_ptr).extract_string());
+        } else {
+            print!("%");
+        }
+        
+    }
     io::stdout().flush().unwrap();
     vec![]
 }
@@ -104,7 +135,7 @@ fn std_float_abs(stack: &mut [u64], _memory: &mut Heap, _meta: &Metadata) -> Vec
 
 fn std_list_push(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
     let list_obj = memory.get_mut(stack[0]);
-    let list = list_obj.extract_list();
+    let list = list_obj.extract_list_mut();
 
     list.items_amount += 1;
     let item_size = list.item_size;
@@ -117,7 +148,7 @@ fn std_list_push(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<
 
 fn std_list_pop(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
     let list_obj = memory.get_mut(stack[0]);
-    let list = list_obj.extract_list();
+    let list = list_obj.extract_list_mut();
 
     list.items_amount -= 1;
     let item_size = list.item_size;
@@ -135,7 +166,7 @@ fn std_list_pop(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u
 
 fn std_list_len(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
     let list_obj = memory.get_mut(stack[0]);
-    let list = list_obj.extract_list();
+    let list = list_obj.extract_list_mut();
 
     vec![list.items_amount as u64]
 }

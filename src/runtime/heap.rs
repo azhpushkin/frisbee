@@ -40,7 +40,13 @@ impl HeapObject {
             _ => unreachable!("Trying to extract string from non-string object"),
         }
     }
-    pub fn extract_list(&mut self) -> &mut List {
+    pub fn extract_list_mut(&mut self) -> &mut List {
+        match self {
+            HeapObject::List(l) => l,
+            _ => unreachable!("Trying to extract list item memory from non-list object"),
+        }
+    }
+    pub fn extract_list(&self) -> &List {
         match self {
             HeapObject::List(l) => l,
             _ => unreachable!("Trying to extract list item memory from non-list object"),
@@ -103,7 +109,7 @@ impl Heap {
         }));
 
         let (pos, obj) = self.insert(obj);
-        (pos, obj.extract_list())
+        (pos, obj.extract_list_mut())
     }
 
     fn insert(&mut self, object: Box<HeapObject>) -> (u64, &mut HeapObject) {

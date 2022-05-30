@@ -290,7 +290,7 @@ impl ActiveObject {
                     let index = self.pop() as i64;
 
                     let heap_obj = self.memory.get_mut(list_pointer);
-                    let list = heap_obj.extract_list();
+                    let list = heap_obj.extract_list_mut();
 
                     let index = list.normalize_index(index);
                     let item_size = list.item_size;
@@ -308,7 +308,7 @@ impl ActiveObject {
                     let index = self.pop() as i64;
 
                     let heap_obj = self.memory.get_mut(list_pointer);
-                    let list = heap_obj.extract_list();
+                    let list = heap_obj.extract_list_mut();
 
                     let index = list.normalize_index(index);
                     let memory_to_write = list.get_item_mem(index as usize);
