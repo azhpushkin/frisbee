@@ -140,6 +140,7 @@ fn scan_string(scanner: &mut Scanner, start: usize, quote: char) -> Result<(), S
                 '\\' => chars.push('\\'),
                 '\'' => chars.push('\''),
                 '\"' => chars.push('\"'),
+                '%' => chars.push('%'),
                 _ => return Err(("Unknown escape character", scanner.position - 1)),
             }
         } else {

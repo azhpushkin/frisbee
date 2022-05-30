@@ -1,8 +1,9 @@
 fun void main() {
-    fprint("Hello %%!\n", ["world"]);
+    fprint("Hello %!\n", ["world"]);
     fprintln("No placeholders here", ['this', 'is', 'not used']);
-    fprintln("Got empty array: %%", []);
-    fprintln("%%|%%|%%", [12.to_string(), '', (-5.5).to_string()]);
+    fprintln("Got empty array: %", []);
+    fprintln("You can escape percentage like this: %\%", [12.to_string()]);
+    fprintln("%|%|%", [12.to_string(), '', (-5.5).to_string()]);
     return;
 }
 
@@ -11,6 +12,7 @@ fun void main() {
 ==========
 Hello world!
 No placeholders here
-Got empty array: %%
+Got empty array: %
+You can escape percentage like this: 12%
 12||-5.5
 ========== */
