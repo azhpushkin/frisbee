@@ -230,32 +230,3 @@ impl Vm {
         }
     }
 }
-
-// pub fn spawn_worker(
-//     vm: &'static Vm,
-//     item_type: usize,
-//     data: Vec<u64>,
-// )  {
-//     ACTIVE_SPAWNED.fetch_add(1, Ordering::SeqCst);
-//     let item_size = vm.metadata.types_sizes[item_type];
-
-//     let mut worker = ActiveObject::new(item_size, vm);
-
-//     thread::spawn(move || {
-//         worker.run(data);
-//     })
-// }
-
-// pub fn run_entry_and_wait_if_spawned(vm: &Vm) {
-//     let mut worker = ActiveObject::new(0, vm);
-//     worker.run(vec![vm.entry as u64]);
-
-//     loop {
-//         let value = ACTIVE_SPAWNED.load(Ordering::SeqCst);
-//         if value == 0 {
-//             break;
-//         }
-//         println!("Waiting for {} spawned threads...", value);
-//         thread::sleep(Duration::from_secs(1));
-//     }
-// }
