@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
 
 use crate::alias::ModuleAlias;
 use crate::ast::parsed::*;
@@ -10,21 +9,6 @@ pub trait FrisbeeModuleLoader {
     fn load_module(&self, module: &ModuleAlias) -> Result<String, String>;
 }
 
-pub struct FileSystemLoader {
-    pub workdir: PathBuf,
-}
-
-impl FrisbeeModuleLoader for FileSystemLoader {
-    fn load_module(&self, module: &ModuleAlias) -> Result<String, String> {
-        let mut file_path = self.workdir.to_owned();
-        for subpath in module.to_path().iter() {
-            file_path.push(subpath);
-        }
-        file_path.set_extension("frisbee");
-
-        std::fs::read_to_string(&file_path).map_err(|err| format!("{}", err))
-    }
-}
 
 #[derive(Debug)]
 pub struct FrisbeeModule {
@@ -45,7 +29,7 @@ impl WholeProgram {
     }
 }
 
-fn parse_contents(contents: String) -> Result<FileAst, Box<dyn CompileError>> {
+fn parse_contents(contents: &String) -> Result<FileAst, Box<dyn CompileError>> {
     let (tokens, scan_status) = parsing::scanner::scan_tokens(&contents);
     if let Err(e) = scan_status {
         return Err(Box::new(e));
@@ -62,7 +46,7 @@ pub fn load_modules_recursively(
     loader: &dyn FrisbeeModuleLoader,
     main_module: &ModuleAlias,
 ) -> Result<WholeProgram, (ModuleAlias, String, Box<dyn CompileError>)> {
-    let loaded_modules: HashMap<ModuleAlias, FrisbeeModule> = HashMap::new();
+    let mut loaded_modules: HashMap<ModuleAlias, FrisbeeModule> = HashMap::new();
 
     let mut modules_to_load: Vec<ModuleAlias> = vec![main_module.clone()];
 
@@ -72,13 +56,13 @@ pub fn load_modules_recursively(
         }
 
         let contents = loader.load_module(&new_module).expect("Cannot load module");
-        let ast = parse_contents(contents).map_err(|err| (new_module, contents, err))?;
+        let ast = parse_contents(&contents).map_err(|err| (new_module.clone(), contents.clone(), err))?;
         for import_statement in ast.imports.iter() {
             modules_to_load.push(ModuleAlias::new(&import_statement.module_path))
         }
 
         loaded_modules.insert(
-            new_module,
+            new_module.clone(),
             FrisbeeModule { alias: new_module, contents, ast },
         );
     }

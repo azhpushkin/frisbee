@@ -5,7 +5,9 @@ use std::path::{Path, PathBuf};
 
 use tempfile::{tempdir, TempDir};
 
-use crate::loader::{load_program, WholeProgram};
+use crate::alias::ModuleAlias;
+use crate::loader::{load_modules_recursively, WholeProgram};
+use crate::os_loader;
 
 pub struct TestFilesCreator {
     temp_workdir: TempDir,
@@ -56,7 +58,9 @@ impl TestFilesCreator {
     }
 
     pub fn load_program(&self) -> WholeProgram {
-        match load_program(self.get_main_path()) {
+        let main_module = ModuleAlias::new(&[String::from("main")]);
+        let loader = os_loader::FileSystemLoader{workdir: self.temp_workdir.path().to_owned()};
+        match load_modules_recursively(&loader, &main_module) {
             Ok(whole_program) => whole_program,
             Err(e) => panic!("Error loading program in {}: {}", e.0, e.2.get_message()),
         }
@@ -145,11 +149,12 @@ mod tests {
         t.set_file("mod.frisbee", "fun Nil hello_world() {}");
         t.set_file("sub/mod.frisbee", "active Type {}");
 
-        let wp = t.load_program();
+        t.load_program();
+        let workdir = t.temp_workdir.path();
 
-        let main_prog = read_to_string(wp.workdir.join("main.frisbee"));
-        let mod_prog = read_to_string(wp.workdir.join("mod.frisbee"));
-        let sub_mod_prog = read_to_string(wp.workdir.join("sub/mod.frisbee"));
+        let main_prog = read_to_string(workdir.join("main.frisbee"));
+        let mod_prog = read_to_string(workdir.join("mod.frisbee"));
+        let sub_mod_prog = read_to_string(workdir.join("sub/mod.frisbee"));
 
         assert_eq!(
             main_prog.unwrap(),

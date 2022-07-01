@@ -10,7 +10,6 @@ fun void main() {
     return;
 }
 
-from tuples import asd;
 // INPUT: Stranger
 
 /* EXPECTED STDOUT

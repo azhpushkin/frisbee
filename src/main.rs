@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use argh::FromArgs;
 use owo_colors::OwoColorize;
@@ -11,6 +11,7 @@ pub mod ast;
 pub mod codegen;
 pub mod errors;
 pub mod loader;
+pub mod os_loader;
 pub mod parsing;
 pub mod runtime;
 pub mod semantics;
@@ -18,12 +19,6 @@ pub mod stdlib;
 pub mod symbols;
 pub mod tests;
 pub mod types;
-
-// TODO: color output?
-pub fn get_loader_by_mainfile_path(mainfile: &String) -> loader::FileSystemLoader {
-    let workdir = Path::new(&mainfile).parent().unwrap();
-    loader::FileSystemLoader{workdir: workdir.to_owned()}
-}
 
 #[derive(FromArgs, PartialEq, Debug)]
 /// Top-level command.
@@ -85,12 +80,14 @@ struct RunCommand {
 
 fn compile_file(c: CompileCommand) {
     let CompileCommand { mainfile, show_intermediate, run } = c;
-    let loader = get_loader_by_mainfile_path(&mainfile);
+    let (loader, main_module) = os_loader::entry_path_to_loader_and_main_module(&mainfile);
 
-    let mut wp = loader::load_modules_recursively(loader, ModuleAlias::new).unwrap_or_else(|(alias, source, error)| {
-        errors::show_error_in_file(&alias, &source, error);
-        panic!("See the error above!");
-    });
+    let mut wp = loader::load_modules_recursively(&loader, &main_module).unwrap_or_else(
+        |(alias, source, error)| {
+            errors::show_error_in_file(&alias, &source, error);
+            panic!("See the error above!");
+        },
+    );
 
     semantics::add_default_constructors(
         wp.modules
@@ -122,7 +119,7 @@ fn compile_file(c: CompileCommand) {
     let functions: Vec<_> = functions.into_iter().map(|(_, v)| v).collect();
     let bytecode = codegen::generate(&types, &functions, &entry);
 
-    let bytecode_path = file_path.with_extension("frisbee.bytecode");
+    let bytecode_path = Path::new(&mainfile).with_extension("frisbee.bytecode");
     let mut bytecode_file = File::create(bytecode_path).expect("Cant open file for writing");
     bytecode_file.write_all(&bytecode).expect("Cant write to file");
 
@@ -153,10 +150,9 @@ fn run_file(c: RunCommand) {
 fn main() {
     // TODO: exit codes?
     let args: TopLevel = argh::from_env();
-    let loader = 
-    match args.nested {
+    let loader = match args.nested {
         FrisbeeSubCommands::Cc(c) => compile_file(c),
         FrisbeeSubCommands::Dis(c) => dis_file(c),
         FrisbeeSubCommands::Run(c) => run_file(c),
-    }
+    };
 }
