@@ -9,7 +9,7 @@ use crate::tests::helpers::setup_and_load_program;
 fn extract_expected_err<'a>(wp: &'a WholeProgram) -> (&'a ModuleAlias, usize, &'a str) {
     let expected_error_regex = Regex::new(r"// ERR: (?P<errmsg>.+)").unwrap();
 
-    for (module_alias, file) in wp.files.iter() {
+    for (module_alias, file) in wp.modules.iter() {
         for (i, line) in file.contents.split('\n').enumerate() {
             if let Some(re_match) = expected_error_regex.captures(line) {
                 let errmsg = re_match.name("errmsg").unwrap().as_str();
@@ -28,7 +28,7 @@ pub(super) fn run_semantic_and_check_error(program: &str) {
 
     let semantic_err = semantic_res.unwrap_err();
     let (start, end) = semantic_err.error.get_position_window();
-    let error_window = adjust_error_window(&wp.files[&semantic_err.module].contents, start, end);
+    let error_window = adjust_error_window(&wp.modules[&semantic_err.module].contents, start, end);
 
     let expected_err = extract_expected_err(&wp);
     assert_eq!(

@@ -20,6 +20,10 @@ pub mod tests;
 pub mod types;
 
 // TODO: color output?
+pub fn get_loader_by_mainfile_path(mainfile: &String) -> loader::FileSystemLoader {
+    let workdir = Path::new(&mainfile).parent().unwrap();
+    loader::FileSystemLoader{workdir: workdir.to_owned()}
+}
 
 #[derive(FromArgs, PartialEq, Debug)]
 /// Top-level command.
@@ -81,15 +85,15 @@ struct RunCommand {
 
 fn compile_file(c: CompileCommand) {
     let CompileCommand { mainfile, show_intermediate, run } = c;
-    let file_path = Path::new(&mainfile);
+    let loader = get_loader_by_mainfile_path(&mainfile);
 
-    let mut wp = loader::load_program(file_path).unwrap_or_else(|(alias, source, error)| {
+    let mut wp = loader::load_modules_recursively(loader, ModuleAlias::new).unwrap_or_else(|(alias, source, error)| {
         errors::show_error_in_file(&alias, &source, error);
         panic!("See the error above!");
     });
 
     semantics::add_default_constructors(
-        wp.files
+        wp.modules
             .iter_mut()
             .flat_map(|(_, loaded_file)| loaded_file.ast.types.iter_mut()),
     );
@@ -99,7 +103,7 @@ fn compile_file(c: CompileCommand) {
         semantics::perform_semantic_analysis(&modules, &wp.main_module).unwrap_or_else(|err| {
             errors::show_error_in_file(
                 &err.module,
-                &wp.files[&err.module].contents,
+                &wp.modules[&err.module].contents,
                 Box::new(err.error),
             );
             // return 1 exit code instead of panic
@@ -149,6 +153,7 @@ fn run_file(c: RunCommand) {
 fn main() {
     // TODO: exit codes?
     let args: TopLevel = argh::from_env();
+    let loader = 
     match args.nested {
         FrisbeeSubCommands::Cc(c) => compile_file(c),
         FrisbeeSubCommands::Dis(c) => dis_file(c),
