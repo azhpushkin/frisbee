@@ -1,8 +1,6 @@
-use std::path::{PathBuf, Path};
+use std::path::{Path, PathBuf};
 
-use crate::{loader, alias};
-
-
+use crate::{alias, loader};
 
 pub struct FileSystemLoader {
     pub workdir: PathBuf,
@@ -21,7 +19,9 @@ impl loader::FrisbeeModuleLoader for FileSystemLoader {
 }
 
 // TODO: color output?
-pub fn entry_path_to_loader_and_main_module(entry_file_path: &String) -> (FileSystemLoader, alias::ModuleAlias) {
+pub fn entry_path_to_loader_and_main_module(
+    entry_file_path: &String,
+) -> (FileSystemLoader, alias::ModuleAlias) {
     // TODO: check file exist
     let entry_file_path = Path::new(entry_file_path);
     if entry_file_path.extension().unwrap() != "frisbee" {
@@ -31,13 +31,12 @@ pub fn entry_path_to_loader_and_main_module(entry_file_path: &String) -> (FileSy
         );
     };
 
-
     let workdir = entry_file_path.parent().unwrap();
-    let loader = FileSystemLoader{workdir: workdir.to_owned()};
+    let loader = FileSystemLoader { workdir: workdir.to_owned() };
 
     // TODO: check how this works under windows/macos
     let main_module = entry_file_path.file_stem().unwrap().to_str().unwrap();
-    let main_alias = alias::ModuleAlias::new(&[main_module.to_owned(), ]);
-    
+    let main_alias = alias::ModuleAlias::new(&[main_module.to_owned()]);
+
     (loader, main_alias)
 }

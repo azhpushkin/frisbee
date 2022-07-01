@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use argh::FromArgs;
 use owo_colors::OwoColorize;
@@ -150,7 +150,7 @@ fn run_file(c: RunCommand) {
 fn main() {
     // TODO: exit codes?
     let args: TopLevel = argh::from_env();
-    let loader = match args.nested {
+    match args.nested {
         FrisbeeSubCommands::Cc(c) => compile_file(c),
         FrisbeeSubCommands::Dis(c) => dis_file(c),
         FrisbeeSubCommands::Run(c) => run_file(c),

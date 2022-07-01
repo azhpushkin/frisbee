@@ -59,7 +59,7 @@ impl TestFilesCreator {
 
     pub fn load_program(&self) -> WholeProgram {
         let main_module = ModuleAlias::new(&[String::from("main")]);
-        let loader = os_loader::FileSystemLoader{workdir: self.temp_workdir.path().to_owned()};
+        let loader = os_loader::FileSystemLoader { workdir: self.temp_workdir.path().to_owned() };
         match load_modules_recursively(&loader, &main_module) {
             Ok(whole_program) => whole_program,
             Err(e) => panic!("Error loading program in {}: {}", e.0, e.2.get_message()),

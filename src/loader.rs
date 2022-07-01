@@ -9,7 +9,6 @@ pub trait FrisbeeModuleLoader {
     fn load_module(&self, module: &ModuleAlias) -> Result<String, String>;
 }
 
-
 #[derive(Debug)]
 pub struct FrisbeeModule {
     pub alias: ModuleAlias,
@@ -56,7 +55,8 @@ pub fn load_modules_recursively(
         }
 
         let contents = loader.load_module(&new_module).expect("Cannot load module");
-        let ast = parse_contents(&contents).map_err(|err| (new_module.clone(), contents.clone(), err))?;
+        let ast =
+            parse_contents(&contents).map_err(|err| (new_module.clone(), contents.clone(), err))?;
         for import_statement in ast.imports.iter() {
             modules_to_load.push(ModuleAlias::new(&import_statement.module_path))
         }
@@ -66,7 +66,7 @@ pub fn load_modules_recursively(
             FrisbeeModule { alias: new_module, contents, ast },
         );
     }
-    Ok(WholeProgram{ main_module: main_module.clone(), modules: loaded_modules })
+    Ok(WholeProgram { main_module: main_module.clone(), modules: loaded_modules })
 }
 
 pub fn check_and_aggregate(
