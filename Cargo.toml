@@ -16,3 +16,11 @@ env_logger = "0.8.4"
 [dev-dependencies]
 tempfile = "3"
 regex = "1.5"
+
+[lib]
+name = "frisbee"
+path = "src/lib.rs"
+
+[[bin]]
+name = "frisbee"
+path = "src/main.rs"
