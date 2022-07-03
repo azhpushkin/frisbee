@@ -1,68 +1,54 @@
 use super::heap::Heap;
 use super::metadata::Metadata;
 use super::utils::{f64_to_u64, u64_to_f64};
+use super::vm;
 use std::io::{self, Write};
 
-pub type RawStdRunner = for<'r, 's> fn(&'r mut [u64], &'s mut Heap, &'s Metadata) -> Vec<u64>;
+pub type RawStdRunner = for<'r, 's> fn(&'r mut [u64], &'s mut Heap, &'s Metadata, &mut vm::Output) -> Vec<u64>;
 
 pub const LIST_OF_INTS_META_FLAG: usize = 0;
 
-fn std_println(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
-    let obj = memory.get_mut(stack[0]);
-    println!("{}", obj.extract_string());
+fn std_println(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata, output: &mut vm::Output) -> Vec<u64> {
+    std_print(stack, memory, _meta, output);
+    writeln!(output);
     vec![]
 }
 
-fn std_print(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
+fn std_print(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata, output: &mut vm::Output) -> Vec<u64> {
     let obj = memory.get_mut(stack[0]);
-    print!("{}", obj.extract_string());
-    io::stdout().flush().unwrap();
+    write!(output, "{}", obj.extract_string());
+    output.flush().unwrap();
     vec![]
 }
 
-fn std_fprintln(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
+fn std_fprintln(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata, output: &mut vm::Output) -> Vec<u64> {
+    std_fprint(stack, memory, _meta, output);
+    writeln!(output);
+    vec![]
+}
+
+fn std_fprint(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata, output: &mut vm::Output) -> Vec<u64> {
     let str_with_format = memory.get(stack[0]);
     let parts = str_with_format.extract_string().split('%').collect::<Vec<_>>();
 
     let args = memory.get(stack[1]).extract_list();
     for (i, part) in parts.iter().enumerate() {
-        print!("{}", part);
+        write!(output, "{}", part);
         if i == parts.len() - 1 {
             break;
         }
         if i < args.items_amount {
             let s_ptr = args.data[i];
-            print!("{}", memory.get(s_ptr).extract_string());
+            write!(output, "{}", memory.get(s_ptr).extract_string());
         } else {
-            print!("%");
+            write!(output, "%");
         }
     }
-    println!();
+    output.flush().unwrap();
     vec![]
 }
 
-fn std_fprint(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
-    let str_with_format = memory.get(stack[0]);
-    let parts = str_with_format.extract_string().split('%').collect::<Vec<_>>();
-
-    let args = memory.get(stack[1]).extract_list();
-    for (i, part) in parts.iter().enumerate() {
-        print!("{}", part);
-        if i == parts.len() - 1 {
-            break;
-        }
-        if i < args.items_amount {
-            let s_ptr = args.data[i];
-            print!("{}", memory.get(s_ptr).extract_string());
-        } else {
-            print!("%");
-        }
-    }
-    io::stdout().flush().unwrap();
-    vec![]
-}
-
-fn std_range(stack: &mut [u64], memory: &mut Heap, meta: &Metadata) -> Vec<u64> {
+fn std_range(stack: &mut [u64], memory: &mut Heap, meta: &Metadata, output: &mut vm::Output) -> Vec<u64> {
     let start = stack[0] as i64;
     let end = stack[1] as i64;
 
@@ -77,7 +63,7 @@ fn std_range(stack: &mut [u64], memory: &mut Heap, meta: &Metadata) -> Vec<u64> 
     vec![list_pos]
 }
 
-fn std_get_input(_stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
+fn std_get_input(_stack: &mut [u64], memory: &mut Heap, _meta: &Metadata, output: &mut vm::Output) -> Vec<u64> {
     let (pos, inner) = memory.allocate_string(0);
     io::stdin().read_line(inner).expect("Failed to read line");
 
@@ -87,7 +73,7 @@ fn std_get_input(_stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec
     vec![pos]
 }
 
-fn std_bool_to_string(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
+fn std_bool_to_string(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata, output: &mut vm::Output) -> Vec<u64> {
     // Reserve for 5 chars, so both false and true fits
     // (true will have 4 of 5 chars filled, which is fine)
     let (pos, inner) = memory.allocate_string(5);
@@ -103,35 +89,35 @@ fn std_bool_to_string(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) ->
     vec![pos]
 }
 
-fn std_int_to_string(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
+fn std_int_to_string(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata, output: &mut vm::Output) -> Vec<u64> {
     let s = (stack[0] as i64).to_string();
 
     vec![memory.move_string(s).0]
 }
 
-fn std_int_to_float(stack: &mut [u64], _memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
+fn std_int_to_float(stack: &mut [u64], _memory: &mut Heap, _meta: &Metadata, output: &mut vm::Output) -> Vec<u64> {
     vec![f64_to_u64((stack[0] as i64) as f64)]
 }
 
-fn std_int_abs(stack: &mut [u64], _memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
+fn std_int_abs(stack: &mut [u64], _memory: &mut Heap, _meta: &Metadata, output: &mut vm::Output) -> Vec<u64> {
     vec![(stack[0] as i64).abs() as u64]
 }
 
-fn std_float_round(stack: &mut [u64], _memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
+fn std_float_round(stack: &mut [u64], _memory: &mut Heap, _meta: &Metadata, output: &mut vm::Output) -> Vec<u64> {
     vec![(u64_to_f64(stack[0]).round() as i64) as u64]
 }
 
-fn std_float_to_string(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
+fn std_float_to_string(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata, output: &mut vm::Output) -> Vec<u64> {
     let s = u64_to_f64(stack[0]).to_string();
 
     vec![memory.move_string(s).0]
 }
 
-fn std_float_abs(stack: &mut [u64], _memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
+fn std_float_abs(stack: &mut [u64], _memory: &mut Heap, _meta: &Metadata, output: &mut vm::Output) -> Vec<u64> {
     vec![f64_to_u64(u64_to_f64(stack[0]).abs())]
 }
 
-fn std_list_push(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
+fn std_list_push(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata, output: &mut vm::Output) -> Vec<u64> {
     let list_obj = memory.get_mut(stack[0]);
     let list = list_obj.extract_list_mut();
 
@@ -144,7 +130,7 @@ fn std_list_push(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<
     vec![]
 }
 
-fn std_list_pop(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
+fn std_list_pop(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata, output: &mut vm::Output) -> Vec<u64> {
     let list_obj = memory.get_mut(stack[0]);
     let list = list_obj.extract_list_mut();
 
@@ -162,14 +148,14 @@ fn std_list_pop(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u
     res
 }
 
-fn std_list_len(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
+fn std_list_len(stack: &mut [u64], memory: &mut Heap, _meta: &Metadata, output: &mut vm::Output) -> Vec<u64> {
     let list_obj = memory.get_mut(stack[0]);
     let list = list_obj.extract_list_mut();
 
     vec![list.items_amount as u64]
 }
 
-fn noop(_stack: &mut [u64], _memory: &mut Heap, _meta: &Metadata) -> Vec<u64> {
+fn noop(_stack: &mut [u64], _memory: &mut Heap, _meta: &Metadata, output: &mut vm::Output) -> Vec<u64> {
     panic!("not implemented yet");
 }
 

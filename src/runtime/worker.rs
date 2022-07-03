@@ -1,9 +1,11 @@
 use std::io;
-use std::sync::{mpsc, Arc};
+use std::ops::DerefMut;
+use std::sync::atomic::Ordering;
+use std::sync::{mpsc, Arc, Mutex};
 
 use crate::runtime::serialization::serialize_function_args;
 
-use super::heap;
+use super::{heap, vm};
 use super::opcodes::op;
 use super::serialization::deserialize_function_args;
 use super::stdlib_runners::STD_RAW_FUNCTION_RUNNERS;
@@ -30,8 +32,7 @@ pub struct ActiveObject {
     ip: usize,
 
     vm: Arc<Vm>,
-    step_by_step: bool,
-    show_debug: bool,
+    output: Arc<Mutex<vm::Output>>,
     gateway: mpsc::Sender<(u64, Vec<u64>)>,
 
     item_type: usize,
@@ -50,6 +51,7 @@ impl ActiveObject {
         item_type: usize,
         item_size: usize,
         vm: Arc<Vm>,
+        output: Arc<Mutex<vm::Output>>,
         gateway: mpsc::Sender<(u64, Vec<u64>)>,
     ) -> Self {
         // TODO: do something with item_size for stdlib types
@@ -58,9 +60,8 @@ impl ActiveObject {
             ip: 0,
             memory: heap::Heap::default(),
 
-            step_by_step: vm.step_by_step,
-            show_debug: vm.show_debug,
             vm,
+            output,
             gateway,
 
             item_type,
@@ -98,10 +99,12 @@ impl ActiveObject {
 
     fn call_std(&mut self, func_index: usize, locals_size: usize) {
         self.stack_pointer -= locals_size;
+        let mut x = self.output.lock().unwrap();
         let res = STD_RAW_FUNCTION_RUNNERS[func_index].1(
             &mut self.stack[self.stack_pointer..self.stack_pointer + locals_size],
             &mut self.memory,
             &self.vm.metadata,
+            x.deref_mut()
         );
         for o in res {
             push!(self, o);
@@ -167,10 +170,10 @@ impl ActiveObject {
         self.call_op(func_pos, self.stack_pointer);
 
         while self.ip < self.program.len() {
-            if self.show_debug {
+            if vm::SHOW_DEBUG.load(Ordering::Relaxed) {
                 println!(">> preparing to exec pc: {:02x?}", self.ip);
             }
-            if self.step_by_step {
+            if vm::STEP_BY_STEP.load(Ordering::Relaxed) {
                 io::stdin().read_line(&mut String::from("")).unwrap();
             }
 
@@ -459,7 +462,7 @@ impl ActiveObject {
                 }
                 _ => panic!("Unknown opcode: {}", opcode),
             }
-            if self.show_debug {
+            if vm::SHOW_DEBUG.load(Ordering::Relaxed) {
                 println!(" ## FRAME: {:?}", self.current_frame());
                 println!(" ## STACK: {:02x?}", &self.stack[0..self.stack_pointer]);
                 println!(" ## {}", &self.memory.simple_debug_view());

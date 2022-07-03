@@ -1,4 +1,5 @@
 use std::io;
+use std::sync::{Arc, Mutex};
 
 pub mod alias;
 pub mod ast;
@@ -73,7 +74,7 @@ pub fn disassemble_bytecode(bytecode: &[u8]) -> String {
     codegen::disassemble(&bytecode)
 }
 
-pub fn run_bytecode(bytecode: Vec<u8>) {
-    let vm = runtime::vm::Vm::setup(bytecode, false, false);
+pub fn run_bytecode(bytecode: Vec<u8>, output: Arc<Mutex<runtime::vm::Output>>) {
+    let vm = runtime::vm::Vm::setup(bytecode, output);
     runtime::vm::Vm::setup_entry_and_run(vm)
 }

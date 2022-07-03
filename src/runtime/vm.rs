@@ -3,12 +3,17 @@ use super::metadata::{Metadata, MetadataBlock};
 use super::opcodes::op;
 use super::worker::ActiveObject;
 
-use std::sync::{atomic, mpsc};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{atomic, mpsc, Mutex};
 use std::sync::{Arc, RwLock};
 use std::thread;
 use std::time::Duration;
 
 use owo_colors::OwoColorize;
+
+pub static SHOW_DEBUG: AtomicBool = AtomicBool::new(false);
+pub static STEP_BY_STEP: AtomicBool = AtomicBool::new(false);
+pub type Output = dyn std::io::Write + Send + Sync;
 
 pub struct StoredActiveObject {
     // pub active_object: Arc<ActiveObject>,
@@ -24,11 +29,9 @@ pub struct Vm {
     pub metadata: Metadata,
     pub entry: usize,
 
+    output: Arc<Mutex<Output>>,
     gateways_for_active: mpsc::Sender<(u64, Vec<u64>)>,
     receiver: mpsc::Receiver<(u64, Vec<u64>)>,
-
-    pub step_by_step: bool,
-    pub show_debug: bool,
 
     active_objects: RwLock<Vec<StoredActiveObject>>,
 }
@@ -36,7 +39,7 @@ pub struct Vm {
 unsafe impl Sync for Vm {}
 
 impl Vm {
-    pub fn setup(program: Vec<u8>, step_by_step: bool, show_debug: bool) -> Arc<Self> {
+    pub fn setup(program: Vec<u8>, output: Arc<Mutex<Output>>) -> Arc<Self> {
         let (sender, receiver) = mpsc::channel();
         let mut new_vm = Self {
             ip: 0,
@@ -44,10 +47,9 @@ impl Vm {
             constants: vec![],
             metadata: Metadata::default(),
             entry: 0,
-            step_by_step,
-            show_debug,
             active_objects: RwLock::new(vec![]),
 
+            output,
             gateways_for_active: sender,
             receiver,
         };
@@ -140,7 +142,7 @@ impl Vm {
             };
         }
         self.check_header("End of constants table");
-        if self.show_debug {
+        if SHOW_DEBUG.load(Ordering::Relaxed) {
             println!("Loaded constants:");
             for (i, s) in string_repr.iter().enumerate() {
                 println!("# {}  --  {}", i, s);
@@ -181,6 +183,7 @@ impl Vm {
             item_type,
             vm.metadata.types_sizes[item_type],
             vm.clone(),
+            vm.output.clone(),
             vm.gateways_for_active.clone(),
         );
 
@@ -204,10 +207,16 @@ impl Vm {
     }
 
     pub fn setup_entry_and_run(vm: Arc<Vm>) {
-        let mut active_object = ActiveObject::new(0, 0, vm.clone(), vm.gateways_for_active.clone());
+        let mut active_object = ActiveObject::new(
+            0,
+            0,
+            vm.clone(),
+            vm.output.clone(),
+            vm.gateways_for_active.clone(),
+        );
         active_object.run(vec![vm.entry as u64]);
 
-        if vm.show_debug {
+        if SHOW_DEBUG.load(Ordering::Relaxed) {
             println!("{}", "## ENTRY FINISHED!".red());
         }
 

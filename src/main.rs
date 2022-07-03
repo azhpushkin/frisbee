@@ -1,6 +1,7 @@
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
+use std::sync::{Arc, Mutex};
 
 use argh::FromArgs;
 use frisbee::os_loader;
@@ -80,7 +81,7 @@ fn compile_file(c: CompileCommand) {
 
     println!("{}", "File compiled successfully!".green());
     if run {
-        frisbee::run_bytecode(bytecode)
+        frisbee::run_bytecode(bytecode, Arc::new(Mutex::new(std::io::stdout())))
     }
 }
 
@@ -96,7 +97,7 @@ fn run_file(c: RunCommand) {
     let RunCommand { program, show_debug_info, step_by_step } = c;
 
     let bytecode = std::fs::read(program).expect("Cant read file");
-    frisbee::run_bytecode(bytecode)
+    frisbee::run_bytecode(bytecode, Arc::new(Mutex::new(std::io::stdout())))
 }
 
 fn main() {
