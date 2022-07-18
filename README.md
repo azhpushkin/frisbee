@@ -118,8 +118,8 @@ class Person {
 fun void main() {
     Person p = Person("Anton", 244);
     println(p.name_extended("Mr.") + " is of age " + p.age.to_string());
-    p.age[0] = 24;
-    println("Whoops, I meant " + p.age[0].to_string());
+    p.age = 24;
+    println("Whoops, I meant " + p.age.to_string());
 }
 
 /* EXPECTED STDOUT
